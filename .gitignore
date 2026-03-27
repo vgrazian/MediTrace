@@ -1,0 +1,19 @@
+# macOS
+.DS_Store
+
+# IDE
+.idea/
+*.iml
+
+# Android
+.gradle/
+local.properties
+captures/
+build/
+app/build/
+
+# Kotlin
+out/
+
+# Logs
+*.log

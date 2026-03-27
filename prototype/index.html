@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="it">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MediTrace Prototype</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;700;800&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap"
+        rel="stylesheet" />
+    <link rel="stylesheet" href="styles.css" />
+</head>
+
+<body>
+    <div class="shell">
+        <aside class="sidebar">
+            <div>
+                <p class="eyebrow">Comunita' di Sant'Egidio</p>
+                <h1>MediTrace</h1>
+                <p class="lead">Tracciamento farmaci e riordino con logica offline-first.</p>
+            </div>
+
+            <nav class="menu">
+                <a class="active" href="#">Dashboard</a>
+                <a href="#">Farmaci</a>
+                <a href="#">Movimenti</a>
+                <a href="#">Pazienti</a>
+                <a href="#">Ordini</a>
+                <a href="#">Sync</a>
+            </nav>
+
+            <div class="sync-card">
+                <span class="sync-dot"></span>
+                Ultima sincronizzazione: 18:05
+            </div>
+        </aside>
+
+        <main class="content">
+            <section class="hero">
+                <div>
+                    <p class="section-label">Dashboard operativa</p>
+                    <h2>Controllo rapido di scorte, urgenze e sincronizzazione.</h2>
+                </div>
+                <div class="hero-actions">
+                    <button class="primary">Registra scarico</button>
+                    <button class="secondary">Nuovo ordine</button>
+                </div>
+            </section>
+
+            <section class="stats">
+                <article class="stat accent-red">
+                    <span>Farmaci sotto soglia</span>
+                    <strong>6</strong>
+                    <small>2 critici nelle prossime 48h</small>
+                </article>
+                <article class="stat accent-amber">
+                    <span>Record in attesa sync</span>
+                    <strong>14</strong>
+                    <small>Ultimo tentativo 3 min fa</small>
+                </article>
+                <article class="stat accent-green">
+                    <span>Ordini gia' pronti</span>
+                    <strong>3</strong>
+                    <small>1 da confermare oggi</small>
+                </article>
+            </section>
+
+            <section class="grid">
+                <article class="panel large">
+                    <div class="panel-head">
+                        <h3>Priorita' riordino</h3>
+                        <a href="#">Vedi tutto</a>
+                    </div>
+                    <div class="table">
+                        <div class="row header">
+                            <span>Farmaco</span>
+                            <span>Disponibili</span>
+                            <span>Soglia</span>
+                            <span>Stato</span>
+                        </div>
+                        <div class="row">
+                            <span>Amoxicillina 1g</span>
+                            <span>12</span>
+                            <span>20</span>
+                            <span class="pill danger">Urgente</span>
+                        </div>
+                        <div class="row">
+                            <span>Insulina rapida</span>
+                            <span>8</span>
+                            <span>10</span>
+                            <span class="pill warning">Attenzione</span>
+                        </div>
+                        <div class="row">
+                            <span>Paracetamolo 500mg</span>
+                            <span>24</span>
+                            <span>25</span>
+                            <span class="pill warning">Monitorare</span>
+                        </div>
+                    </div>
+                </article>
+
+                <article class="panel">
+                    <div class="panel-head">
+                        <h3>Azioni rapide</h3>
+                    </div>
+                    <div class="quick-actions">
+                        <button>Carico magazzino</button>
+                        <button>Scarico a paziente</button>
+                        <button>Correzione giacenza</button>
+                        <button>Forza sync</button>
+                    </div>
+                </article>
+
+                <article class="panel">
+                    <div class="panel-head">
+                        <h3>Sync status</h3>
+                    </div>
+                    <ul class="timeline">
+                        <li><strong>18:05</strong> Push di 9 movimenti completato</li>
+                        <li><strong>18:02</strong> Pull delta da Google Sheets completato</li>
+                        <li><strong>17:58</strong> 5 record rimasti in coda per assenza rete</li>
+                    </ul>
+                </article>
+            </section>
+        </main>
+    </div>
+</body>
+
+</html>
