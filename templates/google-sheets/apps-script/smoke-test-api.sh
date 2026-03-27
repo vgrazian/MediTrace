@@ -6,9 +6,36 @@ set -euo pipefail
 #   WEB_APP_URL="https://script.google.com/macros/s/XXXX/exec" API_KEY="your-key" ./smoke-test-api.sh
 # Optional:
 #   GUEST_ID, REMINDER_ID, DRUG_ID, THERAPY_ID, OPERATOR_ID
+#   SMOKE_MODE=fixture|strict (default: fixture)
 
 WEB_APP_URL="${WEB_APP_URL:-}"
 API_KEY="${API_KEY:-}"
+SMOKE_MODE="${SMOKE_MODE:-fixture}"
+
+if [[ "$#" -gt 0 ]]; then
+  while [[ "$#" -gt 0 ]]; do
+    case "$1" in
+      --mode)
+        if [[ "$#" -lt 2 ]]; then
+          echo "Missing value for --mode (expected: fixture|strict)" >&2
+          exit 1
+        fi
+        SMOKE_MODE="$2"
+        shift 2
+        ;;
+      *)
+        echo "Unknown argument: $1" >&2
+        echo "Usage: ./smoke-test-api.sh [--mode fixture|strict]" >&2
+        exit 1
+        ;;
+    esac
+  done
+fi
+
+if [[ "${SMOKE_MODE}" != "fixture" && "${SMOKE_MODE}" != "strict" ]]; then
+  echo "Invalid SMOKE_MODE '${SMOKE_MODE}'. Allowed values: fixture, strict." >&2
+  exit 1
+fi
 
 if [[ -z "${WEB_APP_URL}" || -z "${API_KEY}" ]]; then
   echo "Missing WEB_APP_URL or API_KEY."
@@ -39,6 +66,7 @@ THERAPY_ID="${THERAPY_ID:-th-smoke-01}"
 GUEST_ID="${GUEST_ID:-guest-smoke-01}"
 REMINDER_ID="${REMINDER_ID:-rem-smoke-01}"
 STOCK_ITEM_ID="stock-smoke-01"
+LAST_RESPONSE=""
 
 print_header() {
   local title="$1"
@@ -148,7 +176,13 @@ perform_request() {
     exit 1
   fi
 
+  LAST_RESPONSE="${response_text}"
   echo "${response_text}" | tee /dev/stderr >/dev/null
+}
+
+extract_first_reminder_id() {
+  local response_text="$1"
+  echo "${response_text}" | grep -o '"reminderId":"[^"]*"' | head -n 1 | cut -d '"' -f 4
 }
 
 # 1) GET pull
@@ -200,32 +234,54 @@ call_post "4) POST action=operator_upsert" "action=operator_upsert" "{
 # 5) GET reminders_due
 call_get "5) GET action=reminders_due" "action=reminders_due&from=${FROM_UTC}&to=${TO_UTC}&status=DA_ESEGUIRE,POSTICIPATO"
 
-# 6) POST push reminder fixture (ensures reminder_update has a target row)
-call_post "6) POST action=push (reminder fixture)" "action=push" "{
-  \"apiKey\": \"${API_KEY}\",
-  \"requestId\": \"${RID_BASE}-push-reminder\",
-  \"deviceId\": \"android-smoke-01\",
-  \"items\": [
-    {
-      \"entity\": \"reminder\",
-      \"id\": \"${REMINDER_ID}\",
-      \"updatedAt\": \"${NOW_UTC}\",
-      \"payload\": {
-        \"reminder_id\": \"${REMINDER_ID}\",
-        \"guest_id\": \"${GUEST_ID}\",
-        \"therapy_id\": \"${THERAPY_ID}\",
-        \"drug_id\": \"${DRUG_ID}\",
-        \"scheduled_at\": \"${NOW_UTC}\",
-        \"stato\": \"DA_ESEGUIRE\",
-        \"note\": \"smoke reminder fixture\",
-        \"updated_at\": \"${NOW_UTC}\"
+if [[ "${SMOKE_MODE}" == "fixture" ]]; then
+  # 6) POST push reminder fixture (ensures reminder_update has a target row)
+  call_post "6) POST action=push (reminder fixture)" "action=push" "{
+    \"apiKey\": \"${API_KEY}\",
+    \"requestId\": \"${RID_BASE}-push-reminder\",
+    \"deviceId\": \"android-smoke-01\",
+    \"items\": [
+      {
+        \"entity\": \"reminder\",
+        \"id\": \"${REMINDER_ID}\",
+        \"updatedAt\": \"${NOW_UTC}\",
+        \"payload\": {
+          \"reminder_id\": \"${REMINDER_ID}\",
+          \"guest_id\": \"${GUEST_ID}\",
+          \"therapy_id\": \"${THERAPY_ID}\",
+          \"drug_id\": \"${DRUG_ID}\",
+          \"scheduled_at\": \"${NOW_UTC}\",
+          \"stato\": \"DA_ESEGUIRE\",
+          \"note\": \"smoke reminder fixture\",
+          \"updated_at\": \"${NOW_UTC}\"
+        }
       }
-    }
-  ]
-}"
+    ]
+  }"
+else
+  REMINDER_FROM_DUE="$(extract_first_reminder_id "${LAST_RESPONSE}" || true)"
+  if [[ -n "${REMINDER_FROM_DUE}" ]]; then
+    REMINDER_ID="${REMINDER_FROM_DUE}"
+    echo "Strict mode: using existing due reminder '${REMINDER_ID}' from action=reminders_due." >&2
+  else
+    echo "Strict mode: no due reminder found in action=reminders_due result." >&2
+    echo "Set REMINDER_ID to an existing row or run with SMOKE_MODE=fixture." >&2
+    exit 1
+  fi
+fi
 
-# 7) POST reminder_update
-call_post "7) POST action=reminder_update" "action=reminder_update" "{
+if [[ "${SMOKE_MODE}" == "fixture" ]]; then
+  REMINDER_UPDATE_STEP_LABEL="7"
+  THERAPY_STEP_LABEL="8"
+  DRUG_STEP_LABEL="9"
+else
+  REMINDER_UPDATE_STEP_LABEL="6"
+  THERAPY_STEP_LABEL="7"
+  DRUG_STEP_LABEL="8"
+fi
+
+# reminder_update
+call_post "${REMINDER_UPDATE_STEP_LABEL}) POST action=reminder_update" "action=reminder_update" "{
   \"apiKey\": \"${API_KEY}\",
   \"requestId\": \"${RID_BASE}-reminder\",
   \"operator\": \"SMK\",
@@ -238,8 +294,8 @@ call_post "7) POST action=reminder_update" "action=reminder_update" "{
   }
 }"
 
-# 8) POST therapy_upsert
-call_post "8) POST action=therapy_upsert" "action=therapy_upsert" "{
+# therapy_upsert
+call_post "${THERAPY_STEP_LABEL}) POST action=therapy_upsert" "action=therapy_upsert" "{
   \"apiKey\": \"${API_KEY}\",
   \"requestId\": \"${RID_BASE}-therapy\",
   \"operator\": \"SMK\",
@@ -259,8 +315,8 @@ call_post "8) POST action=therapy_upsert" "action=therapy_upsert" "{
   }
 }"
 
-# 9) POST drug_upsert
-call_post "9) POST action=drug_upsert" "action=drug_upsert" "{
+# drug_upsert
+call_post "${DRUG_STEP_LABEL}) POST action=drug_upsert" "action=drug_upsert" "{
   \"apiKey\": \"${API_KEY}\",
   \"requestId\": \"${RID_BASE}-drug\",
   \"operator\": \"SMK\",

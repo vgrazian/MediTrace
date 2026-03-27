@@ -22,6 +22,7 @@ fi
 
 WEB_APP_URL="${WEB_APP_URL:-${MEDITRACE_WEB_APP_URL:-$DEFAULT_WEB_APP_URL}}"
 API_KEY="${API_KEY:-${MEDITRACE_API_KEY:-$DEFAULT_API_KEY}}"
+SMOKE_MODE="${SMOKE_MODE:-${MEDITRACE_SMOKE_MODE:-fixture}}"
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -33,15 +34,21 @@ while [[ $# -gt 0 ]]; do
       API_KEY="${2:-}"
       shift 2
       ;;
+    --mode)
+      SMOKE_MODE="${2:-}"
+      shift 2
+      ;;
     -h|--help)
       cat <<'EOF'
 Usage:
   ./run-smoke-test.sh
   ./run-smoke-test.sh --url "https://script.google.com/macros/s/XXXX/exec" --key "secret"
+  ./run-smoke-test.sh --url "https://script.google.com/macros/s/XXXX/exec" --key "secret" --mode fixture
   WEB_APP_URL="https://..." API_KEY="secret" ./run-smoke-test.sh
+  WEB_APP_URL="https://..." API_KEY="secret" SMOKE_MODE="strict" ./run-smoke-test.sh
 
 Optional passthrough vars supported by smoke-test-api.sh:
-  OPERATOR_ID, DRUG_ID, THERAPY_ID, GUEST_ID, REMINDER_ID
+  OPERATOR_ID, DRUG_ID, THERAPY_ID, GUEST_ID, REMINDER_ID, SMOKE_MODE
 EOF
       exit 0
       ;;
@@ -76,4 +83,10 @@ if [[ "$WEB_APP_URL" != https://script.google.com/macros/s/*/exec ]]; then
   exit 1
 fi
 
-WEB_APP_URL="$WEB_APP_URL" API_KEY="$API_KEY" "$SCRIPT_DIR/smoke-test-api.sh"
+if [[ "$SMOKE_MODE" != "fixture" && "$SMOKE_MODE" != "strict" ]]; then
+  echo "Invalid SMOKE_MODE: $SMOKE_MODE" >&2
+  echo "Allowed values: fixture, strict" >&2
+  exit 1
+fi
+
+WEB_APP_URL="$WEB_APP_URL" API_KEY="$API_KEY" SMOKE_MODE="$SMOKE_MODE" "$SCRIPT_DIR/smoke-test-api.sh"

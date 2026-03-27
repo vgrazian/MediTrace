@@ -62,9 +62,10 @@ Se non trovi il pannello `Project Settings > Script properties` nell'editor Apps
 
 ### Utility operative
 
-- Smoke test endpoint (8 action contratto + 1 fixture reminder): `smoke-test-api.sh`
+- Smoke test endpoint (modalita' `fixture` o `strict`): `smoke-test-api.sh`
 - Wrapper smoke test con URL+key: `run-smoke-test.sh`
 - Checklist deploy Script Properties: `deployment-checklist-script-properties.md`
+- Workflow CI: `.github/workflows/apps-script-smoke.yml`
 
 Esempio rapido smoke test:
 
@@ -73,12 +74,42 @@ cd templates/google-sheets/apps-script
 WEB_APP_URL="https://script.google.com/macros/s/XXXX/exec" API_KEY="<env-key>" ./smoke-test-api.sh
 ```
 
+Modalita' smoke disponibili:
+
+- `SMOKE_MODE=fixture` (default): crea una fixture reminder prima di `reminder_update` per evitare falsi negativi su dataset vuoti.
+- `SMOKE_MODE=strict`: non crea fixture e usa solo dati gia' presenti (fallisce se non trova reminder dovuti).
+
+Esempi:
+
+```bash
+cd templates/google-sheets/apps-script
+SMOKE_MODE=fixture WEB_APP_URL="https://script.google.com/macros/s/XXXX/exec" API_KEY="<env-key>" ./smoke-test-api.sh
+SMOKE_MODE=strict WEB_APP_URL="https://script.google.com/macros/s/XXXX/exec" API_KEY="<env-key>" ./smoke-test-api.sh
+```
+
 Esempio wrapper (popola WEB_APP_URL e API_KEY e avvia il test):
 
 ```bash
 cd templates/google-sheets/apps-script
 ./run-smoke-test.sh --url "https://script.google.com/macros/s/XXXX/exec" --key "<env-key>"
+./run-smoke-test.sh --url "https://script.google.com/macros/s/XXXX/exec" --key "<env-key>" --mode strict
 ```
+
+## CI Smoke Test (GitHub Actions)
+
+Workflow disponibile in `.github/workflows/apps-script-smoke.yml`.
+
+Trigger:
+
+- manuale (`workflow_dispatch`) con input `smoke_mode`
+- schedulato giornalmente
+
+Secrets richiesti nel repository GitHub:
+
+- `MEDITRACE_WEB_APP_URL`
+- `MEDITRACE_API_KEY`
+
+Nota: per massima stabilita' in CI usare `fixture`; usare `strict` quando vuoi verificare il solo contratto senza fixture.
 
 ## Creazione Workbook Produzione/Staging
 

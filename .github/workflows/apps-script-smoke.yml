@@ -1,0 +1,36 @@
+name: Apps Script Smoke Test
+
+on:
+  workflow_dispatch:
+    inputs:
+      smoke_mode:
+        description: "Smoke mode: fixture (stable) or strict (contract-only)"
+        required: false
+        default: fixture
+        type: choice
+        options:
+          - fixture
+          - strict
+  schedule:
+    - cron: "0 6 * * *"
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    env:
+      WEB_APP_URL: ${{ secrets.MEDITRACE_WEB_APP_URL }}
+      API_KEY: ${{ secrets.MEDITRACE_API_KEY }}
+      SMOKE_MODE: ${{ github.event.inputs.smoke_mode || 'fixture' }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate required secrets
+        run: |
+          test -n "$WEB_APP_URL" || (echo "Missing secret: MEDITRACE_WEB_APP_URL" && exit 1)
+          test -n "$API_KEY" || (echo "Missing secret: MEDITRACE_API_KEY" && exit 1)
+
+      - name: Run Apps Script smoke test
+        run: |
+          chmod +x templates/google-sheets/apps-script/smoke-test-api.sh
+          templates/google-sheets/apps-script/smoke-test-api.sh --mode "$SMOKE_MODE"
