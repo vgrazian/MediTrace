@@ -17,3 +17,7 @@ out/
 
 # Logs
 *.log
+
+# Local secrets
+credentials.local.env
+.env.local
