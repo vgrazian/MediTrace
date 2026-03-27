@@ -78,7 +78,7 @@ const SECURITY_CONFIG = {
   TECHNICAL_SHEETS: ['SyncLog', 'AuditLogCentrale'],
   // Replace with real allowed editors before production hardening.
   // Invalid or non-Google users are skipped safely.
-  ALLOWED_EDITORS: ['meditace0@gmail.com', 'valeriograziani@gmail.com'],
+  ALLOWED_EDITORS: ['meditrace0@gmail.com', 'valeriograziani@gmail.com'],
 };
 
 function onOpen() {
