@@ -12,14 +12,21 @@ MediTrace segue un'architettura offline-first. Il client Android scrive sempre s
 
 Database operativo leggero. Ogni riga rappresenta un record applicativo o un evento di movimentazione.
 
-Tabelle suggerite:
+Fogli operativi proposti:
 
-- `Farmaci`
-- `Pazienti`
-- `Giacenze`
+- `CatalogoFarmaci`
+- `ConfezioniMagazzino`
+- `Ospiti`
+- `Operatori`
+- `TerapieAttive`
+- `PromemoriaSomministrazioni`
 - `Movimenti`
 - `Ordini`
+- `DashboardScorte`
 - `SyncLog`
+- `AuditLogCentrale`
+
+La struttura reale dei fogli e' documentata in `docs/google-sheets-schema.md` e nasce dalla migrazione dell'Excel oggi usato, che miscela anagrafica farmaco, giacenza per scadenza e consumi settimanali nella stessa riga.
 
 #### Google Apps Script Web App
 
@@ -31,14 +38,34 @@ Responsabilita':
 - validazione minima del payload
 - scrittura serializzata sul foglio
 - risposta JSON coerente per sincronizzazione delta
+- registrazione centralizzata degli eventi applicativi e delle modifiche clinico-operative
 
 #### Sicurezza
 
 - chiave condivisa lato client e script
 - deployment privato con accesso limitato all'utenza autorizzata
 - auditing minimo tramite foglio `SyncLog`
+- dati ospite minimizzati nel foglio `Ospiti`, con iniziali o codice interno invece del nome completo
 
 ### 2. Android client
+
+#### Vincolo dispositivi
+
+Il client deve supportare tablet Android economici, inclusi dispositivi Android Go Edition.
+
+Baseline di compatibilita':
+
+- Android 11
+- Android 12
+- Android 13
+
+Conseguenze architetturali:
+
+- query Room ottimizzate e paginazione delle liste
+- riduzione al minimo del lavoro in main thread
+- payload di sync piccoli e incrementali
+- niente dipendenze UI pesanti non necessarie
+- test su risoluzioni tablet comuni e su dispositivi a bassa memoria
 
 #### UI + Presentation
 
@@ -47,6 +74,9 @@ MVVM con ViewModel per ogni area funzionale:
 - dashboard scorte
 - anagrafica farmaci
 - pazienti in cura
+- agenda promemoria somministrazioni
+- modifica terapia e posologia per paziente
+- selezione operatore attivo da elenco e creazione operatore autorizzato
 - movimenti di carico/scarico
 - alert riordino
 
@@ -62,6 +92,11 @@ Campi trasversali raccomandati su ogni entita' sincronizzabile:
 - `isSynced`
 - `syncVersion`
 
+Include anche tabelle locali per:
+
+- promemoria terapeutici (pianificati, eseguiti, saltati)
+- audit locale delle azioni operatore da inviare al log centralizzato
+
 #### Networking
 
 - Retrofit per definire il contratto API
@@ -75,6 +110,7 @@ WorkManager esegue:
 - push dei record locali con `isSynced = false`
 - pull dei delta remoti per aggiornare Room
 - riconciliazione elementare basata su `updatedAt`
+- invio periodico dei log tecnici e operativi al foglio `AuditLogCentrale`
 
 #### Concorrenza
 
@@ -88,6 +124,33 @@ Coroutines su dispatcher I/O per database e rete.
 4. Quando c'e' rete, WorkManager invia i record al middleware.
 5. Apps Script valida la richiesta e aggiorna Google Sheets.
 6. Il client marca il record come sincronizzato e scarica eventuali delta remoti.
+
+## Flussi funzionali aggiuntivi
+
+### Alert terapeutico per paziente
+
+1. Le terapie attive generano promemoria con frequenza pianificata.
+2. L'app mostra elenco pazienti/farmaci da somministrare nel turno corrente.
+3. L'operatore registra esito: `SOMMINISTRATO`, `POSTICIPATO`, `SALTATO`.
+4. L'esito aggiorna i dati locali e viene sincronizzato su cloud.
+
+### Modifica posologia e farmaci da operatore
+
+1. L'operatore aggiorna posologia, frequenza o farmaco in terapia.
+2. Il client salva la nuova versione con `updatedAt`, `operatore` e `operatoreId` autore modifica.
+3. Il middleware aggiorna `TerapieAttive` e registra l'evento in `AuditLogCentrale`.
+
+### Logging centralizzato su Sheet
+
+1. Eventi tecnici (sync, errori, auth fail) continuano su `SyncLog`.
+2. Eventi operativi (modifica posologia, aggiunta farmaco, esito promemoria) vanno su `AuditLogCentrale`.
+3. Ogni record log include timestamp UTC, operatore, azione, entita', id record e payload sintetico.
+
+### Selezione e registrazione operatore
+
+1. All'avvio turno l'app richiede selezione `operatore` da foglio `Operatori`.
+2. Se l'operatore non esiste, puo' essere creato con endpoint dedicato e subito selezionato.
+3. Le azioni di somministrazione e variazione posologia senza `operatoreId` non devono essere confermabili.
 
 ## Scelte architetturali intenzionali
 
@@ -104,3 +167,7 @@ Coroutines su dispatcher I/O per database e rete.
 - rotazione sicura della API key
 - struttura del foglio da mantenere stabile nel tempo
 - backup periodico del foglio e dell'App Script
+- disallineamento tra logica storica dell'Excel e nuovo modello basato su movimenti/eventi
+- degrado prestazionale su tablet low-end se la UI non resta leggera o se la sync cresce troppo
+- alert non confermati in tempo su turni con connettivita' intermittente
+- conflitti su modifiche concorrenti di posologia/terapia

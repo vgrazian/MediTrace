@@ -15,12 +15,23 @@ L'architettura iniziale segue un modello offline-first:
 - rendere immediato l'inserimento dati anche senza rete
 - sincronizzare automaticamente appena disponibile una connessione
 - evidenziare scorte basse e necessita' di riordino
+- notificare al personale i promemoria di somministrazione farmaco per paziente
+- consentire all'operatore di aggiornare posologia e terapia, con sync al database centrale
+- consentire all'operatore di aggiungere nuovi farmaci al catalogo centrale
+- mantenere un logging centralizzato su Google Sheets per audit operativo
 - mantenere costi e complessita' operativa minimi
+
+## Vincoli di piattaforma
+
+- l'app deve funzionare su tablet Android economici
+- target minimo: Android 11, 12 e 13 (incluse varianti Android Go Edition)
+- UX e prestazioni devono restare stabili anche con RAM ridotta e CPU entry-level
 
 ## Struttura del repository
 
 - `docs/architecture.md`: architettura tecnica iniziale
 - `docs/domain-model.md`: modello dati e tabelle principali
+- `docs/google-sheets-schema.md`: schema reale dei fogli Google
 - `docs/roadmap.md`: primi passi di consegna
 - `docs/google-apps-script-api.md`: contratto API del middleware
 - `docs/ui-wireframes.md`: schermate iniziali e flussi UX
@@ -44,4 +55,4 @@ Aprire `prototype/index.html` nel browser per visualizzare una prima proposta gr
 2. Avviare il client Android con moduli `app`, `data`, `sync`.
 3. Preparare il foglio Google con le tabelle operative.
 4. Pubblicare una prima Web App Apps Script protetta da API key.
-5. Implementare il flusso minimo: anagrafica farmaco, movimento, alert scorte.
+5. Implementare il flusso minimo: anagrafica farmaco, posologie, promemoria paziente, movimento, alert scorte.

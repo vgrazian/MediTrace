@@ -1,0 +1,1 @@
+audit_id,timestamp,operatore,azione,entity_type,entity_id,patient_id,before_json,after_json,esito,source,updated_at
