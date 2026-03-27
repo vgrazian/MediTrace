@@ -21,6 +21,8 @@
 - alert riordino
 - sync push/pull basilare
 - verifica prestazioni su hardware entry-level (avvio, scrolling liste, sync)
+- layout responsive verificato su telefono e tablet
+- prima procedura di backup manuale e test restore
 
 ## Fase 2 - Robustezza
 
@@ -29,6 +31,8 @@
 - gestione conflitti
 - backup e ripristino
 - ruoli utente minimi
+- pipeline rilascio aggiornamenti con migrazioni schema testate
+- checklist regressione UI multi-form-factor per ogni release
 
 ## Fase 3 - Efficienza operativa
 
@@ -47,3 +51,5 @@
 6. Modello/i di tablet economico da usare come riferimento per i test reali.
 7. Finestra temporale dei promemoria (anticipo, ritardo ammesso, escalation).
 8. Livello di dettaglio dei dati da salvare nel log operativo centralizzato.
+9. Canale di aggiornamento app (Play privata, MDM, sideload controllato).
+10. Frequenza backup e responsabilita' operativa del restore.

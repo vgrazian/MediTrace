@@ -59,6 +59,11 @@ Baseline di compatibilita':
 - Android 12
 - Android 13
 
+Form factor supportati:
+
+- telefoni Android (small/normal)
+- tablet Android (large/xlarge)
+
 Conseguenze architetturali:
 
 - query Room ottimizzate e paginazione delle liste
@@ -66,6 +71,8 @@ Conseguenze architetturali:
 - payload di sync piccoli e incrementali
 - niente dipendenze UI pesanti non necessarie
 - test su risoluzioni tablet comuni e su dispositivi a bassa memoria
+- layout responsive con varianti per compact e expanded width
+- componenti riusabili con comportamento adattivo (lista, dettaglio, azioni rapide)
 
 #### UI + Presentation
 
@@ -79,6 +86,13 @@ MVVM con ViewModel per ogni area funzionale:
 - selezione operatore attivo da elenco e creazione operatore autorizzato
 - movimenti di carico/scarico
 - alert riordino
+
+Requisiti UI adattiva:
+
+- singola codebase UI con breakpoints per telefono/tablet
+- navigazione semplificata su telefono e split-view su tablet quando possibile
+- supporto orientamento portrait e landscape
+- densita' informativa regolabile senza perdita di leggibilita'
 
 #### Local persistence
 
@@ -111,6 +125,24 @@ WorkManager esegue:
 - pull dei delta remoti per aggiornare Room
 - riconciliazione elementare basata su `updatedAt`
 - invio periodico dei log tecnici e operativi al foglio `AuditLogCentrale`
+
+#### Backup e ripristino
+
+Strategia minima:
+
+- backup cloud: Google Sheets + Apps Script versionato
+- backup locale: export cifrato periodico del database Room (quando richiesto da policy)
+- procedura di restore guidata con verifica integrita' prima della riattivazione sync
+- test periodico di ripristino su dispositivo secondario
+
+#### Aggiornabilita' applicazione
+
+Strategia minima:
+
+- versionamento semantico app e schema dati
+- migrazioni Room obbligatorie e testate per ogni release
+- rollout progressivo (pilot su 1-2 dispositivi prima del rollout completo)
+- fallback: possibilita' di rollback alla release precedente in caso di regressioni
 
 #### Concorrenza
 
@@ -171,3 +203,5 @@ Coroutines su dispatcher I/O per database e rete.
 - degrado prestazionale su tablet low-end se la UI non resta leggera o se la sync cresce troppo
 - alert non confermati in tempo su turni con connettivita' intermittente
 - conflitti su modifiche concorrenti di posologia/terapia
+- regressioni UI su form factor diversi se manca una matrice test device/schermo
+- restore incompleto o mismatch di versione schema dopo aggiornamenti app
