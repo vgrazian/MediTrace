@@ -50,26 +50,45 @@ Evidenze raccolte (2026-03-27):
 
 ### 1.3 Middleware Apps Script base
 
-- [ ] Implementare check API key
-- [ ] Implementare routing `action` su GET/POST
-- [ ] Implementare idempotenza con `requestId`
-- [ ] Implementare endpoint operatori (`operators_list`, `operator_upsert`)
-- [ ] Implementare endpoint promemoria (`reminders_due`, `reminder_update`)
-- [ ] Implementare endpoint terapia/farmaco (`therapy_upsert`, `drug_upsert`)
-- [ ] Implementare endpoint audit (`audit_log`)
+- [x] Implementare check API key
+- [x] Implementare routing `action` su GET/POST
+- [x] Implementare idempotenza con `requestId`
+- [x] Implementare endpoint operatori (`operators_list`, `operator_upsert`)
+- [x] Implementare endpoint promemoria (`reminders_due`, `reminder_update`)
+- [x] Implementare endpoint terapia/farmaco (`therapy_upsert`, `drug_upsert`)
+- [x] Implementare endpoint audit (`audit_log`) dedicato
+
+Stato operativo:
+
+- middleware API operativo in `templates/google-sheets/apps-script/MediTraceApi.gs`
+- smoke test operativo in modalita' `fixture` e `strict` via `templates/google-sheets/apps-script/smoke-test-api.sh`
+- workflow CI attivo in `.github/workflows/apps-script-smoke.yml`
 
 Criterio accettazione:
 
 - test manuale endpoint con risposta `200` e scrittura corretta su fogli
 
+Evidenze raccolte (2026-03-27):
+
+- validazione endpoint: `docs/apps-script-endpoint-validation-2026-03-27.md`
+- playbook operativo CI/segreti/branch protection: `docs/operationalization-playbook.md`
+- commit API+smoke+android scaffold: `9687e3b`
+- commit CI smoke + modalita' strict/fixture: `9f5aa4e`
+
 ## Fase 2 - MVP Android (Settimana 2-3)
 
 ### 2.1 Fondazione app
 
-- [ ] Inizializzare progetto Android Kotlin
-- [ ] Configurare Room + Retrofit + OkHttp + WorkManager
+- [x] Inizializzare progetto Android Kotlin
+- [x] Configurare Room + Retrofit + OkHttp + WorkManager
 - [ ] Impostare migrazione schema Room v1
-- [ ] Configurare build variant `staging` e `prod`
+- [x] Configurare build variant `staging` e `prod`
+
+Stato operativo:
+
+- scaffold multi-modulo creato in `android/` (app, data, sync)
+- build variant `staging`/`prod` presenti
+- integrazione flussi MVP ancora da completare
 
 Criterio accettazione:
 

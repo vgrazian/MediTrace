@@ -38,6 +38,7 @@ Il file `MediTraceApi.gs` aggiunge endpoint Web App con router `action`:
 - `POST action=reminder_update`
 - `POST action=therapy_upsert`
 - `POST action=drug_upsert`
+- `POST action=audit_log`
 
 Note operative:
 
@@ -62,7 +63,7 @@ Se non trovi il pannello `Project Settings > Script properties` nell'editor Apps
 
 ### Utility operative
 
-- Smoke test endpoint (modalita' `fixture` o `strict`): `smoke-test-api.sh`
+- Smoke test endpoint (9 action contratto, modalita' `fixture` o `strict`): `smoke-test-api.sh`
 - Wrapper smoke test con URL+key: `run-smoke-test.sh`
 - Checklist deploy Script Properties: `deployment-checklist-script-properties.md`
 - Workflow CI: `.github/workflows/apps-script-smoke.yml`

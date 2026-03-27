@@ -28,6 +28,7 @@ const API_POST_ROUTES = {
 	reminder_update: apiHandleReminderUpdate_,
 	therapy_upsert: apiHandleTherapyUpsert_,
 	drug_upsert: apiHandleDrugUpsert_,
+	audit_log: apiHandleAuditLog_,
 };
 
 const API_ENTITY_WRITE_MAP = {
@@ -459,6 +460,37 @@ function apiHandleDrugUpsert_(request) {
 	};
 }
 
+function apiHandleAuditLog_(request) {
+	const auditInput = request.body.audit && typeof request.body.audit === 'object' ? request.body.audit : {};
+	const operatorId = apiAsText_(request.body.operatorId) || apiAsText_(auditInput.operatorId);
+	if (!operatorId) {
+		return apiErrorPayload_('FORBIDDEN', 'operatorId obbligatorio.', 403);
+	}
+
+	const auditAction = apiAsText_(auditInput.action) || 'AUDIT_LOG';
+	const auditId = apiWriteAudit_({
+		operator: apiAsText_(request.body.operator) || apiAsText_(auditInput.operator) || operatorId,
+		operatorId: operatorId,
+		action: auditAction,
+		entityType: apiAsText_(auditInput.entityType),
+		entityId: apiAsText_(auditInput.entityId),
+		patientId: apiAsText_(auditInput.patientId),
+		beforeJson: apiToJsonString_(auditInput.beforeJson != null ? auditInput.beforeJson : auditInput.before),
+		afterJson: apiToJsonString_(auditInput.afterJson != null ? auditInput.afterJson : auditInput.after),
+		outcome: apiAsText_(auditInput.outcome) || 'OK',
+		source: apiAsText_(auditInput.source) || 'APP',
+	});
+
+	apiLogSync_('PUSH', 'audit', 1, 'OK', 'audit log scritto', apiAsText_(request.body.deviceId) || 'api');
+
+	return {
+		ok: true,
+		auditId: auditId,
+		action: auditAction,
+		serverTime: apiNowIso_(),
+	};
+}
+
 function apiAuthorize_(e, body) {
 	// Apps Script web app event does not expose custom HTTP headers reliably.
 	// For this reason, key can be sent as query param `apiKey` or body `apiKey`.
@@ -793,6 +825,16 @@ function apiToNumber_(value) {
 	if (value == null || value === '') return 0;
 	const parsed = Number(String(value).replace(',', '.'));
 	return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function apiToJsonString_(value) {
+	if (value == null || value === '') return '';
+	if (typeof value === 'string') return value;
+	try {
+		return JSON.stringify(value);
+	} catch (err) {
+		return apiAsText_(value);
+	}
 }
 
 function apiAsText_(value) {

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# MediTrace Web API smoke test (8 contract actions)
+# MediTrace Web API smoke test (9 contract actions)
 # Usage:
 #   WEB_APP_URL="https://script.google.com/macros/s/XXXX/exec" API_KEY="your-key" ./smoke-test-api.sh
 # Optional:
@@ -274,10 +274,12 @@ if [[ "${SMOKE_MODE}" == "fixture" ]]; then
   REMINDER_UPDATE_STEP_LABEL="7"
   THERAPY_STEP_LABEL="8"
   DRUG_STEP_LABEL="9"
+  AUDIT_STEP_LABEL="10"
 else
   REMINDER_UPDATE_STEP_LABEL="6"
   THERAPY_STEP_LABEL="7"
   DRUG_STEP_LABEL="8"
+  AUDIT_STEP_LABEL="9"
 fi
 
 # reminder_update
@@ -323,11 +325,34 @@ call_post "${DRUG_STEP_LABEL}) POST action=drug_upsert" "action=drug_upsert" "{
   \"operatorId\": \"${OPERATOR_ID}\",
   \"drug\": {
     \"drugId\": \"${DRUG_ID}\",
-    \"principioAttivo\": \"Principio Smoke\",
+      \"action\": \"SYNC_EVENT\",
     \"classeTerapeutica\": \"Generico\",
     \"defaultMinStock\": 10,
     \"supplier\": \"Deposito\",
     \"notes\": \"smoke test\"
+  }
+}"
+
+# audit_log
+call_post "${AUDIT_STEP_LABEL}) POST action=audit_log" "action=audit_log" "{
+  \"apiKey\": \"${API_KEY}\",
+  \"requestId\": \"${RID_BASE}-audit\",
+  \"operator\": \"SMK\",
+  \"operatorId\": \"${OPERATOR_ID}\",
+  \"deviceId\": \"android-smoke-01\",
+  \"audit\": {
+    \"action\": \"SYNC_EVENT\",
+    \"entityType\": \"SmokeTest\",
+    \"entityId\": \"audit-smoke-01\",
+    \"patientId\": \"${GUEST_ID}\",
+    \"before\": {
+      \"status\": \"before\"
+    },
+    \"after\": {
+      \"status\": \"after\"
+    },
+    \"outcome\": \"OK\",
+    \"source\": \"APP\"
   }
 }"
 
