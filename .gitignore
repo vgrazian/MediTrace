@@ -21,3 +21,8 @@ out/
 # Local secrets
 credentials.local.env
 .env.local
+
+# PWA
+pwa/node_modules/
+pwa/dist/
+pwa/dev-dist/
