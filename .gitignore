@@ -26,3 +26,6 @@ credentials.local.env
 pwa/node_modules/
 pwa/dist/
 pwa/dev-dist/
+
+# Local working notes
+TODO.md

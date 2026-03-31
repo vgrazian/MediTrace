@@ -9,7 +9,7 @@ Orizzonte: 5 giorni lavorativi
 - `PM`: coordinamento e avanzamento daily
 - `Frontend-Lead`: bootstrap PWA e shell applicativa
 - `Data-Owner`: modello dati, mapping Excel, validazioni dataset
-- `Auth-Lead`: Google OAuth + Drive API
+- `Auth-Lead`: GitHub PAT + Gist API
 - `QA-Ops`: test evidenze e gate sicurezza base
 
 ## Piano operativo (giorno per giorno)
@@ -66,3 +66,64 @@ Prossimo passo:
 Blocco:
 Evidenza link:
 ```
+
+## Checklist Avvio Prossima Sessione (Week 2) - Copy/Paste
+
+### 1) Setup locale e avvio applicazione
+
+```bash
+cd /Users/valer/dev/medi-trace
+git checkout main
+git pull origin main
+npm --prefix pwa install
+npm --prefix pwa run dev
+```
+
+### 2) Aprire backlog Week 2 (milestone + issue prioritarie)
+
+```text
+Milestone: https://github.com/vgrazian/MediTrace/milestone/1
+E3: https://github.com/vgrazian/MediTrace/issues/1
+E4: https://github.com/vgrazian/MediTrace/issues/2
+E8: https://github.com/vgrazian/MediTrace/issues/3
+```
+
+### 3) Creare branch di lavoro per E3 (prima priorita')
+
+```bash
+cd /Users/valer/dev/medi-trace
+git checkout -b feat/e3-conflict-resolution
+```
+
+### 4) Scope tecnico minimo E3 (sessione corrente)
+
+```text
+- Estendere merge engine in pwa/src/services/sync.js
+- Restituire payload conflitti strutturato su campi critici
+- Aggiungere UI minima compare/resolve in pwa/src/views/ImpostazioniView.vue (o view dedicata)
+- Salvare esito risoluzione in activityLog
+```
+
+### 5) Comandi di controllo durante sviluppo
+
+```bash
+cd /Users/valer/dev/medi-trace
+npm --prefix pwa run build
+git status --short
+```
+
+### 6) Chiusura sessione e handoff
+
+```bash
+cd /Users/valer/dev/medi-trace
+git add pwa docs
+git commit -m "feat(e3): guided conflict resolution baseline"
+git push -u origin feat/e3-conflict-resolution
+```
+
+Checklist handoff (compilare prima di chiudere):
+
+- [ ] build PWA verde
+- [ ] issue E3 aggiornata con note/test svolti
+- [ ] eventuali blocker annotati su issue E3
+- [ ] prossima azione esplicita per ripartenza sessione
