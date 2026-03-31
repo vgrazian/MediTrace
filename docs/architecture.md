@@ -1,207 +1,195 @@
-# Architettura Iniziale
+# Architettura v2 - PWA multi-dispositivo
 
 ## Visione d'insieme
 
-MediTrace segue un'architettura offline-first. Il client Android scrive sempre sul database locale; la sincronizzazione con il cloud avviene in background tramite un worker periodico.
+MediTrace adotta un'architettura offline-first basata su web app installabile. La UI gira come PWA pubblicata su GitHub Pages; ogni dispositivo salva subito i dati in IndexedDB e sincronizza una copia condivisa del dataset in un Gist GitHub privato dell'utente autenticato.
+
+Questa scelta sostituisce il precedente disegno Android + Apps Script + Google Sheets per allinearsi ai requisiti tecnici correnti:
+
+- accesso da piu' dispositivi con lo stesso account GitHub
+- nessuna password proprietaria
+- nessun server intermedio che legga i dati clinico-operativi
+- installazione come app su smartphone e desktop
+- costo operativo vicino a zero
 
 ## Livelli del sistema
 
-### 1. Cloud stack
+### 1. Frontend PWA
 
-#### Google Sheets
+Stack applicativo:
 
-Database operativo leggero. Ogni riga rappresenta un record applicativo o un evento di movimentazione.
-
-Fogli operativi proposti:
-
-- `CatalogoFarmaci`
-- `ConfezioniMagazzino`
-- `Ospiti`
-- `Operatori`
-- `TerapieAttive`
-- `PromemoriaSomministrazioni`
-- `Movimenti`
-- `Ordini`
-- `DashboardScorte`
-- `SyncLog`
-- `AuditLogCentrale`
-
-La struttura reale dei fogli e' documentata in `docs/google-sheets-schema.md` e nasce dalla migrazione dell'Excel oggi usato, che miscela anagrafica farmaco, giacenza per scadenza e consumi settimanali nella stessa riga.
-
-#### Google Apps Script Web App
-
-Espone endpoint HTTP per lettura e scrittura.
+- Vue.js 3
+- Vite
+- plugin PWA per service worker, manifest e installabilita'
+- Dexie.js sopra IndexedDB per persistenza locale
 
 Responsabilita':
 
-- validazione API key tramite header `X-API-KEY`
-- validazione minima del payload
-- scrittura serializzata sul foglio
-- risposta JSON coerente per sincronizzazione delta
-- registrazione centralizzata degli eventi applicativi e delle modifiche clinico-operative
+- rendering UI responsive su telefono, tablet e desktop
+- accesso offline immediato alle viste principali
+- gestione stato locale e coda operazioni non sincronizzate
+- autenticazione browser con token personale GitHub (PAT)
+- export manuale JSON per backup locale
 
-#### Sicurezza
+### 2. Storage locale
 
-- chiave condivisa lato client e script
-- deployment privato con accesso limitato all'utenza autorizzata
-- auditing minimo tramite foglio `SyncLog`
-- dati ospite minimizzati nel foglio `Ospiti`, con iniziali o codice interno invece del nome completo
+IndexedDB e' la fonte primaria durante l'uso quotidiano. Ogni modifica utente viene confermata localmente prima di qualsiasi chiamata remota.
 
-### 2. Android client
+Store principali raccomandati:
 
-#### Vincolo dispositivi
+- `settings`
+- `hosts`
+- `drugs`
+- `stockBatches`
+- `therapies`
+- `movements`
+- `reminders`
+- `syncQueue`
+- `syncState`
+- `activityLog`
 
-Il client deve supportare tablet Android economici, inclusi dispositivi Android Go Edition.
-
-Baseline di compatibilita':
-
-- Android 11
-- Android 12
-- Android 13
-
-Form factor supportati:
-
-- telefoni Android (small/normal)
-- tablet Android (large/xlarge)
-
-Conseguenze architetturali:
-
-- query Room ottimizzate e paginazione delle liste
-- riduzione al minimo del lavoro in main thread
-- payload di sync piccoli e incrementali
-- niente dipendenze UI pesanti non necessarie
-- test su risoluzioni tablet comuni e su dispositivi a bassa memoria
-- layout responsive con varianti per compact e expanded width
-- componenti riusabili con comportamento adattivo (lista, dettaglio, azioni rapide)
-
-#### UI + Presentation
-
-MVVM con ViewModel per ogni area funzionale:
-
-- dashboard scorte
-- anagrafica farmaci
-- pazienti in cura
-- agenda promemoria somministrazioni
-- modifica terapia e posologia per paziente
-- selezione operatore attivo da elenco e creazione operatore autorizzato
-- movimenti di carico/scarico
-- alert riordino
-
-Requisiti UI adattiva:
-
-- singola codebase UI con breakpoints per telefono/tablet
-- navigazione semplificata su telefono e split-view su tablet quando possibile
-- supporto orientamento portrait e landscape
-- densita' informativa regolabile senza perdita di leggibilita'
-
-#### Local persistence
-
-Room gestisce la persistenza locale e i flag di sincronizzazione.
-
-Campi trasversali raccomandati su ogni entita' sincronizzabile:
+Campi trasversali raccomandati per ogni entita' sincronizzabile:
 
 - `id`
 - `updatedAt`
 - `deletedAt`
-- `isSynced`
-- `syncVersion`
+- `lastModifiedByDevice`
+- `lastModifiedByUser`
+- `syncStatus`
+- `version`
 
-Include anche tabelle locali per:
+### 3. Storage cloud personale
 
-- promemoria terapeutici (pianificati, eseguiti, saltati)
-- audit locale delle azioni operatore da inviare al log centralizzato
+Il cloud condiviso tra dispositivi e' un Gist GitHub privato di proprieta' dell'utente. Il Gist non e' pubblico e resta accessibile solo ai dispositivi autenticati con lo stesso account e token autorizzato.
 
-#### Networking
+File minimi previsti:
 
-- Retrofit per definire il contratto API
-- OkHttp con interceptor per aggiungere `X-API-KEY`
-- timeout brevi e retry controllati
+- `meditrace-manifest.json`: metadata globali, schema version, versione dataset, device registry
+- `meditrace-data.json`: snapshot canonico del dataset
+- `meditrace-backup-YYYYMMDD.json`: backup espliciti creati su richiesta
 
-#### Sync engine
+Il `manifest` serve a evitare che ogni client lavori alla cieca: contiene `datasetVersion`, `updatedAt`, `updatedByDevice`, `checksum` e metadata di sincronizzazione.
 
-WorkManager esegue:
+### 4. Integrazione GitHub
 
-- push dei record locali con `isSynced = false`
-- pull dei delta remoti per aggiornare Room
-- riconciliazione elementare basata su `updatedAt`
-- invio periodico dei log tecnici e operativi al foglio `AuditLogCentrale`
+Autenticazione e autorizzazioni:
 
-#### Backup e ripristino
+- GitHub Personal Access Token (PAT) dedicato all'app
+- permesso minimo richiesto: `gists` (read/write)
+- nessuna password applicativa salvata o gestita da MediTrace
 
-Strategia minima:
+Responsabilita':
 
-- backup cloud: Google Sheets + Apps Script versionato
-- backup locale: export cifrato periodico del database Room (quando richiesto da policy)
-- procedura di restore guidata con verifica integrita' prima della riattivazione sync
-- test periodico di ripristino su dispositivo secondario
+- login/logout browser
+- rinnovo sessione
+- individuazione file applicativi nel Gist privato
+- upload e download dataset
 
-#### Aggiornabilita' applicazione
+## Approccio multi-dispositivo
 
-Strategia minima:
+### Modello di sincronizzazione
 
-- versionamento semantico app e schema dati
-- migrazioni Room obbligatorie e testate per ogni release
-- rollout progressivo (pilot su 1-2 dispositivi prima del rollout completo)
-- fallback: possibilita' di rollback alla release precedente in caso di regressioni
+Per supportare uso da PC, smartphone e tablet senza backend dedicato, MediTrace usa un modello a snapshot condiviso con merge locale:
 
-#### Concorrenza
+1. ogni dispositivo scrive subito su IndexedDB e accoda l'operazione in `syncQueue`
+2. al salvataggio o al ritorno della connettivita', il client legge il `manifest` remoto
+3. se il `datasetVersion` remoto coincide con quello noto localmente, il client genera un nuovo snapshot e lo carica sul Gist
+4. se il remoto e' piu' nuovo, il client scarica `meditrace-data.json`, esegue merge locale e solo dopo tenta un nuovo upload
+5. dopo upload riuscito, il client aggiorna il `manifest` con nuova versione e metadata dispositivo
 
-Coroutines su dispatcher I/O per database e rete.
+Questo approccio evita lock permanenti e rimane sostenibile per 1-2 utenti e dataset ridotto.
+
+### Regole di merge
+
+Per ridurre conflitti tra dispositivi:
+
+- entita' anagrafiche e terapie: `last-write-wins` basato su `updatedAt`, con salvataggio del record precedente in `activityLog`
+- movimenti e reminder completati: append-only, mai sovrascritti se hanno `id` diverso
+- cancellazioni: sempre logiche tramite `deletedAt`, mai hard delete immediata
+- conflitti veri sullo stesso record: il client conserva la copia locale, mostra la copia remota e richiede risoluzione guidata solo se i campi critici divergono
+
+Campi critici per conflitto esplicito:
+
+- posologia
+- frequenza terapia
+- quantita' residua manualmente corretta
+- scadenza confezione
+
+### Device identity
+
+Ogni installazione PWA genera un `deviceId` stabile, salvato localmente e registrato nel `manifest` remoto insieme a:
+
+- `deviceLabel`
+- `platform`
+- `firstSeenAt`
+- `lastSyncAt`
+
+Questo serve a capire da quale dispositivo arriva l'ultima modifica e a supportare troubleshooting minimo senza server centrale.
 
 ## Flusso dati principale
 
-1. L'operatore registra un movimento o aggiorna una giacenza.
-2. Il client salva subito il dato in Room con `isSynced = false`.
-3. La UI mostra subito il nuovo stato locale.
-4. Quando c'e' rete, WorkManager invia i record al middleware.
-5. Apps Script valida la richiesta e aggiorna Google Sheets.
-6. Il client marca il record come sincronizzato e scarica eventuali delta remoti.
+1. L'operatore registra un movimento o modifica una terapia.
+2. La PWA salva subito il dato in IndexedDB con `syncStatus = pending`.
+3. La UI aggiorna immediatamente scorte, residui e alert.
+4. Se la rete e' disponibile, il client confronta il `manifest` remoto nel Gist.
+5. Se necessario scarica il dataset piu' recente, esegue merge e ricalcola le viste derivate.
+6. Il client carica il nuovo `meditrace-data.json` e aggiorna il `manifest`.
+7. Tutti gli altri dispositivi rilevano la nuova `datasetVersion` al successivo avvio, refresh o resume dell'app.
 
-## Flussi funzionali aggiuntivi
+## Flussi funzionali chiave
 
-### Alert terapeutico per paziente
+### Scorte e consumo settimanale
 
-1. Le terapie attive generano promemoria con frequenza pianificata.
-2. L'app mostra elenco pazienti/farmaci da somministrare nel turno corrente.
-3. L'operatore registra esito: `SOMMINISTRATO`, `POSTICIPATO`, `SALTATO`.
-4. L'esito aggiorna i dati locali e viene sincronizzato su cloud.
+1. Ogni confezione mantiene principio attivo, nome commerciale, dosaggio, scadenza e quantita' residua.
+2. Il consumo settimanale previsto viene usato per evidenziare rischio esaurimento.
+3. Quando il residuo scende sotto il consumo settimanale, la UI passa in stato warning.
+4. Quando il residuo raggiunge zero, la riga viene marcata come esaurita e puo' essere archiviata logicamente.
 
-### Modifica posologia e farmaci da operatore
+### Terapie ospiti
 
-1. L'operatore aggiorna posologia, frequenza o farmaco in terapia.
-2. Il client salva la nuova versione con `updatedAt`, `operatore` e `operatoreId` autore modifica.
-3. Il middleware aggiorna `TerapieAttive` e registra l'evento in `AuditLogCentrale`.
+1. Gli ospiti sono identificati con iniziali o codice interno per minimizzare dati personali.
+2. Le terapie attive generano reminder locali in base alla frequenza pianificata.
+3. Gli esiti `SOMMINISTRATO`, `POSTICIPATO`, `SALTATO` sono sincronizzati tra dispositivi.
 
-### Logging centralizzato su Sheet
+### Apertura su un secondo dispositivo
 
-1. Eventi tecnici (sync, errori, auth fail) continuano su `SyncLog`.
-2. Eventi operativi (modifica posologia, aggiunta farmaco, esito promemoria) vanno su `AuditLogCentrale`.
-3. Ogni record log include timestamp UTC, operatore, azione, entita', id record e payload sintetico.
+1. L'utente effettua login con lo stesso account GitHub.
+2. La PWA crea il proprio `deviceId` e cerca i file nel Gist privato.
+3. Se trova un dataset remoto piu' recente del locale, lo scarica prima di mostrare le viste operative.
+4. Se il dispositivo e' nuovo ma il cloud e' vuoto, puo' inizializzare il dataset solo dopo conferma esplicita.
 
-### Selezione e registrazione operatore
+## Backup e ripristino
 
-1. All'avvio turno l'app richiede selezione `operatore` da foglio `Operatori`.
-2. Se l'operatore non esiste, puo' essere creato con endpoint dedicato e subito selezionato.
-3. Le azioni di somministrazione e variazione posologia senza `operatoreId` non devono essere confermabili.
+Strategia minima:
+
+- backup automatico implicito nel file remoto piu' recente nel Gist
+- backup manuale locale tramite export JSON scaricabile
+- restore guidato da file locale o da snapshot Gist precedente
+- verifica di `schemaVersion` prima di importare dati
+
+## Aggiornabilita' applicazione
+
+Strategia minima:
+
+- versionamento semantico della PWA
+- `schemaVersion` nei file remoti per gestire migrazioni dati
+- migration step eseguiti al bootstrap locale prima della sync
+- rilascio continuo su GitHub Pages con rollback all'ultima build valida
 
 ## Scelte architetturali intenzionali
 
-- niente server dedicato
-- niente database cloud tradizionale
-- complessita' operativa molto bassa
-- costo vicino a zero nel perimetro attuale
-- adatto a un numero ristretto di utenti concorrenti
+- nessun backend custom
+- nessun database cloud leggibile da terzi
+- una sola codebase per desktop e mobile
+- compatibilita' naturale multi-dispositivo via browser
+- costi nulli o molto vicini a zero nel perimetro previsto
 
 ## Rischi da gestire presto
 
-- conflitti di modifica sullo stesso record
-- gestione delle cancellazioni logiche
-- rotazione sicura della API key
-- struttura del foglio da mantenere stabile nel tempo
-- backup periodico del foglio e dell'App Script
-- disallineamento tra logica storica dell'Excel e nuovo modello basato su movimenti/eventi
-- degrado prestazionale su tablet low-end se la UI non resta leggera o se la sync cresce troppo
-- alert non confermati in tempo su turni con connettivita' intermittente
-- conflitti su modifiche concorrenti di posologia/terapia
-- regressioni UI su form factor diversi se manca una matrice test device/schermo
-- restore incompleto o mismatch di versione schema dopo aggiornamenti app
+- conflitti su modifiche concorrenti alla stessa terapia
+- corruzione logica del dataset se manca validazione pre-upload
+- token PAT revocato o scaduto durante sync in background
+- rate limit GitHub API su retry troppo aggressivi
+- restore di file JSON con schema obsoleto
+- assenza di cifratura client-side se in futuro il livello privacy dovesse essere alzato ulteriormente
+- regressioni offline se service worker e migrazioni IndexedDB non vengono testati insieme

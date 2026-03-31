@@ -1,3 +1,7 @@
+> ⚠️ **DOCUMENTO STORICO — SUPERATO**
+> Questo documento riporta la validazione degli endpoint Apps Script dell'architettura precedente (Android + Apps Script + Google Sheets).
+> Non è più la baseline di implementazione. Riferirsi a [architecture.md](architecture.md) per l'architettura corrente (PWA + IndexedDB + Google Drive).
+
 # Validazione Endpoint Apps Script vs Contratto API
 
 Data verifica: 2026-03-27

@@ -1,101 +1,97 @@
 # MediTrace Operationalization Playbook
 
-Data: 2026-03-27
-Ambito: stabilizzazione operativa dopo rilascio API Apps Script + smoke test CI
+Data: 2026-03-31
+Ambito: stabilizzazione operativa dopo rilascio PWA + sync Google Drive + deploy GitHub Pages
 
 ## Obiettivo
 
 Passare da implementazione funzionante a esercizio operativo ripetibile e controllato:
 
-- test automatici backend affidabili
-- segreti gestiti correttamente
+- test automatici frontend e sync affidabili
+- segreti e configurazioni OAuth gestiti correttamente
 - policy di merge protette
 - evidenze di rilascio tracciabili
 
 ## Prerequisiti
 
-- Deployment Web App Apps Script attivo e accessibile.
-- Script Properties configurate nel progetto Apps Script corretto:
-  - MEDITRACE_API_KEY
-  - MEDITRACE_SPREADSHEET_ID
-- Workflow GitHub presente: .github/workflows/apps-script-smoke.yml
+- Deploy GitHub Pages attivo e accessibile.
+- Progetto Google Cloud configurato per OAuth browser.
+- Google Drive API abilitata.
+- Workflow GitHub presente per build e smoke test PWA.
 
-## Fase 1: Attivazione CI Smoke
+## Fase 1: Attivazione CI Build + Smoke
 
 1. Aprire GitHub repository settings.
 2. Andare su Secrets and variables > Actions.
-3. Configurare i secrets repository:
-   - MEDITRACE_WEB_APP_URL
-   - MEDITRACE_API_KEY
-4. Lanciare workflow manuale Apps Script Smoke Test in modalita fixture.
-5. Verificare esito positivo end-to-end.
-6. Lanciare workflow manuale in modalita strict.
-7. Verificare che strict passi con dati reali disponibili, oppure documentare chiaramente la precondizione dati.
+3. Configurare le variabili e i secrets repository necessari al deploy.
+4. Lanciare workflow manuale build + smoke test PWA.
+5. Verificare esito positivo su build, lint e smoke di bootstrap app.
+6. Lanciare smoke test multi-device simulato, se disponibile.
+7. Documentare chiaramente eventuali precondizioni OAuth per gli ambienti di test.
 
 Criterio di uscita:
 
-- fixture green
-- strict green (oppure strict expected-fail con motivazione e piano di stabilizzazione)
+- build green
+- smoke green
+- deploy preview raggiungibile
 
-## Fase 2: Igiene Segreti e Rotazione
+## Fase 2: Igiene Segreti e Configurazioni OAuth
 
-1. Generare nuova API key per staging.
-2. Aggiornare Script Properties nel progetto Apps Script di staging.
-3. Aggiornare il secret MEDITRACE_API_KEY in GitHub.
-4. Rieseguire smoke fixture e strict.
-5. Revocare chiavi precedenti non piu usate.
+1. Verificare i redirect URI configurati per `localhost`, preview e produzione.
+2. Verificare utenti autorizzati nel consent screen se l'app e' in test mode.
+3. Aggiornare le configurazioni ambiente in GitHub se cambiano client ID o URL.
+4. Rieseguire smoke build e bootstrap login.
+5. Revocare configurazioni obsolete non piu' usate.
 
 Nota:
 
 - non committare mai credenziali reali nei file del repository.
-- mantenere i valori sensibili solo in secret store (GitHub Secrets, Script Properties, password manager).
+- mantenere i valori sensibili solo in secret store e password manager.
 
 ## Fase 3: Protezione Branch Main
 
 1. Abilitare branch protection su main.
 2. Richiedere status check obbligatorio prima del merge.
-3. Impostare come required check il workflow smoke test.
+3. Impostare come required check il workflow build/smoke.
 4. Abilitare blocco merge in caso di check non riusciti.
 5. Opzionale consigliato: richiedere almeno 1 review umana.
 
 Criterio di uscita:
 
-- nessuna PR puo essere mergiata su main con smoke rosso.
+- nessuna PR puo' essere mergiata su main con build o smoke rosso.
 
-## Fase 4: Allineamento Contratto API
+## Fase 4: Allineamento Deploy E Sync
 
-1. Verificare differenze tra contratto e implementazione attuale.
-2. Decisione esplicita su endpoint audit_log:
-   - opzione A: endpoint pubblico dedicato
-   - opzione B: audit solo interno agli endpoint clinici
-3. Aggiornare documentazione API per eliminare ambiguita.
+1. Verificare differenze tra documentazione e implementazione PWA reale.
+2. Confermare che il bootstrap crei correttamente `manifest` e `data` in `appDataFolder`.
+3. Confermare che il resume dell'app scarichi un dataset remoto piu' recente.
 4. Rieseguire smoke e aggiornare evidenze.
 
 Criterio di uscita:
 
-- contratto e comportamento runtime allineati.
+- documentazione e comportamento runtime allineati.
 
 ## Fase 5: Rilascio Operativo
 
 Checklist minima pre-rilascio:
 
-- workflow CI smoke fixture green
-- workflow CI smoke strict green
-- chiavi ruotate e confermate
+- build green
+- smoke multi-device green oppure rischio documentato
+- configurazioni OAuth confermate
 - branch protection attiva
-- documentazione API aggiornata
+- documentazione architetturale aggiornata
 - evidenze test archiviate in docs
 
 Checklist post-rilascio (24-72h):
 
-- monitorare errori 401/403/500 nei log operativi
-- verificare crescita controllata di AuditLogCentrale e SyncLog
-- controllare ripetizioni anomale su requestId (idempotenza)
+- monitorare errori login, token e Drive API nei log client
+- verificare che almeno due dispositivi leggano lo stesso dataset remoto
+- controllare conflitti o retry anomali in sync
 
 ## Evidenze consigliate da conservare
 
-- screenshot esecuzioni workflow GitHub (fixture + strict)
-- timestamp rotazione segreti
+- screenshot esecuzioni workflow GitHub
+- timestamp aggiornamento configurazioni OAuth
 - conferma branch protection
 - link commit/documenti aggiornati
 
@@ -103,11 +99,11 @@ Checklist post-rilascio (24-72h):
 
 - Owner prodotto: approvazione go/no-go
 - Responsabile tecnico: configurazioni GitHub e policy branch
-- Operazioni: gestione segreti e rotazioni
+- Operazioni: gestione Google Cloud, segreti e accessi
 - QA/validazione: esecuzione smoke e raccolta evidenze
 
 ## Frequenza operativa consigliata
 
-- Smoke fixture: giornaliero (schedulato)
-- Smoke strict: giornaliero oppure ad ogni rilascio
-- Rotazione key: almeno trimestrale o immediata in caso di sospetta esposizione
+- Build + smoke bootstrap: giornaliero (schedulato)
+- Smoke multi-device: ad ogni rilascio e dopo cambi al motore sync
+- Review configurazioni OAuth: almeno trimestrale o immediata in caso di incidente

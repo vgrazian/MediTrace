@@ -1,3 +1,7 @@
+> ⚠️ **DOCUMENTO STORICO — SUPERATO**
+> Questo documento descrive lo schema dei fogli Google Sheets dell'architettura precedente.
+> Non è più la baseline di implementazione. Riferirsi a [architecture.md](architecture.md) e [domain-model.md](domain-model.md) per il modello dati corrente (IndexedDB / Dexie.js).
+
 # Schema Reale Dei Fogli Google
 
 ## Obiettivo

@@ -61,14 +61,17 @@
 
 ```mermaid
 flowchart LR
-    A[Operatore registra movimento] --> B[Salvataggio Room locale]
+    A[Operatore registra movimento] --> B[Salvataggio IndexedDB locale]
     B --> C[UI aggiornata subito]
     C --> D{Rete disponibile?}
     D -- No --> E[Record resta pending]
-    D -- Si --> F[WorkManager esegue sync]
-    F --> G[Apps Script valida API key]
-    G --> H[Google Sheets aggiornato]
-    H --> I[Client marca synced]
+    D -- Si --> F[PWA legge manifest su Drive]
+    F --> G{Dataset remoto piu' recente?}
+    G -- Si --> H[Download e merge locale]
+    G -- No --> I[Upload snapshot aggiornato]
+    H --> I
+    I --> J[Manifest aggiornato]
+    J --> K[Altri dispositivi scaricano la nuova versione]
 ```
 
 ## Linee guida UI

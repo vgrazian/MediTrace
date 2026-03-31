@@ -1,3 +1,7 @@
+> ⚠️ **DOCUMENTO STORICO — SUPERATO**
+> Questo documento descrive il contratto API dell'architettura precedente basata su Google Apps Script + Google Sheets.
+> Non è più la baseline di implementazione. Riferirsi a [architecture.md](architecture.md) per l'architettura corrente (PWA + IndexedDB + Google Drive).
+
 # Contratto API Iniziale
 
 ## Endpoint
