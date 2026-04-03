@@ -8,13 +8,9 @@ set -euo pipefail
 #   GUEST_ID, REMINDER_ID, DRUG_ID, THERAPY_ID, OPERATOR_ID
 #   SMOKE_MODE=fixture|strict (default: fixture)
 
-# Strip leading/trailing whitespace and carriage returns (common when copy-pasting into GitHub Secrets)
-WEB_APP_URL="${WEB_APP_URL:-}"
-WEB_APP_URL="${WEB_APP_URL#"${WEB_APP_URL%%[! $'\t'$'\r'$'\n']*}"}"  # ltrim
-WEB_APP_URL="${WEB_APP_URL%"${WEB_APP_URL##*[! $'\t'$'\r'$'\n']}"}"  # rtrim
-API_KEY="${API_KEY:-}"
-API_KEY="${API_KEY#"${API_KEY%%[! $'\t'$'\r'$'\n']*}"}"
-API_KEY="${API_KEY%"${API_KEY##*[! $'\t'$'\r'$'\n']}"}"
+# Strip CR/LF and leading/trailing whitespace (common when copy-pasting into GitHub Secrets)
+WEB_APP_URL="$(printf '%s' "${WEB_APP_URL:-}" | tr -d $'\r\n' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')"
+API_KEY="$(printf '%s' "${API_KEY:-}" | tr -d $'\r\n' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')"
 SMOKE_MODE="${SMOKE_MODE:-fixture}"
 
 if [[ "$#" -gt 0 ]]; then
@@ -54,7 +50,7 @@ if [[ "${WEB_APP_URL}" == *"XXXX"* || "${WEB_APP_URL}" == *"REPLACE_WITH"* || "$
   exit 1
 fi
 
-if [[ "${WEB_APP_URL}" != https://script.google.com/macros/s/*/exec ]]; then
+if ! [[ "${WEB_APP_URL}" =~ ^https://script\.google\.com/macros/s/[^/]+/exec ]]; then
   echo "WEB_APP_URL format looks invalid: ${WEB_APP_URL}" >&2
   echo "Expected format: https://script.google.com/macros/s/<DEPLOYMENT_ID>/exec" >&2
   exit 1
