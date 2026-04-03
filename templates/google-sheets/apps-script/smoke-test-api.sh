@@ -8,8 +8,13 @@ set -euo pipefail
 #   GUEST_ID, REMINDER_ID, DRUG_ID, THERAPY_ID, OPERATOR_ID
 #   SMOKE_MODE=fixture|strict (default: fixture)
 
+# Strip leading/trailing whitespace and carriage returns (common when copy-pasting into GitHub Secrets)
 WEB_APP_URL="${WEB_APP_URL:-}"
+WEB_APP_URL="${WEB_APP_URL#"${WEB_APP_URL%%[! $'\t'$'\r'$'\n']*}"}"  # ltrim
+WEB_APP_URL="${WEB_APP_URL%"${WEB_APP_URL##*[! $'\t'$'\r'$'\n']}"}"  # rtrim
 API_KEY="${API_KEY:-}"
+API_KEY="${API_KEY#"${API_KEY%%[! $'\t'$'\r'$'\n']*}"}"
+API_KEY="${API_KEY%"${API_KEY##*[! $'\t'$'\r'$'\n']}"}"
 SMOKE_MODE="${SMOKE_MODE:-fixture}"
 
 if [[ "$#" -gt 0 ]]; then
