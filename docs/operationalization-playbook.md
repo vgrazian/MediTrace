@@ -88,6 +88,10 @@ Checklist post-rilascio (24-72h):
 - verificare che almeno due dispositivi leggano lo stesso dataset remoto
 - controllare conflitti o retry anomali in sync
 
+Rollback:
+
+- In caso di regressione critica seguire `docs/release-rollback-runbook.md`.
+
 ## Evidenze consigliate da conservare
 
 - screenshot esecuzioni workflow GitHub

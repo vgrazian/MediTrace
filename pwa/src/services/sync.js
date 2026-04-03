@@ -19,8 +19,22 @@ const ALL_DATA_TABLES = [...LAST_WRITE_WINS_TABLES, ...APPEND_ONLY_TABLES]
 
 // Critical fields that require explicit conflict resolution when they diverge
 const CONFLICT_FIELDS = {
-    therapies: ['posologia', 'frequenza', 'quantitaResiduaManuale', 'scadenzaConfezione'],
+    therapies: [
+        // Current v1 dataset fields used by therapies/import flow
+        'dosePerSomministrazione',
+        'somministrazioniGiornaliere',
+        'consumoMedioSettimanale',
+        'stockBatchIdPreferito',
+        'dataInizio',
+        'dataFine',
+        // Legacy aliases kept for compatibility with older snapshots
+        'posologia',
+        'frequenza',
+        'quantitaResiduaManuale',
+        'scadenzaConfezione',
+    ],
 }
+const PENDING_CONFLICTS_KEY = 'pendingConflicts'
 
 // ── Public entry point ────────────────────────────────────────────────────────
 
@@ -62,6 +76,15 @@ export async function fullSync(token) {
     }
 
     // Local is current — push any pending changes
+    const unresolvedConflicts = await listPendingConflicts()
+    if (unresolvedConflicts.length > 0) {
+        return {
+            blocked: true,
+            reason: 'pending-conflicts',
+            conflicts: unresolvedConflicts.length,
+        }
+    }
+
     const pendingCount = await db.syncQueue.count()
     if (pendingCount === 0) return { upToDate: true }
 
@@ -103,6 +126,68 @@ export async function exportBackupJson() {
     return JSON.stringify(dataset, null, 2)
 }
 
+export async function listPendingConflicts() {
+    const conflicts = await getSetting(PENDING_CONFLICTS_KEY, [])
+    return Array.isArray(conflicts) ? conflicts : []
+}
+
+export async function resolveConflict({ conflictId, choice, operatorId = null }) {
+    if (!conflictId) throw new Error('conflictId obbligatorio')
+    if (choice !== 'local' && choice !== 'remote') throw new Error('choice non valido')
+
+    const conflicts = await listPendingConflicts()
+    const conflict = conflicts.find(item => item.conflictId === conflictId)
+    if (!conflict) {
+        throw new Error('Conflitto non trovato o gia risolto')
+    }
+
+    const { table, entityId, localRecord, remoteRecord } = conflict
+    const deviceId = (await getSetting('deviceId')) ?? 'unknown'
+
+    await db.transaction('rw', db[table], db.syncQueue, db.activityLog, async () => {
+        if (choice === 'remote') {
+            await db[table].put({ ...remoteRecord, syncStatus: 'synced' })
+            await db.syncQueue
+                .where('entityType')
+                .equals(table)
+                .and(item => item.entityId === entityId)
+                .delete()
+        } else {
+            await db[table].put({ ...localRecord, syncStatus: 'pending', updatedAt: new Date().toISOString() })
+            await db.syncQueue.add({
+                entityType: table,
+                entityId,
+                operation: 'upsert',
+                createdAt: new Date().toISOString(),
+            })
+        }
+
+        await db.activityLog.add({
+            entityType: table,
+            entityId,
+            action: choice === 'remote' ? 'conflict_resolved_accept_remote' : 'conflict_resolved_keep_local',
+            deviceId,
+            operatorId,
+            ts: new Date().toISOString(),
+            details: {
+                conflictId,
+                fields: conflict.fields,
+            },
+        })
+    })
+
+    const unresolved = conflicts.filter(item => item.conflictId !== conflictId)
+    await setSetting(PENDING_CONFLICTS_KEY, unresolved)
+
+    return {
+        resolved: true,
+        remaining: unresolved.length,
+        choice,
+        table,
+        entityId,
+    }
+}
+
 // ── Merge ─────────────────────────────────────────────────────────────────────
 
 /**
@@ -126,10 +211,25 @@ async function mergeRemoteDataset(remote) {
                 if (remoteIsNewer) {
                     // Check critical fields before overwriting
                     const criticals = CONFLICT_FIELDS[table] ?? []
+                    const fieldDiffs = []
                     for (const field of criticals) {
                         if (local[field] !== undefined && row[field] !== local[field]) {
-                            detectedConflicts.push({ table, id: row.id, field, local: local[field], remote: row[field] })
+                            fieldDiffs.push({ field, local: local[field], remote: row[field] })
                         }
+                    }
+                    if (fieldDiffs.length > 0) {
+                        const conflictId = `${table}:${row.id}:${row.updatedAt}`
+                        detectedConflicts.push({
+                            conflictId,
+                            table,
+                            entityId: row.id,
+                            fields: fieldDiffs,
+                            localRecord: local,
+                            remoteRecord: row,
+                            detectedAt: new Date().toISOString(),
+                        })
+                        await db[table].put({ ...local, syncStatus: 'conflict' })
+                        continue
                     }
                     await db[table].put({ ...row, syncStatus: 'synced' })
                 }
@@ -156,6 +256,15 @@ async function mergeRemoteDataset(remote) {
             }
         }
     })
+
+    if (detectedConflicts.length > 0) {
+        const existing = await listPendingConflicts()
+        const byId = new Map(existing.map(item => [item.conflictId, item]))
+        for (const conflict of detectedConflicts) {
+            byId.set(conflict.conflictId, conflict)
+        }
+        await setSetting(PENDING_CONFLICTS_KEY, Array.from(byId.values()))
+    }
 
     return detectedConflicts
 }

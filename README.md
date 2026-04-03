@@ -51,15 +51,15 @@ MediTrace e' un progetto offline-first per tracciare farmaci, terapie e scorte i
  npm --prefix pwa install
  ```
 
-2. Avviare in locale:
+1. Avviare in locale:
 
  ```bash
  npm --prefix pwa run dev
  ```
 
-3. Aprire l'URL mostrato (default `http://localhost:5173/`).
+1. Aprire l'URL mostrato (default `http://localhost:5173/`).
 
-4. Inserire un GitHub PAT con permesso `gists` e completare il primo bootstrap remoto.
+2. Inserire un GitHub PAT con permesso `gists` e completare il primo bootstrap remoto.
 
 ## Build produzione
 
