@@ -139,15 +139,15 @@ export async function importCsv({ sourceName, csvText, dryRun = true, operatorId
     const parsed = Papa.parse(csvText, {
         header: true,
         skipEmptyLines: 'greedy',
-        transformHeader: value => String(value || '').trim(),
+        transformHeader: value => normalizeHeaderName(value),
     })
 
     if (parsed.errors?.length > 0) {
         throw new Error(`Errore parsing CSV: ${parsed.errors[0].message}`)
     }
 
-    const headers = parsed.meta?.fields ?? []
-    const missingHeaders = schema.requiredHeaders.filter(header => !headers.includes(header))
+    const headers = (parsed.meta?.fields ?? []).map(normalizeHeaderName)
+    const missingHeaders = schema.requiredHeaders.filter(header => !headers.includes(normalizeHeaderName(header)))
     if (missingHeaders.length > 0) {
         throw new Error(`Header mancanti: ${missingHeaders.join(', ')}`)
     }
@@ -293,6 +293,11 @@ async function loadReferenceIds() {
         stockBatches: new Set(stockBatches.map(String)),
         therapies: new Set(therapies.map(String)),
     }
+}
+
+function normalizeHeaderName(value) {
+    // Strip UTF-8 BOM that frequently appears in first column exported by Excel.
+    return String(value || '').replace(/^\uFEFF/, '').trim()
 }
 
 function normalizeScalar(value) {
