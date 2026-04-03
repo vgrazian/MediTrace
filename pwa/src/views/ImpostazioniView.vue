@@ -1,7 +1,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useAuth } from '../services/auth'
-import { fullSync, exportBackupJson } from '../services/sync'
+import { fullSync, exportBackupJson, listPendingConflicts, resolveConflict } from '../services/sync'
 import { getSetting } from '../db'
 
 const { accessToken, currentUser, signOut } = useAuth()
@@ -9,11 +9,27 @@ const deviceId = ref(null)
 const datasetVersion = ref(null)
 const syncMessage = ref('')
 const gistId = ref(null)
+const pendingConflicts = ref([])
+const resolvingConflictId = ref(null)
+
+function formatValue(value) {
+  if (value === null || value === undefined || value === '') return '—'
+  return String(value)
+}
+
+function formatEntityLabel(conflict) {
+  return `${conflict.table} / ${conflict.entityId}`
+}
+
+async function refreshPendingConflicts() {
+  pendingConflicts.value = await listPendingConflicts()
+}
 
 onMounted(async () => {
   deviceId.value = await getSetting('deviceId')
   datasetVersion.value = await getSetting('datasetVersion')
   gistId.value = await getSetting('gistId')
+  await refreshPendingConflicts()
 })
 
 async function runSync() {
@@ -22,9 +38,29 @@ async function runSync() {
     const result = await fullSync(accessToken.value)
     datasetVersion.value = await getSetting('datasetVersion')
     gistId.value = await getSetting('gistId')
+    await refreshPendingConflicts()
     syncMessage.value = JSON.stringify(result)
   } catch (err) {
     syncMessage.value = `Errore: ${err.message}`
+  }
+}
+
+async function applyResolution(conflictId, choice) {
+  resolvingConflictId.value = conflictId
+  syncMessage.value = 'Risoluzione conflitto in corso…'
+
+  try {
+    const result = await resolveConflict({
+      conflictId,
+      choice,
+      operatorId: currentUser.value?.login ?? null,
+    })
+    await refreshPendingConflicts()
+    syncMessage.value = `Conflitto risolto (${result.choice}). Restanti: ${result.remaining}`
+  } catch (err) {
+    syncMessage.value = `Errore risoluzione: ${err.message}`
+  } finally {
+    resolvingConflictId.value = null
   }
 }
 
@@ -62,6 +98,54 @@ async function downloadBackup() {
       <p><strong>Sincronizzazione manuale</strong></p>
       <button style="margin-top:.75rem" @click="runSync">Sincronizza ora</button>
       <p v-if="syncMessage" class="muted" style="margin-top:.5rem;font-size:.8rem">{{ syncMessage }}</p>
+    </div>
+
+    <div class="card">
+      <p><strong>Conflitti sincronizzazione</strong></p>
+      <p class="muted" style="margin-top:.25rem">
+        Conflitti aperti: {{ pendingConflicts.length }}
+      </p>
+
+      <p v-if="pendingConflicts.length === 0" class="muted" style="margin-top:.5rem">
+        Nessun conflitto aperto.
+      </p>
+
+      <div v-for="conflict in pendingConflicts" :key="conflict.conflictId" class="conflict-item">
+        <p><strong>{{ formatEntityLabel(conflict) }}</strong></p>
+        <p class="muted" style="font-size:.8rem">Rilevato: {{ conflict.detectedAt }}</p>
+
+        <table class="conflict-table">
+          <thead>
+            <tr>
+              <th>Campo</th>
+              <th>Locale</th>
+              <th>Remoto</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="field in conflict.fields" :key="field.field">
+              <td>{{ field.field }}</td>
+              <td>{{ formatValue(field.local) }}</td>
+              <td>{{ formatValue(field.remote) }}</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="conflict-actions">
+          <button
+            :disabled="resolvingConflictId === conflict.conflictId"
+            @click="applyResolution(conflict.conflictId, 'local')"
+          >
+            Mantieni locale
+          </button>
+          <button
+            :disabled="resolvingConflictId === conflict.conflictId"
+            @click="applyResolution(conflict.conflictId, 'remote')"
+          >
+            Accetta remota
+          </button>
+        </div>
+      </div>
     </div>
 
     <div class="card">
