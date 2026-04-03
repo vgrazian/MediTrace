@@ -19,7 +19,20 @@ const ALL_DATA_TABLES = [...LAST_WRITE_WINS_TABLES, ...APPEND_ONLY_TABLES]
 
 // Critical fields that require explicit conflict resolution when they diverge
 const CONFLICT_FIELDS = {
-    therapies: ['posologia', 'frequenza', 'quantitaResiduaManuale', 'scadenzaConfezione'],
+    therapies: [
+        // Current v1 dataset fields used by therapies/import flow
+        'dosePerSomministrazione',
+        'somministrazioniGiornaliere',
+        'consumoMedioSettimanale',
+        'stockBatchIdPreferito',
+        'dataInizio',
+        'dataFine',
+        // Legacy aliases kept for compatibility with older snapshots
+        'posologia',
+        'frequenza',
+        'quantitaResiduaManuale',
+        'scadenzaConfezione',
+    ],
 }
 const PENDING_CONFLICTS_KEY = 'pendingConflicts'
 
@@ -63,6 +76,15 @@ export async function fullSync(token) {
     }
 
     // Local is current — push any pending changes
+    const unresolvedConflicts = await listPendingConflicts()
+    if (unresolvedConflicts.length > 0) {
+        return {
+            blocked: true,
+            reason: 'pending-conflicts',
+            conflicts: unresolvedConflicts.length,
+        }
+    }
+
     const pendingCount = await db.syncQueue.count()
     if (pendingCount === 0) return { upToDate: true }
 
