@@ -6,7 +6,14 @@ on:
     paths:
       - 'pwa/**'
       - '.github/workflows/deploy-pwa.yml'
+      - 'pwa/scripts/smoke-pages.sh'
   workflow_dispatch:
+    inputs:
+      deploy_ref:
+        description: 'Git ref/sha da deployare (default: branch che avvia il workflow)'
+        required: false
+        default: ''
+        type: string
 
 permissions:
   contents: read
@@ -21,11 +28,21 @@ jobs:
   build:
     name: Build PWA
     runs-on: ubuntu-latest
+    outputs:
+      deployed_ref: ${{ steps.resolve_ref.outputs.deployed_ref }}
     defaults:
       run:
         working-directory: pwa
     steps:
+      - name: Resolve deploy ref
+        id: resolve_ref
+        run: |
+          REF="${{ inputs.deploy_ref || github.sha }}"
+          echo "deployed_ref=$REF" >> "$GITHUB_OUTPUT"
+
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.resolve_ref.outputs.deployed_ref }}
 
       - uses: actions/setup-node@v4
         with:
@@ -53,9 +70,27 @@ jobs:
     name: Deploy to GitHub Pages
     needs: build
     runs-on: ubuntu-latest
+    outputs:
+      page_url: ${{ steps.deployment.outputs.page_url }}
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - id: deployment
         uses: actions/deploy-pages@v4
+
+  smoke:
+    name: Smoke test deployed Pages
+    needs: [build, deploy]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.build.outputs.deployed_ref }}
+
+      - name: Run GitHub Pages smoke checks
+        env:
+          SITE_URL: ${{ needs.deploy.outputs.page_url }}
+        run: |
+          chmod +x pwa/scripts/smoke-pages.sh
+          pwa/scripts/smoke-pages.sh "$SITE_URL"
