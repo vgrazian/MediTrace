@@ -2,6 +2,7 @@
 import { ref, onMounted } from 'vue'
 import { useAuth } from '../services/auth'
 import { fullSync, exportBackupJson, listPendingConflicts, resolveConflict } from '../services/sync'
+import { listSupportedImportSources, importCsv } from '../services/csvImport'
 import { getSetting } from '../db'
 
 const { accessToken, currentUser, signOut } = useAuth()
@@ -11,6 +12,13 @@ const syncMessage = ref('')
 const gistId = ref(null)
 const pendingConflicts = ref([])
 const resolvingConflictId = ref(null)
+const importSources = listSupportedImportSources()
+const selectedImportSource = ref(importSources[0] ?? '')
+const selectedImportFile = ref(null)
+const importDryRun = ref(true)
+const importRunning = ref(false)
+const importReport = ref(null)
+const importError = ref('')
 
 function formatValue(value) {
   if (value === null || value === undefined || value === '') return '—'
@@ -23,6 +31,40 @@ function formatEntityLabel(conflict) {
 
 async function refreshPendingConflicts() {
   pendingConflicts.value = await listPendingConflicts()
+}
+
+function onImportFileChange(event) {
+  const file = event.target?.files?.[0] ?? null
+  selectedImportFile.value = file
+}
+
+async function runCsvImport() {
+  importError.value = ''
+  importReport.value = null
+
+  if (!selectedImportSource.value) {
+    importError.value = 'Seleziona una sorgente CSV.'
+    return
+  }
+  if (!selectedImportFile.value) {
+    importError.value = 'Seleziona un file CSV.'
+    return
+  }
+
+  importRunning.value = true
+  try {
+    const csvText = await selectedImportFile.value.text()
+    importReport.value = await importCsv({
+      sourceName: selectedImportSource.value,
+      csvText,
+      dryRun: importDryRun.value,
+      operatorId: currentUser.value?.login ?? null,
+    })
+  } catch (err) {
+    importError.value = err.message
+  } finally {
+    importRunning.value = false
+  }
 }
 
 onMounted(async () => {
@@ -152,6 +194,62 @@ async function downloadBackup() {
       <p><strong>Backup locale</strong></p>
       <p class="muted">Scarica tutti i dati come file JSON.</p>
       <button style="margin-top:.75rem" @click="downloadBackup">Scarica backup JSON</button>
+    </div>
+
+    <div class="card">
+      <p><strong>Import CSV guidato</strong></p>
+      <p class="muted" style="margin-top:.25rem">Supporta dry-run con report righe scartate secondo mapping v1.</p>
+
+      <div class="import-form">
+        <label>
+          Sorgente
+          <select v-model="selectedImportSource">
+            <option v-for="source in importSources" :key="source" :value="source">{{ source }}</option>
+          </select>
+        </label>
+
+        <label>
+          File CSV
+          <input type="file" accept=".csv,text/csv" @change="onImportFileChange" />
+        </label>
+
+        <label class="checkbox-label">
+          <input v-model="importDryRun" type="checkbox" />
+          Esegui dry-run (nessuna scrittura)
+        </label>
+
+        <button :disabled="importRunning" @click="runCsvImport">
+          {{ importRunning ? 'Import in corso...' : 'Avvia import CSV' }}
+        </button>
+      </div>
+
+      <p v-if="importError" class="import-error">{{ importError }}</p>
+
+      <div v-if="importReport" class="import-report">
+        <p><strong>Esito import</strong></p>
+        <p class="muted">
+          Tabella: {{ importReport.table }}<br />
+          Righe lette: {{ importReport.totalRows }}<br />
+          Accettate: {{ importReport.acceptedRows }}<br />
+          Scartate: {{ importReport.rejectedRows }}<br />
+          Modalita': {{ importReport.dryRun ? 'dry-run' : 'scrittura applicata' }}
+        </p>
+
+        <table v-if="importReport.rejectedRows > 0" class="conflict-table" style="margin-top:.75rem">
+          <thead>
+            <tr>
+              <th>Riga</th>
+              <th>Motivo</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="reject in importReport.rejects" :key="`${reject.rowNumber}-${reject.reason}`">
+              <td>{{ reject.rowNumber }}</td>
+              <td>{{ reject.reason }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
     </div>
   </div>
 </template>
