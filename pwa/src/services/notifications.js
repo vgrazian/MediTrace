@@ -144,3 +144,10 @@ export function stopReminderNotificationsLoop() {
     window.clearInterval(loopHandle)
     loopHandle = null
 }
+
+export const notificationsTestUtils = {
+    toMillis,
+    isReminderPending,
+    normalizePermission,
+    appendNotifiedIds,
+}

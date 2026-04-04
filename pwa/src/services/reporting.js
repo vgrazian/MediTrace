@@ -191,3 +191,13 @@ function escapeCsvValue(value) {
     }
     return asString
 }
+
+export const reportingTestUtils = {
+    toNumber,
+    isTherapyActive,
+    movementDelta,
+    baseBatchStock,
+    estimateTherapyWeeklyConsumption,
+    computePriority,
+    escapeCsvValue,
+}

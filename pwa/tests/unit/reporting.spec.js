@@ -16,7 +16,7 @@ vi.mock('../../src/db', () => ({
     },
 }))
 
-import { buildOperationalReport, operationalReportToCsv } from '../../src/services/reporting'
+import { buildOperationalReport, operationalReportToCsv, reportingTestUtils } from '../../src/services/reporting'
 
 describe('operational reporting', () => {
     beforeEach(() => {
@@ -81,5 +81,36 @@ describe('operational reporting', () => {
         expect(lines[0]).toContain('drug_id')
         expect(lines[1]).toContain('drug-a')
         expect(lines[1]).toContain('1.43')
+    })
+
+    it('handles therapy activity windows and weekly estimation helpers', () => {
+        const now = new Date('2026-04-04T12:00:00.000Z')
+
+        expect(reportingTestUtils.isTherapyActive({ attiva: true, dataInizio: '2026-04-01T00:00:00.000Z' }, now)).toBe(true)
+        expect(reportingTestUtils.isTherapyActive({ attiva: false }, now)).toBe(false)
+        expect(reportingTestUtils.isTherapyActive({ attiva: true, dataInizio: '2026-05-01T00:00:00.000Z' }, now)).toBe(false)
+
+        expect(reportingTestUtils.estimateTherapyWeeklyConsumption({ consumoMedioSettimanale: 9 })).toBe(9)
+        expect(reportingTestUtils.estimateTherapyWeeklyConsumption({ dosePerSomministrazione: 2, somministrazioniGiornaliere: 1 })).toBe(14)
+    })
+
+    it('computes stock/movement/priority helpers and escapes CSV values', () => {
+        expect(reportingTestUtils.baseBatchStock({ quantitaAttuale: 5 })).toBe(5)
+        expect(reportingTestUtils.baseBatchStock({ quantitaIniziale: 3 })).toBe(3)
+        expect(reportingTestUtils.baseBatchStock({})).toBe(0)
+
+        expect(reportingTestUtils.movementDelta({ tipoMovimento: 'SCARICO', quantita: 2 })).toBe(-2)
+        expect(reportingTestUtils.movementDelta({ tipoMovimento: 'CARICO', quantita: 2 })).toBe(2)
+
+        const critical = reportingTestUtils.computePriority({ stockCurrent: 0, weeklyConsumption: 4, reorderThreshold: 2 })
+        const medium = reportingTestUtils.computePriority({ stockCurrent: 3, weeklyConsumption: 0, reorderThreshold: 5 })
+        const ok = reportingTestUtils.computePriority({ stockCurrent: 20, weeklyConsumption: 5, reorderThreshold: 5 })
+
+        expect(critical.warningPriority).toBe('critica')
+        expect(medium.warningPriority).toBe('media')
+        expect(ok.warningPriority).toBe('ok')
+
+        expect(reportingTestUtils.escapeCsvValue('campo,con,virgole')).toBe('"campo,con,virgole"')
+        expect(reportingTestUtils.escapeCsvValue('valore "quoted"')).toBe('"valore ""quoted"""')
     })
 })
