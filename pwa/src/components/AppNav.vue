@@ -7,8 +7,8 @@ const { currentUser } = useAuth()
 <template>
   <nav class="app-nav">
     <RouterLink to="/" class="brand" aria-label="MediTrace home">
-      <img class="brand-mark" src="/branding/meditrace-mark.svg" alt="MediTrace" />
-      <span>MediTrace</span>
+      <img class="brand-mark" src="/branding/santegidio-logo-header.svg" alt="Comunità di Sant'Egidio" />
+      <span class="brand-title">MediTrace</span>
     </RouterLink>
 
     <RouterLink to="/">Home</RouterLink>
