@@ -1,0 +1,55 @@
+name: Quality Gate Automated Tests
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+    paths:
+      - 'pwa/**'
+      - '.github/workflows/quality-gate.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: pwa
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: pwa/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browser
+        run: npx playwright install --with-deps chromium
+
+      - name: Run unit tests
+        run: npm run test:unit
+
+      - name: Run end-to-end tests
+        run: npm run test:e2e
+
+      - name: Build production bundle
+        run: npm run build
+
+      - name: Upload test artifacts on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: quality-gate-debug-artifacts
+          path: |
+            pwa/playwright-report
+            pwa/test-results
+            pwa/coverage
+          if-no-files-found: ignore

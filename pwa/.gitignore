@@ -4,3 +4,6 @@ dist/
 .env.local
 .env.*.local
 dev-dist/
+playwright-report/
+test-results/
+coverage/

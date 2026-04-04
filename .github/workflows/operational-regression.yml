@@ -1,0 +1,44 @@
+name: Operational Regression Monitoring
+
+on:
+  schedule:
+    - cron: '0 6 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  ops-e2e:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: pwa
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: pwa/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browser
+        run: npx playwright install --with-deps chromium
+
+      - name: Run @ops E2E suite (offline + performance)
+        run: npm run test:e2e -- --grep "@ops"
+
+      - name: Upload operational artifacts on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: operational-regression-artifacts
+          path: |
+            pwa/playwright-report
+            pwa/test-results
+          if-no-files-found: ignore

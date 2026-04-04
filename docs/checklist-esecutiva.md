@@ -15,7 +15,7 @@ Passare da documentazione e prototipo a un MVP operativo PWA testato su disposit
 ### 1.1 Congelamento specifiche v1
 
 - [x] Confermare architettura PWA + IndexedDB + GitHub Gist privato
-- [x] Confermare approccio login browser con GitHub PAT
+- [x] Confermare approccio login operatore con utenza/password
 - [x] Confermare strategia sync multi-dispositivo su Gist condiviso
 - [x] Confermare regole alert turno (`alert-rules-turni`)
 - [x] Definire regole naming ID (`drug_id`, `therapy_id`, `host_id`, `reminder_id`, `batch_id`)
@@ -27,8 +27,8 @@ Criterio accettazione:
 
 ### 1.2 Setup autenticazione e accessi (GitHub)
 
-- [x] Definire strategia auth senza backend: GitHub PAT
-- [x] Validare login con account autorizzato
+- [x] Definire strategia auth senza backend: utenza/password operatore
+- [x] Validare login con account operatore
 - [x] Validare accesso API GitHub Gist
 - [x] Creare storage remoto iniziale (Gist privato)
 
@@ -39,7 +39,7 @@ Stato operativo:
 
 Criterio accettazione:
 
-- login browser riuscito con token GitHub valido
+- login browser riuscito con utenza/password valide
 - primo accesso a Gist privato riuscito senza errori permessi
 - evidenza minima: account autenticato + Gist ID visibile in Impostazioni
 
@@ -50,7 +50,7 @@ Criterio accettazione:
 - [x] Configurare Dexie.js e bootstrap IndexedDB — `src/db/index.js` schema v1
 - [x] Implementare client GitHub Gist API — `src/services/gist.js`
 - [x] Scaffold sync bidirezionale — `src/services/sync.js`
-- [x] Scaffold auth browser con GitHub PAT — `src/services/auth.js`
+- [x] Scaffold auth browser con utenza/password — `src/services/auth.js`
 - [x] Test login/logout con account reale
 - [x] Implementare e verificare creazione automatica `meditrace-manifest.json`
 - [x] Implementare e verificare creazione automatica `meditrace-data.json`
@@ -155,9 +155,17 @@ Prima del go-live, tutti i gate devono essere `DONE`:
 
 - [ ] Gate A - End-to-end clinico: promemoria -> esito -> sync
 - [ ] Gate B - Multi-device: modifica su un dispositivo visibile sull'altro dopo sync
-- [ ] Gate C - Sicurezza base: login con GitHub PAT dedicato e accessi controllati
+- [ ] Gate C - Sicurezza base: login con utenza/password e accessi controllati
 - [ ] Gate D - Affidabilita': test offline/online e restore superati
 - [ ] Gate E - Usabilita': test su telefono + tablet + desktop superati con feedback positivo
+
+## Gate Automatico CI (Obbligatorio)
+
+- [x] Workflow quality gate presente (`.github/workflows/quality-gate.yml`)
+- [x] Unit test con coverage threshold attivo
+- [x] E2E Playwright attivi sui flussi critici
+- [x] Build produzione inclusa nel gate
+- [x] Branch protection `main` con required check `test`
 
 ## Registro Rischi E Mitigazioni (Operativo)
 

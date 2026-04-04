@@ -140,8 +140,8 @@ main { padding: 1.5rem; max-width: 960px; margin: 0 auto; }
 }
 .login-screen h1 { font-size: 2rem; color: #2563eb; }
 .login-screen p { color: #64748b; }
-/* ── PAT login form ── */
-.pat-form {
+/* ── credentials auth form ── */
+.auth-form {
   display: flex;
   flex-direction: column;
   gap: .6rem;
@@ -149,16 +149,16 @@ main { padding: 1.5rem; max-width: 960px; margin: 0 auto; }
   max-width: 360px;
   text-align: left;
 }
-.pat-form label { font-size: .85rem; font-weight: 600; color: #475569; }
-.pat-form input {
+.auth-form label { font-size: .85rem; font-weight: 600; color: #475569; }
+.auth-form input {
   padding: .6rem .75rem;
   border: 1px solid #cbd5e1;
   border-radius: .375rem;
   font-size: .95rem;
   width: 100%;
 }
-.pat-form input:focus { outline: 2px solid #2563eb; border-color: transparent; }
-.pat-form button {
+.auth-form input:focus { outline: 2px solid #2563eb; border-color: transparent; }
+.auth-form button {
   padding: .65rem 1.5rem;
   background: #2563eb;
   color: #fff;
@@ -168,11 +168,11 @@ main { padding: 1.5rem; max-width: 960px; margin: 0 auto; }
   font-size: .95rem;
   font-weight: 600;
 }
-.pat-form button:hover:not(:disabled) { background: #1d4ed8; }
-.pat-form button:disabled { opacity: .5; cursor: default; }
+.auth-form button:hover:not(:disabled) { background: #1d4ed8; }
+.auth-form button:disabled { opacity: .5; cursor: default; }
 .login-error { color: #dc2626; font-size: .85rem; margin-top: .25rem; }
-.pat-help { font-size: .8rem; color: #94a3b8; max-width: 360px; }
-.pat-help a { color: #2563eb; }
+.auth-help { font-size: .8rem; color: #94a3b8; max-width: 360px; }
+.auth-help a { color: #2563eb; }
 
 /* ── loading ── */
 .loading { text-align: center; padding: 4rem; color: #94a3b8; }

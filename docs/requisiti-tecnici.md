@@ -20,8 +20,9 @@ L'app gestisce le terapie farmacologiche degli ospiti di due case alloggio, per 
 
 ### 1.3 Autenticazione
 
-- Login tramite GitHub Personal Access Token (PAT) con scope `gists`.
-- Nessuna gestione di password proprietarie né credenziali Google.
+- Login applicativo tramite utenza + password.
+- Gestione credenziali utente: creazione utenza, cambio password, revoca/disattivazione utenza.
+- La gestione autenticazione non deve richiedere inserimento manuale di GitHub PAT lato operatore.
 
 ### 1.4 Inizializzazione storage
 
@@ -52,7 +53,7 @@ L'app gestisce le terapie farmacologiche degli ospiti di due case alloggio, per 
 ### 2.1 Costo zero
 
 - Tutti i servizi utilizzati devono essere gratuiti e non richiedere carta di credito.
-- Servizi coinvolti: GitHub Pages (hosting), GitHub Gist API (sync), GitHub Personal Access Token (autenticazione).
+- Servizi coinvolti: GitHub Pages (hosting), GitHub Gist API (sync), servizio autenticazione con utenza/password.
 
 ### 2.2 Privacy e sicurezza
 
@@ -76,6 +77,13 @@ L'app gestisce le terapie farmacologiche degli ospiti di due case alloggio, per 
 
 - L'app gestisce con eleganza i limiti di quota delle GitHub REST API (5 000 req/ora per utente autenticato, ampiamente sufficiente per 1–2 utenti attivi).
 
+### 2.7 Testabilita' automatica end-to-end
+
+- Tutti i flussi critici devono essere testabili automaticamente senza passaggi manuali.
+- La pipeline CI deve eseguire almeno: test unitari, test end-to-end browser e build produzione.
+- Nessuna release su `main` e' considerata valida se i quality gate automatici falliscono.
+- I test devono coprire almeno autenticazione, navigazione principale, impostazioni utente e import/export dati.
+
 ---
 
 ## 3. Vincoli Tecnici
@@ -85,7 +93,7 @@ L'app gestisce le terapie farmacologiche degli ospiti di due case alloggio, per 
 | Hosting         | GitHub Pages (HTTPS obbligatorio)                   |
 | Database locale | IndexedDB — libreria Dexie.js                       |
 | Sincronizzazione| GitHub Gist API v3 via JavaScript                   |
-| Autenticazione  | GitHub Personal Access Token (scope: `gists`)       |
+| Autenticazione  | Utenza + password con gestione credenziali          |
 | UI Framework    | Vue.js 3 + Vite                                     |
 | PWA             | Vite PWA Plugin (manifest, service worker, icone)   |
 | Deploy CI/CD    | GitHub Actions (push → build → deploy su Pages)     |

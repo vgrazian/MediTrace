@@ -5,7 +5,16 @@ import { fullSync, exportBackupJson, listPendingConflicts, resolveConflict } fro
 import { listSupportedImportSources, importCsv } from '../services/csvImport'
 import { getSetting } from '../db'
 
-const { accessToken, currentUser, signOut } = useAuth()
+const {
+  accessToken,
+  currentUser,
+  signOut,
+  changePassword,
+  disableCurrentTestUser,
+  listUsers,
+  reactivateSeededUser,
+  deleteSeededUser,
+} = useAuth()
 const deviceId = ref(null)
 const datasetVersion = ref(null)
 const syncMessage = ref('')
@@ -19,6 +28,16 @@ const importDryRun = ref(true)
 const importRunning = ref(false)
 const importReport = ref(null)
 const importError = ref('')
+const pwdCurrent = ref('')
+const pwdNext = ref('')
+const pwdConfirm = ref('')
+const passwordMessage = ref('')
+const passwordBusy = ref(false)
+const testUserBusy = ref(false)
+const testUserMessage = ref('')
+const users = ref([])
+const usersBusy = ref(false)
+const usersMessage = ref('')
 
 function formatValue(value) {
   if (value === null || value === undefined || value === '') return '—'
@@ -31,6 +50,10 @@ function formatEntityLabel(conflict) {
 
 async function refreshPendingConflicts() {
   pendingConflicts.value = await listPendingConflicts()
+}
+
+async function refreshUsers() {
+  users.value = await listUsers()
 }
 
 function onImportFileChange(event) {
@@ -72,6 +95,7 @@ onMounted(async () => {
   datasetVersion.value = await getSetting('datasetVersion')
   gistId.value = await getSetting('gistId')
   await refreshPendingConflicts()
+  await refreshUsers()
 })
 
 async function runSync() {
@@ -114,6 +138,73 @@ async function downloadBackup() {
   a.download = `meditrace-backup-${date}.json`
   a.click()
 }
+
+async function submitPasswordChange() {
+  passwordBusy.value = true
+  passwordMessage.value = ''
+
+  try {
+    await changePassword({
+      currentPassword: pwdCurrent.value,
+      newPassword: pwdNext.value,
+      confirmPassword: pwdConfirm.value,
+    })
+
+    pwdCurrent.value = ''
+    pwdNext.value = ''
+    pwdConfirm.value = ''
+    passwordMessage.value = 'Password aggiornata con successo.'
+  } catch (err) {
+    passwordMessage.value = `Errore password: ${err.message}`
+  } finally {
+    passwordBusy.value = false
+  }
+}
+
+async function disableTestUser() {
+  testUserBusy.value = true
+  testUserMessage.value = ''
+
+  try {
+    await disableCurrentTestUser()
+    await refreshUsers()
+  } catch (err) {
+    testUserMessage.value = `Errore disattivazione: ${err.message}`
+  } finally {
+    testUserBusy.value = false
+  }
+}
+
+async function handleReactivateSeeded(username) {
+  usersBusy.value = true
+  usersMessage.value = ''
+  try {
+    await reactivateSeededUser(username)
+    await refreshUsers()
+    usersMessage.value = `Utente ${username} riattivato.`
+  } catch (err) {
+    usersMessage.value = `Errore riattivazione: ${err.message}`
+  } finally {
+    usersBusy.value = false
+  }
+}
+
+async function handleDeleteSeeded(username) {
+  const confirmed = window.confirm(`Confermi eliminazione definitiva dell'utente di prova "${username}"?`)
+  if (!confirmed) return
+
+  usersBusy.value = true
+  usersMessage.value = ''
+  try {
+    await deleteSeededUser(username)
+    await refreshUsers()
+    usersMessage.value = `Utente ${username} eliminato definitivamente.`
+  } catch (err) {
+    usersMessage.value = `Errore eliminazione: ${err.message}`
+  } finally {
+    usersBusy.value = false
+  }
+}
 </script>
 
 <template>
@@ -121,13 +212,96 @@ async function downloadBackup() {
     <h2>Impostazioni</h2>
 
     <div class="card">
-      <p><strong>Account GitHub</strong></p>
-      <p class="muted">@{{ currentUser?.login }}<span v-if="currentUser?.name !== currentUser?.login"> ({{ currentUser?.name }})</span></p>
+      <p><strong>Account operatore</strong></p>
+      <p class="muted">Username: {{ currentUser?.username }}</p>
+      <p class="muted">GitHub sync: @{{ currentUser?.login }}<span v-if="currentUser?.name !== currentUser?.login"> ({{ currentUser?.name }})</span></p>
       <p class="muted" style="font-size:.8rem;margin-top:.25rem">
         Gist ID: <code v-if="gistId"><a :href="'https://gist.github.com/' + gistId" target="_blank" rel="noopener">{{ gistId.slice(0, 12) }}…</a></code>
         <span v-else>— (nessun gist ancora creato)</span>
       </p>
       <button style="margin-top:.75rem" @click="signOut">Esci</button>
+
+      <template v-if="currentUser?.isSeeded">
+        <button
+          style="margin-top:.5rem;background:#dc2626"
+          :disabled="testUserBusy"
+          @click="disableTestUser"
+        >
+          {{ testUserBusy ? 'Disattivazione...' : 'Disattiva utente di prova' }}
+        </button>
+        <p v-if="testUserMessage" class="muted" style="margin-top:.5rem;font-size:.8rem">{{ testUserMessage }}</p>
+      </template>
+    </div>
+
+    <div class="card">
+      <p><strong>Gestione password</strong></p>
+      <div class="import-form" style="margin-top:.5rem">
+        <label>
+          Password corrente
+          <input v-model="pwdCurrent" type="password" autocomplete="current-password" />
+        </label>
+
+        <label>
+          Nuova password
+          <input v-model="pwdNext" type="password" autocomplete="new-password" />
+        </label>
+
+        <label>
+          Conferma nuova password
+          <input v-model="pwdConfirm" type="password" autocomplete="new-password" />
+        </label>
+
+        <button :disabled="passwordBusy || !pwdCurrent || !pwdNext || !pwdConfirm" @click="submitPasswordChange">
+          {{ passwordBusy ? 'Aggiornamento...' : 'Aggiorna password' }}
+        </button>
+      </div>
+      <p v-if="passwordMessage" class="muted" style="margin-top:.5rem;font-size:.8rem">{{ passwordMessage }}</p>
+    </div>
+
+    <div class="card">
+      <p><strong>Utenti</strong></p>
+      <p class="muted" style="margin-top:.25rem">Elenco account locali. Le azioni sono abilitate solo per utenti di prova (seeded).</p>
+
+      <table class="conflict-table" style="margin-top:.75rem">
+        <thead>
+          <tr>
+            <th>Username</th>
+            <th>GitHub</th>
+            <th>Tipo</th>
+            <th>Stato</th>
+            <th>Azione</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="user in users" :key="user.username">
+            <td>{{ user.username }}<span v-if="user.isCurrent"> (sessione attiva)</span></td>
+            <td>@{{ user.login }}</td>
+            <td>{{ user.isSeeded ? 'prova' : 'standard' }}</td>
+            <td>{{ user.disabled ? 'disattivato' : 'attivo' }}</td>
+            <td>
+              <template v-if="user.isSeeded">
+                <button
+                  v-if="user.disabled"
+                  :disabled="usersBusy"
+                  @click="handleReactivateSeeded(user.username)"
+                >
+                  Riattiva
+                </button>
+                <button
+                  style="margin-left:.35rem;background:#dc2626"
+                  :disabled="usersBusy"
+                  @click="handleDeleteSeeded(user.username)"
+                >
+                  Elimina
+                </button>
+              </template>
+              <span v-else class="muted">—</span>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
+      <p v-if="usersMessage" class="muted" style="margin-top:.5rem;font-size:.8rem">{{ usersMessage }}</p>
     </div>
 
     <div class="card">

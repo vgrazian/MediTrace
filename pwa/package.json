@@ -6,7 +6,10 @@
     "scripts": {
         "dev": "vite",
         "build": "vite build",
-        "preview": "vite preview"
+        "preview": "vite preview",
+        "test:unit": "vitest run --coverage",
+        "test:e2e": "playwright test",
+        "test": "npm run test:unit && npm run test:e2e"
     },
     "dependencies": {
         "dexie": "^3.2.7",
@@ -15,8 +18,11 @@
         "vue-router": "^4.3.0"
     },
     "devDependencies": {
+        "@playwright/test": "^1.59.1",
         "@vitejs/plugin-vue": "^5.0.4",
+        "@vitest/coverage-v8": "^4.1.2",
         "vite": "^5.2.8",
-        "vite-plugin-pwa": "^0.20.0"
+        "vite-plugin-pwa": "^0.20.0",
+        "vitest": "^4.1.2"
     }
 }

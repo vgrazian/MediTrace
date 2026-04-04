@@ -74,6 +74,16 @@ Eventi minimi da tracciare:
 
 Regola: i log non devono contenere password, token o dati personali completi.
 
+## Monitoraggio Continuo Automatizzato
+
+Controlli schedulati in repository:
+
+1. Secret scan periodico con workflow `security-ops-monitoring.yml`.
+2. Reminder mensile di rotazione credenziali tramite issue automatica.
+3. Quality gate CI su `main` con test automatici obbligatori prima del merge.
+
+Obiettivo: intercettare precocemente esposizioni di segreti e rendere tracciabile la rotazione operativa.
+
 ## Backup E Restore Sicuro
 
 ### Backup

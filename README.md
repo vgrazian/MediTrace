@@ -6,7 +6,7 @@ MediTrace e' un progetto offline-first per tracciare farmaci, terapie e scorte i
 
 - frontend: PWA Vue.js + Vite
 - storage locale: IndexedDB (Dexie.js)
-- autenticazione: GitHub Personal Access Token (scope `gists`)
+- autenticazione: utenza + password (con token GitHub gestito internamente per sync Gist)
 - sync cloud: GitHub Gist privato (snapshot JSON)
 - hosting: GitHub Pages
 
@@ -60,7 +60,23 @@ MediTrace e' un progetto offline-first per tracciare farmaci, terapie e scorte i
 
 1. Aprire l'URL mostrato (default `http://localhost:5173/`).
 
-2. Inserire un GitHub PAT con permesso `gists` e completare il primo bootstrap remoto.
+2. Al primo avvio creare utenza/password operatore e completare il bootstrap remoto.
+
+## Quality Gate automatico (no test manuali)
+
+Requisito: i flussi critici devono essere esercitabili automaticamente.
+
+Comandi locali:
+
+```bash
+npm --prefix pwa run test:unit
+npm --prefix pwa run test:e2e
+npm --prefix pwa run test
+```
+
+In CI il workflow `.github/workflows/quality-gate.yml` esegue unit test + E2E ad ogni push/PR su `main`.
+
+Su `main` il check richiesto e' `test`: se il quality gate fallisce, il merge e' bloccato.
 
 ## Build produzione
 
@@ -72,7 +88,7 @@ npm --prefix pwa run preview
 ## Sicurezza operativa
 
 - Non committare token, credenziali o file `.env` con segreti.
-- Usare PAT dedicato al progetto, ruotarlo periodicamente e revocarlo in caso di esposizione.
+- Applicare policy robuste per utenze/password operative e ruotare periodicamente i segreti tecnici di sync.
 - Per policy dettagliate consultare `docs/security-secrets-policy.md`.
 
 ## Stato progetto

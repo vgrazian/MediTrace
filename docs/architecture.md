@@ -7,7 +7,7 @@ MediTrace adotta un'architettura offline-first basata su web app installabile. L
 Questa scelta sostituisce il precedente disegno Android + Apps Script + Google Sheets per allinearsi ai requisiti tecnici correnti:
 
 - accesso da piu' dispositivi con lo stesso account GitHub
-- nessuna password proprietaria
+- accesso operatore con utenza/password gestita dall'app
 - nessun server intermedio che legga i dati clinico-operativi
 - installazione come app su smartphone e desktop
 - costo operativo vicino a zero
@@ -28,7 +28,7 @@ Responsabilita':
 - rendering UI responsive su telefono, tablet e desktop
 - accesso offline immediato alle viste principali
 - gestione stato locale e coda operazioni non sincronizzate
-- autenticazione browser con token personale GitHub (PAT)
+- autenticazione operatore con utenza/password
 - export manuale JSON per backup locale
 
 ### 2. Storage locale
@@ -60,7 +60,7 @@ Campi trasversali raccomandati per ogni entita' sincronizzabile:
 
 ### 3. Storage cloud personale
 
-Il cloud condiviso tra dispositivi e' un Gist GitHub privato di proprieta' dell'utente. Il Gist non e' pubblico e resta accessibile solo ai dispositivi autenticati con lo stesso account e token autorizzato.
+Il cloud condiviso tra dispositivi e' un Gist GitHub privato di proprieta' dell'utente. Il Gist non e' pubblico e resta accessibile solo ai dispositivi autorizzati dalla sessione operatore valida.
 
 File minimi previsti:
 
@@ -74,9 +74,9 @@ Il `manifest` serve a evitare che ogni client lavori alla cieca: contiene `datas
 
 Autenticazione e autorizzazioni:
 
-- GitHub Personal Access Token (PAT) dedicato all'app
-- permesso minimo richiesto: `gists` (read/write)
-- nessuna password applicativa salvata o gestita da MediTrace
+- accesso operatore in app con utenza/password
+- token GitHub usato solo come segreto tecnico di sincronizzazione Gist, non esposto come credenziale primaria all'operatore
+- permesso minimo richiesto sul segreto tecnico: `gists` (read/write)
 
 Responsabilita':
 
@@ -153,10 +153,20 @@ Questo serve a capire da quale dispositivo arriva l'ultima modifica e a supporta
 
 ### Apertura su un secondo dispositivo
 
-1. L'utente effettua login con lo stesso account GitHub.
+1. L'utente effettua login con la stessa utenza operatore.
 2. La PWA crea il proprio `deviceId` e cerca i file nel Gist privato.
 3. Se trova un dataset remoto piu' recente del locale, lo scarica prima di mostrare le viste operative.
 4. Se il dispositivo e' nuovo ma il cloud e' vuoto, puo' inizializzare il dataset solo dopo conferma esplicita.
+
+## Quality Gate Obbligatorio
+
+Ogni modifica al ramo principale deve superare un quality gate automatico eseguito in CI:
+
+- unit test con soglia minima coverage
+- test E2E browser sui flussi critici
+- build produzione della PWA
+
+Il check richiesto sul branch `main` e' `test`; senza esito positivo non e' consentito il merge.
 
 ## Backup e ripristino
 
@@ -188,7 +198,7 @@ Strategia minima:
 
 - conflitti su modifiche concorrenti alla stessa terapia
 - corruzione logica del dataset se manca validazione pre-upload
-- token PAT revocato o scaduto durante sync in background
+- segreto tecnico GitHub revocato o scaduto durante sync in background
 - rate limit GitHub API su retry troppo aggressivi
 - restore di file JSON con schema obsoleto
 - assenza di cifratura client-side se in futuro il livello privacy dovesse essere alzato ulteriormente
