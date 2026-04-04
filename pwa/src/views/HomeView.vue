@@ -31,15 +31,14 @@ onMounted(async () => {
 
 <template>
   <div class="view home-view">
-    <section class="hero-banner">
-      <img src="/branding/meditrace-banner.svg" alt="MediTrace banner" />
-      <div class="hero-copy">
-        <h1>MediTrace Dashboard</h1>
-        <p>Monitoraggio scorte, terapie e promemoria con controllo operativo continuo.</p>
-      </div>
-    </section>
+    <div class="card">
+      <h2>MediTrace Dashboard</h2>
+      <p class="muted" style="margin-top:.35rem">
+        Monitoraggio scorte, terapie e promemoria con controllo operativo continuo.
+      </p>
+    </div>
 
-    <h2>Dashboard</h2>
+    <h2>Dashboard Operativa</h2>
 
     <div class="card">
       <p>Benvenuto/a, <strong>{{ currentUser?.name }}</strong></p>
