@@ -1,0 +1,9 @@
+guest_id,codice_interno,iniziali,casa_alloggio,attivo,note_essenziali,updated_at,deleted_at
+TEST_HOST_001,OSP-RM-001,MR,Casa Roma Centro,true,Nome fittizio: Marco Rossi,2026-04-04T10:20:00.000Z,
+TEST_HOST_002,OSP-RM-002,LG,Casa Roma Centro,true,Nome fittizio: Lucia Galli,2026-04-04T10:21:00.000Z,
+TEST_HOST_003,OSP-RM-003,AB,Casa Trastevere,true,Nome fittizio: Andrea Bianchi,2026-04-04T10:22:00.000Z,
+TEST_HOST_004,OSP-RM-004,FM,Casa Ostiense,true,Nome fittizio: Francesca Mancini,2026-04-04T10:23:00.000Z,
+TEST_HOST_005,OSP-RM-005,GS,Casa Ostiense,true,Nome fittizio: Giuseppe Serra,2026-04-04T10:24:00.000Z,
+TEST_HOST_006,OSP-RM-006,AK,Casa San Paolo,true,Nome fittizio straniero: Amina Kone,2026-04-04T10:25:00.000Z,
+TEST_HOST_007,OSP-RM-007,OP,Casa San Paolo,true,Nome fittizio straniero: Oleksandr Petrenko,2026-04-04T10:26:00.000Z,
+TEST_HOST_008,OSP-RM-008,SM,Casa Tiburtina,true,Nome fittizio straniero: Sofia Mendez,2026-04-04T10:27:00.000Z
