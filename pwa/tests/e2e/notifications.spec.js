@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test'
+import { loginOrRegisterSeededUser } from './helpers/login'
 
 test.beforeEach(async ({ page }) => {
     await page.addInitScript(() => {
@@ -84,10 +85,7 @@ test.beforeEach(async ({ page }) => {
 
 test('notification enable, test send, and reminder deep-link are exercisable automatically', async ({ page }) => {
     await page.goto('/')
-
-    await page.getByLabel('Username').fill('prova')
-    await page.getByLabel('Password').fill('Prova123!')
-    await page.getByRole('button', { name: 'Accedi' }).click()
+    await loginOrRegisterSeededUser(page)
 
     await page.getByRole('link', { name: '⚙' }).click()
     await expect(page.getByRole('heading', { name: 'Impostazioni' })).toBeVisible()

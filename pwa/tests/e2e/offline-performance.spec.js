@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test'
+import { loginOrRegisterSeededUser } from './helpers/login'
 
 test.beforeEach(async ({ page }) => {
     await page.route('https://api.github.com/user', async route => {
@@ -17,7 +18,13 @@ test.beforeEach(async ({ page }) => {
 test('@ops performance smoke: initial load within budget', async ({ page }) => {
     const startedAt = Date.now()
     await page.goto('/')
-    await expect(page.getByRole('heading', { name: 'MediTrace' })).toBeVisible()
+    const loginHeading = page.getByRole('heading', { name: 'MediTrace' })
+    const homeLink = page.getByRole('link', { name: 'Home' })
+    await Promise.race([
+        loginHeading.waitFor({ state: 'visible' }).catch(() => null),
+        homeLink.waitFor({ state: 'visible' }).catch(() => null),
+    ])
+    await expect(loginHeading.or(homeLink)).toBeVisible()
 
     const elapsedMs = Date.now() - startedAt
     expect(elapsedMs).toBeLessThan(5000)
@@ -25,11 +32,7 @@ test('@ops performance smoke: initial load within budget', async ({ page }) => {
 
 test('@ops offline prolonged session remains usable after login', async ({ page }) => {
     await page.goto('/')
-    await page.getByLabel('Username').fill('prova')
-    await page.getByLabel('Password').fill('Prova123!')
-    await page.getByRole('button', { name: 'Accedi' }).click()
-
-    await expect(page.getByText('Home')).toBeVisible()
+    await loginOrRegisterSeededUser(page)
 
     await page.context().setOffline(true)
     await page.waitForTimeout(2000)

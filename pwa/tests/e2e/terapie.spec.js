@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test'
+import { loginOrRegisterSeededUser } from './helpers/login'
 
 test('terapie view supports create and deactivate flow', async ({ page }) => {
     await page.route('https://api.github.com/user', async route => {
@@ -14,20 +15,7 @@ test('terapie view supports create and deactivate flow', async ({ page }) => {
     })
 
     await page.goto('/')
-
-    if (await page.locator('#username-input').isVisible()) {
-        await page.locator('#username-input').fill('prova')
-        await page.locator('#password-input').fill('Prova123!')
-        await page.getByRole('button', { name: 'Accedi' }).click()
-    } else {
-        await page.locator('#reg-username').fill('prova')
-        await page.locator('#reg-password').fill('Prova123!')
-        await page.locator('#reg-confirm-password').fill('Prova123!')
-        await page.locator('#reg-gh-token').fill('github_pat_seeded')
-        await page.getByRole('button', { name: 'Crea account e accedi' }).click()
-    }
-
-    await expect(page.getByText('Home')).toBeVisible()
+    await loginOrRegisterSeededUser(page)
 
     await page.getByRole('link', { name: '⚙' }).click()
     await expect(page.getByRole('heading', { name: 'Impostazioni' })).toBeVisible()

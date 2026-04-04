@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test'
+import { loginOrRegisterSeededUser } from './helpers/login'
 
 test.beforeEach(async ({ page }) => {
     await page.route('https://api.github.com/user', async route => {
@@ -16,10 +17,7 @@ test.beforeEach(async ({ page }) => {
 
 test('import CSV non dry-run persists rows in IndexedDB', async ({ page }) => {
     await page.goto('/')
-
-    await page.getByLabel('Username').fill('prova')
-    await page.getByLabel('Password').fill('Prova123!')
-    await page.getByRole('button', { name: 'Accedi' }).click()
+    await loginOrRegisterSeededUser(page)
 
     await page.getByRole('link', { name: '⚙' }).click()
     await expect(page.getByRole('heading', { name: 'Impostazioni' })).toBeVisible()

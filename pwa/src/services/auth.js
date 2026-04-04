@@ -4,6 +4,7 @@ import { db, getSetting, setSetting } from '../db'
 const AUTH_USERS_KEY = 'authUsers'
 const AUTH_SESSION_KEY = 'authSession'
 const AUTH_SESSION_USERNAME_KEY = 'authSessionUsername'
+const USERNAME_PATTERN = /^[a-z0-9._-]{3,32}$/
 const PASSWORD_ROTATION_DAYS = Number.parseInt(import.meta.env.VITE_PASSWORD_ROTATION_DAYS || '90', 10)
 const PASSWORD_EXPIRY_WARNING_DAYS = Number.parseInt(import.meta.env.VITE_PASSWORD_EXPIRY_WARNING_DAYS || '14', 10)
 const AUTH_SESSION_TTL_MINUTES = Number.parseInt(import.meta.env.VITE_SESSION_TTL_MINUTES || '480', 10)
@@ -25,6 +26,20 @@ const state = reactive({
 
 function normalizeUsername(value) {
     return String(value ?? '').trim().toLowerCase()
+}
+
+export function sanitizeUsernameInput(value) {
+    return normalizeUsername(value)
+        .replace(/[^a-z0-9._-]/g, '')
+        .slice(0, 32)
+}
+
+function assertValidUsername(username) {
+    const normalized = normalizeUsername(username)
+    if (!USERNAME_PATTERN.test(normalized)) {
+        throw new Error('Username non valido: usa 3-32 caratteri [a-z0-9._-]')
+    }
+    return normalized
 }
 
 function nowIso() {
@@ -389,8 +404,7 @@ export function useAuth() {
         ...toRefs(readonly(state)),
 
         async register({ username, password, confirmPassword, githubToken }) {
-            const normalized = normalizeUsername(username)
-            if (normalized.length < 3) throw new Error('Username minimo: 3 caratteri')
+            const normalized = assertValidUsername(username)
             const passwordPolicyError = getPasswordPolicyErrorMessage(password)
             if (passwordPolicyError) throw new Error(passwordPolicyError)
             if (password !== confirmPassword) throw new Error('Le password non coincidono')
@@ -423,6 +437,10 @@ export function useAuth() {
         async signIn({ username, password }) {
             const normalized = normalizeUsername(username)
             if (!normalized || !password) throw new Error('Inserisci username e password')
+            if (!USERNAME_PATTERN.test(normalized)) {
+                await appendAuthAudit('auth_signin_blocked_input', normalized || 'anonymous', { reason: 'invalid-username-format' })
+                throw new Error('Username non valido: usa 3-32 caratteri [a-z0-9._-]')
+            }
 
             const users = await loadUsers()
             const user = users.find(u => !u.disabled && u.username === normalized)
@@ -602,4 +620,5 @@ export const authTestUtils = {
     isPasswordPolicySatisfied,
     getPasswordPolicyErrorMessage,
     computeCredentialPolicyStatus,
+    sanitizeUsernameInput,
 }
