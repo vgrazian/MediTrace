@@ -14,6 +14,8 @@ Ogni snapshot `meditrace-data.json` include:
 - `schemaVersion`
 - `datasetVersion`
 - `exportedAt`
+- `rooms[]`
+- `beds[]`
 - `hosts[]`
 - `drugs[]`
 - `stockBatches[]`
@@ -73,7 +75,7 @@ Mapping:
 ### 03_Ospiti.csv -> `hosts[]`
 
 Sorgente:
-`guest_id,codice_interno,iniziali,casa_alloggio,attivo,note_essenziali,updated_at,deleted_at`
+`guest_id,codice_interno,iniziali,casa_alloggio,stanza_id,letto_id,attivo,note_essenziali,updated_at,deleted_at`
 
 Mapping:
 
@@ -81,8 +83,40 @@ Mapping:
 - `codice_interno` -> `codiceInterno`
 - `iniziali` -> `iniziali`
 - `casa_alloggio` -> `casaAlloggio`
+- `stanza_id` -> `stanzaId` (opzionale, retrocompatibilità)
+- `letto_id` -> `lettoId` (opzionale, retrocompatibilità)
 - `attivo` -> `attivo`
 - `note_essenziali` -> `noteEssenziali`
+- `updated_at` -> `updatedAt`
+- `deleted_at` -> `deletedAt`
+
+### 12_Stanze.csv -> `rooms[]`
+
+Sorgente:
+`room_id,nome,descrizione,piano,note,updated_at,deleted_at`
+
+Mapping:
+
+- `room_id` -> `id`
+- `nome` -> `nome`
+- `descrizione` -> `descrizione`
+- `piano` -> `piano`
+- `note` -> `note`
+- `updated_at` -> `updatedAt`
+- `deleted_at` -> `deletedAt`
+
+### 13_Letti.csv -> `beds[]`
+
+Sorgente:
+`bed_id,room_id,numero,descrizione,note,updated_at,deleted_at`
+
+Mapping:
+
+- `bed_id` -> `id`
+- `room_id` -> `roomId`
+- `numero` -> `numero`
+- `descrizione` -> `descrizione`
+- `note` -> `note`
 - `updated_at` -> `updatedAt`
 - `deleted_at` -> `deletedAt`
 
@@ -174,6 +208,9 @@ Mapping:
 
 - chiavi primarie univoche per ogni entita'.
 - referential integrity minima:
+  - `beds.roomId` deve esistere in `rooms.id`
+  - `hosts.stanzaId` deve esistere in `rooms.id` (opzionale, retrocompatibilità)
+  - `hosts.lettoId` deve esistere in `beds.id` (opzionale, retrocompatibilità)
   - `stockBatches.drugId` deve esistere in `drugs.id`
   - `therapies.hostId` deve esistere in `hosts.id`
   - `therapies.drugId` deve esistere in `drugs.id`
@@ -183,6 +220,7 @@ Mapping:
 
 ## Evidenze
 
-- Header sorgente verificati da `templates/csv-import/*.csv`.
+- Header sorgente verificati da `templates/csv-import/*.csv` (inclusi 12_Stanze.csv e 13_Letti.csv).
 - Coerenza confermata con schema Dexie in `pwa/src/db/index.js`.
 - Coerenza confermata con snapshot remoto `meditrace-data.json` (W1-13).
+- Relazioni rooms ↔ beds ↔ hosts sincronizzate e testate in E2E.
