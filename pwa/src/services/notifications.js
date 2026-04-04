@@ -1,10 +1,13 @@
 import { db, getSetting, setSetting } from '../db'
 
-const NOTIFIED_REMINDER_IDS_KEY = 'notifiedReminderIds'
+const NOTIFIED_REMINDERS_KEY = 'notifiedReminders'
 const NOTIFICATION_LOOKAHEAD_MINUTES = Number.parseInt(import.meta.env.VITE_REMINDER_LOOKAHEAD_MINUTES || '10', 10)
 const NOTIFICATION_POLL_INTERVAL_MS = Number.parseInt(import.meta.env.VITE_REMINDER_POLL_INTERVAL_MS || '60000', 10)
+const NOTIFICATION_REPEAT_COOLDOWN_MINUTES = Number.parseInt(import.meta.env.VITE_REMINDER_REPEAT_COOLDOWN_MINUTES || '120', 10)
+const NOTIFICATION_RETENTION_HOURS = Number.parseInt(import.meta.env.VITE_REMINDER_RETENTION_HOURS || '24', 10)
 
 let loopHandle = null
+let clickListenerInstalled = false
 
 function nowMs() {
     return Date.now()
@@ -36,6 +39,13 @@ export function getNotificationStatusSnapshot() {
         supported,
         permission,
         enabled: supported && permission === 'granted',
+        reason: supported
+            ? permission === 'granted'
+                ? 'ready'
+                : permission === 'denied'
+                    ? 'blocked-by-browser'
+                    : 'permission-required'
+            : 'api-unsupported',
     }
 }
 
@@ -60,57 +70,93 @@ export async function sendTestNotification() {
     await showNotification('MediTrace', {
         body: 'Notifiche promemoria attive su questo dispositivo.',
         tag: 'meditrace:test',
+        data: {
+            route: '/impostazioni',
+        },
     })
 }
 
 async function showNotification(title, options) {
     if (!isBrowserNotificationSupported()) return
 
-    if (typeof navigator !== 'undefined' && navigator.serviceWorker?.ready) {
-        const registration = await navigator.serviceWorker.ready
-        if (registration?.showNotification) {
-            await registration.showNotification(title, options)
-            return
-        }
+    const notification = new Notification(title, options)
+    notification.onclick = () => {
+        navigateFromNotification(options?.data)
+        notification.close?.()
     }
-
-    new Notification(title, options)
 }
 
-export function computeNotifiableReminders({ reminders, notifiedIds, now = nowMs(), lookAheadMinutes = NOTIFICATION_LOOKAHEAD_MINUTES }) {
+function normalizeReminderNotificationsState(value) {
+    if (Array.isArray(value)) {
+        return Object.fromEntries(value.map(id => [id, 0]))
+    }
+
+    if (!value || typeof value !== 'object') return {}
+    return value
+}
+
+function pruneReminderNotificationsMap(map, now = nowMs(), retentionHours = NOTIFICATION_RETENTION_HOURS) {
+    const retentionMs = Math.max(1, retentionHours) * 60 * 60 * 1000
+    return Object.fromEntries(
+        Object.entries(normalizeReminderNotificationsState(map)).filter(([, ts]) => now - Number(ts || 0) <= retentionMs),
+    )
+}
+
+export function computeNotifiableReminders({ reminders, notifiedIds, now = nowMs(), lookAheadMinutes = NOTIFICATION_LOOKAHEAD_MINUTES, repeatCooldownMinutes = NOTIFICATION_REPEAT_COOLDOWN_MINUTES }) {
     const lookAheadMs = Math.max(1, lookAheadMinutes) * 60 * 1000
     const cutoff = now + lookAheadMs
-    const seenNotified = new Set(Array.isArray(notifiedIds) ? notifiedIds : [])
+    const cooldownMs = Math.max(1, repeatCooldownMinutes) * 60 * 1000
+    const notifiedMap = normalizeReminderNotificationsState(notifiedIds)
 
     return (Array.isArray(reminders) ? reminders : [])
         .filter(reminder => {
             if (!reminder?.id || !reminder?.scheduledAt) return false
             if (!isReminderPending(reminder)) return false
-            if (seenNotified.has(reminder.id)) return false
 
             const ts = toMillis(reminder.scheduledAt)
             if (!Number.isFinite(ts)) return false
-            return ts <= cutoff
+            const lastNotifiedAt = Number(notifiedMap[reminder.id] ?? 0)
+            const isCoolingDown = lastNotifiedAt > 0 && now - lastNotifiedAt < cooldownMs
+            return ts <= cutoff && !isCoolingDown
         })
         .sort((a, b) => toMillis(a.scheduledAt) - toMillis(b.scheduledAt))
 }
 
-function appendNotifiedIds(previous, newIds, maxItems = 500) {
-    const merged = [...(Array.isArray(previous) ? previous : []), ...newIds]
-    if (merged.length <= maxItems) return merged
-    return merged.slice(merged.length - maxItems)
+function mergeReminderNotificationState(previous, reminderIds, now = nowMs()) {
+    const next = {
+        ...pruneReminderNotificationsMap(previous, now),
+    }
+
+    for (const reminderId of reminderIds) {
+        next[reminderId] = now
+    }
+
+    return next
+}
+
+function buildReminderRoute(reminderId) {
+    if (!reminderId) return '/promemoria'
+    return `/promemoria?highlight=${encodeURIComponent(reminderId)}`
+}
+
+function navigateFromNotification(data) {
+    if (typeof window === 'undefined') return
+    const route = data?.route || buildReminderRoute(data?.reminderId)
+    window.location.hash = `#${route}`
+    window.focus?.()
 }
 
 async function pollAndNotifyDueReminders() {
     const status = getNotificationStatusSnapshot()
     if (!status.enabled) return
 
-    const [reminders, notifiedIds] = await Promise.all([
+    const [reminders, notifiedState] = await Promise.all([
         db.reminders.toArray(),
-        getSetting(NOTIFIED_REMINDER_IDS_KEY, []),
+        getSetting(NOTIFIED_REMINDERS_KEY, {}),
     ])
 
-    const due = computeNotifiableReminders({ reminders, notifiedIds })
+    const now = nowMs()
+    const due = computeNotifiableReminders({ reminders, notifiedIds: notifiedState, now })
     if (due.length === 0) return
 
     const notifiedThisRun = []
@@ -122,17 +168,34 @@ async function pollAndNotifyDueReminders() {
                 reminderId: reminder.id,
                 therapyId: reminder.therapyId,
                 hostId: reminder.hostId,
+                route: buildReminderRoute(reminder.id),
             },
         })
         notifiedThisRun.push(reminder.id)
     }
 
-    await setSetting(NOTIFIED_REMINDER_IDS_KEY, appendNotifiedIds(notifiedIds, notifiedThisRun))
+    await setSetting(NOTIFIED_REMINDERS_KEY, mergeReminderNotificationState(notifiedState, notifiedThisRun, now))
+}
+
+export async function triggerReminderNotificationsCheck() {
+    await pollAndNotifyDueReminders()
+}
+
+async function ensureNotificationClickBridge() {
+    if (clickListenerInstalled || typeof navigator === 'undefined' || !navigator.serviceWorker) return
+
+    navigator.serviceWorker.addEventListener('message', event => {
+        if (event.data?.type === 'meditrace-notification-click') {
+            navigateFromNotification(event.data)
+        }
+    })
+    clickListenerInstalled = true
 }
 
 export function startReminderNotificationsLoop() {
     if (loopHandle || typeof window === 'undefined') return
 
+    void ensureNotificationClickBridge()
     void pollAndNotifyDueReminders()
     loopHandle = window.setInterval(() => {
         void pollAndNotifyDueReminders()
@@ -149,5 +212,8 @@ export const notificationsTestUtils = {
     toMillis,
     isReminderPending,
     normalizePermission,
-    appendNotifiedIds,
+    normalizeReminderNotificationsState,
+    pruneReminderNotificationsMap,
+    mergeReminderNotificationState,
+    buildReminderRoute,
 }

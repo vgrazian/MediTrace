@@ -29,7 +29,7 @@ describe('notifications service', () => {
 
         const result = computeNotifiableReminders({
             reminders,
-            notifiedIds: ['r-4'],
+            notifiedIds: { 'r-4': now },
             now,
             lookAheadMinutes: 10,
         })
@@ -55,6 +55,32 @@ describe('notifications service', () => {
         expect(result.map(item => item.id)).toEqual(['r-1', 'r-3', 'r-2'])
     })
 
+    it('respects repeat cooldown before re-notifying the same reminder', () => {
+        const now = Date.parse('2026-04-04T12:00:00.000Z')
+        const reminders = [
+            { id: 'r-1', scheduledAt: '2026-04-04T12:01:00.000Z', stato: 'DA_ESEGUIRE' },
+        ]
+
+        const coolingDown = computeNotifiableReminders({
+            reminders,
+            notifiedIds: { 'r-1': now - (30 * 60 * 1000) },
+            now,
+            lookAheadMinutes: 10,
+            repeatCooldownMinutes: 120,
+        })
+
+        const allowedAgain = computeNotifiableReminders({
+            reminders,
+            notifiedIds: { 'r-1': now - (3 * 60 * 60 * 1000) },
+            now,
+            lookAheadMinutes: 10,
+            repeatCooldownMinutes: 120,
+        })
+
+        expect(coolingDown).toEqual([])
+        expect(allowedAgain.map(item => item.id)).toEqual(['r-1'])
+    })
+
     it('returns unsupported snapshot when Notification API is unavailable', () => {
         const status = getNotificationStatusSnapshot()
         expect(status.supported).toBe(false)
@@ -70,7 +96,14 @@ describe('notifications service', () => {
         expect(notificationsTestUtils.isReminderPending({ stato: 'SOMMINISTRATO' })).toBe(false)
         expect(notificationsTestUtils.normalizePermission('weird-value')).toBe('default')
 
-        const merged = notificationsTestUtils.appendNotifiedIds(['a', 'b'], ['c', 'd'], 3)
-        expect(merged).toEqual(['b', 'c', 'd'])
+        const normalized = notificationsTestUtils.normalizeReminderNotificationsState(['a', 'b'])
+        expect(normalized).toEqual({ a: 0, b: 0 })
+
+        const merged = notificationsTestUtils.mergeReminderNotificationState({ a: 10, stale: 1 }, ['c'], 10 + (2 * 60 * 60 * 1000))
+        expect(merged.c).toBeGreaterThan(0)
+
+        const pruned = notificationsTestUtils.pruneReminderNotificationsMap({ keep: Date.parse('2026-04-04T11:00:00.000Z'), old: Date.parse('2026-04-02T11:00:00.000Z') }, Date.parse('2026-04-04T12:00:00.000Z'), 24)
+        expect(pruned).toEqual({ keep: Date.parse('2026-04-04T11:00:00.000Z') })
+        expect(notificationsTestUtils.buildReminderRoute('rem-1')).toBe('/promemoria?highlight=rem-1')
     })
 })
