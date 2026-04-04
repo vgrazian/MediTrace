@@ -2,7 +2,7 @@
 
 Obiettivo: chiudere rapidamente la review con criteri di accettazione oggettivi e verificabili.
 
-PR: https://github.com/vgrazian/MediTrace/pull/12
+PR: <https://github.com/vgrazian/MediTrace/pull/12>
 
 ## 1) Blocco E2 - Notifiche Push Foundation
 

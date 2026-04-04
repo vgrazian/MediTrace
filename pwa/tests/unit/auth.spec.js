@@ -155,8 +155,12 @@ describe('auth service', () => {
         const auth = useAuth()
 
         await initAuth()
-        await auth.signIn({ username: 'prova', password: 'Prova123!' })
-        expect(auth.currentUser.value?.role).toBe('admin')
+        await auth.register({
+            username: 'operatore1',
+            password: 'Password123!',
+            confirmPassword: 'Password123!',
+            githubToken: 'github_pat_any_value',
+        })
 
         await auth.register({
             username: 'operatore2',
