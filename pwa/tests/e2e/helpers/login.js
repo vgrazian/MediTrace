@@ -8,6 +8,7 @@ export async function loginOrRegisterSeededUser(page, {
     const usernameInput = page.locator('#username-input')
     const registerUsernameInput = page.locator('#reg-username')
     const homeLink = page.getByRole('link', { name: 'Cruscotto' })
+    const settingsLink = page.getByRole('link', { name: '⚙' })
     const loginError = page.locator('.login-error')
 
     async function awaitAuthenticated(timeout = 8000) {
@@ -50,4 +51,5 @@ export async function loginOrRegisterSeededUser(page, {
     }
 
     await expect(page.locator('main')).toBeVisible({ timeout: 10000 })
+    await expect(settingsLink).toBeVisible({ timeout: 10000 })
 }
