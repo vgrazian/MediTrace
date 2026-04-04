@@ -4,6 +4,8 @@ import { db, getSetting, setSetting } from '../db'
 const AUTH_USERS_KEY = 'authUsers'
 const AUTH_SESSION_KEY = 'authSession'
 const AUTH_SESSION_USERNAME_KEY = 'authSessionUsername'
+const PASSWORD_ROTATION_DAYS = Number.parseInt(import.meta.env.VITE_PASSWORD_ROTATION_DAYS || '90', 10)
+const PASSWORD_EXPIRY_WARNING_DAYS = Number.parseInt(import.meta.env.VITE_PASSWORD_EXPIRY_WARNING_DAYS || '14', 10)
 const AUTH_SESSION_TTL_MINUTES = Number.parseInt(import.meta.env.VITE_SESSION_TTL_MINUTES || '480', 10)
 const AUTH_SESSION_TTL_MS = Number.isFinite(AUTH_SESSION_TTL_MINUTES) && AUTH_SESSION_TTL_MINUTES > 0
     ? AUTH_SESSION_TTL_MINUTES * 60 * 1000
@@ -31,6 +33,78 @@ function nowIso() {
 
 function normalizeRole(value) {
     return value === 'admin' ? 'admin' : 'operator'
+}
+
+function getPasswordPolicy(password) {
+    const value = String(password || '')
+    return {
+        minLength: value.length >= 10,
+        hasUppercase: /[A-Z]/.test(value),
+        hasLowercase: /[a-z]/.test(value),
+        hasDigit: /\d/.test(value),
+        hasSymbol: /[^A-Za-z0-9]/.test(value),
+    }
+}
+
+function isPasswordPolicySatisfied(policy) {
+    return Object.values(policy).every(Boolean)
+}
+
+function getPasswordPolicyErrorMessage(password) {
+    const policy = getPasswordPolicy(password)
+    if (isPasswordPolicySatisfied(policy)) return null
+    return 'Password richiesta: almeno 10 caratteri con maiuscola, minuscola, numero e simbolo'
+}
+
+function computeCredentialPolicyStatus(authUser) {
+    const updatedAt = authUser?.updatedAt || authUser?.createdAt || null
+    if (!updatedAt) {
+        return {
+            expiresAt: null,
+            daysRemaining: null,
+            status: 'unknown',
+            warning: 'Scadenza credenziali non determinabile.',
+        }
+    }
+
+    const baseTime = new Date(updatedAt).getTime()
+    if (Number.isNaN(baseTime)) {
+        return {
+            expiresAt: null,
+            daysRemaining: null,
+            status: 'unknown',
+            warning: 'Data credenziali non valida.',
+        }
+    }
+
+    const expiresAt = new Date(baseTime + (PASSWORD_ROTATION_DAYS * 24 * 60 * 60 * 1000))
+    const diffMs = expiresAt.getTime() - Date.now()
+    const daysRemaining = Math.ceil(diffMs / (24 * 60 * 60 * 1000))
+
+    if (daysRemaining < 0) {
+        return {
+            expiresAt: expiresAt.toISOString(),
+            daysRemaining,
+            status: 'expired',
+            warning: 'Credenziali scadute: aggiorna password e segreto operativo.',
+        }
+    }
+
+    if (daysRemaining <= PASSWORD_EXPIRY_WARNING_DAYS) {
+        return {
+            expiresAt: expiresAt.toISOString(),
+            daysRemaining,
+            status: 'warning',
+            warning: `Credenziali in scadenza tra ${daysRemaining} giorni.`,
+        }
+    }
+
+    return {
+        expiresAt: expiresAt.toISOString(),
+        daysRemaining,
+        status: 'ok',
+        warning: 'Credenziali entro finestra operativa.',
+    }
 }
 
 function normalizeUsersRoles(users) {
@@ -317,7 +391,8 @@ export function useAuth() {
         async register({ username, password, confirmPassword, githubToken }) {
             const normalized = normalizeUsername(username)
             if (normalized.length < 3) throw new Error('Username minimo: 3 caratteri')
-            if (!password || password.length < 8) throw new Error('Password minima: 8 caratteri')
+            const passwordPolicyError = getPasswordPolicyErrorMessage(password)
+            if (passwordPolicyError) throw new Error(passwordPolicyError)
             if (password !== confirmPassword) throw new Error('Le password non coincidono')
 
             const users = await loadUsers()
@@ -370,7 +445,8 @@ export function useAuth() {
 
         async changePassword({ currentPassword, newPassword, confirmPassword }) {
             const activeUser = await requireActiveSession()
-            if (!newPassword || newPassword.length < 8) throw new Error('Nuova password minima: 8 caratteri')
+            const passwordPolicyError = getPasswordPolicyErrorMessage(newPassword)
+            if (passwordPolicyError) throw new Error(passwordPolicyError)
             if (newPassword !== confirmPassword) throw new Error('Le nuove password non coincidono')
 
             const users = await loadUsers()
@@ -474,14 +550,56 @@ export function useAuth() {
             }
         },
 
-        async listRecentAuthEvents(limit = 20) {
+        async getCredentialPolicyStatus() {
+            if (!state.currentUser) {
+                return {
+                    expiresAt: null,
+                    daysRemaining: null,
+                    status: 'unknown',
+                    warning: 'Sessione non attiva.',
+                }
+            }
+
+            const users = await loadUsers()
+            const user = users.find(item => !item.disabled && item.username === state.currentUser.username)
+            if (!user) {
+                return {
+                    expiresAt: null,
+                    daysRemaining: null,
+                    status: 'unknown',
+                    warning: 'Utente non trovato.',
+                }
+            }
+
+            return computeCredentialPolicyStatus(user)
+        },
+
+        async listRecentAuthEvents(limit = 20, filterText = '') {
             const safeLimit = Math.max(1, Math.min(Number(limit) || 20, 100))
-            return db.activityLog
+            const events = await db.activityLog
                 .where('entityType')
                 .equals('auth')
                 .reverse()
                 .limit(safeLimit)
                 .toArray()
+
+            const normalizedFilter = String(filterText || '').trim().toLowerCase()
+            if (!normalizedFilter) return events
+
+            return events.filter(event => {
+                return [event.action, event.operatorId, event.entityId]
+                    .filter(Boolean)
+                    .some(value => String(value).toLowerCase().includes(normalizedFilter))
+            })
         },
+
+        getPasswordPolicy,
     }
+}
+
+export const authTestUtils = {
+    getPasswordPolicy,
+    isPasswordPolicySatisfied,
+    getPasswordPolicyErrorMessage,
+    computeCredentialPolicyStatus,
 }

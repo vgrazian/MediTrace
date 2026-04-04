@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { computed, ref, onMounted } from 'vue'
 import { useAuth } from '../services/auth'
 import { fullSync, exportBackupJson, listPendingConflicts, resolveConflict } from '../services/sync'
 import { getNotificationStatusSnapshot, requestNotificationPermission, sendTestNotification, triggerReminderNotificationsCheck } from '../services/notifications'
@@ -12,7 +12,9 @@ const {
   signOut,
   changePassword,
   getSessionInfo,
+  getCredentialPolicyStatus,
   listRecentAuthEvents,
+  getPasswordPolicy,
   disableCurrentTestUser,
   listUsers,
   reactivateSeededUser,
@@ -42,10 +44,14 @@ const users = ref([])
 const usersBusy = ref(false)
 const usersMessage = ref('')
 const sessionInfo = ref(null)
+const credentialPolicy = ref(null)
 const authEvents = ref([])
+const authEventFilter = ref('')
 const notificationStatus = ref(getNotificationStatusSnapshot())
 const notificationMessage = ref('')
 const notificationBusy = ref(false)
+
+const passwordPolicyState = computed(() => getPasswordPolicy(pwdNext.value))
 
 function formatValue(value) {
   if (value === null || value === undefined || value === '') return '—'
@@ -77,7 +83,8 @@ async function refreshUsers() {
 
 async function refreshSecurityInfo() {
   sessionInfo.value = await getSessionInfo()
-  authEvents.value = await listRecentAuthEvents(8)
+  credentialPolicy.value = await getCredentialPolicyStatus()
+  authEvents.value = await listRecentAuthEvents(20, authEventFilter.value)
 }
 
 function refreshNotificationStatus() {
@@ -179,6 +186,10 @@ onMounted(async () => {
   await refreshSecurityInfo()
   refreshNotificationStatus()
 })
+
+async function applyAuthEventFilter() {
+  await refreshSecurityInfo()
+}
 
 async function runSync() {
   syncMessage.value = 'Sincronizzazione in corso…'
@@ -329,6 +340,15 @@ async function handleDeleteSeeded(username) {
           <input v-model="pwdNext" type="password" autocomplete="new-password" />
         </label>
 
+        <p class="muted" style="font-size:.8rem">
+          Policy: 10+ caratteri, maiuscola, minuscola, numero e simbolo.<br />
+          Check: {{ passwordPolicyState.minLength ? 'ok' : 'no' }} lunghezza ·
+          {{ passwordPolicyState.hasUppercase ? 'ok' : 'no' }} maiuscola ·
+          {{ passwordPolicyState.hasLowercase ? 'ok' : 'no' }} minuscola ·
+          {{ passwordPolicyState.hasDigit ? 'ok' : 'no' }} numero ·
+          {{ passwordPolicyState.hasSymbol ? 'ok' : 'no' }} simbolo
+        </p>
+
         <label>
           Conferma nuova password
           <input v-model="pwdConfirm" type="password" autocomplete="new-password" />
@@ -428,8 +448,18 @@ async function handleDeleteSeeded(username) {
       <p class="muted">Scadenza: {{ sessionInfo?.expiresAt ?? '—' }}</p>
       <p class="muted">Ultima attivita': {{ sessionInfo?.lastActivityAt ?? '—' }}</p>
       <p class="muted">Stato: {{ sessionInfo?.isExpired ? 'scaduta' : 'attiva' }}</p>
+      <p class="muted">Credenziali: {{ credentialPolicy?.warning ?? '—' }}</p>
+      <p class="muted">Scadenza credenziali: {{ credentialPolicy?.expiresAt ?? '—' }}</p>
 
       <button style="margin-top:.75rem" @click="refreshSecurityInfo">Aggiorna stato sicurezza</button>
+
+      <div class="import-form" style="margin-top:.75rem">
+        <label>
+          Filtro audit auth
+          <input v-model="authEventFilter" type="text" placeholder="es. signin, expired, admin" />
+        </label>
+        <button @click="applyAuthEventFilter">Applica filtro audit</button>
+      </div>
 
       <table class="conflict-table" style="margin-top:.75rem">
         <thead>

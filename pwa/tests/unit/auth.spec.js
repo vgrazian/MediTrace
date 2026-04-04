@@ -174,4 +174,49 @@ describe('auth service', () => {
         expect(auth.currentUser.value?.role).toBe('operator')
         await expect(auth.listUsers()).rejects.toThrow('Azione consentita solo a utenti admin')
     })
+
+    it('exposes password policy helper and rejects weak passwords', async () => {
+        const authModule = await import('../../src/services/auth')
+        const { initAuth, useAuth, authTestUtils } = authModule
+        const auth = useAuth()
+
+        await initAuth()
+
+        expect(authTestUtils.getPasswordPolicy('weak')).toEqual({
+            minLength: false,
+            hasUppercase: false,
+            hasLowercase: true,
+            hasDigit: false,
+            hasSymbol: false,
+        })
+
+        await expect(auth.register({
+            username: 'weakuser',
+            password: 'weakpass',
+            confirmPassword: 'weakpass',
+            githubToken: 'github_pat_any_value',
+        })).rejects.toThrow('Password richiesta')
+    })
+
+    it('computes credential expiry warning and filters audit events', async () => {
+        const authModule = await import('../../src/services/auth')
+        const { initAuth, useAuth, authTestUtils } = authModule
+        const auth = useAuth()
+
+        await initAuth()
+        await auth.register({
+            username: 'policyuser',
+            password: 'Password123!',
+            confirmPassword: 'Password123!',
+            githubToken: 'github_pat_any_value',
+        })
+
+        const expired = authTestUtils.computeCredentialPolicyStatus({
+            updatedAt: new Date(Date.now() - (100 * 24 * 60 * 60 * 1000)).toISOString(),
+        })
+        expect(expired.status).toBe('expired')
+
+        const filtered = await auth.listRecentAuthEvents(20, 'register')
+        expect(filtered.some(event => event.action === 'auth_register')).toBe(true)
+    })
 })
