@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test'
+import { loginOrRegisterSeededUser } from './helpers/login'
 
 test('promemoria view shows reminders with labels and supports mark as eseguito/saltato', async ({ page }) => {
     await page.route('https://api.github.com/user', async route => {
@@ -14,20 +15,7 @@ test('promemoria view shows reminders with labels and supports mark as eseguito/
     })
 
     await page.goto('/')
-
-    if (await page.locator('#username-input').isVisible()) {
-        await page.locator('#username-input').fill('prova')
-        await page.locator('#password-input').fill('Prova123!')
-        await page.getByRole('button', { name: 'Accedi' }).click()
-    } else {
-        await page.locator('#reg-username').fill('prova')
-        await page.locator('#reg-password').fill('Prova123!')
-        await page.locator('#reg-confirm-password').fill('Prova123!')
-        await page.locator('#reg-gh-token').fill('github_pat_seeded')
-        await page.getByRole('button', { name: 'Crea account e accedi' }).click()
-    }
-
-    await expect(page.getByRole('link', { name: 'Cruscotto' })).toBeVisible()
+    await loginOrRegisterSeededUser(page)
 
     // ----------------------------------------------------------------
     // Seed prerequisites via CSV import (host, drug, therapy, reminder)
@@ -112,20 +100,7 @@ test('promemoria view date filter hides reminders outside selected day', async (
     })
 
     await page.goto('/')
-
-    if (await page.locator('#username-input').isVisible()) {
-        await page.locator('#username-input').fill('prova')
-        await page.locator('#password-input').fill('Prova123!')
-        await page.getByRole('button', { name: 'Accedi' }).click()
-    } else {
-        await page.locator('#reg-username').fill('prova')
-        await page.locator('#reg-password').fill('Prova123!')
-        await page.locator('#reg-confirm-password').fill('Prova123!')
-        await page.locator('#reg-gh-token').fill('github_pat_seeded')
-        await page.getByRole('button', { name: 'Crea account e accedi' }).click()
-    }
-
-    await expect(page.getByRole('link', { name: 'Cruscotto' })).toBeVisible()
+    await loginOrRegisterSeededUser(page)
 
     // Seed a reminder for a past date (never today)
     await page.getByRole('link', { name: '⚙' }).click()
