@@ -38,6 +38,7 @@ MediTrace e' un progetto offline-first per tracciare farmaci, terapie e scorte i
 - `docs/schema-json-mapping-v1.md`: mapping CSV -> dataset JSON
 - `docs/domain-model.md`: modello dati applicativo
 - `docs/roadmap.md`: roadmap ed evolutive priorizzate
+- `docs/ui-color-policy.md`: palette UI ufficiale (blu/azzurro/bianco) e regole anti-regressione
 - `docs/release-rollback-runbook.md`: procedura rollback deploy Pages
 - `docs/archive/`: documenti legacy superseded
 - `pwa/`: applicazione Vue/Vite/PWA (hosting: GitHub Pages)

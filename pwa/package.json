@@ -7,9 +7,10 @@
         "dev": "vite",
         "build": "vite build",
         "preview": "vite preview",
+        "check:palette": "bash ./scripts/check-palette.sh",
         "test:unit": "vitest run --coverage",
         "test:e2e": "playwright test",
-        "test": "npm run test:unit && npm run test:e2e"
+        "test": "npm run check:palette && npm run test:unit && npm run test:e2e"
     },
     "dependencies": {
         "dexie": "^3.2.7",

@@ -14,6 +14,7 @@ const { currentUser } = useAuth()
     <RouterLink to="/">Home</RouterLink>
     <RouterLink to="/farmaci">Farmaci</RouterLink>
     <RouterLink to="/scorte">Scorte</RouterLink>
+    <RouterLink to="/movimenti">Movimenti</RouterLink>
     <RouterLink to="/terapie">Terapie</RouterLink>
     <RouterLink to="/promemoria">Promemoria</RouterLink>
     <RouterLink to="/informazioni">Informazioni</RouterLink>
