@@ -54,7 +54,7 @@ watch(() => route.fullPath, () => {
           <tr
             v-for="reminder in reminders"
             :key="reminder.id"
-            :style="isHighlighted(reminder.id) ? 'background:#dcfce7' : ''"
+            :class="{ 'reminder-highlight': isHighlighted(reminder.id) }"
           >
             <td>{{ reminder.id }}</td>
             <td>{{ formatSchedule(reminder.scheduledAt) }}</td>
