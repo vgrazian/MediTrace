@@ -8,8 +8,8 @@
  * per identificazione e rimozione univoca.
  *
  * API:
- *   loadSeedData()     — carica tutti i record demo (idempotente)
- *   clearSeedData()    — rimuove tutti i record demo
+ *   loadSeedData(options?)     — carica tutti i record demo (idempotente)
+ *   clearSeedData(options?)    — rimuove tutti i record demo
  *   isSeedDataLoaded() — true se il manifest è presente in settings
  *   getSeedStats()     — conteggio record per tabella (senza accesso al db)
  */
@@ -19,6 +19,11 @@ import { db, getSetting, setSetting } from '../db'
 
 const SEED_ENABLED = import.meta.env.DEV || import.meta.env.VITE_SEED_DATA === '1'
 const SEED_MANIFEST_KEY = '_seedDataManifest'
+
+function assertSeedEnabled(options = {}) {
+    if (SEED_ENABLED || options.allowInProduction === true) return
+    throw new Error('Dati demo non disponibili in produzione. Usa il pannello admin per abilitarli esplicitamente quando necessario.')
+}
 
 // ── Dati demo ─────────────────────────────────────────────────────────────────
 
@@ -605,10 +610,8 @@ const SEED_MANIFEST = {
  * Carica tutti i record demo nel database locale (idempotente: usa put()).
  * Lancia errore se non siamo in modalità DEV.
  */
-export async function loadSeedData() {
-    if (!SEED_ENABLED) {
-        throw new Error('Dati demo non disponibili in produzione. Imposta VITE_SEED_DATA=1 per abilitarli in staging.')
-    }
+export async function loadSeedData(options = {}) {
+    assertSeedEnabled(options)
 
     await db.transaction('rw', [
         db.drugs, db.hosts, db.stockBatches,
@@ -631,10 +634,8 @@ export async function loadSeedData() {
  * Rimuove tutti i record demo dal database locale.
  * Sicuro da eseguire anche se i dati non sono stati caricati.
  */
-export async function clearSeedData() {
-    if (!SEED_ENABLED) {
-        throw new Error('Dati demo non disponibili in produzione.')
-    }
+export async function clearSeedData(options = {}) {
+    assertSeedEnabled(options)
 
     const manifest = await getSetting(SEED_MANIFEST_KEY, null)
     if (!manifest) return { cleared: false, reason: 'nessun dato demo trovato' }
