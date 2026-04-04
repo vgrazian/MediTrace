@@ -78,6 +78,14 @@ body {
 .app-nav a:hover { background: rgba(255, 255, 255, .12); }
 .app-nav .user-area { display: flex; align-items: center; gap: .5rem; }
 .app-nav .user-name { font-size: .85rem; color: #e4eefc; }
+.app-nav .user-name-link {
+  padding: 0;
+  border-radius: 0;
+}
+.app-nav .user-name-link:hover {
+  background: transparent;
+  text-decoration: underline;
+}
 .app-nav button {
   background: transparent;
   border: 1px solid #d8e7fb;
