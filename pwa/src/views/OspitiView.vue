@@ -19,7 +19,8 @@ const form = ref({
     id: '',
     codiceInterno: '',
     iniziali: '',
-    casaAlloggio: '',
+    stanza: '',
+    letto: '',
     note: '',
 })
 
@@ -57,12 +58,13 @@ async function handleCreate() {
             id: form.value.id,
             codiceInterno: form.value.codiceInterno,
             iniziali: form.value.iniziali,
-            casaAlloggio: form.value.casaAlloggio,
+            stanza: form.value.stanza,
+            letto: form.value.letto,
             note: form.value.note,
             operatorId: currentUser.value?.login ?? null,
         })
         message.value = `Ospite "${form.value.id}" creato.`
-        form.value = { id: '', codiceInterno: '', iniziali: '', casaAlloggio: '', note: '' }
+        form.value = { id: '', codiceInterno: '', iniziali: '', stanza: '', letto: '', note: '' }
         await loadData()
     } catch (err) {
         errorMessage.value = `Errore: ${err.message}`
@@ -107,8 +109,12 @@ onMounted(() => void loadData())
           <input v-model="form.iniziali" type="text" placeholder="M.R." />
         </label>
         <label>
-          Casa alloggio
-          <input v-model="form.casaAlloggio" type="text" placeholder="Casa Nord" />
+          Stanza
+          <input v-model="form.stanza" type="text" placeholder="A1" />
+        </label>
+        <label>
+          Letto
+          <input v-model="form.letto" type="text" placeholder="1" />
         </label>
         <label>
           Note
@@ -135,7 +141,8 @@ onMounted(() => void loadData())
             <th>ID</th>
             <th>Codice</th>
             <th>Iniziali</th>
-            <th>Casa alloggio</th>
+            <th>Stanza</th>
+            <th>Letto</th>
             <th>Terapie attive</th>
             <th>Azioni</th>
           </tr>
@@ -145,7 +152,8 @@ onMounted(() => void loadData())
             <td>{{ host.id }}</td>
             <td>{{ host.codiceInterno || '—' }}</td>
             <td>{{ host.iniziali || '—' }}</td>
-            <td>{{ host.casaAlloggio || '—' }}</td>
+            <td>{{ host.stanza || '—' }}</td>
+            <td>{{ host.letto || '—' }}</td>
             <td>{{ host.activeTherapies }}</td>
             <td>
               <button

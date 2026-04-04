@@ -14,7 +14,7 @@ db.version(1).stores({
     settings: '&key',
 
     // Ospiti delle case alloggio — identificati con iniziali o codice interno
-    hosts: 'id, codiceInterno, casaAlloggio, attivo, updatedAt, syncStatus',
+    hosts: 'id, codiceInterno, stanza, letto, attivo, updatedAt, syncStatus',
 
     // Principi attivi
     drugs: 'id, principioAttivo, classeTerapeutica, updatedAt, syncStatus',

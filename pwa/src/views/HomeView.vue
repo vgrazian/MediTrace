@@ -54,30 +54,12 @@ onMounted(async () => {
 
     <div class="card-grid">
       <div class="card">
-        <p><strong>Alert scorte</strong></p>
-        <p class="muted" style="margin-top:.3rem">
-          Critiche: {{ homeKpi?.stockCritical ?? 0 }} · Alte: {{ homeKpi?.stockHigh ?? 0 }}<br />
-          Farmaci monitorati: {{ homeKpi?.monitoredDrugs ?? 0 }}
-        </p>
-        <RouterLink class="quick-link" to="/scorte">Magazzino KPI</RouterLink>
-      </div>
-
-      <div class="card">
-        <p><strong>Promemoria oggi</strong></p>
-        <p class="muted" style="margin-top:.3rem">
-          Totale oggi: {{ homeKpi?.remindersToday ?? 0 }}<br />
-          Da eseguire: {{ homeKpi?.remindersPending ?? 0 }} · Eseguiti: {{ homeKpi?.remindersDone ?? 0 }}
-        </p>
-        <RouterLink class="quick-link" to="/promemoria">Agenda Giornaliera</RouterLink>
-      </div>
-    </div>
-
-    <div class="card">
-      <p><strong>Azioni rapide</strong></p>
-      <div class="quick-actions" style="margin-top:.65rem">
-        <RouterLink class="quick-link" to="/farmaci">Catalogo</RouterLink>
-        <RouterLink class="quick-link" to="/terapie">Piani Terapici</RouterLink>
-        <RouterLink class="quick-link" to="/impostazioni">Impostazioni</RouterLink>
+        <p><strong>Azioni rapide</strong></p>
+        <div class="quick-actions" style="margin-top:.65rem">
+          <RouterLink class="quick-link" to="/farmaci">Catalogo</RouterLink>
+          <RouterLink class="quick-link" to="/terapie">Piani Terapici</RouterLink>
+          <RouterLink class="quick-link" to="/impostazioni">Impostazioni</RouterLink>
+        </div>
       </div>
     </div>
   </div>

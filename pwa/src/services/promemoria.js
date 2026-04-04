@@ -56,7 +56,7 @@ export function buildReminderRows({ reminders, hosts, drugs, therapies, dateFilt
             return {
                 ...r,
                 hostLabel: host ? (host.codiceInterno || host.iniziali || host.id) : (r.hostId ?? '—'),
-                casaAlloggio: host?.casaAlloggio ?? '—',
+                stanzaLetto: host ? `${host.stanza || '—'}/${host.letto || '—'}` : '—',
                 drugLabel: drug?.principioAttivo ?? (r.drugId ?? '—'),
                 stato: r.stato ?? 'DA_ESEGUIRE',
             }
