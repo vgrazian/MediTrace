@@ -307,7 +307,10 @@ main { padding: 1.25rem; max-width: 980px; margin: 0 auto; }
   .app-nav { gap: .5rem; }
   .app-nav a { font-size: .8rem; }
   .brand-mark { width: 8.6rem; }
-  .brand-title { display: none; }
+  .brand-title {
+    display: block;
+    font-size: 1.05rem;
+  }
   main { padding: 1rem; }
   .card-grid { grid-template-columns: 1fr; }
 }
