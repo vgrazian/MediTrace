@@ -183,6 +183,6 @@ Mapping:
 
 ## Evidenze
 
-- Header sorgente verificati da `templates/google-sheets/*.csv`.
+- Header sorgente verificati da `templates/csv-import/*.csv`.
 - Coerenza confermata con schema Dexie in `pwa/src/db/index.js`.
 - Coerenza confermata con snapshot remoto `meditrace-data.json` (W1-13).

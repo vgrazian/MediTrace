@@ -41,7 +41,7 @@ MediTrace e' un progetto offline-first per tracciare farmaci, terapie e scorte i
 - `docs/release-rollback-runbook.md`: procedura rollback deploy Pages
 - `docs/archive/`: documenti legacy superseded
 - `pwa/`: applicazione Vue/Vite/PWA (hosting: GitHub Pages)
-- `templates/google-sheets/`: file CSV di riferimento per l'importazione guidata (E4)
+- `templates/csv-import/`: file CSV di riferimento per l'importazione guidata (E4)
 - `prototype/`: prototipo statico storico
 
 ## Avvio rapido PWA (sviluppo)
