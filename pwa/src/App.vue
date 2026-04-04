@@ -94,7 +94,7 @@ async function handleRegister() {
           <label for="reg-confirm-password">Conferma password</label>
           <input id="reg-confirm-password" v-model="regConfirmPassword" type="password" placeholder="Ripeti password" autocomplete="new-password" @keyup.enter="handleRegister" />
 
-          <label for="reg-gh-token">Token GitHub (solo setup iniziale sync)</label>
+          <label for="reg-gh-token">Token GitHub (solo configurazione iniziale sincronizzazione)</label>
           <input id="reg-gh-token" v-model="regGithubToken" type="password" placeholder="github_pat_..." autocomplete="off" />
 
           <button :disabled="loginBusy || !regUsername.trim() || !regPassword || !regConfirmPassword || !regGithubToken.trim()" @click="handleRegister">

@@ -20,6 +20,8 @@ test('farmaci view supports creating and deactivating stock batch', async ({ pag
     await page.getByRole('link', { name: 'Farmaci' }).click()
     await expect(page.getByRole('heading', { name: 'Catalogo Farmaci' })).toBeVisible()
 
+    await page.locator('summary', { hasText: 'Gestisci Farmaci' }).click()
+
     await page.getByLabel('Principio attivo').fill('Paracetamolo Test')
     await page.getByLabel('Classe terapeutica').fill('Analgesici')
     await page.getByLabel('Scorta minima').fill('10')

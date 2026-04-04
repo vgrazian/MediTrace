@@ -7,7 +7,7 @@ export async function loginOrRegisterSeededUser(page, {
 } = {}) {
     const usernameInput = page.locator('#username-input')
     const registerUsernameInput = page.locator('#reg-username')
-    const homeLink = page.getByRole('link', { name: 'Home' })
+    const homeLink = page.getByRole('link', { name: 'Cruscotto' })
 
     await Promise.race([
         usernameInput.waitFor({ state: 'visible', timeout: 5000 }).catch(() => null),

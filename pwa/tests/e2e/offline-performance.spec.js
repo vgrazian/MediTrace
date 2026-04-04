@@ -19,7 +19,7 @@ test('@ops performance smoke: initial load within budget', async ({ page }) => {
     const startedAt = Date.now()
     await page.goto('/')
     const loginHeading = page.getByRole('heading', { name: 'MediTrace' })
-    const homeLink = page.getByRole('link', { name: 'Home' })
+    const homeLink = page.getByRole('link', { name: 'Cruscotto' })
     await Promise.race([
         loginHeading.waitFor({ state: 'visible' }).catch(() => null),
         homeLink.waitFor({ state: 'visible' }).catch(() => null),

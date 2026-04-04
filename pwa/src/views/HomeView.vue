@@ -32,7 +32,7 @@ onMounted(async () => {
 <template>
   <div class="view home-view">
     <div class="card home-intro">
-      <h2>MediTrace Dashboard</h2>
+      <h2>Cruscotto MediTrace</h2>
       <p class="muted" style="margin-top:.35rem">
         Monitoraggio scorte, terapie e promemoria con controllo operativo continuo.
       </p>
@@ -40,13 +40,13 @@ onMounted(async () => {
 
     <div class="card">
       <p>Benvenuto/a, <strong>{{ currentUser?.name }}</strong></p>
-      <p class="muted">Ruolo attivo: {{ currentUser?.role === 'admin' ? 'admin' : 'operatore' }}</p>
+      <p class="muted">Ruolo attivo: {{ currentUser?.role === 'admin' ? 'amministratore' : 'operatore' }}</p>
     </div>
 
     <div class="card">
-      <p><strong>Stato sync</strong></p>
+      <p><strong>Stato sincronizzazione</strong></p>
       <p class="muted">
-        Dataset version locale: {{ datasetVersion ?? '—' }}<br />
+        Versione dataset locale: {{ datasetVersion ?? '—' }}<br />
         Stato: {{ syncStatus }}<br />
         Ultima sincronizzazione: {{ formatDateTime(homeKpi?.lastSyncAt) }}
       </p>
@@ -77,7 +77,7 @@ onMounted(async () => {
       <div class="quick-actions" style="margin-top:.65rem">
         <RouterLink class="quick-link" to="/farmaci">Catalogo</RouterLink>
         <RouterLink class="quick-link" to="/terapie">Piani Terapici</RouterLink>
-        <RouterLink class="quick-link" to="/impostazioni">Configura</RouterLink>
+        <RouterLink class="quick-link" to="/impostazioni">Impostazioni</RouterLink>
       </div>
     </div>
   </div>

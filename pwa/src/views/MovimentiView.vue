@@ -196,7 +196,7 @@ onMounted(() => {
     <div class="card">
       <p><strong>Nuovo movimento magazzino</strong></p>
       <p class="muted" style="margin-top:.25rem">
-        Registra carichi/scarichi operativi con tracciamento sync e audit.
+        Registra carichi/scarichi operativi con tracciamento sincronizzazione e audit.
       </p>
 
       <div class="import-form" style="margin-top:.65rem">

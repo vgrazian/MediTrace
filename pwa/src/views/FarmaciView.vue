@@ -246,80 +246,6 @@ onMounted(() => {
     <h2>Catalogo Farmaci</h2>
 
     <div class="card">
-      <p><strong>Nuovo farmaco</strong></p>
-      <div class="import-form" style="margin-top:.65rem">
-        <label>
-          ID farmaco (opzionale)
-          <input v-model="drugForm.id" type="text" placeholder="es. paracetamolo" />
-        </label>
-
-        <label>
-          Principio attivo
-          <input v-model="drugForm.principioAttivo" type="text" placeholder="Paracetamolo" />
-        </label>
-
-        <label>
-          Classe terapeutica
-          <input v-model="drugForm.classeTerapeutica" type="text" placeholder="Analgesici" />
-        </label>
-
-        <label>
-          Scorta minima
-          <input v-model="drugForm.scortaMinima" type="number" min="0" step="1" />
-        </label>
-
-        <button :disabled="savingDrug" @click="createDrug">
-          {{ savingDrug ? 'Salvataggio...' : 'Salva farmaco' }}
-        </button>
-      </div>
-    </div>
-
-    <div class="card">
-      <p><strong>Nuova confezione magazzino</strong></p>
-      <div class="import-form" style="margin-top:.65rem">
-        <label>
-          Farmaco
-          <select v-model="batchForm.drugId" :disabled="!canCreateBatch || savingBatch">
-            <option value="">Seleziona farmaco</option>
-            <option v-for="drug in drugs" :key="drug.id" :value="drug.id">{{ drug.principioAttivo }}</option>
-          </select>
-        </label>
-
-        <label>
-          Nome commerciale
-          <input v-model="batchForm.nomeCommerciale" type="text" placeholder="Tachipirina" />
-        </label>
-
-        <label>
-          Dosaggio
-          <input v-model="batchForm.dosaggio" type="text" placeholder="500mg" />
-        </label>
-
-        <label>
-          Quantita' attuale
-          <input v-model="batchForm.quantitaAttuale" type="number" min="0" step="1" />
-        </label>
-
-        <label>
-          Soglia riordino
-          <input v-model="batchForm.sogliaRiordino" type="number" min="0" step="1" />
-        </label>
-
-        <label>
-          Scadenza
-          <input v-model="batchForm.scadenza" type="date" />
-        </label>
-
-        <button :disabled="savingBatch || !canCreateBatch" @click="createBatch">
-          {{ savingBatch ? 'Salvataggio...' : 'Salva confezione' }}
-        </button>
-      </div>
-      <p v-if="!canCreateBatch" class="muted" style="margin-top:.5rem;font-size:.85rem">
-        Prima crea almeno un farmaco.
-      </p>
-    </div>
-
-    <div class="card">
       <p><strong>Farmaci registrati</strong></p>
       <p v-if="loading" class="muted" style="margin-top:.5rem">Caricamento...</p>
 
@@ -381,6 +307,86 @@ onMounted(() => {
 
       <p v-if="message" class="muted" style="margin-top:.5rem">{{ message }}</p>
       <p v-if="errorMessage" class="import-error" style="margin-top:.5rem">{{ errorMessage }}</p>
+    </div>
+
+    <div class="card">
+      <details>
+        <summary><strong>Gestisci Farmaci</strong></summary>
+
+        <div style="margin-top:.75rem">
+          <p><strong>Aggiungi nuovo farmaco</strong></p>
+          <div class="import-form" style="margin-top:.65rem">
+            <label>
+              ID farmaco (opzionale)
+              <input v-model="drugForm.id" type="text" placeholder="es. paracetamolo" />
+            </label>
+
+            <label>
+              Principio attivo
+              <input v-model="drugForm.principioAttivo" type="text" placeholder="Paracetamolo" />
+            </label>
+
+            <label>
+              Classe terapeutica
+              <input v-model="drugForm.classeTerapeutica" type="text" placeholder="Analgesici" />
+            </label>
+
+            <label>
+              Scorta minima
+              <input v-model="drugForm.scortaMinima" type="number" min="0" step="1" />
+            </label>
+
+            <button :disabled="savingDrug" @click="createDrug">
+              {{ savingDrug ? 'Salvataggio...' : 'Salva farmaco' }}
+            </button>
+          </div>
+        </div>
+
+        <div style="margin-top:1rem">
+          <p><strong>Aggiungi confezione di magazzino</strong></p>
+          <div class="import-form" style="margin-top:.65rem">
+            <label>
+              Farmaco
+              <select v-model="batchForm.drugId" :disabled="!canCreateBatch || savingBatch">
+                <option value="">Seleziona farmaco</option>
+                <option v-for="drug in drugs" :key="drug.id" :value="drug.id">{{ drug.principioAttivo }}</option>
+              </select>
+            </label>
+
+            <label>
+              Nome commerciale
+              <input v-model="batchForm.nomeCommerciale" type="text" placeholder="Tachipirina" />
+            </label>
+
+            <label>
+              Dosaggio
+              <input v-model="batchForm.dosaggio" type="text" placeholder="500 mg" />
+            </label>
+
+            <label>
+              Quantita' attuale
+              <input v-model="batchForm.quantitaAttuale" type="number" min="0" step="1" />
+            </label>
+
+            <label>
+              Soglia riordino
+              <input v-model="batchForm.sogliaRiordino" type="number" min="0" step="1" />
+            </label>
+
+            <label>
+              Scadenza
+              <input v-model="batchForm.scadenza" type="date" />
+            </label>
+
+            <button :disabled="savingBatch || !canCreateBatch" @click="createBatch">
+              {{ savingBatch ? 'Salvataggio...' : 'Salva confezione' }}
+            </button>
+          </div>
+          <p v-if="!canCreateBatch" class="muted" style="margin-top:.5rem;font-size:.85rem">
+            Prima crea almeno un farmaco.
+          </p>
+        </div>
+      </details>
     </div>
   </div>
 </template>
