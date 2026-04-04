@@ -65,7 +65,7 @@ flowchart LR
     B --> C[UI aggiornata subito]
     C --> D{Rete disponibile?}
     D -- No --> E[Record resta pending]
-    D -- Si --> F[PWA legge manifest su Drive]
+    D -- Si --> F[PWA legge manifest su Gist]
     F --> G{Dataset remoto piu' recente?}
     G -- Si --> H[Download e merge locale]
     G -- No --> I[Upload snapshot aggiornato]

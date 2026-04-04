@@ -40,9 +40,9 @@ Criterio di uscita:
 1. Verificare che il segreto tecnico GitHub per sync abbia solo scope `gists` e non scada a breve.
 2. Verificare policy password operative (complessita', cambio periodico, revoca account dismessi).
 3. Ruotare i segreti tecnici almeno ogni 90 giorni o immediatamente in caso di sospetta compromissione.
-3. Aggiornare le configurazioni ambiente in GitHub se la repo o l'owner del Gist cambiano.
-4. Rieseguire smoke build e bootstrap login.
-5. Revocare segreti obsoleti o non piu' utilizzati.
+4. Aggiornare le configurazioni ambiente in GitHub se la repo o l'owner del Gist cambiano.
+5. Rieseguire smoke build e bootstrap login.
+6. Revocare segreti obsoleti o non piu' utilizzati.
 
 Nota:
 

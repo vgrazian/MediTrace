@@ -14,7 +14,7 @@ Questa policy e' obbligatoria per tutti gli ambienti (`STAGING`, `PROD`).
 
 1. Minimo privilegio: ogni utente e servizio ha solo i permessi strettamente necessari.
 2. Segreti fuori dal codice: nessuna chiave, token o password nei file del repository.
-3. Rotazione periodica: credenziali e configurazioni OAuth devono avere piano di rinnovo.
+3. Rotazione periodica: credenziali operative e segreti tecnici devono avere piano di rinnovo.
 4. Tracciabilita': ogni azione critica deve lasciare evidenza in log.
 5. Verifica restore: un backup non testato equivale a un backup non affidabile.
 
@@ -53,7 +53,7 @@ Sono considerati segreti:
 ## Gestione Segreti Nell'Applicazione
 
 1. Non hardcodare segreti, token persistenti o credenziali nel codice sorgente.
-2. Usare configurazioni per ambiente (`staging` / `prod`) per endpoint OAuth e parametri di deploy.
+2. Usare configurazioni per ambiente (`staging` / `prod`) per segreti tecnici e parametri di deploy.
 3. Non salvare refresh token o token di accesso in chiaro oltre la durata strettamente necessaria.
 4. Minimizzare metadati sensibili nei log client e disabilitare log verbosi in produzione.
 5. Proteggere export JSON locali con cifratura o con chiaro avviso operativo se il file non e' cifrato.
