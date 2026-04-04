@@ -38,6 +38,7 @@ export async function loginOrRegisterSeededUser(page, {
             await usernameInput.fill(username)
             await page.locator('#password-input').fill(password)
             await page.getByRole('button', { name: 'Accedi' }).click()
+            await page.waitForLoadState('load')
             await awaitAuthenticated(9000)
             if (await page.locator('main').isVisible()) break
             if (attempt === 1) break
@@ -49,6 +50,7 @@ export async function loginOrRegisterSeededUser(page, {
             await page.locator('#reg-confirm-password').fill(password)
             await page.locator('#reg-gh-token').fill(githubToken)
             await page.getByRole('button', { name: 'Crea account e accedi' }).click()
+            await page.waitForLoadState('load')
             await awaitAuthenticated(9000)
             if (await page.locator('main').isVisible()) break
             if (attempt === 1) break
@@ -59,6 +61,7 @@ export async function loginOrRegisterSeededUser(page, {
         throw new Error(`Login E2E fallito: ${await loginError.textContent()}`)
     }
 
+    await page.waitForLoadState('networkidle')
     await expect(page.locator('main')).toBeVisible({ timeout: 15000 })
     await expect(settingsLink).toBeVisible({ timeout: 15000 })
 }
