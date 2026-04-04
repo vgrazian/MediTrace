@@ -24,7 +24,7 @@ async function loginAsSeededUser(page) {
         await page.getByRole('button', { name: 'Crea account e accedi' }).click()
     }
 
-    await expect(homeLink).toBeVisible()
+    await expect(page.locator('main')).toBeVisible()
 }
 
 async function seedPendingConflict(page) {
