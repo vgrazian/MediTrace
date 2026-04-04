@@ -31,6 +31,11 @@ const routes = [
         component: () => import('../views/ImpostazioniView.vue'),
         meta: { title: 'Impostazioni' },
     },
+    {
+        path: '/informazioni',
+        component: () => import('../views/InformazioniView.vue'),
+        meta: { title: 'Informazioni' },
+    },
 ]
 
 const router = createRouter({
