@@ -29,6 +29,30 @@ function nowIso() {
     return new Date().toISOString()
 }
 
+function normalizeRole(value) {
+    return value === 'admin' ? 'admin' : 'operator'
+}
+
+function normalizeUsersRoles(users) {
+    const normalized = users.map(user => ({
+        ...user,
+        role: normalizeRole(user.role),
+    }))
+
+    const hasActiveAdmin = normalized.some(user => !user.disabled && user.role === 'admin')
+    if (!hasActiveAdmin) {
+        const firstActiveIndex = normalized.findIndex(user => !user.disabled)
+        if (firstActiveIndex >= 0) {
+            normalized[firstActiveIndex] = {
+                ...normalized[firstActiveIndex],
+                role: 'admin',
+            }
+        }
+    }
+
+    return normalized
+}
+
 function randomSaltHex(bytes = 16) {
     const arr = new Uint8Array(bytes)
     crypto.getRandomValues(arr)
@@ -42,8 +66,16 @@ async function hashPassword(password, saltHex) {
 }
 
 async function loadUsers() {
-    const users = await getSetting(AUTH_USERS_KEY, [])
-    return Array.isArray(users) ? users : []
+    const rawUsers = await getSetting(AUTH_USERS_KEY, [])
+    const users = Array.isArray(rawUsers) ? rawUsers : []
+    const normalized = normalizeUsersRoles(users)
+
+    const changed = JSON.stringify(normalized) !== JSON.stringify(users)
+    if (changed) {
+        await setSetting(AUTH_USERS_KEY, normalized)
+    }
+
+    return normalized
 }
 
 async function saveUsers(users) {
@@ -69,6 +101,7 @@ function toSessionUser(authUser) {
         username: authUser.username,
         login: authUser.githubLogin,
         name: authUser.displayName ?? authUser.githubLogin,
+        role: normalizeRole(authUser.role),
         avatarUrl: authUser.avatarUrl,
         isSeeded: Boolean(authUser.isSeeded),
     }
@@ -176,11 +209,21 @@ async function requireActiveSession() {
     return user
 }
 
+async function requireAdminSession() {
+    const activeUser = await requireActiveSession()
+    if (normalizeRole(activeUser.role) !== 'admin') {
+        await appendAuthAudit('auth_admin_action_denied', activeUser.username, { reason: 'not-admin' })
+        throw new Error('Azione consentita solo a utenti admin')
+    }
+    return activeUser
+}
+
 function summarizeUser(authUser) {
     return {
         username: authUser.username,
         login: authUser.githubLogin,
         name: authUser.displayName ?? authUser.githubLogin,
+        role: normalizeRole(authUser.role),
         isSeeded: Boolean(authUser.isSeeded),
         disabled: Boolean(authUser.disabled),
         updatedAt: authUser.updatedAt,
@@ -189,7 +232,7 @@ function summarizeUser(authUser) {
     }
 }
 
-async function buildAuthUser({ username, password, githubToken }) {
+async function buildAuthUser({ username, password, githubToken, role = 'operator' }) {
     const profile = await fetchGithubProfile(githubToken.trim())
     const passwordSalt = randomSaltHex()
     const passwordHash = await hashPassword(password, passwordSalt)
@@ -204,6 +247,7 @@ async function buildAuthUser({ username, password, githubToken }) {
         githubLogin: profile.login,
         displayName: profile.name,
         avatarUrl: profile.avatarUrl,
+        role: normalizeRole(role),
         createdAt: now,
         updatedAt: now,
         disabled: false,
@@ -221,6 +265,7 @@ async function ensureDevSeedAccount(users) {
             username: DEV_SEED_USERNAME,
             password: DEV_SEED_PASSWORD,
             githubToken: DEV_SEED_GITHUB_TOKEN,
+            role: 'admin',
         })
         seededUser.isSeeded = true
         const nextUsers = [...users, seededUser]
@@ -284,6 +329,7 @@ export function useAuth() {
                 username: normalized,
                 password,
                 githubToken,
+                role: users.some(u => !u.disabled) ? 'operator' : 'admin',
             })
 
             users.push(newUser)
@@ -370,6 +416,7 @@ export function useAuth() {
         },
 
         async listUsers() {
+            await requireAdminSession()
             const users = await loadUsers()
             return users
                 .map(summarizeUser)
@@ -377,6 +424,7 @@ export function useAuth() {
         },
 
         async reactivateSeededUser(username) {
+            const adminUser = await requireAdminSession()
             const normalized = normalizeUsername(username)
             const users = await loadUsers()
             const idx = users.findIndex(u => u.username === normalized)
@@ -390,9 +438,11 @@ export function useAuth() {
                 updatedAt: new Date().toISOString(),
             }
             await saveUsers(users)
+            await appendAuthAudit('auth_seed_user_reactivated', adminUser.username, { targetUser: normalized })
         },
 
         async deleteSeededUser(username) {
+            const adminUser = await requireAdminSession()
             const normalized = normalizeUsername(username)
             const users = await loadUsers()
             const target = users.find(u => u.username === normalized)
@@ -404,7 +454,10 @@ export function useAuth() {
 
             if (state.currentUser?.username === normalized) {
                 await invalidateSession({ reason: 'seed-user-deleted', username: normalized, auditAction: 'auth_seed_user_deleted' })
+                return
             }
+
+            await appendAuthAudit('auth_seed_user_deleted', adminUser.username, { targetUser: normalized })
         },
 
         async getSessionInfo() {

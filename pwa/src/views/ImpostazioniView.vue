@@ -61,7 +61,18 @@ async function refreshPendingConflicts() {
 }
 
 async function refreshUsers() {
-  users.value = await listUsers()
+  usersMessage.value = ''
+  if (currentUser.value?.role !== 'admin') {
+    users.value = []
+    return
+  }
+
+  try {
+    users.value = await listUsers()
+  } catch (err) {
+    users.value = []
+    usersMessage.value = `Errore utenti: ${err.message}`
+  }
 }
 
 async function refreshSecurityInfo() {
@@ -265,6 +276,7 @@ async function handleDeleteSeeded(username) {
     <div class="card">
       <p><strong>Account operatore</strong></p>
       <p class="muted">Username: {{ currentUser?.username }}</p>
+      <p class="muted">Ruolo: {{ currentUser?.role === 'admin' ? 'admin' : 'operatore' }}</p>
       <p class="muted">GitHub sync: @{{ currentUser?.login }}<span v-if="currentUser?.name !== currentUser?.login"> ({{ currentUser?.name }})</span></p>
       <p class="muted" style="font-size:.8rem;margin-top:.25rem">
         Gist ID: <code v-if="gistId"><a :href="'https://gist.github.com/' + gistId" target="_blank" rel="noopener">{{ gistId.slice(0, 12) }}…</a></code>
@@ -311,13 +323,18 @@ async function handleDeleteSeeded(username) {
 
     <div class="card">
       <p><strong>Utenti</strong></p>
-      <p class="muted" style="margin-top:.25rem">Elenco account locali. Le azioni sono abilitate solo per utenti di prova (seeded).</p>
+      <p class="muted" style="margin-top:.25rem">Gestione utenti consentita solo ad account admin. Azioni disponibili per utenti di prova (seeded).</p>
 
-      <table class="conflict-table" style="margin-top:.75rem">
+      <p v-if="currentUser?.role !== 'admin'" class="muted" style="margin-top:.5rem">
+        Il tuo account non ha privilegi admin: puoi visualizzare solo il tuo profilo.
+      </p>
+
+      <table v-if="currentUser?.role === 'admin'" class="conflict-table" style="margin-top:.75rem">
         <thead>
           <tr>
             <th>Username</th>
             <th>GitHub</th>
+            <th>Ruolo</th>
             <th>Tipo</th>
             <th>Stato</th>
             <th>Azione</th>
@@ -327,6 +344,7 @@ async function handleDeleteSeeded(username) {
           <tr v-for="user in users" :key="user.username">
             <td>{{ user.username }}<span v-if="user.isCurrent"> (sessione attiva)</span></td>
             <td>@{{ user.login }}</td>
+            <td>{{ user.role }}</td>
             <td>{{ user.isSeeded ? 'prova' : 'standard' }}</td>
             <td>{{ user.disabled ? 'disattivato' : 'attivo' }}</td>
             <td>

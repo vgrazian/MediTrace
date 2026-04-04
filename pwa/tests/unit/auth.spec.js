@@ -148,4 +148,26 @@ describe('auth service', () => {
 
         expect(auth.currentUser.value).toBeNull()
     })
+
+    it('allows user management only to admin users', async () => {
+        const authModule = await import('../../src/services/auth')
+        const { initAuth, useAuth } = authModule
+        const auth = useAuth()
+
+        await initAuth()
+        await auth.signIn({ username: 'prova', password: 'Prova123!' })
+        expect(auth.currentUser.value?.role).toBe('admin')
+
+        await auth.register({
+            username: 'operatore2',
+            password: 'Password123!',
+            confirmPassword: 'Password123!',
+            githubToken: 'github_pat_any_value',
+        })
+
+        await auth.signOut()
+        await auth.signIn({ username: 'operatore2', password: 'Password123!' })
+        expect(auth.currentUser.value?.role).toBe('operator')
+        await expect(auth.listUsers()).rejects.toThrow('Azione consentita solo a utenti admin')
+    })
 })
