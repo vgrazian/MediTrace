@@ -17,6 +17,11 @@ const routes = [
         meta: { title: 'Scorte' },
     },
     {
+        path: '/movimenti',
+        component: () => import('../views/MovimentiView.vue'),
+        meta: { title: 'Movimenti Magazzino' },
+    },
+    {
         path: '/terapie',
         component: () => import('../views/TerapieView.vue'),
         meta: { title: 'Terapie Attive' },
