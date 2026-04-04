@@ -35,12 +35,13 @@ MediTrace e' un progetto offline-first per tracciare farmaci, terapie e scorte i
 - `docs/architecture.md`: architettura tecnica corrente (Option A)
 - `docs/decisione-v1-approved.md`: freeze scope e decisione tecnica approvata
 - `docs/checklist-esecutiva.md`: checklist operativa MVP
-- `docs/week1-execution-checklist-owner-ready.md`: avanzamento dettagliato Week 1
-- `docs/schema-json-mapping-v1.md`: mapping CSV/Excel -> dataset JSON
+- `docs/schema-json-mapping-v1.md`: mapping CSV -> dataset JSON
 - `docs/domain-model.md`: modello dati applicativo
 - `docs/roadmap.md`: roadmap ed evolutive priorizzate
+- `docs/release-rollback-runbook.md`: procedura rollback deploy Pages
 - `docs/archive/`: documenti legacy superseded
-- `pwa/`: applicazione Vue/Vite/PWA
+- `pwa/`: applicazione Vue/Vite/PWA (hosting: GitHub Pages)
+- `templates/google-sheets/`: file CSV di riferimento per l'importazione guidata (E4)
 - `prototype/`: prototipo statico storico
 
 ## Avvio rapido PWA (sviluppo)
