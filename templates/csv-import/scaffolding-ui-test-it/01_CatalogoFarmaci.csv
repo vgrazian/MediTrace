@@ -1,0 +1,9 @@
+drug_id,principio_attivo,classe_terapeutica,scorta_minima_default,fornitore_preferito,note,updated_at,deleted_at
+TEST_DRUG_PARACETAMOLO,Paracetamolo,Analgesici e antipiretici,20,Farmacia Centrale Roma,Dato fittizio UI test,2026-04-04T10:00:00.000Z,
+TEST_DRUG_AMOXICILLINA,Amoxicillina,Antibiotici,15,Farmacia San Giovanni,Dato fittizio UI test,2026-04-04T10:02:00.000Z,
+TEST_DRUG_FUROSEMIDE,Furosemide,Diuretici,10,Farmacia Ospedaliera Lazio,Dato fittizio UI test,2026-04-04T10:03:00.000Z,
+TEST_DRUG_OMEPRAZOLO,Omeprazolo,Gastroprotettori,18,Farmacia Trastevere,Dato fittizio UI test,2026-04-04T10:04:00.000Z,
+TEST_DRUG_METFORMINA,Metformina,Antidiabetici,25,Farmacia San Paolo,Dato fittizio UI test,2026-04-04T10:05:00.000Z,
+TEST_DRUG_IBUPROFENE,Ibuprofene,Antinfiammatori,16,Farmacia Tiburtina,Dato fittizio UI test,2026-04-04T10:06:00.000Z,
+TEST_DRUG_ENALAPRIL,Enalapril,Antipertensivi,12,Farmacia Flaminia,Dato fittizio UI test,2026-04-04T10:07:00.000Z,
+TEST_DRUG_LORAZEPAM,Lorazepam,Ansiolitici,8,Farmacia Appia,Dato fittizio UI test,2026-04-04T10:08:00.000Z
