@@ -1,12 +1,15 @@
 <script setup>
 import { useAuth } from '../services/auth'
 
-const { currentUser, signOut } = useAuth()
+const { currentUser } = useAuth()
 </script>
 
 <template>
   <nav class="app-nav">
-    <span class="brand">MediTrace</span>
+    <RouterLink to="/" class="brand" aria-label="MediTrace home">
+      <img class="brand-mark" src="/branding/meditrace-mark.svg" alt="MediTrace" />
+      <span>MediTrace</span>
+    </RouterLink>
 
     <RouterLink to="/">Home</RouterLink>
     <RouterLink to="/farmaci">Farmaci</RouterLink>

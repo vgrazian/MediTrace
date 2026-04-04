@@ -2,6 +2,7 @@
 import { ref, onMounted } from 'vue'
 import { useAuth } from '../services/auth'
 import { fullSync, exportBackupJson, listPendingConflicts, resolveConflict } from '../services/sync'
+import { getNotificationStatusSnapshot, requestNotificationPermission, sendTestNotification } from '../services/notifications'
 import { listSupportedImportSources, importCsv } from '../services/csvImport'
 import { getSetting } from '../db'
 
@@ -10,6 +11,8 @@ const {
   currentUser,
   signOut,
   changePassword,
+  getSessionInfo,
+  listRecentAuthEvents,
   disableCurrentTestUser,
   listUsers,
   reactivateSeededUser,
@@ -38,6 +41,11 @@ const testUserMessage = ref('')
 const users = ref([])
 const usersBusy = ref(false)
 const usersMessage = ref('')
+const sessionInfo = ref(null)
+const authEvents = ref([])
+const notificationStatus = ref(getNotificationStatusSnapshot())
+const notificationMessage = ref('')
+const notificationBusy = ref(false)
 
 function formatValue(value) {
   if (value === null || value === undefined || value === '') return '—'
@@ -53,7 +61,59 @@ async function refreshPendingConflicts() {
 }
 
 async function refreshUsers() {
-  users.value = await listUsers()
+  usersMessage.value = ''
+  if (currentUser.value?.role !== 'admin') {
+    users.value = []
+    return
+  }
+
+  try {
+    users.value = await listUsers()
+  } catch (err) {
+    users.value = []
+    usersMessage.value = `Errore utenti: ${err.message}`
+  }
+}
+
+async function refreshSecurityInfo() {
+  sessionInfo.value = await getSessionInfo()
+  authEvents.value = await listRecentAuthEvents(8)
+}
+
+function refreshNotificationStatus() {
+  notificationStatus.value = getNotificationStatusSnapshot()
+}
+
+async function enableNotifications() {
+  notificationBusy.value = true
+  notificationMessage.value = ''
+  try {
+    notificationStatus.value = await requestNotificationPermission()
+    if (notificationStatus.value.enabled) {
+      notificationMessage.value = 'Notifiche abilitate su questo dispositivo.'
+    } else if (notificationStatus.value.permission === 'denied') {
+      notificationMessage.value = 'Permesso negato: abilita le notifiche dalle impostazioni del browser/dispositivo.'
+    } else {
+      notificationMessage.value = 'Permesso non ancora concesso.'
+    }
+  } catch (err) {
+    notificationMessage.value = `Errore notifiche: ${err.message}`
+  } finally {
+    notificationBusy.value = false
+  }
+}
+
+async function runNotificationTest() {
+  notificationBusy.value = true
+  notificationMessage.value = ''
+  try {
+    await sendTestNotification()
+    notificationMessage.value = 'Notifica di test inviata.'
+  } catch (err) {
+    notificationMessage.value = `Errore test notifica: ${err.message}`
+  } finally {
+    notificationBusy.value = false
+  }
 }
 
 function onImportFileChange(event) {
@@ -96,6 +156,8 @@ onMounted(async () => {
   gistId.value = await getSetting('gistId')
   await refreshPendingConflicts()
   await refreshUsers()
+  await refreshSecurityInfo()
+  refreshNotificationStatus()
 })
 
 async function runSync() {
@@ -153,7 +215,7 @@ async function submitPasswordChange() {
     pwdCurrent.value = ''
     pwdNext.value = ''
     pwdConfirm.value = ''
-    passwordMessage.value = 'Password aggiornata con successo.'
+    passwordMessage.value = 'Password aggiornata. Sessione invalidata: esegui nuovo accesso.'
   } catch (err) {
     passwordMessage.value = `Errore password: ${err.message}`
   } finally {
@@ -214,6 +276,7 @@ async function handleDeleteSeeded(username) {
     <div class="card">
       <p><strong>Account operatore</strong></p>
       <p class="muted">Username: {{ currentUser?.username }}</p>
+      <p class="muted">Ruolo: {{ currentUser?.role === 'admin' ? 'admin' : 'operatore' }}</p>
       <p class="muted">GitHub sync: @{{ currentUser?.login }}<span v-if="currentUser?.name !== currentUser?.login"> ({{ currentUser?.name }})</span></p>
       <p class="muted" style="font-size:.8rem;margin-top:.25rem">
         Gist ID: <code v-if="gistId"><a :href="'https://gist.github.com/' + gistId" target="_blank" rel="noopener">{{ gistId.slice(0, 12) }}…</a></code>
@@ -260,13 +323,18 @@ async function handleDeleteSeeded(username) {
 
     <div class="card">
       <p><strong>Utenti</strong></p>
-      <p class="muted" style="margin-top:.25rem">Elenco account locali. Le azioni sono abilitate solo per utenti di prova (seeded).</p>
+      <p class="muted" style="margin-top:.25rem">Gestione utenti consentita solo ad account admin. Azioni disponibili per utenti di prova (seeded).</p>
 
-      <table class="conflict-table" style="margin-top:.75rem">
+      <p v-if="currentUser?.role !== 'admin'" class="muted" style="margin-top:.5rem">
+        Il tuo account non ha privilegi admin: puoi visualizzare solo il tuo profilo.
+      </p>
+
+      <table v-if="currentUser?.role === 'admin'" class="conflict-table" style="margin-top:.75rem">
         <thead>
           <tr>
             <th>Username</th>
             <th>GitHub</th>
+            <th>Ruolo</th>
             <th>Tipo</th>
             <th>Stato</th>
             <th>Azione</th>
@@ -276,6 +344,7 @@ async function handleDeleteSeeded(username) {
           <tr v-for="user in users" :key="user.username">
             <td>{{ user.username }}<span v-if="user.isCurrent"> (sessione attiva)</span></td>
             <td>@{{ user.login }}</td>
+            <td>{{ user.role }}</td>
             <td>{{ user.isSeeded ? 'prova' : 'standard' }}</td>
             <td>{{ user.disabled ? 'disattivato' : 'attivo' }}</td>
             <td>
@@ -302,6 +371,57 @@ async function handleDeleteSeeded(username) {
       </table>
 
       <p v-if="usersMessage" class="muted" style="margin-top:.5rem;font-size:.8rem">{{ usersMessage }}</p>
+    </div>
+
+    <div class="card">
+      <p><strong>Notifiche promemoria</strong></p>
+      <p class="muted" style="margin-top:.25rem">Supporto browser: {{ notificationStatus.supported ? 'si' : 'no' }}</p>
+      <p class="muted">Permesso: {{ notificationStatus.permission }}</p>
+      <p class="muted">Stato: {{ notificationStatus.enabled ? 'abilitate' : 'non abilitate' }}</p>
+
+      <div style="margin-top:.75rem;display:flex;gap:.5rem;flex-wrap:wrap">
+        <button :disabled="notificationBusy || !notificationStatus.supported" @click="enableNotifications">
+          {{ notificationBusy ? 'Richiesta...' : 'Abilita notifiche' }}
+        </button>
+        <button :disabled="notificationBusy || !notificationStatus.enabled" @click="runNotificationTest">
+          Invia notifica test
+        </button>
+        <button :disabled="notificationBusy" @click="refreshNotificationStatus">
+          Aggiorna stato
+        </button>
+      </div>
+
+      <p v-if="notificationMessage" class="muted" style="margin-top:.5rem;font-size:.8rem">{{ notificationMessage }}</p>
+    </div>
+
+    <div class="card">
+      <p><strong>Sicurezza sessione</strong></p>
+      <p class="muted" style="margin-top:.25rem">TTL sessione: {{ sessionInfo?.ttlMinutes ?? '—' }} minuti</p>
+      <p class="muted">Scadenza: {{ sessionInfo?.expiresAt ?? '—' }}</p>
+      <p class="muted">Ultima attivita': {{ sessionInfo?.lastActivityAt ?? '—' }}</p>
+      <p class="muted">Stato: {{ sessionInfo?.isExpired ? 'scaduta' : 'attiva' }}</p>
+
+      <button style="margin-top:.75rem" @click="refreshSecurityInfo">Aggiorna stato sicurezza</button>
+
+      <table class="conflict-table" style="margin-top:.75rem">
+        <thead>
+          <tr>
+            <th>Timestamp</th>
+            <th>Azione</th>
+            <th>Operatore</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="event in authEvents" :key="event.id">
+            <td>{{ event.ts }}</td>
+            <td>{{ event.action }}</td>
+            <td>{{ event.operatorId ?? 'anonymous' }}</td>
+          </tr>
+          <tr v-if="authEvents.length === 0">
+            <td colspan="3" class="muted">Nessun evento auth disponibile.</td>
+          </tr>
+        </tbody>
+      </table>
     </div>
 
     <div class="card">
