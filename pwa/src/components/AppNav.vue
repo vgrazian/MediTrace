@@ -7,7 +7,7 @@ const { currentUser } = useAuth()
 <template>
   <nav class="app-nav">
     <RouterLink to="/" class="brand" aria-label="MediTrace home">
-      <img class="brand-mark" src="/branding/santegidio-logo-header.svg" alt="Comunità di Sant'Egidio" />
+      <img class="brand-mark" src="/branding/logo-header.svg" alt="Comunità di Sant'Egidio" />
       <span class="brand-title">MediTrace</span>
     </RouterLink>
 
@@ -16,6 +16,7 @@ const { currentUser } = useAuth()
     <RouterLink to="/scorte">Scorte</RouterLink>
     <RouterLink to="/terapie">Terapie</RouterLink>
     <RouterLink to="/promemoria">Promemoria</RouterLink>
+    <RouterLink to="/informazioni">Informazioni</RouterLink>
 
     <div class="user-area">
       <span class="user-name">{{ currentUser?.name }}</span>
