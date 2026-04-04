@@ -19,7 +19,7 @@ const { currentUser } = useAuth()
     <RouterLink to="/informazioni">Informazioni</RouterLink>
 
     <div class="user-area">
-      <span class="user-name">{{ currentUser?.name }}</span>
+      <RouterLink to="/impostazioni" class="user-name user-name-link">{{ currentUser?.name }}</RouterLink>
       <RouterLink to="/impostazioni">⚙</RouterLink>
     </div>
   </nav>
