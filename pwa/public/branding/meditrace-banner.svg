@@ -1,0 +1,22 @@
+<svg width="1200" height="360" viewBox="0 0 1200 360" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="MediTrace banner">
+  <defs>
+    <linearGradient id="bg" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0%" stop-color="#0f766e"/>
+      <stop offset="50%" stop-color="#115e59"/>
+      <stop offset="100%" stop-color="#14532d"/>
+    </linearGradient>
+    <pattern id="grid" width="42" height="42" patternUnits="userSpaceOnUse">
+      <path d="M42 0H0V42" fill="none" stroke="rgba(240,253,244,0.15)" stroke-width="1"/>
+    </pattern>
+  </defs>
+  <rect width="1200" height="360" fill="url(#bg)"/>
+  <rect width="1200" height="360" fill="url(#grid)"/>
+  <circle cx="940" cy="80" r="180" fill="rgba(240,253,244,0.12)"/>
+  <circle cx="180" cy="340" r="220" fill="rgba(16,185,129,0.15)"/>
+  <g transform="translate(120 86)">
+    <rect x="0" y="0" width="112" height="112" rx="30" fill="rgba(240,253,244,0.2)"/>
+    <circle cx="56" cy="56" r="30" fill="none" stroke="#f0fdf4" stroke-width="8"/>
+    <path d="M39 56h34" stroke="#f0fdf4" stroke-width="8" stroke-linecap="round"/>
+    <path d="M56 39v34" stroke="#f0fdf4" stroke-width="8" stroke-linecap="round"/>
+  </g>
+</svg>
