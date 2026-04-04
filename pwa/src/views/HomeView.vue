@@ -57,6 +57,7 @@ onMounted(async () => {
         <p><strong>Azioni rapide</strong></p>
         <div class="quick-actions" style="margin-top:.65rem">
           <RouterLink class="quick-link" to="/farmaci">Catalogo</RouterLink>
+          <RouterLink class="quick-link" to="/stanze">Stanze e Letti</RouterLink>
           <RouterLink class="quick-link" to="/terapie">Piani Terapici</RouterLink>
           <RouterLink class="quick-link" to="/impostazioni">Impostazioni</RouterLink>
         </div>

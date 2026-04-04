@@ -17,6 +17,11 @@ const routes = [
         meta: { title: 'Ospiti' },
     },
     {
+        path: '/stanze',
+        component: () => import('../views/StanzeView.vue'),
+        meta: { title: 'Stanze e Letti' },
+    },
+    {
         path: '/scorte',
         component: () => import('../views/ScorteView.vue'),
         meta: { title: 'Scorte' },

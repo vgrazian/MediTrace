@@ -46,6 +46,8 @@ test('movimenti view supports registering a carico and a scarico', async ({ page
     await page.getByRole('link', { name: 'Movimenti' }).click()
     await expect(page.getByRole('heading', { name: 'Movimenti' })).toBeVisible()
 
+    await page.locator('summary', { hasText: 'Gestione Movimenti' }).click()
+
     // Register a CARICO
     const batchSelect = page.locator('select').filter({ has: page.getByRole('option', { name: 'Seleziona confezione' }) })
     await batchSelect.selectOption({ label: 'Ibuprofene E2E - Moment E2E' })

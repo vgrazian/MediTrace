@@ -29,6 +29,21 @@ function assertSeedEnabled(options = {}) {
 
 const NOW = '2026-04-04T08:00:00.000Z'
 
+const SEED_ROOMS = [
+    { id: '__seed__room-A', codice: 'A - Piano Terra', note: 'Ala nord, piano terra', updatedAt: NOW, deletedAt: null, syncStatus: 'pending', _seeded: true },
+    { id: '__seed__room-B', codice: 'B - Piano Terra', note: 'Ala sud, piano terra', updatedAt: NOW, deletedAt: null, syncStatus: 'pending', _seeded: true },
+    { id: '__seed__room-C', codice: 'C - Piano Primo', note: 'Ala centrale, primo piano', updatedAt: NOW, deletedAt: null, syncStatus: 'pending', _seeded: true },
+]
+
+const SEED_BEDS = [
+    { id: '__seed__bed-A-1', roomId: '__seed__room-A', numero: 1, note: '', updatedAt: NOW, deletedAt: null, syncStatus: 'pending', _seeded: true },
+    { id: '__seed__bed-A-2', roomId: '__seed__room-A', numero: 2, note: '', updatedAt: NOW, deletedAt: null, syncStatus: 'pending', _seeded: true },
+    { id: '__seed__bed-B-1', roomId: '__seed__room-B', numero: 1, note: '', updatedAt: NOW, deletedAt: null, syncStatus: 'pending', _seeded: true },
+    { id: '__seed__bed-B-2', roomId: '__seed__room-B', numero: 2, note: '', updatedAt: NOW, deletedAt: null, syncStatus: 'pending', _seeded: true },
+    { id: '__seed__bed-C-1', roomId: '__seed__room-C', numero: 1, note: '', updatedAt: NOW, deletedAt: null, syncStatus: 'pending', _seeded: true },
+    { id: '__seed__bed-C-2', roomId: '__seed__room-C', numero: 2, note: '', updatedAt: NOW, deletedAt: null, syncStatus: 'pending', _seeded: true },
+]
+
 const SEED_DRUGS = [
     { id: '__seed__drug-1', principioAttivo: 'Paracetamolo', classeTerapeutica: 'Analgesici / Antipiretici', scortaMinima: 10, fornitore: 'Farmacia Centrale', note: '', updatedAt: NOW, deletedAt: null, syncStatus: 'pending', _seeded: true },
     { id: '__seed__drug-2', principioAttivo: 'Ibuprofene', classeTerapeutica: 'FANS', scortaMinima: 8, fornitore: 'Farmacia Centrale', note: '', updatedAt: NOW, deletedAt: null, syncStatus: 'pending', _seeded: true },
@@ -43,16 +58,16 @@ const SEED_DRUGS = [
 ]
 
 const SEED_HOSTS = [
-    { id: '__seed__host-1', codiceInterno: 'OSP-01', iniziali: 'M.R.', stanza: 'A1', letto: '1', attivo: true, noteEssenziali: 'Allergia penicillina', updatedAt: NOW, deletedAt: null, syncStatus: 'pending', _seeded: true },
-    { id: '__seed__host-2', codiceInterno: 'OSP-02', iniziali: 'A.B.', stanza: 'A1', letto: '2', attivo: true, noteEssenziali: '', updatedAt: NOW, deletedAt: null, syncStatus: 'pending', _seeded: true },
-    { id: '__seed__host-3', codiceInterno: 'OSP-03', iniziali: 'G.P.', stanza: 'A2', letto: '1', attivo: true, noteEssenziali: '', updatedAt: NOW, deletedAt: null, syncStatus: 'pending', _seeded: true },
-    { id: '__seed__host-4', codiceInterno: 'OSP-04', iniziali: 'L.T.', stanza: 'A2', letto: '2', attivo: true, noteEssenziali: '', updatedAt: NOW, deletedAt: null, syncStatus: 'pending', _seeded: true },
-    { id: '__seed__host-5', codiceInterno: 'OSP-05', iniziali: 'E.S.', stanza: 'B1', letto: '1', attivo: true, noteEssenziali: 'Follow-up cardiologo mensile', updatedAt: NOW, deletedAt: null, syncStatus: 'pending', _seeded: true },
-    { id: '__seed__host-6', codiceInterno: 'OSP-06', iniziali: 'P.C.', stanza: 'B1', letto: '2', attivo: true, noteEssenziali: '', updatedAt: NOW, deletedAt: null, syncStatus: 'pending', _seeded: true },
-    { id: '__seed__host-7', codiceInterno: 'OSP-07', iniziali: 'V.D.', stanza: 'B2', letto: '1', attivo: true, noteEssenziali: 'Diabete controllato', updatedAt: NOW, deletedAt: null, syncStatus: 'pending', _seeded: true },
-    { id: '__seed__host-8', codiceInterno: 'OSP-08', iniziali: 'F.M.', stanza: 'B2', letto: '2', attivo: true, noteEssenziali: '', updatedAt: NOW, deletedAt: null, syncStatus: 'pending', _seeded: true },
-    { id: '__seed__host-9', codiceInterno: 'OSP-09', iniziali: 'C.N.', stanza: 'C1', letto: '1', attivo: true, noteEssenziali: 'Stato stabile', updatedAt: NOW, deletedAt: null, syncStatus: 'pending', _seeded: true },
-    { id: '__seed__host-10', codiceInterno: 'OSP-10', iniziali: 'S.R.', stanza: 'C1', letto: '2', attivo: false, noteEssenziali: 'Dimesso 2026-03-28', updatedAt: NOW, deletedAt: NOW, syncStatus: 'pending', _seeded: true },
+    { id: '__seed__host-1', codiceInterno: 'OSP-01', iniziali: 'M.R.', roomId: '__seed__room-A', bedId: '__seed__bed-A-1', stanza: 'A', letto: '1', attivo: true, noteEssenziali: 'Allergia penicillina', updatedAt: NOW, deletedAt: null, syncStatus: 'pending', _seeded: true },
+    { id: '__seed__host-2', codiceInterno: 'OSP-02', iniziali: 'A.B.', roomId: '__seed__room-A', bedId: '__seed__bed-A-2', stanza: 'A', letto: '2', attivo: true, noteEssenziali: '', updatedAt: NOW, deletedAt: null, syncStatus: 'pending', _seeded: true },
+    { id: '__seed__host-3', codiceInterno: 'OSP-03', iniziali: 'G.P.', roomId: '__seed__room-B', bedId: '__seed__bed-B-1', stanza: 'B', letto: '1', attivo: true, noteEssenziali: '', updatedAt: NOW, deletedAt: null, syncStatus: 'pending', _seeded: true },
+    { id: '__seed__host-4', codiceInterno: 'OSP-04', iniziali: 'L.T.', roomId: '__seed__room-B', bedId: '__seed__bed-B-2', stanza: 'B', letto: '2', attivo: true, noteEssenziali: '', updatedAt: NOW, deletedAt: null, syncStatus: 'pending', _seeded: true },
+    { id: '__seed__host-5', codiceInterno: 'OSP-05', iniziali: 'E.S.', roomId: '__seed__room-C', bedId: '__seed__bed-C-1', stanza: 'C', letto: '1', attivo: true, noteEssenziali: 'Follow-up cardiologo mensile', updatedAt: NOW, deletedAt: null, syncStatus: 'pending', _seeded: true },
+    { id: '__seed__host-6', codiceInterno: 'OSP-06', iniziali: 'P.C.', roomId: '__seed__room-C', bedId: '__seed__bed-C-2', stanza: 'C', letto: '2', attivo: true, noteEssenziali: '', updatedAt: NOW, deletedAt: null, syncStatus: 'pending', _seeded: true },
+    { id: '__seed__host-7', codiceInterno: 'OSP-07', iniziali: 'V.D.', roomId: '__seed__room-A', bedId: null, stanza: 'A', letto: '3', attivo: true, noteEssenziali: 'Diabete controllato', updatedAt: NOW, deletedAt: null, syncStatus: 'pending', _seeded: true },
+    { id: '__seed__host-8', codiceInterno: 'OSP-08', iniziali: 'F.M.', roomId: '__seed__room-B', bedId: null, stanza: 'B', letto: '3', attivo: true, noteEssenziali: '', updatedAt: NOW, deletedAt: null, syncStatus: 'pending', _seeded: true },
+    { id: '__seed__host-9', codiceInterno: 'OSP-09', iniziali: 'C.N.', roomId: '__seed__room-C', bedId: null, stanza: 'C', letto: '3', attivo: true, noteEssenziali: 'Stato stabile', updatedAt: NOW, deletedAt: null, syncStatus: 'pending', _seeded: true },
+    { id: '__seed__host-10', codiceInterno: 'OSP-10', iniziali: 'S.R.', roomId: null, bedId: null, stanza: 'D', letto: '1', attivo: false, noteEssenziali: 'Dimesso 2026-03-28', updatedAt: NOW, deletedAt: NOW, syncStatus: 'pending', _seeded: true },
 ]
 
 const SEED_STOCK_BATCHES = [
@@ -125,9 +140,13 @@ const SEED_REMINDERS = [
 
 // ── Manifest — indice degli ID per tabella ────────────────────────────────────
 
+// ── Manifest — indice degli ID per tabella ────────────────────────────────────
+
 const SEED_MANIFEST = {
-    drugs: SEED_DRUGS.map(r => r.id),
+    rooms: SEED_ROOMS.map(r => r.id),
+    beds: SEED_BEDS.map(r => r.id),
     hosts: SEED_HOSTS.map(r => r.id),
+    drugs: SEED_DRUGS.map(r => r.id),
     stockBatches: SEED_STOCK_BATCHES.map(r => r.id),
     therapies: SEED_THERAPIES.map(r => r.id),
     movements: SEED_MOVEMENTS.map(r => r.id),
@@ -144,11 +163,13 @@ export async function loadSeedData(options = {}) {
     assertSeedEnabled(options)
 
     await db.transaction('rw', [
-        db.drugs, db.hosts, db.stockBatches,
+        db.rooms, db.beds, db.hosts, db.drugs, db.stockBatches,
         db.therapies, db.movements, db.reminders,
     ], async () => {
-        for (const record of SEED_DRUGS) await db.drugs.put(record)
+        for (const record of SEED_ROOMS) await db.rooms.put(record)
+        for (const record of SEED_BEDS) await db.beds.put(record)
         for (const record of SEED_HOSTS) await db.hosts.put(record)
+        for (const record of SEED_DRUGS) await db.drugs.put(record)
         for (const record of SEED_STOCK_BATCHES) await db.stockBatches.put(record)
         for (const record of SEED_THERAPIES) await db.therapies.put(record)
         for (const record of SEED_MOVEMENTS) await db.movements.put(record)
@@ -171,11 +192,13 @@ export async function clearSeedData(options = {}) {
     if (!manifest) return { cleared: false, reason: 'nessun dato demo trovato' }
 
     await db.transaction('rw', [
-        db.drugs, db.hosts, db.stockBatches,
+        db.rooms, db.beds, db.hosts, db.drugs, db.stockBatches,
         db.therapies, db.movements, db.reminders,
     ], async () => {
-        for (const id of (manifest.drugs ?? [])) await db.drugs.delete(id)
+        for (const id of (manifest.rooms ?? [])) await db.rooms.delete(id)
+        for (const id of (manifest.beds ?? [])) await db.beds.delete(id)
         for (const id of (manifest.hosts ?? [])) await db.hosts.delete(id)
+        for (const id of (manifest.drugs ?? [])) await db.drugs.delete(id)
         for (const id of (manifest.stockBatches ?? [])) await db.stockBatches.delete(id)
         for (const id of (manifest.therapies ?? [])) await db.therapies.delete(id)
         for (const id of (manifest.movements ?? [])) await db.movements.delete(id)
@@ -201,8 +224,10 @@ export async function isSeedDataLoaded() {
  */
 export function getSeedStats() {
     return {
-        drugs: SEED_DRUGS.length,
+        rooms: SEED_ROOMS.length,
+        beds: SEED_BEDS.length,
         hosts: SEED_HOSTS.length,
+        drugs: SEED_DRUGS.length,
         stockBatches: SEED_STOCK_BATCHES.length,
         therapies: SEED_THERAPIES.length,
         movements: SEED_MOVEMENTS.length,
@@ -215,8 +240,10 @@ export const seedDataTestUtils = {
     SEED_ENABLED,
     SEED_MANIFEST_KEY,
     SEED_MANIFEST,
-    SEED_DRUGS,
+    SEED_ROOMS,
+    SEED_BEDS,
     SEED_HOSTS,
+    SEED_DRUGS,
     SEED_STOCK_BATCHES,
     SEED_THERAPIES,
     SEED_MOVEMENTS,
