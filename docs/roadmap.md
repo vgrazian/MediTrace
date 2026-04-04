@@ -7,7 +7,7 @@
 - tradurre l'Excel corrente in entita' normalizzate per dataset locale/remoto
 - creare repository GitHub MediTrace
 - inizializzare progetto Vue.js + Vite + plugin PWA
-- configurare autenticazione GitHub PAT e accesso Gist privato
+- configurare autenticazione operatore con utenza/password e accesso Gist privato
 - definire strategia sync e merge multi-dispositivo
 
 ## Fase 1 - MVP operativo
@@ -19,7 +19,7 @@
 - agenda promemoria farmaci per paziente
 - registrazione esito somministrazione
 - modifica terapia e posologia
-- sync upload/download basilare tramite Drive
+- sync upload/download basilare tramite Gist
 - installazione PWA su smartphone e desktop
 - verifica prestazioni iniziali su telefono Android, tablet Android e browser desktop
 - prima procedura di backup JSON manuale e test restore
@@ -78,9 +78,9 @@
 - effort stimato: M
 - pianificazione specifica: PARZIALE (serve definire KPI e periodicita')
 
-### E6 - Hardening sicurezza token e sessione
+### E6 - Hardening sicurezza segreti tecnici e sessione
 
-- valore: riduce superficie di rischio PAT/client
+- valore: riduce superficie di rischio segreti tecnici/client
 - impatto: MEDIO
 - effort stimato: S/M
 - pianificazione specifica: SI (policy rotazione, scadenza, revoca e handling errori)
@@ -105,7 +105,7 @@
 2. E4 Import guidato CSV/Excel
 3. E8 Pacchetto affidabilita' rilascio
 4. E2 Notifiche push promemoria
-5. E6 Hardening sicurezza token/sessione
+5. E6 Hardening sicurezza segreti/sessione
 6. E5 Reportistica operativa
 7. E1 Ruoli e permessi operatore
 8. E7 Cifratura client-side end-to-end
@@ -115,7 +115,7 @@
 1. Quanti dispositivi reali devono poter lavorare sullo stesso dataset nella fase MVP.
 2. Livello di dettaglio dei dati ospite da conservare nel file remoto.
 3. Processo reale di approvvigionamento da riflettere nel modulo ordini.
-4. Politica di backup manuale oltre alla copia su Drive.
+4. Politica di backup manuale oltre alla copia su Gist.
 5. Gestione di gocce, flaconi e unita' non in compresse nel calcolo del consumo.
 6. Browser/dispositivi di riferimento per i test reali.
 7. Finestra temporale dei promemoria e comportamento offline in caso di ritardi.

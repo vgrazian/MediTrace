@@ -8,14 +8,15 @@ Ambito: stabilizzazione operativa dopo rilascio PWA + sync GitHub Gist + deploy 
 Passare da implementazione funzionante a esercizio operativo ripetibile e controllato:
 
 - test automatici frontend e sync affidabili
-- segreti e configurazioni OAuth gestiti correttamente
+- segreti tecnici e credenziali operative gestiti correttamente
 - policy di merge protette
 - evidenze di rilascio tracciabili
 
 ## Prerequisiti
 
 - Deploy GitHub Pages attivo e accessibile.
-- GitHub PAT con scope `gists` generato e configurato nell'app.
+- Utenza/password operatore attive e funzionanti.
+- Segreto tecnico GitHub per sync Gist disponibile e non scaduto.
 - Workflow GitHub presente per build e smoke test PWA.
 
 ## Fase 1: Attivazione CI Build + Smoke
@@ -26,7 +27,7 @@ Passare da implementazione funzionante a esercizio operativo ripetibile e contro
 4. Lanciare workflow manuale build + smoke test PWA.
 5. Verificare esito positivo su build, lint e smoke di bootstrap app.
 6. Lanciare smoke test multi-device simulato, se disponibile.
-7. Documentare chiaramente eventuali precondizioni OAuth per gli ambienti di test.
+7. Verificare quality gate automatico (`test`) su branch protetto `main`.
 
 Criterio di uscita:
 
@@ -34,13 +35,14 @@ Criterio di uscita:
 - smoke green
 - deploy preview raggiungibile
 
-## Fase 2: Igiene Segreti e GitHub PAT
+## Fase 2: Igiene Segreti e Credenziali Operative
 
-1. Verificare che il GitHub PAT abbia solo lo scope `gists` e non scada a breve.
-2. Ruotare il PAT almeno ogni 90 giorni o immediatamente in caso di sospetta compromissione.
+1. Verificare che il segreto tecnico GitHub per sync abbia solo scope `gists` e non scada a breve.
+2. Verificare policy password operative (complessita', cambio periodico, revoca account dismessi).
+3. Ruotare i segreti tecnici almeno ogni 90 giorni o immediatamente in caso di sospetta compromissione.
 3. Aggiornare le configurazioni ambiente in GitHub se la repo o l'owner del Gist cambiano.
 4. Rieseguire smoke build e bootstrap login.
-5. Revocare token obsoleti o non piu' utilizzati da github.com/settings/tokens.
+5. Revocare segreti obsoleti o non piu' utilizzati.
 
 Nota:
 
@@ -51,7 +53,7 @@ Nota:
 
 1. Abilitare branch protection su main.
 2. Richiedere status check obbligatorio prima del merge.
-3. Impostare come required check il workflow build/smoke.
+3. Impostare come required check il workflow `test` (unit+coverage, E2E, build).
 4. Abilitare blocco merge in caso di check non riusciti.
 5. Opzionale consigliato: richiedere almeno 1 review umana.
 
@@ -76,14 +78,14 @@ Checklist minima pre-rilascio:
 
 - build green
 - smoke multi-device green oppure rischio documentato
-- GitHub PAT verificato (scope gists, non scaduto)
+- credenziali operative e segreto tecnico di sync verificati
 - branch protection attiva
 - documentazione architetturale aggiornata
 - evidenze test archiviate in docs
 
 Checklist post-rilascio (24-72h):
 
-- monitorare errori login, token e GitHub API nei log client
+- monitorare errori login, sessione operatore e GitHub API nei log client
 - verificare che almeno due dispositivi leggano lo stesso dataset remoto
 - controllare conflitti o retry anomali in sync
 
@@ -94,7 +96,7 @@ Rollback:
 ## Evidenze consigliate da conservare
 
 - screenshot esecuzioni workflow GitHub
-- timestamp aggiornamento configurazioni OAuth
+- timestamp rotazione segreti/credenziali
 - conferma branch protection
 - link commit/documenti aggiornati
 
@@ -102,11 +104,11 @@ Rollback:
 
 - Owner prodotto: approvazione go/no-go
 - Responsabile tecnico: configurazioni GitHub e policy branch
-- Operazioni: gestione GitHub PAT, segreti e accessi
+- Operazioni: gestione credenziali operative, segreti tecnici e accessi
 - QA/validazione: esecuzione smoke e raccolta evidenze
 
 ## Frequenza operativa consigliata
 
 - Build + smoke bootstrap: giornaliero (schedulato)
 - Smoke multi-device: ad ogni rilascio e dopo cambi al motore sync
-- Rotazione GitHub PAT: almeno trimestrale o immediata in caso di incidente
+- Rotazione segreti tecnici: almeno trimestrale o immediata in caso di incidente

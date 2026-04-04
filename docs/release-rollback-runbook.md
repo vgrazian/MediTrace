@@ -30,21 +30,21 @@ Usare quando il commit problematico deve essere rimosso in modo esplicito dalla 
 2. Eseguire `git revert <sha_problematico>`.
 3. Aprire PR verso `main` con motivo rollback.
 4. Merge PR (trigger deploy automatico).
-5. Verificare smoke post-deploy e test manuale rapido.
+5. Verificare quality gate e smoke post-deploy.
 
 ## Checklist verifica post-rollback
 
 - `index.html` servito correttamente da Pages
 - `manifest.webmanifest` raggiungibile
 - `sw.js` raggiungibile
-- login PAT funzionante
+- login utenza/password funzionante
 - sincronizzazione manuale senza errori bloccanti
 
 ## Ruoli
 
 - Incident commander: decide go/no-go rollback
 - Maintainer repo: esegue workflow o merge revert
-- QA: verifica smoke e test manuale rapido
+- QA: verifica smoke e test automatici rilevanti
 
 ## Note operative
 

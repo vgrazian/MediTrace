@@ -11,8 +11,8 @@ Conferma del perimetro funzionale e tecnico v1 aggiornato per avvio implementazi
 
 1. Frontend confermato come PWA Vue.js + Vite pubblicata su GitHub Pages.
 2. Persistenza locale confermata su IndexedDB con Dexie.js.
-3. Autenticazione confermata tramite GitHub PAT dedicato (scope `gists`) senza password proprietarie.
-4. Sincronizzazione confermata tramite GitHub Gist API su Gist privato dell'utente.
+3. Autenticazione confermata tramite utenza/password operatore.
+4. Sincronizzazione confermata tramite GitHub Gist API su Gist privato, con segreto tecnico gestito internamente.
 5. Strategia multi-dispositivo confermata: snapshot condiviso su Gist con merge locale e controllo versione dataset.
 6. Regole alert turno confermate:
    - riferimento: `docs/archive/alert-rules-turni.md`
