@@ -51,6 +51,37 @@ function estimateTherapyWeeklyConsumption(therapy) {
     return estimatedWeekly > 0 ? estimatedWeekly : 0
 }
 
+function isConsumptionMovement(movement) {
+    return movementDelta(movement) < 0
+}
+
+function parseMovementDate(movement) {
+    const raw = movement?.dataMovimento ?? movement?.updatedAt
+    if (!raw) return null
+    const parsed = new Date(raw)
+    if (Number.isNaN(parsed.getTime())) return null
+    return parsed
+}
+
+function toIsoWeekKey(date) {
+    const tmp = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()))
+    const day = tmp.getUTCDay() || 7
+    tmp.setUTCDate(tmp.getUTCDate() + 4 - day)
+    const yearStart = new Date(Date.UTC(tmp.getUTCFullYear(), 0, 1))
+    const weekNo = Math.ceil((((tmp - yearStart) / 86400000) + 1) / 7)
+    return `${tmp.getUTCFullYear()}-W${String(weekNo).padStart(2, '0')}`
+}
+
+function buildRecentWeekKeys(now = new Date(), weeks = 8) {
+    const out = []
+    for (let i = weeks - 1; i >= 0; i -= 1) {
+        const date = new Date(now)
+        date.setDate(now.getDate() - (i * 7))
+        out.push(toIsoWeekKey(date))
+    }
+    return out
+}
+
 function computePriority({ stockCurrent, weeklyConsumption, reorderThreshold }) {
     const coverageWeeks = weeklyConsumption > 0 ? stockCurrent / weeklyConsumption : null
 
@@ -74,11 +105,12 @@ function computePriority({ stockCurrent, weeklyConsumption, reorderThreshold }) 
 }
 
 export async function buildOperationalReport() {
-    const [drugs, stockBatches, movements, therapies] = await Promise.all([
+    const [drugs, stockBatches, movements, therapies, hosts] = await Promise.all([
         db.drugs.toArray(),
         db.stockBatches.toArray(),
         db.movements.toArray(),
         db.therapies.toArray(),
+        db.hosts.toArray(),
     ])
 
     const now = new Date()
@@ -131,6 +163,111 @@ export async function buildOperationalReport() {
                 warningReason: priority.reason,
             }
         })
+
+    const rowsByDrugId = new Map(rows.map(row => [row.drugId, row]))
+    const hostsById = new Map(
+        hosts
+            .filter(host => !host.deletedAt)
+            .map(host => [host.id, host])
+    )
+
+    const hostAggregates = new Map()
+    for (const therapy of therapies) {
+        if (!isTherapyActive(therapy, now)) continue
+        if (!therapy.hostId) continue
+
+        const host = hostsById.get(therapy.hostId)
+        const base = hostAggregates.get(therapy.hostId) ?? {
+            hostId: therapy.hostId,
+            codiceInterno: host?.codiceInterno ?? therapy.hostId,
+            casaAlloggio: host?.casaAlloggio ?? '',
+            activeTherapies: 0,
+            weeklyConsumption: 0,
+            criticalDrugs: new Set(),
+            highDrugs: new Set(),
+            mediumDrugs: new Set(),
+            severityScore: SEVERITY_ORDER.ok,
+        }
+
+        base.activeTherapies += 1
+        base.weeklyConsumption += estimateTherapyWeeklyConsumption(therapy)
+
+        const drugRow = rowsByDrugId.get(therapy.drugId)
+        if (drugRow?.warningPriority === 'critica') base.criticalDrugs.add(therapy.drugId)
+        if (drugRow?.warningPriority === 'alta') base.highDrugs.add(therapy.drugId)
+        if (drugRow?.warningPriority === 'media') base.mediumDrugs.add(therapy.drugId)
+        if (drugRow) {
+            base.severityScore = Math.min(base.severityScore, SEVERITY_ORDER[drugRow.warningPriority])
+        }
+
+        hostAggregates.set(therapy.hostId, base)
+    }
+
+    const hostRows = Array.from(hostAggregates.values())
+        .map(row => ({
+            hostId: row.hostId,
+            codiceInterno: row.codiceInterno,
+            casaAlloggio: row.casaAlloggio,
+            activeTherapies: row.activeTherapies,
+            weeklyConsumption: row.weeklyConsumption,
+            criticalDrugs: row.criticalDrugs.size,
+            highDrugs: row.highDrugs.size,
+            mediumDrugs: row.mediumDrugs.size,
+            warningPriority: Object.keys(SEVERITY_ORDER).find(key => SEVERITY_ORDER[key] === row.severityScore) ?? 'ok',
+        }))
+        .sort((a, b) => {
+            const bySeverity = SEVERITY_ORDER[a.warningPriority] - SEVERITY_ORDER[b.warningPriority]
+            if (bySeverity !== 0) return bySeverity
+            if (b.weeklyConsumption !== a.weeklyConsumption) return b.weeklyConsumption - a.weeklyConsumption
+            return a.codiceInterno.localeCompare(b.codiceInterno)
+        })
+
+    const trendWeeks = buildRecentWeekKeys(now, 8)
+    const trendWeekSet = new Set(trendWeeks)
+    const trendByDrug = new Map()
+
+    for (const row of rows) {
+        const weeklyConsumptionByWeek = Object.fromEntries(trendWeeks.map(week => [week, 0]))
+        trendByDrug.set(row.drugId, {
+            drugId: row.drugId,
+            principioAttivo: row.principioAttivo,
+            weeklyConsumptionByWeek,
+            totalPeriodConsumption: 0,
+        })
+    }
+
+    const stockBatchDrugLookup = new Map(
+        stockBatches.map(batch => [batch.id, batch.drugId])
+    )
+
+    for (const movement of movements) {
+        if (movement.deletedAt) continue
+        if (!isConsumptionMovement(movement)) continue
+
+        const movementDate = parseMovementDate(movement)
+        if (!movementDate) continue
+
+        const weekKey = toIsoWeekKey(movementDate)
+        if (!trendWeekSet.has(weekKey)) continue
+
+        const drugId = movement.drugId ?? stockBatchDrugLookup.get(movement.stockBatchId)
+        if (!drugId) continue
+
+        const trendRow = trendByDrug.get(drugId)
+        if (!trendRow) continue
+
+        const consumed = Math.abs(movementDelta(movement))
+        trendRow.weeklyConsumptionByWeek[weekKey] += consumed
+        trendRow.totalPeriodConsumption += consumed
+    }
+
+    const trendRows = Array.from(trendByDrug.values())
+        .sort((a, b) => {
+            if (b.totalPeriodConsumption !== a.totalPeriodConsumption) {
+                return b.totalPeriodConsumption - a.totalPeriodConsumption
+            }
+            return a.principioAttivo.localeCompare(b.principioAttivo)
+        })
         .sort((a, b) => {
             const bySeverity = SEVERITY_ORDER[a.warningPriority] - SEVERITY_ORDER[b.warningPriority]
             if (bySeverity !== 0) return bySeverity
@@ -148,11 +285,14 @@ export async function buildOperationalReport() {
     return {
         generatedAt: new Date().toISOString(),
         rows,
+        hostRows,
+        trendWeeks,
+        trendRows,
         summary,
     }
 }
 
-export function operationalReportToCsv(rows) {
+function stockSectionToCsv(rows) {
     const header = [
         'drug_id',
         'principio_attivo',
@@ -184,6 +324,80 @@ export function operationalReportToCsv(rows) {
     return lines.join('\n')
 }
 
+function hostSectionToCsv(hostRows) {
+    const header = [
+        'host_id',
+        'codice_interno',
+        'casa_alloggio',
+        'active_therapies',
+        'weekly_consumption',
+        'critical_drugs',
+        'high_drugs',
+        'medium_drugs',
+        'warning_priority',
+    ]
+
+    const lines = [header.join(',')]
+    for (const row of hostRows) {
+        const values = [
+            row.hostId,
+            row.codiceInterno,
+            row.casaAlloggio,
+            Number(row.activeTherapies).toFixed(0),
+            Number(row.weeklyConsumption).toFixed(2),
+            Number(row.criticalDrugs).toFixed(0),
+            Number(row.highDrugs).toFixed(0),
+            Number(row.mediumDrugs).toFixed(0),
+            row.warningPriority,
+        ]
+        lines.push(values.map(escapeCsvValue).join(','))
+    }
+
+    return lines.join('\n')
+}
+
+function trendSectionToCsv(trendRows, trendWeeks) {
+    const lines = [['drug_id', 'principio_attivo', 'week_key', 'weekly_consumption'].join(',')]
+
+    for (const row of trendRows) {
+        for (const weekKey of trendWeeks) {
+            const values = [
+                row.drugId,
+                row.principioAttivo,
+                weekKey,
+                Number(row.weeklyConsumptionByWeek?.[weekKey] ?? 0).toFixed(2),
+            ]
+            lines.push(values.map(escapeCsvValue).join(','))
+        }
+    }
+
+    return lines.join('\n')
+}
+
+export function operationalReportToCsv(reportOrRows) {
+    if (Array.isArray(reportOrRows)) {
+        return stockSectionToCsv(reportOrRows)
+    }
+
+    const rows = reportOrRows?.rows ?? []
+    const hostRows = reportOrRows?.hostRows ?? []
+    const trendRows = reportOrRows?.trendRows ?? []
+    const trendWeeks = reportOrRows?.trendWeeks ?? []
+
+    const sections = [
+        '# section: stock',
+        stockSectionToCsv(rows),
+        '',
+        '# section: host_kpi',
+        hostSectionToCsv(hostRows),
+        '',
+        '# section: trend',
+        trendSectionToCsv(trendRows, trendWeeks),
+    ]
+
+    return sections.join('\n')
+}
+
 function escapeCsvValue(value) {
     const asString = String(value ?? '')
     if (asString.includes(',') || asString.includes('"') || asString.includes('\n')) {
@@ -199,5 +413,9 @@ export const reportingTestUtils = {
     baseBatchStock,
     estimateTherapyWeeklyConsumption,
     computePriority,
+    isConsumptionMovement,
+    parseMovementDate,
+    toIsoWeekKey,
+    buildRecentWeekKeys,
     escapeCsvValue,
 }

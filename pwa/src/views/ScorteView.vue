@@ -15,6 +15,10 @@ function formatCoverage(value) {
   return `${Number(value).toFixed(2)} settimane`
 }
 
+function formatWeekLabel(weekKey) {
+  return String(weekKey || '').replace('-W', ' W')
+}
+
 async function refreshReport() {
   reportLoading.value = true
   reportError.value = ''
@@ -28,9 +32,9 @@ async function refreshReport() {
 }
 
 function exportReportCsv() {
-  if (!report.value?.rows?.length) return
+  if (!report.value) return
 
-  const csv = operationalReportToCsv(report.value.rows)
+  const csv = operationalReportToCsv(report.value)
   const date = new Date().toISOString().slice(0, 10)
   const anchor = document.createElement('a')
   anchor.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }))
@@ -50,14 +54,14 @@ onMounted(() => {
     <div class="card">
       <p><strong>Report operativo (consumi/scorte)</strong></p>
       <p class="muted" style="margin-top:.25rem">
-        KPI base: consumo settimanale stimato, copertura scorte, priorita' warning, export CSV.
+        KPI avanzati: scorte, consumo trend per farmaco, vista per ospite/paziente, export CSV multi-sezione.
       </p>
 
       <div style="margin-top:.75rem;display:flex;gap:.5rem;flex-wrap:wrap">
         <button :disabled="reportLoading" @click="refreshReport">
           {{ reportLoading ? 'Aggiornamento...' : 'Aggiorna report' }}
         </button>
-        <button :disabled="!report?.rows?.length" @click="exportReportCsv">
+        <button :disabled="!report" @click="exportReportCsv">
           Esporta CSV report
         </button>
       </div>
@@ -97,6 +101,72 @@ onMounted(() => {
           </tr>
           <tr v-if="report.rows.length === 0">
             <td colspan="7" class="muted">Nessun farmaco disponibile nel dataset locale.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div v-if="report" class="card">
+      <p><strong>KPI per ospite/paziente</strong></p>
+      <p class="muted" style="margin-top:.25rem">
+        Consumo settimanale aggregato e priorita' warning sintetica per ospite attivo in terapia.
+      </p>
+
+      <table class="conflict-table" style="margin-top:.75rem">
+        <thead>
+          <tr>
+            <th>Ospite</th>
+            <th>Casa alloggio</th>
+            <th>Terapie attive</th>
+            <th>Consumo sett.</th>
+            <th>Critica</th>
+            <th>Alta</th>
+            <th>Media</th>
+            <th>Priorita'</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="row in report.hostRows" :key="row.hostId">
+            <td>{{ row.codiceInterno }}</td>
+            <td>{{ row.casaAlloggio || '—' }}</td>
+            <td>{{ row.activeTherapies }}</td>
+            <td>{{ formatNumber(row.weeklyConsumption) }}</td>
+            <td>{{ row.criticalDrugs }}</td>
+            <td>{{ row.highDrugs }}</td>
+            <td>{{ row.mediumDrugs }}</td>
+            <td>{{ row.warningPriority }}</td>
+          </tr>
+          <tr v-if="(report.hostRows || []).length === 0">
+            <td colspan="8" class="muted">Nessun ospite con terapia attiva nel dataset locale.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div v-if="report" class="card">
+      <p><strong>Trend settimanale consumo per farmaco</strong></p>
+      <p class="muted" style="margin-top:.25rem">
+        Consumi scaricati sulle ultime settimane (movimenti di tipo consumo/scarico/somministrazione).
+      </p>
+
+      <table class="conflict-table" style="margin-top:.75rem">
+        <thead>
+          <tr>
+            <th>Farmaco</th>
+            <th v-for="weekKey in report.trendWeeks" :key="`head-${weekKey}`">{{ formatWeekLabel(weekKey) }}</th>
+            <th>Totale periodo</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="row in report.trendRows" :key="`trend-${row.drugId}`">
+            <td>{{ row.principioAttivo }}</td>
+            <td v-for="weekKey in report.trendWeeks" :key="`${row.drugId}-${weekKey}`">
+              {{ formatNumber(row.weeklyConsumptionByWeek[weekKey]) }}
+            </td>
+            <td>{{ formatNumber(row.totalPeriodConsumption) }}</td>
+          </tr>
+          <tr v-if="(report.trendRows || []).length === 0">
+            <td :colspan="(report.trendWeeks || []).length + 2" class="muted">Nessun trend disponibile nel dataset locale.</td>
           </tr>
         </tbody>
       </table>
