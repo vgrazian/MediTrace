@@ -2,7 +2,7 @@
 import { ref, onMounted } from 'vue'
 import { useAuth } from '../services/auth'
 import { fullSync, exportBackupJson, listPendingConflicts, resolveConflict } from '../services/sync'
-import { getNotificationStatusSnapshot, requestNotificationPermission, sendTestNotification } from '../services/notifications'
+import { getNotificationStatusSnapshot, requestNotificationPermission, sendTestNotification, triggerReminderNotificationsCheck } from '../services/notifications'
 import { listSupportedImportSources, importCsv } from '../services/csvImport'
 import { getSetting } from '../db'
 
@@ -84,6 +84,13 @@ function refreshNotificationStatus() {
   notificationStatus.value = getNotificationStatusSnapshot()
 }
 
+function notificationReasonLabel() {
+  if (notificationStatus.value.reason === 'ready') return 'Pronte per promemoria e test.'
+  if (notificationStatus.value.reason === 'blocked-by-browser') return 'Bloccate dal browser/dispositivo.'
+  if (notificationStatus.value.reason === 'permission-required') return 'Richiedono consenso utente.'
+  return 'Notification API non supportata su questo ambiente.'
+}
+
 async function enableNotifications() {
   notificationBusy.value = true
   notificationMessage.value = ''
@@ -111,6 +118,19 @@ async function runNotificationTest() {
     notificationMessage.value = 'Notifica di test inviata.'
   } catch (err) {
     notificationMessage.value = `Errore test notifica: ${err.message}`
+  } finally {
+    notificationBusy.value = false
+  }
+}
+
+async function runReminderNotificationCheck() {
+  notificationBusy.value = true
+  notificationMessage.value = ''
+  try {
+    await triggerReminderNotificationsCheck()
+    notificationMessage.value = 'Controllo promemoria imminenti eseguito.'
+  } catch (err) {
+    notificationMessage.value = `Errore controllo promemoria: ${err.message}`
   } finally {
     notificationBusy.value = false
   }
@@ -378,6 +398,11 @@ async function handleDeleteSeeded(username) {
       <p class="muted" style="margin-top:.25rem">Supporto browser: {{ notificationStatus.supported ? 'si' : 'no' }}</p>
       <p class="muted">Permesso: {{ notificationStatus.permission }}</p>
       <p class="muted">Stato: {{ notificationStatus.enabled ? 'abilitate' : 'non abilitate' }}</p>
+      <p class="muted">Dettaglio: {{ notificationReasonLabel() }}</p>
+
+      <p v-if="!notificationStatus.supported" class="muted" style="margin-top:.5rem;font-size:.8rem">
+        Fallback operativo: usa la vista Promemoria come agenda locale e abilita notifiche da un browser compatibile su desktop o Android.
+      </p>
 
       <div style="margin-top:.75rem;display:flex;gap:.5rem;flex-wrap:wrap">
         <button :disabled="notificationBusy || !notificationStatus.supported" @click="enableNotifications">
@@ -385,6 +410,9 @@ async function handleDeleteSeeded(username) {
         </button>
         <button :disabled="notificationBusy || !notificationStatus.enabled" @click="runNotificationTest">
           Invia notifica test
+        </button>
+        <button :disabled="notificationBusy || !notificationStatus.enabled" @click="runReminderNotificationCheck">
+          Verifica promemoria imminenti
         </button>
         <button :disabled="notificationBusy" @click="refreshNotificationStatus">
           Aggiorna stato
