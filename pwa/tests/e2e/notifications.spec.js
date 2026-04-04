@@ -19,7 +19,7 @@ test.beforeEach(async ({ page }) => {
                 notificationInstances.push(this)
             }
 
-            close() {}
+            close() { }
         }
 
         Object.defineProperty(window, 'Notification', {
