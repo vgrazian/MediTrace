@@ -134,5 +134,6 @@ test('notification enable, test send, and reminder deep-link are exercisable aut
 
     await expect(page).toHaveURL(/#\/promemoria\?highlight=reminder-e2e-1/)
     await expect(page.getByText('Evidenziato da notifica: reminder-e2e-1')).toBeVisible()
-    await expect(page.getByRole('cell', { name: 'reminder-e2e-1' })).toBeVisible()
+    // Highlighted reminder row appears in the table (new view shows ospite/farmaco labels, not raw IDs)
+    await expect(page.locator('tr.reminder-highlight')).toBeVisible()
 })
