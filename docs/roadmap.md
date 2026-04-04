@@ -7,7 +7,7 @@
 - tradurre l'Excel corrente in entita' normalizzate per dataset locale/remoto
 - creare repository GitHub MediTrace
 - inizializzare progetto Vue.js + Vite + plugin PWA
-- configurare OAuth Google e accesso Drive `appDataFolder`
+- configurare autenticazione GitHub PAT e accesso Gist privato
 - definire strategia sync e merge multi-dispositivo
 
 ## Fase 1 - MVP operativo

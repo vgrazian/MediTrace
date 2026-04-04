@@ -4,7 +4,7 @@
 
 Definire regole operative per gestire in modo sicuro:
 
-- credenziali OAuth e account Google
+- GitHub Personal Access Token (PAT) e credenziali operatore
 - backup e restore
 - dataset remoto e risposta a incidenti
 
@@ -22,28 +22,26 @@ Questa policy e' obbligatoria per tutti gli ambienti (`STAGING`, `PROD`).
 
 Sono considerati segreti:
 
-- password account Google
-- client secret OAuth se usato lato configurazione build/deploy
+- GitHub Personal Access Token (PAT)
 - token o cookie di sessione
 - file di export DB locale non cifrati
 - eventuali identificativi personali non pseudonimizzati
 
-## Regole Per OAuth E Google Cloud
+## Regole Per GitHub PAT
 
-1. Conservare eventuali client secret solo in storage sicuro e solo se realmente necessari per tooling lato deploy.
-2. Preferire configurazioni browser che non richiedano segreti distribuiti ai client.
-3. Usare progetti Google Cloud separati tra `STAGING` e `PROD`.
-4. Limitare scope ai minimi necessari, in particolare accesso a `appDataFolder` invece che a tutto Drive.
-5. Revisionare almeno ogni 90 giorni schermata consenso, redirect URI e utenti autorizzati.
-6. Registrare cambi rilevanti di configurazione OAuth nelle evidenze operative di rilascio.
+1. Generare PAT con scope minimo: solo `gists` (Read and write).
+2. Non riutilizzare lo stesso PAT per scopi diversi (es. non usare il PAT sync anche per automazioni CI).
+3. Ruotare il PAT almeno ogni 90 giorni e immediatamente in caso di sospetta compromissione.
+4. Revocare i token obsoleti da github.com/settings/tokens.
+5. Registrare ogni rinnovo di PAT nelle evidenze operative di rilascio.
 
 ## Regole Per Credenziali Utente
 
 1. Password uniche, lunghe e generate da password manager.
-2. 2FA obbligatoria sugli account Google usati per MediTrace.
-3. Vietato condividere password in testo chiaro su chat, email o documenti.
-4. In caso di condivisione accidentale: reset immediato password + revoca sessioni attive.
-5. Accesso al dataset Drive solo agli account Google nominativamente autorizzati.
+2. 2FA obbligatoria sull'account GitHub usato per MediTrace.
+3. Vietato condividere password o PAT in testo chiaro su chat, email o documenti.
+4. In caso di condivisione accidentale: revoca immediata del PAT + generazione nuovo token.
+5. Accesso al Gist privato solo tramite l'account GitHub proprietario del token.
 
 ## Regole Repository E Sviluppo
 
@@ -70,8 +68,7 @@ Canali:
 Eventi minimi da tracciare:
 
 - auth fallita (`AUTH_FAIL`)
-- cambio configurazione OAuth
-- modifica permessi account Google / Drive
+- rotazione o revoca GitHub PAT
 - restore eseguito
 - update applicativo con migrazione schema
 
@@ -81,7 +78,7 @@ Regola: i log non devono contenere password, token o dati personali completi.
 
 ### Backup
 
-1. Il file remoto in `appDataFolder` e' la copia cloud primaria condivisa tra dispositivi.
+1. Il Gist privato GitHub e' la copia cloud primaria condivisa tra dispositivi.
 2. I backup manuali locali JSON devono essere cifrati oppure custoditi come dato sensibile.
 3. Frequenza minima consigliata:
    - backup incrementale giornaliero
@@ -94,40 +91,39 @@ Regola: i log non devono contenere password, token o dati personali completi.
 3. Test restore almeno una volta al mese in ambiente controllato.
 4. Registrare ogni restore nelle evidenze operative con esito.
 
-## Access Control Google Drive E Dispositivi
+## Access Control GitHub PAT E Dispositivi
 
-1. Separare configurazioni `STAGING` e `PROD` con client OAuth distinti quando possibile.
-2. Consentire uso solo ad account Google autorizzati e verificati con 2FA.
+1. Ogni ambiente (`STAGING`, `PROD`) usa un PAT distinto con scopo dichiarato.
+2. Consentire uso solo a operatori autorizzati con account GitHub verificato con 2FA.
 3. Mantenere inventario minimo dei dispositivi che hanno effettuato sync sul dataset.
-4. Rimuovere accessi non piu' necessari entro 24h dalla dismissione.
+4. Revocare il PAT entro 24h dalla dismissione di un dispositivo o operatore.
 
 ## Incident Response (Playbook Minimo)
 
 Quando si sospetta compromissione di segreti o accesso improprio al dataset:
 
 1. Contenimento immediato:
-   - revocare sessioni e accessi Google sospetti
-   - forzare reset password account coinvolti
-   - invalidare sessioni attive
+   - revocare immediatamente il GitHub PAT compromesso da github.com/settings/tokens
+   - generare un nuovo PAT e aggiornarlo nell'app su tutti i dispositivi attivi
+   - invalidare sessioni attive nell'app (logout + rimozione PAT da IndexedDB)
 2. Eradicazione:
    - identificare origine leak
    - eliminare segreti esposti da file/chat
 3. Ripristino:
-   - riallineare configurazioni OAuth
-   - verificare servizi, sync e integrita' del dataset remoto
+   - verificare che il Gist non sia stato alterato (confrontare hash dataset)
+   - rieseguire smoke sync con il nuovo PAT
 4. Post-mortem:
    - registrare incidente nelle evidenze operative
    - aggiornare questa policy e checklist operativa
 
 ## Checklist Operativa Rapida
 
-- [ ] 2FA attiva su tutti gli account Google di progetto
-- [ ] Configurazioni OAuth separate per `STAGING` e `PROD`
-- [ ] Redirect URI e scope verificati
-- [ ] Accessi account Google verificati
-- [ ] Backup automatico attivo
+- [ ] 2FA attiva sull'account GitHub di progetto
+- [ ] PAT separati per `STAGING` e `PROD` con scope `gists`
+- [ ] PAT non scaduti e ruotati negli ultimi 90 giorni
+- [ ] Nessun PAT o segreto presente nel repository
+- [ ] Backup manuale JSON eseguito di recente
 - [ ] Test restore mensile eseguito
-- [ ] Nessun segreto presente nel repository
 
 ## Riferimenti Correlati
 

@@ -20,12 +20,12 @@ L'app gestisce le terapie farmacologiche degli ospiti di due case alloggio, per 
 
 ### 1.3 Autenticazione
 
-- Login tramite account Google dell'utente (OAuth 2.0).
-- Nessuna gestione di password proprietarie.
+- Login tramite GitHub Personal Access Token (PAT) con scope `gists`.
+- Nessuna gestione di password proprietarie né credenziali Google.
 
 ### 1.4 Inizializzazione storage
 
-- Al primo avvio l'app crea automaticamente un file `data.json` nella cartella nascosta `appDataFolder` del Google Drive dell'utente autenticato.
+- Al primo avvio l'app crea automaticamente un Gist privato GitHub che contiene `meditrace-manifest.json` e `meditrace-data.json`.
 
 ### 1.5 Gestione dati offline
 
@@ -34,8 +34,8 @@ L'app gestisce le terapie farmacologiche degli ospiti di due case alloggio, per 
 
 ### 1.6 Sincronizzazione bidirezionale
 
-- **Upload:** i dati locali vengono caricati su Drive al salvataggio o al ripristino della connessione.
-- **Download:** all'apertura dell'app su un secondo dispositivo (es. da PC a smartphone), l'app verifica la presenza di una versione più recente su Drive e la scarica.
+- **Upload:** i dati locali vengono caricati sul Gist privato al salvataggio o al ripristino della connessione.
+- **Download:** all'apertura dell'app su un secondo dispositivo (es. da PC a smartphone), l'app verifica la presenza di una versione più recente sul Gist e la scarica.
 
 ### 1.7 Installazione su dispositivo
 
@@ -52,11 +52,11 @@ L'app gestisce le terapie farmacologiche degli ospiti di due case alloggio, per 
 ### 2.1 Costo zero
 
 - Tutti i servizi utilizzati devono essere gratuiti e non richiedere carta di credito.
-- Servizi coinvolti: GitHub Pages (hosting), Google Drive API (sync), Google OAuth (autenticazione).
+- Servizi coinvolti: GitHub Pages (hosting), GitHub Gist API (sync), GitHub Personal Access Token (autenticazione).
 
 ### 2.2 Privacy e sicurezza
 
-- I dati risiedono esclusivamente sul dispositivo dell'utente o nel suo spazio Google Drive personale.
+- I dati risiedono esclusivamente sul dispositivo dell'utente o nel suo Gist privato GitHub.
 - Nessun server intermedio ha accesso ai dati.
 - Architettura compatibile con crittografia client-side (zero-knowledge opzionale).
 
@@ -74,7 +74,7 @@ L'app gestisce le terapie farmacologiche degli ospiti di due case alloggio, per 
 
 ### 2.6 Limiti di quota API
 
-- L'app gestisce con eleganza i limiti di quota delle Google API (generosi per 1–2 utenti attivi).
+- L'app gestisce con eleganza i limiti di quota delle GitHub REST API (5 000 req/ora per utente autenticato, ampiamente sufficiente per 1–2 utenti attivi).
 
 ---
 
@@ -84,8 +84,8 @@ L'app gestisce le terapie farmacologiche degli ospiti di due case alloggio, per 
 |-----------------|-----------------------------------------------------|
 | Hosting         | GitHub Pages (HTTPS obbligatorio)                   |
 | Database locale | IndexedDB — libreria Dexie.js                       |
-| Sincronizzazione| Google Drive REST API v3 via JavaScript             |
-| Autenticazione  | Google OAuth 2.0 (browser flow)                     |
+| Sincronizzazione| GitHub Gist API v3 via JavaScript                   |
+| Autenticazione  | GitHub Personal Access Token (scope: `gists`)       |
 | UI Framework    | Vue.js 3 + Vite                                     |
 | PWA             | Vite PWA Plugin (manifest, service worker, icone)   |
 | Deploy CI/CD    | GitHub Actions (push → build → deploy su Pages)     |
