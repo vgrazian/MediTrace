@@ -11,7 +11,7 @@ const { currentUser } = useAuth()
       <span class="brand-title">MediTrace</span>
     </div>
 
-    <RouterLink to="/">Home</RouterLink>
+    <RouterLink to="/">Cruscotto</RouterLink>
     <RouterLink to="/farmaci">Farmaci</RouterLink>
     <RouterLink to="/ospiti">Ospiti</RouterLink>
     <RouterLink to="/scorte">Scorte</RouterLink>

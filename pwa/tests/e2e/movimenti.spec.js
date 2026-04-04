@@ -21,7 +21,7 @@ test('movimenti view supports registering a carico and a scarico', async ({ page
     await page.getByRole('link', { name: '⚙' }).click()
     await expect(page.getByRole('heading', { name: 'Impostazioni' })).toBeVisible()
 
-    const dryRunCheckbox = page.getByLabel('Esegui dry-run (nessuna scrittura)')
+    const dryRunCheckbox = page.getByLabel('Esegui simulazione (nessuna scrittura)')
     if (await dryRunCheckbox.isChecked()) await dryRunCheckbox.uncheck()
 
     await page.getByLabel('Sorgente').selectOption('01_CatalogoFarmaci.csv')

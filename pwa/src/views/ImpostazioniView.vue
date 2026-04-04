@@ -51,13 +51,17 @@ const authEventFilter = ref('')
 const notificationStatus = ref(getNotificationStatusSnapshot())
 const notificationMessage = ref('')
 const notificationBusy = ref(false)
-const isDev = import.meta.env.DEV || import.meta.env.VITE_SEED_DATA === '1'
 const seedLoaded = ref(false)
 const seedBusy = ref(false)
 const seedMessage = ref('')
 const seedStats = getSeedStats()
 
 const passwordPolicyState = computed(() => getPasswordPolicy(pwdNext.value))
+const canManageTestData = computed(() => currentUser.value?.role === 'admin')
+const testDataActionLabel = computed(() => {
+  if (seedBusy.value) return seedLoaded.value ? 'Rimozione in corso…' : 'Generazione in corso…'
+  return seedLoaded.value ? 'Rimuovi dati di test' : 'Genera dati di test'
+})
 
 function formatValue(value) {
   if (value === null || value === undefined || value === '') return '—'
@@ -191,34 +195,34 @@ onMounted(async () => {
   await refreshUsers()
   await refreshSecurityInfo()
   refreshNotificationStatus()
-  if (isDev) seedLoaded.value = await isSeedDataLoaded()
+  seedLoaded.value = await isSeedDataLoaded()
 })
 
-async function handleLoadSeedData() {
-  seedBusy.value = true
-  seedMessage.value = ''
-  try {
-    const stats = await loadSeedData()
-    seedLoaded.value = true
-    seedMessage.value = `Caricati: ${stats.drugs} farmaci, ${stats.hosts} ospiti, ${stats.stockBatches} confezioni, ${stats.therapies} terapie, ${stats.movements} movimenti, ${stats.reminders} promemoria.`
-  } catch (err) {
-    seedMessage.value = `Errore caricamento dati demo: ${err.message}`
-  } finally {
-    seedBusy.value = false
-  }
-}
+async function handleToggleTestData() {
+  if (!canManageTestData.value) return
 
-async function handleClearSeedData() {
-  const confirmed = window.confirm('Rimuovere tutti i dati demo dal database locale?')
+  const confirmed = seedLoaded.value
+    ? window.confirm('Rimuovere tutti i dati di test dal database locale?')
+    : window.confirm('Generare e importare dati di test nel database locale?')
   if (!confirmed) return
+
   seedBusy.value = true
   seedMessage.value = ''
+
   try {
-    await clearSeedData()
-    seedLoaded.value = false
-    seedMessage.value = 'Dati demo rimossi.'
+    if (seedLoaded.value) {
+      const result = await clearSeedData({ allowInProduction: true })
+      seedLoaded.value = false
+      seedMessage.value = result.cleared
+        ? 'Dati di test rimossi.'
+        : 'Nessun dato di test presente da rimuovere.'
+    } else {
+      const stats = await loadSeedData({ allowInProduction: true })
+      seedLoaded.value = true
+      seedMessage.value = `Importati dati di test: ${stats.drugs} farmaci, ${stats.hosts} ospiti, ${stats.stockBatches} confezioni, ${stats.therapies} terapie, ${stats.movements} movimenti, ${stats.reminders} promemoria.`
+    }
   } catch (err) {
-    seedMessage.value = `Errore rimozione dati demo: ${err.message}`
+    seedMessage.value = `Errore gestione dati di test: ${err.message}`
   } finally {
     seedBusy.value = false
   }
@@ -252,7 +256,8 @@ async function applyResolution(conflictId, choice) {
       operatorId: currentUser.value?.login ?? null,
     })
     await refreshPendingConflicts()
-    syncMessage.value = `Conflitto risolto (${result.choice}). Restanti: ${result.remaining}`
+    const choiceLabel = result.choice === 'remote' ? 'remota' : 'locale'
+    syncMessage.value = `Conflitto risolto (${choiceLabel}). Restanti: ${result.remaining}`
   } catch (err) {
     syncMessage.value = `Errore risoluzione: ${err.message}`
   } finally {
@@ -344,8 +349,8 @@ async function handleDeleteSeeded(username) {
     <div class="card">
       <p><strong>Account operatore</strong></p>
       <p class="muted">Username: {{ currentUser?.username }}</p>
-      <p class="muted">Ruolo: {{ currentUser?.role === 'admin' ? 'admin' : 'operatore' }}</p>
-      <p class="muted">GitHub sync: @{{ currentUser?.login }}<span v-if="currentUser?.name !== currentUser?.login"> ({{ currentUser?.name }})</span></p>
+      <p class="muted">Ruolo: {{ currentUser?.role === 'admin' ? 'amministratore' : 'operatore' }}</p>
+      <p class="muted">Sincronizzazione GitHub: @{{ currentUser?.login }}<span v-if="currentUser?.name !== currentUser?.login"> ({{ currentUser?.name }})</span></p>
       <p class="muted" style="font-size:.8rem;margin-top:.25rem">
         Gist ID: <code v-if="gistId"><a :href="'https://gist.github.com/' + gistId" target="_blank" rel="noopener">{{ gistId.slice(0, 12) }}…</a></code>
         <span v-else>— (nessun gist ancora creato)</span>
@@ -378,8 +383,8 @@ async function handleDeleteSeeded(username) {
         </label>
 
         <p class="muted" style="font-size:.8rem">
-          Policy: 10+ caratteri, maiuscola, minuscola, numero e simbolo.<br />
-          Check: {{ passwordPolicyState.minLength ? 'ok' : 'no' }} lunghezza ·
+          Regole: 10+ caratteri, maiuscola, minuscola, numero e simbolo.<br />
+          Verifica: {{ passwordPolicyState.minLength ? 'ok' : 'no' }} lunghezza ·
           {{ passwordPolicyState.hasUppercase ? 'ok' : 'no' }} maiuscola ·
           {{ passwordPolicyState.hasLowercase ? 'ok' : 'no' }} minuscola ·
           {{ passwordPolicyState.hasDigit ? 'ok' : 'no' }} numero ·
@@ -400,10 +405,10 @@ async function handleDeleteSeeded(username) {
 
     <div class="card">
       <p><strong>Utenti</strong></p>
-      <p class="muted" style="margin-top:.25rem">Gestione utenti consentita solo ad account admin. Azioni disponibili per utenti di prova (seeded).</p>
+      <p class="muted" style="margin-top:.25rem">Gestione utenti consentita solo ad account amministratore. Azioni disponibili per utenti di prova.</p>
 
       <p v-if="currentUser?.role !== 'admin'" class="muted" style="margin-top:.5rem">
-        Il tuo account non ha privilegi admin: puoi visualizzare solo il tuo profilo.
+        Il tuo account non ha privilegi amministratore: puoi visualizzare solo il tuo profilo.
       </p>
 
       <table v-if="currentUser?.role === 'admin'" class="conflict-table" style="margin-top:.75rem">
@@ -446,6 +451,26 @@ async function handleDeleteSeeded(username) {
           </tr>
         </tbody>
       </table>
+
+      <div v-if="currentUser?.role === 'admin'" style="margin-top:.85rem;padding:.75rem;border:1px dashed #d8b154;border-radius:.55rem">
+        <p><strong>Dati di test (live)</strong></p>
+        <p class="muted" style="margin-top:.25rem">
+          Usa questo pulsante per importare rapidamente dati di test o per ripulirli.
+          Il testo del pulsante cambia automaticamente in base allo stato corrente.
+        </p>
+        <p class="muted" style="margin-top:.25rem;font-size:.85rem">
+          Pacchetto: {{ seedStats.drugs }} farmaci · {{ seedStats.hosts }} ospiti ·
+          {{ seedStats.stockBatches }} confezioni · {{ seedStats.therapies }} terapie ·
+          {{ seedStats.movements }} movimenti · {{ seedStats.reminders }} promemoria
+        </p>
+        <button style="margin-top:.65rem" :disabled="seedBusy" @click="handleToggleTestData">
+          {{ testDataActionLabel }}
+        </button>
+        <p v-if="seedLoaded && !seedMessage" class="muted" style="margin-top:.5rem;font-size:.8rem">
+          Stato: dati di test presenti nel database locale.
+        </p>
+        <p v-if="seedMessage" class="muted" style="margin-top:.5rem;font-size:.8rem">{{ seedMessage }}</p>
+      </div>
 
       <p v-if="usersMessage" class="muted" style="margin-top:.5rem;font-size:.8rem">{{ usersMessage }}</p>
     </div>
@@ -492,10 +517,10 @@ async function handleDeleteSeeded(username) {
 
       <div class="import-form" style="margin-top:.75rem">
         <label>
-          Filtro audit auth
-          <input v-model="authEventFilter" type="text" placeholder="es. signin, expired, admin" />
+          Filtro audit accessi
+          <input v-model="authEventFilter" type="text" placeholder="es. accesso, scadenza, amministratore" />
         </label>
-        <button @click="applyAuthEventFilter">Applica filtro audit</button>
+        <button @click="applyAuthEventFilter">Applica filtro</button>
       </div>
 
       <table class="conflict-table" style="margin-top:.75rem">
@@ -510,10 +535,10 @@ async function handleDeleteSeeded(username) {
           <tr v-for="event in authEvents" :key="event.id">
             <td>{{ event.ts }}</td>
             <td>{{ event.action }}</td>
-            <td>{{ event.operatorId ?? 'anonymous' }}</td>
+            <td>{{ event.operatorId ?? 'anonimo' }}</td>
           </tr>
           <tr v-if="authEvents.length === 0">
-            <td colspan="3" class="muted">Nessun evento auth disponibile.</td>
+            <td colspan="3" class="muted">Nessun evento accessi disponibile.</td>
           </tr>
         </tbody>
       </table>
@@ -522,7 +547,7 @@ async function handleDeleteSeeded(username) {
     <div class="card">
       <p><strong>Dispositivo</strong></p>
       <p class="muted">Device ID: {{ deviceId ?? '— (non ancora assegnato)' }}</p>
-      <p class="muted">Dataset version locale: {{ datasetVersion ?? '—' }}</p>
+      <p class="muted">Versione dataset locale: {{ datasetVersion ?? '—' }}</p>
     </div>
 
     <div class="card">
@@ -579,32 +604,6 @@ async function handleDeleteSeeded(username) {
       </div>
     </div>
 
-    <div v-if="isDev" class="card" style="border:2px dashed #e6a817">
-      <p><strong>[DEV] Dati demo</strong></p>
-      <p class="muted" style="margin-top:.25rem">
-        Carica record di esempio (farmaci, ospiti, terapie, movimenti, promemoria) per test manuali.
-        Tutti i record hanno ID prefissati con <code>__seed__</code> e flag <code>_seeded: true</code>.
-        Da rimuovere prima della messa in produzione.
-      </p>
-      <p class="muted" style="margin-top:.25rem">
-        Contenuto: {{ seedStats.drugs }} farmaci · {{ seedStats.hosts }} ospiti ·
-        {{ seedStats.stockBatches }} confezioni · {{ seedStats.therapies }} terapie ·
-        {{ seedStats.movements }} movimenti · {{ seedStats.reminders }} promemoria
-      </p>
-      <div style="display:flex;gap:.75rem;margin-top:.75rem;flex-wrap:wrap">
-        <button :disabled="seedBusy || seedLoaded" @click="handleLoadSeedData">
-          {{ seedBusy ? 'Caricamento…' : 'Carica dati demo' }}
-        </button>
-        <button :disabled="seedBusy || !seedLoaded" style="background:#c0392b" @click="handleClearSeedData">
-          Rimuovi dati demo
-        </button>
-      </div>
-      <p v-if="seedLoaded && !seedMessage" class="muted" style="margin-top:.5rem;font-size:.8rem">
-        Stato: dati demo presenti nel database locale.
-      </p>
-      <p v-if="seedMessage" class="muted" style="margin-top:.5rem;font-size:.8rem">{{ seedMessage }}</p>
-    </div>
-
     <div class="card">
       <p><strong>Backup locale</strong></p>
       <p class="muted">Scarica tutti i dati come file JSON.</p>
@@ -613,7 +612,7 @@ async function handleDeleteSeeded(username) {
 
     <div class="card">
       <p><strong>Import CSV guidato</strong></p>
-      <p class="muted" style="margin-top:.25rem">Supporta dry-run con report righe scartate secondo mapping v1.</p>
+      <p class="muted" style="margin-top:.25rem">Supporta simulazione senza scrittura con report righe scartate secondo mapping v1.</p>
 
       <div class="import-form">
         <label>
@@ -630,7 +629,7 @@ async function handleDeleteSeeded(username) {
 
         <label class="checkbox-label">
           <input v-model="importDryRun" type="checkbox" />
-          Esegui dry-run (nessuna scrittura)
+          Esegui simulazione (nessuna scrittura)
         </label>
 
         <button :disabled="importRunning" @click="runCsvImport">
@@ -647,7 +646,7 @@ async function handleDeleteSeeded(username) {
           Righe lette: {{ importReport.totalRows }}<br />
           Accettate: {{ importReport.acceptedRows }}<br />
           Scartate: {{ importReport.rejectedRows }}<br />
-          Modalita': {{ importReport.dryRun ? 'dry-run' : 'scrittura applicata' }}
+          Modalita': {{ importReport.dryRun ? 'simulazione' : 'scrittura applicata' }}
         </p>
 
         <table v-if="importReport.rejectedRows > 0" class="conflict-table" style="margin-top:.75rem">

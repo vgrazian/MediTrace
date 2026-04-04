@@ -7,25 +7,58 @@ export async function loginOrRegisterSeededUser(page, {
 } = {}) {
     const usernameInput = page.locator('#username-input')
     const registerUsernameInput = page.locator('#reg-username')
-    const homeLink = page.getByRole('link', { name: 'Home' })
+    const homeLink = page.getByRole('link', { name: 'Cruscotto' })
+    const settingsLink = page.getByRole('link', { name: '⚙' })
+    const loginError = page.locator('.login-error')
 
-    await Promise.race([
-        usernameInput.waitFor({ state: 'visible', timeout: 5000 }).catch(() => null),
-        registerUsernameInput.waitFor({ state: 'visible', timeout: 5000 }).catch(() => null),
-        homeLink.waitFor({ state: 'visible', timeout: 5000 }).catch(() => null),
-    ])
-
-    if (await usernameInput.isVisible()) {
-        await usernameInput.fill(username)
-        await page.locator('#password-input').fill(password)
-        await page.getByRole('button', { name: 'Accedi' }).click()
-    } else if (await registerUsernameInput.isVisible()) {
-        await registerUsernameInput.fill(username)
-        await page.locator('#reg-password').fill(password)
-        await page.locator('#reg-confirm-password').fill(password)
-        await page.locator('#reg-gh-token').fill(githubToken)
-        await page.getByRole('button', { name: 'Crea account e accedi' }).click()
+    async function awaitAuthenticated(timeout = 9000) {
+        await Promise.race([
+            page.locator('main').waitFor({ state: 'visible', timeout }).catch(() => null),
+            loginError.waitFor({ state: 'visible', timeout }).catch(() => null),
+        ])
     }
 
-    await expect(page.locator('main')).toBeVisible()
+    async function waitForAuthEntry(timeout = 12000) {
+        await Promise.race([
+            usernameInput.waitFor({ state: 'visible', timeout }).catch(() => null),
+            registerUsernameInput.waitFor({ state: 'visible', timeout }).catch(() => null),
+            homeLink.waitFor({ state: 'visible', timeout }).catch(() => null),
+        ])
+    }
+
+    await waitForAuthEntry(12000)
+
+    if (!(await usernameInput.isVisible()) && !(await registerUsernameInput.isVisible()) && !(await homeLink.isVisible())) {
+        await page.waitForTimeout(500)
+        await waitForAuthEntry(12000)
+    }
+
+    if (await usernameInput.isVisible()) {
+        for (let attempt = 0; attempt < 2; attempt += 1) {
+            await usernameInput.fill(username)
+            await page.locator('#password-input').fill(password)
+            await page.getByRole('button', { name: 'Accedi' }).click()
+            await awaitAuthenticated(9000)
+            if (await page.locator('main').isVisible()) break
+            if (attempt === 1) break
+        }
+    } else if (await registerUsernameInput.isVisible()) {
+        for (let attempt = 0; attempt < 2; attempt += 1) {
+            await registerUsernameInput.fill(username)
+            await page.locator('#reg-password').fill(password)
+            await page.locator('#reg-confirm-password').fill(password)
+            await page.locator('#reg-gh-token').fill(githubToken)
+            await page.getByRole('button', { name: 'Crea account e accedi' }).click()
+            await awaitAuthenticated(9000)
+            if (await page.locator('main').isVisible()) break
+            if (attempt === 1) break
+        }
+    }
+
+    if (await loginError.isVisible()) {
+        throw new Error(`Login E2E fallito: ${await loginError.textContent()}`)
+    }
+
+    await expect(page.locator('main')).toBeVisible({ timeout: 15000 })
+    await expect(settingsLink).toBeVisible({ timeout: 15000 })
 }

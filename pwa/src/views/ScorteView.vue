@@ -70,7 +70,7 @@ onMounted(() => {
     </div>
 
     <div v-if="report" class="card">
-      <p><strong>Riepilogo warning</strong></p>
+      <p><strong>Riepilogo segnalazioni</strong></p>
       <p class="muted" style="margin-top:.25rem">
         Farmaci monitorati: {{ report.summary.totalDrugs }}<br />
         Critica: {{ report.summary.critical }} · Alta: {{ report.summary.high }} · Media: {{ report.summary.medium }} · OK: {{ report.summary.ok }}<br />
@@ -109,7 +109,7 @@ onMounted(() => {
     <div v-if="report" class="card">
       <p><strong>KPI per ospite/paziente</strong></p>
       <p class="muted" style="margin-top:.25rem">
-        Consumo settimanale aggregato e priorita' warning sintetica per ospite attivo in terapia.
+        Consumo settimanale aggregato e priorita' sintetica delle segnalazioni per ospite attivo in terapia.
       </p>
 
       <table class="conflict-table" style="margin-top:.75rem">

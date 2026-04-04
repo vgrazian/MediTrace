@@ -10,7 +10,9 @@
         "check:palette": "bash ./scripts/check-palette.sh",
         "test:unit": "vitest run --coverage",
         "test:e2e": "playwright test",
-        "test": "npm run check:palette && npm run test:unit && npm run test:e2e"
+        "test": "npm run check:palette && npm run test:unit && npm run test:e2e",
+        "demo:load": "node scripts/seed-demo.js",
+        "demo:reset": "node scripts/reset-clean.js"
     },
     "dependencies": {
         "dexie": "^3.2.7",

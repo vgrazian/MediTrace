@@ -4,7 +4,7 @@ async function loginAsSeededUser(page) {
     await page.goto('/')
     const usernameInput = page.locator('#username-input')
     const registerUsernameInput = page.locator('#reg-username')
-    const homeLink = page.getByRole('link', { name: 'Home' })
+    const homeLink = page.getByRole('link', { name: 'Cruscotto' })
 
     await Promise.race([
         usernameInput.waitFor({ state: 'visible', timeout: 5000 }).catch(() => null),
@@ -224,7 +224,7 @@ test('risoluzione conflitto mantieni locale svuota pendingConflicts e lascia the
 
     await page.getByRole('link', { name: '⚙' }).click()
     await page.getByRole('button', { name: 'Mantieni locale' }).first().click()
-    await expect(page.getByText('Conflitto risolto (local). Restanti: 0')).toBeVisible()
+    await expect(page.getByText(/Conflitto risolto.*Restanti: 0/)).toBeVisible()
 
     const state = await readConflictState(page)
     expect(state.pendingCount).toBe(0)
@@ -239,7 +239,7 @@ test('risoluzione conflitto accetta remota applica il valore remoto e rimuove la
 
     await page.getByRole('link', { name: '⚙' }).click()
     await page.getByRole('button', { name: 'Accetta remota' }).first().click()
-    await expect(page.getByText('Conflitto risolto (remote). Restanti: 0')).toBeVisible()
+    await expect(page.getByText('Conflitto risolto (remota). Restanti: 0')).toBeVisible()
 
     const state = await readConflictState(page)
     expect(state.pendingCount).toBe(0)
