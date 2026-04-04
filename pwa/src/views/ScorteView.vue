@@ -107,43 +107,6 @@ onMounted(() => {
     </div>
 
     <div v-if="report" class="card">
-      <p><strong>KPI per ospite/paziente</strong></p>
-      <p class="muted" style="margin-top:.25rem">
-        Consumo settimanale aggregato e priorita' sintetica delle segnalazioni per ospite attivo in terapia.
-      </p>
-
-      <table class="conflict-table" style="margin-top:.75rem">
-        <thead>
-          <tr>
-            <th>Ospite</th>
-            <th>Casa alloggio</th>
-            <th>Terapie attive</th>
-            <th>Consumo sett.</th>
-            <th>Critica</th>
-            <th>Alta</th>
-            <th>Media</th>
-            <th>Priorita'</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="row in report.hostRows" :key="row.hostId">
-            <td>{{ row.codiceInterno }}</td>
-            <td>{{ row.casaAlloggio || '—' }}</td>
-            <td>{{ row.activeTherapies }}</td>
-            <td>{{ formatNumber(row.weeklyConsumption) }}</td>
-            <td>{{ row.criticalDrugs }}</td>
-            <td>{{ row.highDrugs }}</td>
-            <td>{{ row.mediumDrugs }}</td>
-            <td>{{ row.warningPriority }}</td>
-          </tr>
-          <tr v-if="(report.hostRows || []).length === 0">
-            <td colspan="8" class="muted">Nessun ospite con terapia attiva nel dataset locale.</td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-
-    <div v-if="report" class="card">
       <p><strong>Trend settimanale consumo per farmaco</strong></p>
       <p class="muted" style="margin-top:.25rem">
         Consumi scaricati sulle ultime settimane (movimenti di tipo consumo/scarico/somministrazione).

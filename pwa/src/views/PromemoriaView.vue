@@ -128,7 +128,7 @@ watch(() => route.fullPath, () => void loadData())
           <tr>
             <th>Orario</th>
             <th>Ospite</th>
-            <th>Casa</th>
+            <th>Stanza/Letto</th>
             <th>Farmaco</th>
             <th>Stato</th>
             <th>Azioni</th>
@@ -142,7 +142,7 @@ watch(() => route.fullPath, () => void loadData())
           >
             <td>{{ formatSchedule(reminder.scheduledAt) }}</td>
             <td>{{ reminder.hostLabel }}</td>
-            <td>{{ reminder.casaAlloggio }}</td>
+            <td>{{ reminder.stanzaLetto }}</td>
             <td>{{ reminder.drugLabel }}</td>
             <td>
               <span :class="['reminder-state', reminderStateBadge(reminder.stato)]">

@@ -33,8 +33,8 @@ import { markReminder } from '../../src/services/promemoria'
 const NOW = new Date('2026-04-04T14:00:00.000Z')
 
 const HOSTS = [
-    { id: 'h1', codiceInterno: 'OSP-01', casaAlloggio: 'Casa Nord', deletedAt: null },
-    { id: 'h2', codiceInterno: 'OSP-02', casaAlloggio: 'Casa Sud', deletedAt: null },
+    { id: 'h1', codiceInterno: 'OSP-01', stanza: 'A1', letto: '1', deletedAt: null },
+    { id: 'h2', codiceInterno: 'OSP-02', stanza: 'A2', letto: '2', deletedAt: null },
 ]
 
 const DRUGS = [
@@ -72,7 +72,7 @@ describe('buildReminderRows', () => {
         const rows = buildReminderRows({ reminders: REMINDERS_TODAY, hosts: HOSTS, drugs: DRUGS, therapies: THERAPIES, dateFilter: 'all', now: NOW })
         const r1 = rows.find(r => r.id === 'r1')
         expect(r1.hostLabel).toBe('OSP-01')
-        expect(r1.casaAlloggio).toBe('Casa Nord')
+        expect(r1.stanzaLetto).toBe('A1/1')
         expect(r1.drugLabel).toBe('Paracetamolo')
     })
 

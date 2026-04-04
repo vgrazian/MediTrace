@@ -46,12 +46,13 @@ export function buildHostRows({ hosts, therapies, showAll = false }) {
  * @param {string} params.id               — ID univoco ospite
  * @param {string} params.codiceInterno    — codice operativo (es. "OSP-01")
  * @param {string} [params.iniziali]       — iniziali (es. "M.R.")
- * @param {string} [params.casaAlloggio]   — struttura di riferimento
+ * @param {string} [params.stanza]         — numero stanza
+ * @param {string} [params.letto]          — numero letto
  * @param {string} [params.note]           — note libere
  * @param {string} [params.operatorId]     — login operatore corrente
  * @returns {Promise<object>} record salvato
  */
-export async function createHost({ id, codiceInterno, iniziali, casaAlloggio, note, operatorId }) {
+export async function createHost({ id, codiceInterno, iniziali, stanza, letto, note, operatorId }) {
     if (!id?.trim()) throw new Error('ID obbligatorio')
     if (!codiceInterno?.trim() && !iniziali?.trim()) throw new Error('Codice interno o iniziali obbligatori')
 
@@ -63,7 +64,8 @@ export async function createHost({ id, codiceInterno, iniziali, casaAlloggio, no
         id: id.trim(),
         codiceInterno: codiceInterno?.trim() ?? '',
         iniziali: iniziali?.trim() ?? '',
-        casaAlloggio: casaAlloggio?.trim() ?? '',
+        stanza: stanza?.trim() ?? '',
+        letto: letto?.trim() ?? '',
         note: note?.trim() ?? '',
         attivo: true,
         createdAt: now,
