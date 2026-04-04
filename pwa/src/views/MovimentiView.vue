@@ -194,77 +194,6 @@ onMounted(() => {
     <h2>Movimenti</h2>
 
     <div class="card">
-      <p><strong>Nuovo movimento magazzino</strong></p>
-      <p class="muted" style="margin-top:.25rem">
-        Registra carichi/scarichi operativi con tracciamento sincronizzazione e audit.
-      </p>
-
-      <div class="import-form" style="margin-top:.65rem">
-        <label>
-          Confezione
-          <select v-model="form.stockBatchId" :disabled="saving || !stockBatches.length">
-            <option value="">Seleziona confezione</option>
-            <option v-for="batch in stockBatches" :key="batch.id" :value="batch.id">
-              {{ batchLabel(batch) }}
-            </option>
-          </select>
-        </label>
-
-        <label>
-          Tipo movimento
-          <select v-model="form.tipoMovimento" :disabled="saving">
-            <option value="carico">Carico</option>
-            <option value="scarico">Scarico</option>
-            <option value="somministrazione">Somministrazione</option>
-            <option value="correzione">Correzione</option>
-          </select>
-        </label>
-
-        <label>
-          Quantita
-          <input v-model="form.quantita" type="number" min="0" step="0.01" :disabled="saving" />
-        </label>
-
-        <label>
-          Data e ora
-          <input v-model="form.dataMovimento" type="datetime-local" :disabled="saving" />
-        </label>
-
-        <label>
-          Ospite (opzionale)
-          <select v-model="form.hostId" :disabled="saving || !hosts.length">
-            <option value="">Nessuno</option>
-            <option v-for="host in hosts" :key="host.id" :value="host.id">
-              {{ host.codiceInterno || host.id }}
-            </option>
-          </select>
-        </label>
-
-        <label>
-          Terapia (opzionale)
-          <select v-model="form.therapyId" :disabled="saving || !therapies.length">
-            <option value="">Nessuna</option>
-            <option v-for="therapy in therapies" :key="therapy.id" :value="therapy.id">
-              {{ therapy.id }}
-            </option>
-          </select>
-        </label>
-
-        <label>
-          Note
-          <input v-model="form.note" type="text" placeholder="Dettaglio operativo" :disabled="saving" />
-        </label>
-
-        <button :disabled="saving || !canCreateMovement" @click="createMovement">
-          {{ saving ? 'Registrazione...' : 'Registra movimento' }}
-        </button>
-      </div>
-
-      <p v-if="message" class="muted" style="margin-top:.55rem">{{ message }}</p>
-      <p v-if="errorMessage" class="import-error">{{ errorMessage }}</p>
-    </div>
-
-    <div class="card">
       <p><strong>Ultimi movimenti</strong></p>
       <p class="muted" style="margin-top:.25rem">
         Elenco locale ordinato per data movimento piu recente.
@@ -297,6 +226,83 @@ onMounted(() => {
       </table>
 
       <p v-if="loading" class="muted" style="margin-top:.55rem">Aggiornamento dati...</p>
+    </div>
+
+    <div class="card">
+      <details>
+        <summary><strong>Gestione Movimenti</strong></summary>
+
+        <div style="margin-top:.75rem">
+          <p><strong>Nuovo movimento magazzino</strong></p>
+          <p class="muted" style="margin-top:.25rem">
+            Registra carichi/scarichi operativi con tracciamento sincronizzazione e audit.
+          </p>
+
+          <div class="import-form" style="margin-top:.65rem">
+            <label>
+              Confezione
+              <select v-model="form.stockBatchId" :disabled="saving || !stockBatches.length">
+                <option value="">Seleziona confezione</option>
+                <option v-for="batch in stockBatches" :key="batch.id" :value="batch.id">
+                  {{ batchLabel(batch) }}
+                </option>
+              </select>
+            </label>
+
+            <label>
+              Tipo movimento
+              <select v-model="form.tipoMovimento" :disabled="saving">
+                <option value="carico">Carico</option>
+                <option value="scarico">Scarico</option>
+                <option value="somministrazione">Somministrazione</option>
+                <option value="correzione">Correzione</option>
+              </select>
+            </label>
+
+            <label>
+              Quantita
+              <input v-model="form.quantita" type="number" min="0" step="0.01" :disabled="saving" />
+            </label>
+
+            <label>
+              Data e ora
+              <input v-model="form.dataMovimento" type="datetime-local" :disabled="saving" />
+            </label>
+
+            <label>
+              Ospite (opzionale)
+              <select v-model="form.hostId" :disabled="saving || !hosts.length">
+                <option value="">Nessuno</option>
+                <option v-for="host in hosts" :key="host.id" :value="host.id">
+                  {{ host.codiceInterno || host.id }}
+                </option>
+              </select>
+            </label>
+
+            <label>
+              Terapia (opzionale)
+              <select v-model="form.therapyId" :disabled="saving || !therapies.length">
+                <option value="">Nessuna</option>
+                <option v-for="therapy in therapies" :key="therapy.id" :value="therapy.id">
+                  {{ therapy.id }}
+                </option>
+              </select>
+            </label>
+
+            <label>
+              Note
+              <input v-model="form.note" type="text" placeholder="Dettaglio operativo" :disabled="saving" />
+            </label>
+
+            <button :disabled="saving || !canCreateMovement" @click="createMovement">
+              {{ saving ? 'Registrazione...' : 'Registra movimento' }}
+            </button>
+          </div>
+
+          <p v-if="message" class="muted" style="margin-top:.55rem">{{ message }}</p>
+          <p v-if="errorMessage" class="import-error">{{ errorMessage }}</p>
+        </div>
+      </details>
     </div>
   </div>
 </template>

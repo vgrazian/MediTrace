@@ -46,6 +46,8 @@ test('terapie view supports create and deactivate flow', async ({ page }) => {
     await page.getByRole('link', { name: 'Terapie' }).click()
     await expect(page.getByRole('heading', { name: 'Terapie Attive' })).toBeVisible()
 
+    await page.locator('summary', { hasText: 'Gestione Terapie' }).click()
+
     await page.getByLabel('Ospite').selectOption('HOST-1')
     await page.getByLabel('Farmaco').selectOption('DRUG-1')
     await page.getByLabel('Dose per somministrazione').fill('1')

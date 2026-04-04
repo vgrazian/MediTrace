@@ -3,8 +3,10 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 // ── Mock db ───────────────────────────────────────────────────────────────────
 
 const tables = {
-    drugs: new Map(),
+    rooms: new Map(),
+    beds: new Map(),
     hosts: new Map(),
+    drugs: new Map(),
     stockBatches: new Map(),
     therapies: new Map(),
     movements: new Map(),
@@ -22,8 +24,10 @@ function makeTable(name) {
 
 vi.mock('../../src/db', () => ({
     db: {
-        drugs: makeTable('drugs'),
+        rooms: makeTable('rooms'),
+        beds: makeTable('beds'),
         hosts: makeTable('hosts'),
+        drugs: makeTable('drugs'),
         stockBatches: makeTable('stockBatches'),
         therapies: makeTable('therapies'),
         movements: makeTable('movements'),
@@ -57,8 +61,10 @@ function resetState() {
 describe('seedData — static helpers', () => {
     it('getSeedStats returns non-zero counts for every table', () => {
         const stats = getSeedStats()
-        expect(stats.drugs).toBeGreaterThan(0)
+        expect(stats.rooms).toBeGreaterThan(0)
+        expect(stats.beds).toBeGreaterThan(0)
         expect(stats.hosts).toBeGreaterThan(0)
+        expect(stats.drugs).toBeGreaterThan(0)
         expect(stats.stockBatches).toBeGreaterThan(0)
         expect(stats.therapies).toBeGreaterThan(0)
         expect(stats.movements).toBeGreaterThan(0)
@@ -67,8 +73,10 @@ describe('seedData — static helpers', () => {
 
     it('all seed IDs are prefixed with __seed__', () => {
         const allRecords = [
-            ...seedDataTestUtils.SEED_DRUGS,
+            ...seedDataTestUtils.SEED_ROOMS,
+            ...seedDataTestUtils.SEED_BEDS,
             ...seedDataTestUtils.SEED_HOSTS,
+            ...seedDataTestUtils.SEED_DRUGS,
             ...seedDataTestUtils.SEED_STOCK_BATCHES,
             ...seedDataTestUtils.SEED_THERAPIES,
             ...seedDataTestUtils.SEED_MOVEMENTS,
@@ -81,8 +89,10 @@ describe('seedData — static helpers', () => {
 
     it('all seed records carry _seeded: true', () => {
         const allRecords = [
-            ...seedDataTestUtils.SEED_DRUGS,
+            ...seedDataTestUtils.SEED_ROOMS,
+            ...seedDataTestUtils.SEED_BEDS,
             ...seedDataTestUtils.SEED_HOSTS,
+            ...seedDataTestUtils.SEED_DRUGS,
             ...seedDataTestUtils.SEED_STOCK_BATCHES,
             ...seedDataTestUtils.SEED_THERAPIES,
             ...seedDataTestUtils.SEED_MOVEMENTS,
@@ -94,13 +104,22 @@ describe('seedData — static helpers', () => {
     })
 
     it('manifest IDs match record lists', () => {
-        const { SEED_MANIFEST, SEED_DRUGS, SEED_HOSTS, SEED_STOCK_BATCHES, SEED_THERAPIES, SEED_MOVEMENTS, SEED_REMINDERS } = seedDataTestUtils
-        expect(SEED_MANIFEST.drugs).toEqual(SEED_DRUGS.map(r => r.id))
+        const { SEED_MANIFEST, SEED_ROOMS, SEED_BEDS, SEED_HOSTS, SEED_DRUGS, SEED_STOCK_BATCHES, SEED_THERAPIES, SEED_MOVEMENTS, SEED_REMINDERS } = seedDataTestUtils
+        expect(SEED_MANIFEST.rooms).toEqual(SEED_ROOMS.map(r => r.id))
+        expect(SEED_MANIFEST.beds).toEqual(SEED_BEDS.map(r => r.id))
         expect(SEED_MANIFEST.hosts).toEqual(SEED_HOSTS.map(r => r.id))
+        expect(SEED_MANIFEST.drugs).toEqual(SEED_DRUGS.map(r => r.id))
         expect(SEED_MANIFEST.stockBatches).toEqual(SEED_STOCK_BATCHES.map(r => r.id))
         expect(SEED_MANIFEST.therapies).toEqual(SEED_THERAPIES.map(r => r.id))
         expect(SEED_MANIFEST.movements).toEqual(SEED_MOVEMENTS.map(r => r.id))
         expect(SEED_MANIFEST.reminders).toEqual(SEED_REMINDERS.map(r => r.id))
+    })
+
+    it('bed foreign keys resolve to existing seed rooms', () => {
+        const roomIds = new Set(seedDataTestUtils.SEED_ROOMS.map(r => r.id))
+        for (const bed of seedDataTestUtils.SEED_BEDS) {
+            expect(roomIds.has(bed.roomId)).toBe(true)
+        }
     })
 
     it('therapy foreign keys resolve to existing seed drugs and hosts', () => {
@@ -130,8 +149,10 @@ describe('seedData — static helpers', () => {
 
     it('no duplicate IDs within or across tables', () => {
         const allIds = [
-            ...seedDataTestUtils.SEED_DRUGS,
+            ...seedDataTestUtils.SEED_ROOMS,
+            ...seedDataTestUtils.SEED_BEDS,
             ...seedDataTestUtils.SEED_HOSTS,
+            ...seedDataTestUtils.SEED_DRUGS,
             ...seedDataTestUtils.SEED_STOCK_BATCHES,
             ...seedDataTestUtils.SEED_THERAPIES,
             ...seedDataTestUtils.SEED_MOVEMENTS,

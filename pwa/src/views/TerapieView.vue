@@ -184,73 +184,6 @@ onMounted(() => {
     <h2>Terapie Attive</h2>
 
     <div class="card">
-      <p><strong>Nuova terapia</strong></p>
-      <p class="muted" style="margin-top:.25rem">Compila i campi minimi per registrare una terapia attiva per ospite.</p>
-
-      <div class="import-form" style="margin-top:.65rem">
-        <label>
-          Ospite
-          <select v-model="form.hostId" :disabled="saving || !hosts.length">
-            <option value="">Seleziona ospite</option>
-            <option v-for="host in hosts" :key="host.id" :value="host.id">
-              {{ host.codiceInterno || host.id }}
-            </option>
-          </select>
-        </label>
-
-        <label>
-          Farmaco
-          <select v-model="form.drugId" :disabled="saving || !drugs.length">
-            <option value="">Seleziona farmaco</option>
-            <option v-for="drug in drugs" :key="drug.id" :value="drug.id">
-              {{ drug.principioAttivo || drug.id }}
-            </option>
-          </select>
-        </label>
-
-        <label>
-          Dose per somministrazione
-          <input v-model="form.dosePerSomministrazione" type="number" min="0" step="0.01" />
-        </label>
-
-        <label>
-          Somministrazioni giornaliere
-          <input v-model="form.somministrazioniGiornaliere" type="number" min="0" step="1" />
-        </label>
-
-        <label>
-          Consumo medio settimanale
-          <input v-model="form.consumoMedioSettimanale" type="number" min="0" step="0.01" />
-        </label>
-
-        <label>
-          Data inizio
-          <input v-model="form.dataInizio" type="date" />
-        </label>
-
-        <label>
-          Data fine (opzionale)
-          <input v-model="form.dataFine" type="date" />
-        </label>
-
-        <label>
-          Note
-          <input v-model="form.note" type="text" placeholder="Indicazioni operative" />
-        </label>
-
-        <button :disabled="saving || !canCreate" @click="createTherapy">
-          {{ saving ? 'Salvataggio...' : 'Salva terapia' }}
-        </button>
-      </div>
-
-      <p v-if="!canCreate" class="muted" style="margin-top:.5rem;font-size:.85rem">
-        Per creare terapie servono almeno un ospite e un farmaco nel dataset locale.
-      </p>
-      <p v-if="message" class="muted" style="margin-top:.5rem">{{ message }}</p>
-      <p v-if="errorMessage" class="import-error" style="margin-top:.5rem">{{ errorMessage }}</p>
-    </div>
-
-    <div class="card">
       <p><strong>Elenco terapie attive</strong></p>
       <p class="muted" style="margin-top:.25rem">Terapie non disattivate presenti nel dataset locale.</p>
 
@@ -287,6 +220,79 @@ onMounted(() => {
           </tr>
         </tbody>
       </table>
+      <p v-if="message" class="muted" style="margin-top:.5rem">{{ message }}</p>
+      <p v-if="errorMessage" class="import-error" style="margin-top:.5rem">{{ errorMessage }}</p>
+    </div>
+
+    <div class="card">
+      <details>
+        <summary><strong>Gestione Terapie</strong></summary>
+
+        <div style="margin-top:.75rem">
+          <p><strong>Aggiungi nuova terapia</strong></p>
+          <p class="muted" style="margin-top:.25rem">Compila i campi minimi per registrare una terapia attiva per ospite.</p>
+
+          <div class="import-form" style="margin-top:.65rem">
+            <label>
+              Ospite
+              <select v-model="form.hostId" :disabled="saving || !hosts.length">
+                <option value="">Seleziona ospite</option>
+                <option v-for="host in hosts" :key="host.id" :value="host.id">
+                  {{ host.codiceInterno || host.id }}
+                </option>
+              </select>
+            </label>
+
+            <label>
+              Farmaco
+              <select v-model="form.drugId" :disabled="saving || !drugs.length">
+                <option value="">Seleziona farmaco</option>
+                <option v-for="drug in drugs" :key="drug.id" :value="drug.id">
+                  {{ drug.principioAttivo || drug.id }}
+                </option>
+              </select>
+            </label>
+
+            <label>
+              Dose per somministrazione
+              <input v-model="form.dosePerSomministrazione" type="number" min="0" step="0.01" />
+            </label>
+
+            <label>
+              Somministrazioni giornaliere
+              <input v-model="form.somministrazioniGiornaliere" type="number" min="0" step="1" />
+            </label>
+
+            <label>
+              Consumo medio settimanale
+              <input v-model="form.consumoMedioSettimanale" type="number" min="0" step="0.01" />
+            </label>
+
+            <label>
+              Data inizio
+              <input v-model="form.dataInizio" type="date" />
+            </label>
+
+            <label>
+              Data fine (opzionale)
+              <input v-model="form.dataFine" type="date" />
+            </label>
+
+            <label>
+              Note
+              <input v-model="form.note" type="text" placeholder="Indicazioni operative" />
+            </label>
+
+            <button :disabled="saving || !canCreate" @click="createTherapy">
+              {{ saving ? 'Salvataggio...' : 'Salva terapia' }}
+            </button>
+          </div>
+
+          <p v-if="!canCreate" class="muted" style="margin-top:.5rem;font-size:.85rem">
+            Per creare terapie servono almeno un ospite e un farmaco nel dataset locale.
+          </p>
+        </div>
+      </details>
     </div>
   </div>
 </template>

@@ -13,8 +13,14 @@ db.version(1).stores({
     // Key-value store for app-level settings (datasetVersion, deviceId, lastUser…)
     settings: '&key',
 
+    // Stanze della struttura
+    rooms: 'id, codice, updatedAt, syncStatus',
+
+    // Letti assegnati a stanze
+    beds: 'id, roomId, numero, updatedAt, syncStatus',
+
     // Ospiti delle case alloggio — identificati con iniziali o codice interno
-    hosts: 'id, codiceInterno, stanza, letto, attivo, updatedAt, syncStatus',
+    hosts: 'id, codiceInterno, roomId, bedId, attivo, updatedAt, syncStatus',
 
     // Principi attivi
     drugs: 'id, principioAttivo, classeTerapeutica, updatedAt, syncStatus',

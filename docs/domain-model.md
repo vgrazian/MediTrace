@@ -34,6 +34,8 @@ Questa entita' separa il principio attivo dal modo in cui il farmaco entra realm
 - `codiceInterno`
 - `iniziali`
 - `casaAlloggio`
+- `stanzaId`: foreign key a Stanza (opzionale, retrocompatibilità)
+- `lettoId`: foreign key a Letto (opzionale, retrocompatibilità)
 - `dataNascita`
 - `noteClinicheEssenziali`
 - `attivo`
@@ -47,6 +49,30 @@ Questa entita' separa il principio attivo dal modo in cui il farmaco entra realm
 - `nomeVisualizzato`
 - `attivo`
 - `createdAt`
+- `updatedAt`
+- `isSynced`
+
+### Stanza (Casa Alloggio - Room)
+
+Rappresenta un'unita' spaziale all'interno della struttura fisica (es. camera singola, doppia, saletta).
+
+- `id`: UUID
+- `nome`: string (es. "Camera A", "Saletta Primo Piano")
+- `descrizione`: string opzionale
+- `piano`: string o number opzionale (es. "P1", "P2", "0")
+- `note`: string opzionale
+- `updatedAt`
+- `isSynced`
+
+### Letto (Bed)
+
+Rappresenta un letto fisico all'interno di una stanza (relazione 1:N con Stanza).
+
+- `id`: UUID
+- `stanzaId`: foreign key a Stanza
+- `numero`: number (es. 1, 2 per discriminare posti nella stessa camera)
+- `descrizione`: string opzionale (es. "Letto vicino finestra")
+- `note`: string opzionale
 - `updatedAt`
 - `isSynced`
 

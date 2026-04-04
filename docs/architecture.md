@@ -38,6 +38,8 @@ IndexedDB e' la fonte primaria durante l'uso quotidiano. Ogni modifica utente vi
 Store principali raccomandati:
 
 - `settings`
+- `rooms`
+- `beds`
 - `hosts`
 - `drugs`
 - `stockBatches`

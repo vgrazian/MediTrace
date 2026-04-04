@@ -13,6 +13,7 @@ const { currentUser } = useAuth()
 
     <RouterLink to="/">Cruscotto</RouterLink>
     <RouterLink to="/farmaci">Farmaci</RouterLink>
+    <RouterLink to="/stanze">Stanze</RouterLink>
     <RouterLink to="/ospiti">Ospiti</RouterLink>
     <RouterLink to="/scorte">Scorte</RouterLink>
     <RouterLink to="/movimenti">Movimenti</RouterLink>
