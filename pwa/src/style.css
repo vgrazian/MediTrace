@@ -302,6 +302,20 @@ main { padding: 1.25rem; max-width: 980px; margin: 0 auto; }
   background: #e4efff;
 }
 
+.reminder-state {
+  display: inline-block;
+  padding: .15rem .45rem;
+  border-radius: .25rem;
+  font-size: .75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .03em;
+}
+.state-ok      { background: #d1fae5; color: #065f46; }
+.state-skip    { background: #fee2e2; color: #991b1b; }
+.state-warn    { background: #fef3c7; color: #92400e; }
+.state-pending { background: #e0e7ef; color: #1e3a5f; }
+
 /* ── responsive ── */
 @media (max-width: 600px) {
   .app-nav { gap: .5rem; }
