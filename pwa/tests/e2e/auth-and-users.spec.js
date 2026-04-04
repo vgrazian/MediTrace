@@ -82,9 +82,8 @@ test('seeded account login, sync, csv import, password change and users section 
     await page.getByLabel('Nuova password', { exact: true }).fill('Prova456!')
     await page.getByLabel('Conferma nuova password').fill('Prova456!')
     await page.getByRole('button', { name: 'Aggiorna password' }).click()
-    await expect(page.getByText('Password aggiornata con successo.')).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'MediTrace' })).toBeVisible()
 
-    await page.getByRole('button', { name: 'Esci' }).first().click()
     await page.getByLabel('Username').fill('prova')
     await page.getByLabel('Password').fill('Prova456!')
     await page.getByRole('button', { name: 'Accedi' }).click()
