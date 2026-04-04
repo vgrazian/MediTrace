@@ -5,6 +5,7 @@ import { fullSync, exportBackupJson, listPendingConflicts, resolveConflict } fro
 import { getNotificationStatusSnapshot, requestNotificationPermission, sendTestNotification, triggerReminderNotificationsCheck } from '../services/notifications'
 import { listSupportedImportSources, importCsv } from '../services/csvImport'
 import { getSetting } from '../db'
+import { loadSeedData, clearSeedData, isSeedDataLoaded, getSeedStats } from '../services/seedData'
 
 const {
   accessToken,
@@ -50,6 +51,11 @@ const authEventFilter = ref('')
 const notificationStatus = ref(getNotificationStatusSnapshot())
 const notificationMessage = ref('')
 const notificationBusy = ref(false)
+const isDev = import.meta.env.DEV || import.meta.env.VITE_SEED_DATA === '1'
+const seedLoaded = ref(false)
+const seedBusy = ref(false)
+const seedMessage = ref('')
+const seedStats = getSeedStats()
 
 const passwordPolicyState = computed(() => getPasswordPolicy(pwdNext.value))
 
@@ -185,7 +191,38 @@ onMounted(async () => {
   await refreshUsers()
   await refreshSecurityInfo()
   refreshNotificationStatus()
+  if (isDev) seedLoaded.value = await isSeedDataLoaded()
 })
+
+async function handleLoadSeedData() {
+  seedBusy.value = true
+  seedMessage.value = ''
+  try {
+    const stats = await loadSeedData()
+    seedLoaded.value = true
+    seedMessage.value = `Caricati: ${stats.drugs} farmaci, ${stats.hosts} ospiti, ${stats.stockBatches} confezioni, ${stats.therapies} terapie, ${stats.movements} movimenti, ${stats.reminders} promemoria.`
+  } catch (err) {
+    seedMessage.value = `Errore caricamento dati demo: ${err.message}`
+  } finally {
+    seedBusy.value = false
+  }
+}
+
+async function handleClearSeedData() {
+  const confirmed = window.confirm('Rimuovere tutti i dati demo dal database locale?')
+  if (!confirmed) return
+  seedBusy.value = true
+  seedMessage.value = ''
+  try {
+    await clearSeedData()
+    seedLoaded.value = false
+    seedMessage.value = 'Dati demo rimossi.'
+  } catch (err) {
+    seedMessage.value = `Errore rimozione dati demo: ${err.message}`
+  } finally {
+    seedBusy.value = false
+  }
+}
 
 async function applyAuthEventFilter() {
   await refreshSecurityInfo()
@@ -540,6 +577,32 @@ async function handleDeleteSeeded(username) {
           </button>
         </div>
       </div>
+    </div>
+
+    <div v-if="isDev" class="card" style="border:2px dashed #e6a817">
+      <p><strong>[DEV] Dati demo</strong></p>
+      <p class="muted" style="margin-top:.25rem">
+        Carica record di esempio (farmaci, ospiti, terapie, movimenti, promemoria) per test manuali.
+        Tutti i record hanno ID prefissati con <code>__seed__</code> e flag <code>_seeded: true</code>.
+        Da rimuovere prima della messa in produzione.
+      </p>
+      <p class="muted" style="margin-top:.25rem">
+        Contenuto: {{ seedStats.drugs }} farmaci · {{ seedStats.hosts }} ospiti ·
+        {{ seedStats.stockBatches }} confezioni · {{ seedStats.therapies }} terapie ·
+        {{ seedStats.movements }} movimenti · {{ seedStats.reminders }} promemoria
+      </p>
+      <div style="display:flex;gap:.75rem;margin-top:.75rem;flex-wrap:wrap">
+        <button :disabled="seedBusy || seedLoaded" @click="handleLoadSeedData">
+          {{ seedBusy ? 'Caricamento…' : 'Carica dati demo' }}
+        </button>
+        <button :disabled="seedBusy || !seedLoaded" style="background:#c0392b" @click="handleClearSeedData">
+          Rimuovi dati demo
+        </button>
+      </div>
+      <p v-if="seedLoaded && !seedMessage" class="muted" style="margin-top:.5rem;font-size:.8rem">
+        Stato: dati demo presenti nel database locale.
+      </p>
+      <p v-if="seedMessage" class="muted" style="margin-top:.5rem;font-size:.8rem">{{ seedMessage }}</p>
     </div>
 
     <div class="card">
