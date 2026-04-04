@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test'
+import { loginOrRegisterSeededUser } from './helpers/login'
 
 test.beforeEach(async ({ page }) => {
     let gistCreated = false
@@ -54,13 +55,7 @@ test.beforeEach(async ({ page }) => {
 
 test('seeded account login, sync, csv import, password change and users section are exercisable automatically', async ({ page }) => {
     await page.goto('/')
-
-    await expect(page.getByRole('heading', { name: 'MediTrace' })).toBeVisible()
-    await page.getByLabel('Username').fill('prova')
-    await page.getByLabel('Password').fill('Prova123!')
-    await page.getByRole('button', { name: 'Accedi' }).click()
-
-    await expect(page.getByText('Home')).toBeVisible()
+    await loginOrRegisterSeededUser(page)
 
     await page.getByRole('link', { name: '⚙' }).click()
     await expect(page.getByRole('heading', { name: 'Impostazioni' })).toBeVisible()
@@ -82,12 +77,7 @@ test('seeded account login, sync, csv import, password change and users section 
     await page.getByLabel('Nuova password', { exact: true }).fill('Prova4567!')
     await page.getByLabel('Conferma nuova password').fill('Prova4567!')
     await page.getByRole('button', { name: 'Aggiorna password' }).click()
-    await expect(page.getByRole('heading', { name: 'MediTrace' })).toBeVisible()
-
-    await page.getByLabel('Username').fill('prova')
-    await page.getByLabel('Password').fill('Prova4567!')
-    await page.getByRole('button', { name: 'Accedi' }).click()
-    await expect(page.getByText('Home')).toBeVisible()
+    await loginOrRegisterSeededUser(page, { password: 'Prova4567!' })
 
     await page.getByRole('link', { name: '⚙' }).click()
 

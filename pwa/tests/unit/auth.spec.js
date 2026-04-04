@@ -219,4 +219,37 @@ describe('auth service', () => {
         const filtered = await auth.listRecentAuthEvents(20, 'register')
         expect(filtered.some(event => event.action === 'auth_register')).toBe(true)
     })
+
+    it('rejects register with invalid username format', async () => {
+        const authModule = await import('../../src/services/auth')
+        const { initAuth, useAuth } = authModule
+        const auth = useAuth()
+
+        await initAuth()
+
+        await expect(auth.register({
+            username: 'bad<script>',
+            password: 'Password123!',
+            confirmPassword: 'Password123!',
+            githubToken: 'github_pat_any_value',
+        })).rejects.toThrow('Username non valido')
+    })
+
+    it('blocks sign in with invalid username format and records audit event', async () => {
+        const authModule = await import('../../src/services/auth')
+        const { initAuth, useAuth } = authModule
+        const auth = useAuth()
+
+        await initAuth()
+
+        await expect(auth.signIn({ username: 'bad<script>', password: 'Password123!' })).rejects.toThrow('Username non valido')
+        expect(authEvents.some(event => event.action === 'auth_signin_blocked_input')).toBe(true)
+    })
+
+    it('sanitizes username input to safe charset', async () => {
+        const authModule = await import('../../src/services/auth')
+        const { authTestUtils } = authModule
+
+        expect(authTestUtils.sanitizeUsernameInput('  Operatore<script>!  ')).toBe('operatorescript')
+    })
 })

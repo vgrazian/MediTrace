@@ -2,9 +2,29 @@ import { test, expect } from '@playwright/test'
 
 async function loginAsSeededUser(page) {
     await page.goto('/')
-    await page.getByLabel('Username').fill('prova')
-    await page.getByLabel('Password').fill('Prova123!')
-    await page.getByRole('button', { name: 'Accedi' }).click()
+    const usernameInput = page.locator('#username-input')
+    const registerUsernameInput = page.locator('#reg-username')
+    const homeLink = page.getByRole('link', { name: 'Home' })
+
+    await Promise.race([
+        usernameInput.waitFor({ state: 'visible', timeout: 5000 }).catch(() => null),
+        registerUsernameInput.waitFor({ state: 'visible', timeout: 5000 }).catch(() => null),
+        homeLink.waitFor({ state: 'visible', timeout: 5000 }).catch(() => null),
+    ])
+
+    if (await usernameInput.isVisible()) {
+        await usernameInput.fill('prova')
+        await page.locator('#password-input').fill('Prova123!')
+        await page.getByRole('button', { name: 'Accedi' }).click()
+    } else if (await registerUsernameInput.isVisible()) {
+        await registerUsernameInput.fill('prova')
+        await page.locator('#reg-password').fill('Prova123!')
+        await page.locator('#reg-confirm-password').fill('Prova123!')
+        await page.locator('#reg-gh-token').fill('github_pat_seeded')
+        await page.getByRole('button', { name: 'Crea account e accedi' }).click()
+    }
+
+    await expect(page.locator('main')).toBeVisible()
 }
 
 async function seedPendingConflict(page) {

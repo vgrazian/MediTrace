@@ -1,7 +1,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import AppNav from './components/AppNav.vue'
-import { initAuth, useAuth } from './services/auth'
+import { initAuth, sanitizeUsernameInput, useAuth } from './services/auth'
 
 const { currentUser, hasUsers, isInitialized, signIn, register } = useAuth()
 
@@ -17,6 +17,14 @@ const loginError = ref('')
 const loginBusy = ref(false)
 
 onMounted(() => initAuth())
+
+function handleUsernameInput(event) {
+  username.value = sanitizeUsernameInput(event.target.value)
+}
+
+function handleRegUsernameInput(event) {
+  regUsername.value = sanitizeUsernameInput(event.target.value)
+}
 
 async function handleLogin() {
   const normalizedUsername = username.value.trim()
@@ -69,7 +77,16 @@ async function handleRegister() {
 
         <div v-if="!hasUsers" class="auth-form">
           <label for="reg-username">Crea username</label>
-          <input id="reg-username" v-model="regUsername" type="text" placeholder="operatore" autocomplete="username" />
+          <input
+            id="reg-username"
+            v-model="regUsername"
+            type="text"
+            placeholder="operatore"
+            autocomplete="username"
+            maxlength="32"
+            pattern="[a-z0-9._-]{3,32}"
+            @input="handleRegUsernameInput"
+          />
 
           <label for="reg-password">Password</label>
           <input id="reg-password" v-model="regPassword" type="password" placeholder="Minimo 8 caratteri" autocomplete="new-password" />
@@ -87,7 +104,16 @@ async function handleRegister() {
 
         <div v-else class="auth-form">
           <label for="username-input">Username</label>
-          <input id="username-input" v-model="username" type="text" placeholder="Inserisci username" autocomplete="username" />
+          <input
+            id="username-input"
+            v-model="username"
+            type="text"
+            placeholder="Inserisci username"
+            autocomplete="username"
+            maxlength="32"
+            pattern="[a-z0-9._-]{3,32}"
+            @input="handleUsernameInput"
+          />
 
           <label for="password-input">Password</label>
           <input id="password-input" v-model="password" type="password" placeholder="Inserisci password" autocomplete="current-password" @keyup.enter="handleLogin" />

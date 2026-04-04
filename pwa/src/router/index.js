@@ -12,6 +12,11 @@ const routes = [
         meta: { title: 'Catalogo Farmaci' },
     },
     {
+        path: '/ospiti',
+        component: () => import('../views/OspitiView.vue'),
+        meta: { title: 'Ospiti' },
+    },
+    {
         path: '/scorte',
         component: () => import('../views/ScorteView.vue'),
         meta: { title: 'Scorte' },
