@@ -23,13 +23,15 @@ test('scorte view supports edit/delete for drug and batch', async ({ page }) => 
 
     await page.locator('summary', { hasText: 'Gestisci Farmaci' }).click()
 
+    await page.getByLabel('ID farmaco (opzionale)').fill('drug-scorte-e2e')
+    await page.getByLabel('Nome farmaco').fill('Brufen Test Scorte')
     await page.getByLabel('Principio attivo').fill('Ibuprofene Test Scorte')
     await page.getByLabel('Classe terapeutica').fill('Antinfiammatori')
     await page.getByLabel('Scorta minima').fill('8')
     await page.getByRole('button', { name: 'Salva farmaco' }).click()
-    await expect(page.getByText('Farmaco salvato.')).toBeVisible()
+    await expect(page.getByRole('cell', { name: 'Brufen Test Scorte' }).first()).toBeVisible()
 
-    await page.locator('select').first().selectOption({ label: 'Ibuprofene Test Scorte' })
+    await page.locator('select').first().selectOption('drug-scorte-e2e')
     await page.getByLabel('Nome commerciale').fill('Brufen Test Scorte')
     await page.getByLabel('Dosaggio').fill('400mg')
     await page.getByLabel("Quantita' attuale").fill('15')
