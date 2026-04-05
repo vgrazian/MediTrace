@@ -5,7 +5,7 @@ MediTrace è un'applicazione offline-first per la gestione farmacologica integra
 ## Architettura attuale (v0.20.5)
 
 | Componente | Implementazione |
-|---|---|
+| --- | --- |
 | **Frontend** | PWA Vue.js 3 + Vite 5 |
 | **Storage locale** | IndexedDB (Dexie.js 3.2.7) |
 | **Autenticazione** | Utenza + password locale + profilo utente (nome/cognome/email) + Supabase Auth per reset/inviti email |
@@ -49,7 +49,7 @@ MediTrace è un'applicazione offline-first per la gestione farmacologica integra
 
 ## Struttura repository
 
-```
+```text
 docs/
   ├── architecture.md              (scelte tecniche, Option A approvata)
   ├── requisiti-tecnici.md         (spec funzionali + non-funzionali)

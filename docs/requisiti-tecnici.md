@@ -129,12 +129,12 @@ La sezione Gestione ospiti deve offrire tre azioni:
 
 ## 3. Vincoli Tecnici
 
-| Componente      | Scelta tecnologica                                  |
-|-----------------|-----------------------------------------------------|
-| Hosting         | GitHub Pages (HTTPS obbligatorio)                   |
-| Database locale | IndexedDB — libreria Dexie.js                       |
-| Sincronizzazione| GitHub Gist API v3 via JavaScript                   |
-| Autenticazione  | Utenza + password locale + Supabase Auth per email reset/inviti |
-| UI Framework    | Vue.js 3 + Vite                                     |
-| PWA             | Vite PWA Plugin (manifest, service worker, icone)   |
-| Deploy CI/CD    | GitHub Actions (push → build → deploy su Pages)     |
+| Componente       | Scelta tecnologica                                                |
+| ---------------- | ----------------------------------------------------------------- |
+| Hosting          | GitHub Pages (HTTPS obbligatorio)                                 |
+| Database locale  | IndexedDB — libreria Dexie.js                                     |
+| Sincronizzazione | GitHub Gist API v3 via JavaScript                                 |
+| Autenticazione   | Utenza + password locale + Supabase Auth per email reset/inviti   |
+| UI Framework     | Vue.js 3 + Vite                                                   |
+| PWA              | Vite PWA Plugin (manifest, service worker, icone)                 |
+| Deploy CI/CD     | GitHub Actions (push → build → deploy su Pages)                   |
