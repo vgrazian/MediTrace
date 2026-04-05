@@ -17,6 +17,105 @@ const REALISTIC_SEED_KEY = '_realisticSeedDataManifest'
 const REALISTIC_SEED_PREFIX = '__realistic__'
 const REALISTIC_SEED_STORE_NAMES = ['rooms', 'beds', 'hosts', 'drugs', 'stockBatches', 'therapies']
 
+const DATASET_REQUIRED_ARRAY_KEYS = ['rooms', 'beds', 'hosts', 'therapies']
+const DATASET_REQUIRED_FIELDS = {
+    rooms: ['id', 'codice', 'descrizione'],
+    beds: ['id', 'roomId', 'numero', 'occupato'],
+    hosts: ['id', 'codiceInterno', 'nome', 'cognome', 'patologie', 'roomId', 'bedId'],
+    therapies: ['id', 'hostId', 'drugId', 'dataInizio', 'dosaggio', 'frequenza'],
+}
+
+function isPlainObject(value) {
+    return value !== null && typeof value === 'object' && !Array.isArray(value)
+}
+
+function isMissingRequiredValue(value) {
+    if (value === null || value === undefined) return true
+    if (typeof value === 'string') return value.trim() === ''
+    return false
+}
+
+function toSafeNumericId(value) {
+    const parsed = Number(value)
+    return Number.isInteger(parsed) && parsed > 0 ? parsed : null
+}
+
+export function validateRealisticDataset(dataset = realisticDataset) {
+    const errors = []
+
+    if (!isPlainObject(dataset)) {
+        return { valid: false, errors: ['dataset deve essere un oggetto JSON'] }
+    }
+
+    for (const collectionKey of DATASET_REQUIRED_ARRAY_KEYS) {
+        if (!Array.isArray(dataset[collectionKey])) {
+            errors.push(`${collectionKey} deve essere un array`)
+            continue
+        }
+        if (dataset[collectionKey].length === 0) {
+            errors.push(`${collectionKey} non puo' essere vuoto`)
+            continue
+        }
+
+        for (const [idx, row] of dataset[collectionKey].entries()) {
+            if (!isPlainObject(row)) {
+                errors.push(`${collectionKey}[${idx}] deve essere un oggetto`)
+                continue
+            }
+
+            const requiredFields = DATASET_REQUIRED_FIELDS[collectionKey] ?? []
+            for (const field of requiredFields) {
+                if (isMissingRequiredValue(row[field])) {
+                    errors.push(`${collectionKey}[${idx}].${field} e' obbligatorio`)
+                }
+            }
+        }
+    }
+
+    const roomIds = new Set((Array.isArray(dataset.rooms) ? dataset.rooms : [])
+        .map(row => toSafeNumericId(row?.id))
+        .filter(Boolean))
+
+    const bedIds = new Set((Array.isArray(dataset.beds) ? dataset.beds : [])
+        .map(row => toSafeNumericId(row?.id))
+        .filter(Boolean))
+
+    const hostIds = new Set((Array.isArray(dataset.hosts) ? dataset.hosts : [])
+        .map(row => toSafeNumericId(row?.id))
+        .filter(Boolean))
+
+    for (const [idx, bed] of (Array.isArray(dataset.beds) ? dataset.beds : []).entries()) {
+        const roomId = toSafeNumericId(bed?.roomId)
+        if (roomId === null || !roomIds.has(roomId)) {
+            errors.push(`beds[${idx}].roomId deve riferire una room esistente`)
+        }
+    }
+
+    for (const [idx, host] of (Array.isArray(dataset.hosts) ? dataset.hosts : []).entries()) {
+        const roomId = toSafeNumericId(host?.roomId)
+        const bedId = toSafeNumericId(host?.bedId)
+        if (roomId === null || !roomIds.has(roomId)) {
+            errors.push(`hosts[${idx}].roomId deve riferire una room esistente`)
+        }
+        if (bedId === null || !bedIds.has(bedId)) {
+            errors.push(`hosts[${idx}].bedId deve riferire un letto esistente`)
+        }
+    }
+
+    for (const [idx, therapy] of (Array.isArray(dataset.therapies) ? dataset.therapies : []).entries()) {
+        const hostId = toSafeNumericId(therapy?.hostId)
+        const drugId = toSafeNumericId(therapy?.drugId)
+        if (hostId === null || !hostIds.has(hostId)) {
+            errors.push(`therapies[${idx}].hostId deve riferire un host esistente`)
+        }
+        if (drugId === null) {
+            errors.push(`therapies[${idx}].drugId deve essere un numero intero positivo`)
+        }
+    }
+
+    return { valid: errors.length === 0, errors }
+}
+
 async function getAvailableStoreNames(expectedStoreNames) {
     if (typeof db.open === 'function') {
         await db.open()
@@ -280,6 +379,12 @@ function generateRealisticTherapies(hosts, drugs, batches, now) {
  * Generate complete realistic seed data bundle
  */
 export function generateRealisticSeedData() {
+    const validation = validateRealisticDataset(realisticDataset)
+    if (!validation.valid) {
+        const details = validation.errors.map(error => `- ${error}`).join('\n')
+        throw new Error(`Dataset realistico non valido:\n${details}`)
+    }
+
     const now = new Date().toISOString()
     const hosts = generateRealisticHosts(now)
     const drugs = generateRealisticDrugs()
@@ -393,6 +498,7 @@ export async function isRealisticSeedDataLoaded() {
 
 export default {
     generateRealisticSeedData,
+    validateRealisticDataset,
     loadRealisticSeedData,
     clearRealisticSeedData,
     isRealisticSeedDataLoaded,
