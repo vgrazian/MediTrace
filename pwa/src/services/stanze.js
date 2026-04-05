@@ -122,17 +122,26 @@ export async function deactivateBed({ bedId, operatorId = null }) {
  * Get all active rooms with their beds.
  */
 export async function getRoomsWithBeds() {
-    const [allRooms, allBeds] = await Promise.all([
+    const [allRooms, allBeds, allHosts] = await Promise.all([
         db.rooms.toArray(),
         db.beds.toArray(),
+        db.hosts.toArray(),
     ])
 
     const activeRooms = allRooms.filter(r => !r.deletedAt)
     const activeBeds = allBeds.filter(b => !b.deletedAt)
+    const activeHosts = allHosts.filter(h => !h.deletedAt && h.attivo !== false)
+    const hostByBedId = new Map(activeHosts.filter(h => h.bedId).map(h => [h.bedId, h]))
 
     return activeRooms.map(room => ({
         ...room,
-        beds: activeBeds.filter(bed => bed.roomId === room.id).sort((a, b) => a.numero - b.numero),
+        beds: activeBeds
+            .filter(bed => bed.roomId === room.id)
+            .sort((a, b) => a.numero - b.numero)
+            .map(bed => ({
+                ...bed,
+                host: hostByBedId.get(bed.id) || null,
+            })),
     }))
 }
 

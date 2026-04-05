@@ -13,6 +13,8 @@ const errorMessage = ref('')
 
 const drugs = ref([])
 const batches = ref([])
+const editingDrugId = ref(null)
+const editingBatchId = ref(null)
 
 const drugForm = ref({
   id: '',
@@ -85,17 +87,18 @@ async function createDrug() {
     return
   }
 
-  const id = (drugForm.value.id || toIdFromName(name) || crypto.randomUUID()).trim()
+  const id = (editingDrugId.value || drugForm.value.id || toIdFromName(name) || crypto.randomUUID()).trim()
   const now = new Date().toISOString()
 
   savingDrug.value = true
   try {
     const existing = await db.drugs.get(id)
-    if (existing && !existing.deletedAt) {
+    if (!editingDrugId.value && existing && !existing.deletedAt) {
       throw new Error('ID farmaco già esistente')
     }
 
     const record = {
+      ...(existing || {}),
       id,
       principioAttivo: name,
       classeTerapeutica: drugForm.value.classeTerapeutica.trim() || '',
@@ -113,7 +116,7 @@ async function createDrug() {
       await db.activityLog.add({
         entityType: 'drugs',
         entityId: record.id,
-        action: 'drug_created',
+        action: editingDrugId.value ? 'drug_updated' : 'drug_created',
         deviceId,
         operatorId: currentUser.value?.login ?? null,
         ts: now,
@@ -126,7 +129,8 @@ async function createDrug() {
       classeTerapeutica: '',
       scortaMinima: '',
     }
-    message.value = 'Farmaco salvato.'
+    editingDrugId.value = null
+    message.value = existing && !existing.deletedAt ? 'Farmaco aggiornato.' : 'Farmaco salvato.'
     await loadData()
   } catch (err) {
     errorMessage.value = `Errore salvataggio farmaco: ${err.message}`
@@ -151,11 +155,13 @@ async function createBatch() {
   }
 
   const now = new Date().toISOString()
-  const id = crypto.randomUUID()
+  const id = editingBatchId.value || crypto.randomUUID()
 
   savingBatch.value = true
   try {
+    const existing = editingBatchId.value ? await db.stockBatches.get(editingBatchId.value) : null
     const record = {
+      ...(existing || {}),
       id,
       drugId: batchForm.value.drugId,
       nomeCommerciale: name,
@@ -176,7 +182,7 @@ async function createBatch() {
       await db.activityLog.add({
         entityType: 'stockBatches',
         entityId: record.id,
-        action: 'stock_batch_created',
+        action: editingBatchId.value ? 'stock_batch_updated' : 'stock_batch_created',
         deviceId,
         operatorId: currentUser.value?.login ?? null,
         ts: now,
@@ -191,7 +197,8 @@ async function createBatch() {
       sogliaRiordino: '',
       scadenza: '',
     }
-    message.value = 'Confezione salvata.'
+    editingBatchId.value = null
+    message.value = existing ? 'Confezione aggiornata.' : 'Confezione salvata.'
     await loadData()
   } catch (err) {
     errorMessage.value = `Errore salvataggio confezione: ${err.message}`
@@ -236,6 +243,86 @@ async function deactivateBatch(batch) {
   }
 }
 
+function startEditDrug(drug) {
+  editingDrugId.value = drug.id
+  drugForm.value = {
+    id: drug.id,
+    principioAttivo: drug.principioAttivo || '',
+    classeTerapeutica: drug.classeTerapeutica || '',
+    scortaMinima: String(drug.scortaMinima ?? ''),
+  }
+}
+
+function startEditBatch(batch) {
+  editingBatchId.value = batch.id
+  batchForm.value = {
+    drugId: batch.drugId || '',
+    nomeCommerciale: batch.nomeCommerciale || '',
+    dosaggio: batch.dosaggio || '',
+    quantitaAttuale: String(batch.quantitaAttuale ?? ''),
+    sogliaRiordino: String(batch.sogliaRiordino ?? ''),
+    scadenza: batch.scadenza ? String(batch.scadenza).slice(0, 10) : '',
+  }
+}
+
+function resetDrugForm() {
+  editingDrugId.value = null
+  drugForm.value = {
+    id: '',
+    principioAttivo: '',
+    classeTerapeutica: '',
+    scortaMinima: '',
+  }
+}
+
+function resetBatchForm() {
+  editingBatchId.value = null
+  batchForm.value = {
+    drugId: '',
+    nomeCommerciale: '',
+    dosaggio: '',
+    quantitaAttuale: '',
+    sogliaRiordino: '',
+    scadenza: '',
+  }
+}
+
+async function deleteDrug(drug) {
+  const confirmed = window.confirm('Confermi eliminazione farmaco?')
+  if (!confirmed) return
+
+  message.value = ''
+  errorMessage.value = ''
+  const now = new Date().toISOString()
+
+  try {
+    const deviceId = await getSetting('deviceId', 'unknown')
+    await db.transaction('rw', db.drugs, db.syncQueue, db.activityLog, async () => {
+      await db.drugs.put({
+        ...drug,
+        deletedAt: now,
+        updatedAt: now,
+        syncStatus: 'pending',
+      })
+      await enqueue('drugs', drug.id, 'upsert')
+      await db.activityLog.add({
+        entityType: 'drugs',
+        entityId: drug.id,
+        action: 'drug_deleted',
+        deviceId,
+        operatorId: currentUser.value?.login ?? null,
+        ts: now,
+      })
+    })
+
+    if (editingDrugId.value === drug.id) resetDrugForm()
+    message.value = 'Farmaco eliminato.'
+    await loadData()
+  } catch (err) {
+    errorMessage.value = `Errore eliminazione farmaco: ${err.message}`
+  }
+}
+
 onMounted(() => {
   void loadData()
 })
@@ -256,6 +343,7 @@ onMounted(() => {
             <th>Principio attivo</th>
             <th>Classe</th>
             <th>Scorta minima</th>
+            <th>Azioni</th>
           </tr>
         </thead>
         <tbody>
@@ -264,9 +352,13 @@ onMounted(() => {
             <td>{{ drug.principioAttivo }}</td>
             <td>{{ drug.classeTerapeutica || '—' }}</td>
             <td>{{ drug.scortaMinima ?? 0 }}</td>
+            <td>
+              <button style="margin-right:.35rem" @click="startEditDrug(drug)">Modifica</button>
+              <button style="background:#c0392b" @click="deleteDrug(drug)">Elimina</button>
+            </td>
           </tr>
           <tr v-if="drugs.length === 0 && !loading">
-            <td colspan="4" class="muted">Nessun farmaco disponibile.</td>
+            <td colspan="5" class="muted">Nessun farmaco disponibile.</td>
           </tr>
         </tbody>
       </table>
@@ -296,7 +388,8 @@ onMounted(() => {
             <td>{{ batch.sogliaRiordino ?? 0 }}</td>
             <td>{{ formatDate(batch.scadenza) }}</td>
             <td>
-              <button @click="deactivateBatch(batch)">Disattiva</button>
+              <button style="margin-right:.35rem" @click="startEditBatch(batch)">Modifica</button>
+              <button style="background:#c0392b" @click="deactivateBatch(batch)">Disattiva</button>
             </td>
           </tr>
           <tr v-if="batches.length === 0 && !loading">
@@ -314,11 +407,11 @@ onMounted(() => {
         <summary><strong>Gestisci Farmaci</strong></summary>
 
         <div style="margin-top:.75rem">
-          <p><strong>Aggiungi nuovo farmaco</strong></p>
+          <p><strong>{{ editingDrugId ? 'Modifica farmaco' : 'Aggiungi nuovo farmaco' }}</strong></p>
           <div class="import-form" style="margin-top:.65rem">
             <label>
               ID farmaco (opzionale)
-              <input v-model="drugForm.id" type="text" placeholder="es. paracetamolo" />
+              <input v-model="drugForm.id" type="text" placeholder="es. paracetamolo" :disabled="Boolean(editingDrugId)" />
             </label>
 
             <label>
@@ -337,13 +430,14 @@ onMounted(() => {
             </label>
 
             <button :disabled="savingDrug" @click="createDrug">
-              {{ savingDrug ? 'Salvataggio...' : 'Salva farmaco' }}
+              {{ savingDrug ? 'Salvataggio...' : (editingDrugId ? 'Salva modifica' : 'Salva farmaco') }}
             </button>
+            <button type="button" :disabled="savingDrug" @click="resetDrugForm">Annulla</button>
           </div>
         </div>
 
         <div style="margin-top:1rem">
-          <p><strong>Aggiungi confezione di magazzino</strong></p>
+          <p><strong>{{ editingBatchId ? 'Modifica confezione di magazzino' : 'Aggiungi confezione di magazzino' }}</strong></p>
           <div class="import-form" style="margin-top:.65rem">
             <label>
               Farmaco
@@ -379,8 +473,9 @@ onMounted(() => {
             </label>
 
             <button :disabled="savingBatch || !canCreateBatch" @click="createBatch">
-              {{ savingBatch ? 'Salvataggio...' : 'Salva confezione' }}
+              {{ savingBatch ? 'Salvataggio...' : (editingBatchId ? 'Salva modifica' : 'Salva confezione') }}
             </button>
+            <button type="button" :disabled="savingBatch" @click="resetBatchForm">Annulla</button>
           </div>
           <p v-if="!canCreateBatch" class="muted" style="margin-top:.5rem;font-size:.85rem">
             Prima crea almeno un farmaco.

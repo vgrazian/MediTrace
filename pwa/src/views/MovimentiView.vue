@@ -15,6 +15,7 @@ const drugs = ref([])
 const hosts = ref([])
 const therapies = ref([])
 const movements = ref([])
+const editingMovementId = ref(null)
 
 const form = ref({
   stockBatchId: '',
@@ -64,7 +65,9 @@ function hostLabel(hostId) {
   if (!hostId) return '—'
   const host = hosts.value.find((item) => item.id === hostId)
   if (!host) return hostId
-  return host.codiceInterno || host.iniziali || hostId
+  const fullName = [host.cognome, host.nome].filter(Boolean).join(' ').trim()
+  const namePart = fullName || host.iniziali || host.codiceInterno || hostId
+  return `[${host.id}] - ${namePart}`
 }
 
 async function loadData() {
@@ -105,7 +108,7 @@ async function loadData() {
   }
 }
 
-async function createMovement() {
+async function saveMovement() {
   message.value = ''
   errorMessage.value = ''
 
@@ -131,8 +134,11 @@ async function createMovement() {
     ? new Date(form.value.dataMovimento).toISOString()
     : now
 
+  const movementId = editingMovementId.value || crypto.randomUUID()
+  const existing = editingMovementId.value ? movements.value.find(m => m.id === editingMovementId.value) : null
   const record = {
-    id: crypto.randomUUID(),
+    ...(existing || {}),
+    id: movementId,
     stockBatchId: form.value.stockBatchId,
     drugId: selectedBatch.drugId || null,
     hostId: form.value.hostId || null,
@@ -143,7 +149,7 @@ async function createMovement() {
     dataMovimento: movementDate,
     note: form.value.note.trim() || '',
     updatedAt: now,
-    deletedAt: null,
+    deletedAt: existing?.deletedAt ?? null,
     syncStatus: 'pending',
   }
 
@@ -157,7 +163,7 @@ async function createMovement() {
       await db.activityLog.add({
         entityType: 'movements',
         entityId: record.id,
-        action: 'movement_created',
+        action: editingMovementId.value ? 'movement_updated' : 'movement_created',
         deviceId,
         operatorId: currentUser.value?.login ?? null,
         ts: now,
@@ -173,13 +179,84 @@ async function createMovement() {
       therapyId: '',
       note: '',
     }
+    editingMovementId.value = null
 
-    message.value = 'Movimento registrato.'
+    message.value = existing ? 'Movimento aggiornato.' : 'Movimento registrato.'
     await loadData()
   } catch (err) {
     errorMessage.value = `Errore registrazione movimento: ${err.message}`
   } finally {
     saving.value = false
+  }
+}
+
+function startEditMovement(movement) {
+  const toDateTimeLocal = (value) => {
+    if (!value) return ''
+    const d = new Date(value)
+    if (Number.isNaN(d.getTime())) return ''
+    const pad = (v) => String(v).padStart(2, '0')
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
+  }
+
+  editingMovementId.value = movement.id
+  form.value = {
+    stockBatchId: movement.stockBatchId || '',
+    tipoMovimento: movement.tipoMovimento || movement.type || 'scarico',
+    quantita: movement.quantita ?? '',
+    dataMovimento: toDateTimeLocal(movement.dataMovimento || movement.updatedAt),
+    hostId: movement.hostId || '',
+    therapyId: movement.therapyId || '',
+    note: movement.note || '',
+  }
+}
+
+function resetForm() {
+  editingMovementId.value = null
+  form.value = {
+    stockBatchId: '',
+    tipoMovimento: 'scarico',
+    quantita: '',
+    dataMovimento: toLocalDateTimeInput(),
+    hostId: '',
+    therapyId: '',
+    note: '',
+  }
+}
+
+async function deleteMovement(movement) {
+  const confirmed = window.confirm('Confermi eliminazione movimento?')
+  if (!confirmed) return
+
+  message.value = ''
+  errorMessage.value = ''
+  const now = new Date().toISOString()
+  try {
+    const deviceId = await getSetting('deviceId', 'unknown')
+
+    await db.transaction('rw', db.movements, db.syncQueue, db.activityLog, async () => {
+      await db.movements.put({
+        ...movement,
+        deletedAt: now,
+        updatedAt: now,
+        syncStatus: 'pending',
+      })
+      await enqueue('movements', movement.id, 'upsert')
+      await db.activityLog.add({
+        entityType: 'movements',
+        entityId: movement.id,
+        action: 'movement_deleted',
+        deviceId,
+        operatorId: currentUser.value?.login ?? null,
+        ts: now,
+      })
+    })
+
+    if (editingMovementId.value === movement.id) resetForm()
+    message.value = 'Movimento eliminato.'
+    await loadData()
+  } catch (err) {
+    errorMessage.value = `Errore eliminazione movimento: ${err.message}`
   }
 }
 
@@ -208,6 +285,7 @@ onMounted(() => {
             <th>Quantita</th>
             <th>Ospite</th>
             <th>Note</th>
+            <th>Azioni</th>
           </tr>
         </thead>
         <tbody>
@@ -218,9 +296,13 @@ onMounted(() => {
             <td>{{ movement.quantita ?? '—' }}</td>
             <td>{{ hostLabel(movement.hostId) }}</td>
             <td>{{ movement.note || '—' }}</td>
+            <td>
+              <button style="margin-right:.35rem" @click="startEditMovement(movement)">Modifica</button>
+              <button style="background:#c0392b" @click="deleteMovement(movement)">Elimina</button>
+            </td>
           </tr>
           <tr v-if="movements.length === 0">
-            <td colspan="6" class="muted">Nessun movimento registrato nel dataset locale.</td>
+            <td colspan="7" class="muted">Nessun movimento registrato nel dataset locale.</td>
           </tr>
         </tbody>
       </table>
@@ -233,7 +315,7 @@ onMounted(() => {
         <summary><strong>Gestione Movimenti</strong></summary>
 
         <div style="margin-top:.75rem">
-          <p><strong>Nuovo movimento magazzino</strong></p>
+          <p><strong>{{ editingMovementId ? 'Modifica movimento' : 'Nuovo movimento magazzino' }}</strong></p>
           <p class="muted" style="margin-top:.25rem">
             Registra carichi/scarichi operativi con tracciamento sincronizzazione e audit.
           </p>
@@ -274,7 +356,7 @@ onMounted(() => {
               <select v-model="form.hostId" :disabled="saving || !hosts.length">
                 <option value="">Nessuno</option>
                 <option v-for="host in hosts" :key="host.id" :value="host.id">
-                  {{ host.codiceInterno || host.id }}
+                  {{ hostLabel(host.id) }}
                 </option>
               </select>
             </label>
@@ -294,9 +376,10 @@ onMounted(() => {
               <input v-model="form.note" type="text" placeholder="Dettaglio operativo" :disabled="saving" />
             </label>
 
-            <button :disabled="saving || !canCreateMovement" @click="createMovement">
-              {{ saving ? 'Registrazione...' : 'Registra movimento' }}
+            <button :disabled="saving || !canCreateMovement" @click="saveMovement">
+              {{ saving ? 'Registrazione...' : (editingMovementId ? 'Salva modifica' : 'Registra movimento') }}
             </button>
+            <button type="button" :disabled="saving" @click="resetForm">Annulla</button>
           </div>
 
           <p v-if="message" class="muted" style="margin-top:.55rem">{{ message }}</p>

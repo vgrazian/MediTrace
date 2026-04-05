@@ -75,16 +75,23 @@ Mapping:
 ### 03_Ospiti.csv -> `hosts[]`
 
 Sorgente:
-`guest_id,codice_interno,iniziali,casa_alloggio,stanza_id,letto_id,attivo,note_essenziali,updated_at,deleted_at`
+`guest_id,codice_interno,iniziali,nome,cognome,luogo_nascita,data_nascita,sesso,codice_fiscale,casa_alloggio,stanza_id,letto_id,patologie,attivo,note_essenziali,updated_at,deleted_at`
 
 Mapping:
 
 - `guest_id` -> `id`
 - `codice_interno` -> `codiceInterno`
 - `iniziali` -> `iniziali`
+- `nome` -> `nome`
+- `cognome` -> `cognome`
+- `luogo_nascita` -> `luogoNascita`
+- `data_nascita` -> `dataNascita`
+- `sesso` -> `sesso` (valori attesi: `M`, `F`, `Altro`)
+- `codice_fiscale` -> `codiceFiscale`
 - `casa_alloggio` -> `casaAlloggio`
-- `stanza_id` -> `stanzaId` (opzionale, retrocompatibilità)
-- `letto_id` -> `lettoId` (opzionale, retrocompatibilità)
+- `stanza_id` -> `stanzaId` (opzionale)
+- `letto_id` -> `lettoId` (opzionale)
+- `patologie` -> `patologie`
 - `attivo` -> `attivo`
 - `note_essenziali` -> `noteEssenziali`
 - `updated_at` -> `updatedAt`

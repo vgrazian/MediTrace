@@ -8,6 +8,13 @@
  */
 import { db, enqueue } from '../db'
 
+export function formatHostDisplay(host) {
+    if (!host) return '—'
+    const fullName = [host.cognome, host.nome].filter(Boolean).join(' ').trim()
+    const namePart = fullName || host.iniziali || host.codiceInterno || host.id
+    return `[${host.id}] - ${namePart}`
+}
+
 // ── Pure helpers (testable) ────────────────────────────────────────────────────
 
 /**
@@ -54,7 +61,24 @@ export function buildHostRows({ hosts, therapies, showAll = false }) {
  * @param {string} [params.operatorId]     — login operatore corrente
  * @returns {Promise<object>} record salvato
  */
-export async function createHost({ id, codiceInterno, iniziali, roomId, bedId, stanza, letto, note, operatorId }) {
+export async function createHost({
+    id,
+    codiceInterno,
+    iniziali,
+    nome,
+    cognome,
+    luogoNascita,
+    dataNascita,
+    sesso,
+    codiceFiscale,
+    patologie,
+    roomId,
+    bedId,
+    stanza,
+    letto,
+    note,
+    operatorId,
+}) {
     if (!id?.trim()) throw new Error('ID obbligatorio')
     if (!codiceInterno?.trim() && !iniziali?.trim()) throw new Error('Codice interno o iniziali obbligatori')
 
@@ -66,6 +90,13 @@ export async function createHost({ id, codiceInterno, iniziali, roomId, bedId, s
         id: id.trim(),
         codiceInterno: codiceInterno?.trim() ?? '',
         iniziali: iniziali?.trim() ?? '',
+        nome: nome?.trim() ?? '',
+        cognome: cognome?.trim() ?? '',
+        luogoNascita: luogoNascita?.trim() ?? '',
+        dataNascita: dataNascita || null,
+        sesso: sesso?.trim() ?? '',
+        codiceFiscale: codiceFiscale?.trim() ?? '',
+        patologie: patologie?.trim() ?? '',
         roomId: roomId ?? null,
         bedId: bedId ?? null,
         stanza: stanza?.trim() ?? '',
@@ -129,4 +160,66 @@ export async function deactivateHost({ hostId, operatorId }) {
     })
 
     return updated
+}
+
+export async function updateHost({
+    hostId,
+    codiceInterno,
+    iniziali,
+    nome,
+    cognome,
+    luogoNascita,
+    dataNascita,
+    sesso,
+    codiceFiscale,
+    patologie,
+    roomId,
+    bedId,
+    stanza,
+    letto,
+    note,
+    operatorId,
+}) {
+    const host = await db.hosts.get(hostId)
+    if (!host || host.deletedAt) throw new Error(`Ospite "${hostId}" non trovato`)
+
+    const now = new Date().toISOString()
+    const updated = {
+        ...host,
+        codiceInterno: codiceInterno?.trim() ?? '',
+        iniziali: iniziali?.trim() ?? '',
+        nome: nome?.trim() ?? '',
+        cognome: cognome?.trim() ?? '',
+        luogoNascita: luogoNascita?.trim() ?? '',
+        dataNascita: dataNascita || null,
+        sesso: sesso?.trim() ?? '',
+        codiceFiscale: codiceFiscale?.trim() ?? '',
+        patologie: patologie?.trim() ?? '',
+        roomId: roomId ?? null,
+        bedId: bedId ?? null,
+        stanza: stanza?.trim() ?? '',
+        letto: letto?.trim() ?? '',
+        note: note?.trim() ?? '',
+        updatedAt: now,
+        syncStatus: 'pending',
+    }
+
+    await db.transaction('rw', db.hosts, db.syncQueue, db.activityLog, async () => {
+        await db.hosts.put(updated)
+        await enqueue('hosts', hostId, 'upsert')
+        await db.activityLog.add({
+            entityType: 'hosts',
+            entityId: hostId,
+            action: 'host_updated',
+            operatorId: operatorId ?? null,
+            timestamp: now,
+            note: '',
+        })
+    })
+
+    return updated
+}
+
+export async function deleteHost({ hostId, operatorId }) {
+    return deactivateHost({ hostId, operatorId })
 }

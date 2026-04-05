@@ -8,7 +8,26 @@ Data: 2026-03-31
 
 ### 1.1 Contesto operativo
 
-L'app gestisce le terapie farmacologiche degli ospiti di due case alloggio, per un totale di 12 persone. Le terapie attive riguardano attualmente 7 ospiti. I nomi degli ospiti vengono registrati come iniziali per tutelare la privacy.
+L'app gestisce le terapie farmacologiche degli ospiti di due case alloggio, per un totale di 12 persone. Le terapie attive riguardano attualmente 7 ospiti.
+
+### 1.1a Anagrafica ospiti
+
+Ogni ospite deve avere i seguenti campi anagrafici:
+
+- **Nome** e **Cognome** (obbligatori)
+- **Luogo di nascita** (opzionale)
+- **Data di nascita** (opzionale)
+- **Sesso**: M / F / Altro (opzionale)
+- **Codice fiscale** (opzionale, 16 caratteri)
+- **Patologie**: campo testo libero per elenco patologie o note cliniche rilevanti
+
+In tutti i pannelli e dropdown dove l'ospite è menzionato, il nome `Cognome Nome` deve essere visualizzato accanto all'ID (formato: `[ID] - Cognome Nome`).
+
+La sezione Gestione ospiti deve offrire tre azioni:
+
+1. **Crea** nuovo ospite
+2. **Modifica** ospite esistente (pre-compilazione form con dati attuali)
+3. **Elimina** ospite (soft-delete con dialog di conferma)
 
 ### 1.2 Catalogo farmaci e scorte
 
@@ -45,6 +64,12 @@ L'app gestisce le terapie farmacologiche degli ospiti di due case alloggio, per 
 ### 1.8 Esportazione manuale
 
 - L'utente può scaricare i dati in formato JSON localmente come misura di backup aggiuntiva.
+
+### 1.9 Preparazione testo ordine farmaci (requisito pianificato)
+
+- Deve essere presente un pulsante che prepari automaticamente un testo di ordine farmaci pronto da copiare/incollare in email o altri canali.
+- Il testo deve includere almeno: farmaco, quantità da ordinare, priorità e note operative.
+- Questo requisito è approvato ma **fuori dallo sviluppo corrente**: implementazione rimandata a una milestone successiva.
 
 ---
 
