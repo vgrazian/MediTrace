@@ -30,6 +30,26 @@ import {
 const SEED_ENABLED = import.meta.env.DEV || import.meta.env.VITE_SEED_DATA === '1'
 const SEED_MANIFEST_KEY = '_seedDataManifest'
 const LEGACY_SEED_PREFIX = '__seed__'
+const LEGACY_SEED_STORE_NAMES = ['rooms', 'beds', 'hosts', 'drugs', 'stockBatches', 'therapies', 'movements', 'reminders']
+
+async function getAvailableStoreNames(expectedStoreNames) {
+    if (typeof db.open === 'function') {
+        await db.open()
+    }
+
+    if (typeof db.backendDB !== 'function') {
+        return new Set(expectedStoreNames)
+    }
+
+    const backendDb = db.backendDB()
+    if (!backendDb?.objectStoreNames) {
+        return new Set(expectedStoreNames)
+    }
+
+    return new Set(
+        expectedStoreNames.filter(storeName => backendDb.objectStoreNames.contains(storeName))
+    )
+}
 
 async function findSeedIds(table, prefix) {
     if (!table || typeof table.toArray !== 'function') return []
@@ -201,21 +221,41 @@ const SEED_MANIFEST = {
 export async function loadSeedData(options = {}) {
     assertSeedEnabled(options)
 
-    await db.transaction('rw', [
-        db.rooms, db.beds, db.hosts, db.drugs, db.stockBatches,
-        db.therapies, db.movements, db.reminders,
-    ], async () => {
-        for (const record of SEED_ROOMS) await db.rooms.put(record)
-        for (const record of SEED_BEDS) await db.beds.put(record)
-        for (const record of SEED_HOSTS) await db.hosts.put(record)
-        for (const record of SEED_DRUGS) await db.drugs.put(record)
-        for (const record of SEED_STOCK_BATCHES) await db.stockBatches.put(record)
-        for (const record of SEED_THERAPIES) await db.therapies.put(record)
-        for (const record of SEED_MOVEMENTS) await db.movements.put(record)
-        for (const record of SEED_REMINDERS) await db.reminders.put(record)
-    })
+    const availableStores = await getAvailableStoreNames(LEGACY_SEED_STORE_NAMES)
+    const transactionTables = [
+        availableStores.has('rooms') ? db.rooms : null,
+        availableStores.has('beds') ? db.beds : null,
+        availableStores.has('hosts') ? db.hosts : null,
+        availableStores.has('drugs') ? db.drugs : null,
+        availableStores.has('stockBatches') ? db.stockBatches : null,
+        availableStores.has('therapies') ? db.therapies : null,
+        availableStores.has('movements') ? db.movements : null,
+        availableStores.has('reminders') ? db.reminders : null,
+    ].filter(Boolean)
 
-    await setSetting(SEED_MANIFEST_KEY, SEED_MANIFEST)
+    if (transactionTables.length > 0) {
+        await db.transaction('rw', transactionTables, async () => {
+            if (availableStores.has('rooms')) for (const record of SEED_ROOMS) await db.rooms.put(record)
+            if (availableStores.has('beds')) for (const record of SEED_BEDS) await db.beds.put(record)
+            if (availableStores.has('hosts')) for (const record of SEED_HOSTS) await db.hosts.put(record)
+            if (availableStores.has('drugs')) for (const record of SEED_DRUGS) await db.drugs.put(record)
+            if (availableStores.has('stockBatches')) for (const record of SEED_STOCK_BATCHES) await db.stockBatches.put(record)
+            if (availableStores.has('therapies')) for (const record of SEED_THERAPIES) await db.therapies.put(record)
+            if (availableStores.has('movements')) for (const record of SEED_MOVEMENTS) await db.movements.put(record)
+            if (availableStores.has('reminders')) for (const record of SEED_REMINDERS) await db.reminders.put(record)
+        })
+    }
+
+    await setSetting(SEED_MANIFEST_KEY, {
+        rooms: availableStores.has('rooms') ? SEED_MANIFEST.rooms : [],
+        beds: availableStores.has('beds') ? SEED_MANIFEST.beds : [],
+        hosts: availableStores.has('hosts') ? SEED_MANIFEST.hosts : [],
+        drugs: availableStores.has('drugs') ? SEED_MANIFEST.drugs : [],
+        stockBatches: availableStores.has('stockBatches') ? SEED_MANIFEST.stockBatches : [],
+        therapies: availableStores.has('therapies') ? SEED_MANIFEST.therapies : [],
+        movements: availableStores.has('movements') ? SEED_MANIFEST.movements : [],
+        reminders: availableStores.has('reminders') ? SEED_MANIFEST.reminders : [],
+    })
 
     return getSeedStats()
 }
@@ -230,19 +270,30 @@ export async function clearSeedData(options = {}) {
     const manifest = await getLegacySeedManifest()
     if (!manifest) return { cleared: false, reason: 'nessun dato demo trovato' }
 
-    await db.transaction('rw', [
-        db.rooms, db.beds, db.hosts, db.drugs, db.stockBatches,
-        db.therapies, db.movements, db.reminders,
-    ], async () => {
-        for (const id of (manifest.rooms ?? [])) await db.rooms.delete(id)
-        for (const id of (manifest.beds ?? [])) await db.beds.delete(id)
-        for (const id of (manifest.hosts ?? [])) await db.hosts.delete(id)
-        for (const id of (manifest.drugs ?? [])) await db.drugs.delete(id)
-        for (const id of (manifest.stockBatches ?? [])) await db.stockBatches.delete(id)
-        for (const id of (manifest.therapies ?? [])) await db.therapies.delete(id)
-        for (const id of (manifest.movements ?? [])) await db.movements.delete(id)
-        for (const id of (manifest.reminders ?? [])) await db.reminders.delete(id)
-    })
+    const availableStores = await getAvailableStoreNames(LEGACY_SEED_STORE_NAMES)
+    const transactionTables = [
+        availableStores.has('rooms') ? db.rooms : null,
+        availableStores.has('beds') ? db.beds : null,
+        availableStores.has('hosts') ? db.hosts : null,
+        availableStores.has('drugs') ? db.drugs : null,
+        availableStores.has('stockBatches') ? db.stockBatches : null,
+        availableStores.has('therapies') ? db.therapies : null,
+        availableStores.has('movements') ? db.movements : null,
+        availableStores.has('reminders') ? db.reminders : null,
+    ].filter(Boolean)
+
+    if (transactionTables.length > 0) {
+        await db.transaction('rw', transactionTables, async () => {
+            if (availableStores.has('rooms')) for (const id of (manifest.rooms ?? [])) await db.rooms.delete(id)
+            if (availableStores.has('beds')) for (const id of (manifest.beds ?? [])) await db.beds.delete(id)
+            if (availableStores.has('hosts')) for (const id of (manifest.hosts ?? [])) await db.hosts.delete(id)
+            if (availableStores.has('drugs')) for (const id of (manifest.drugs ?? [])) await db.drugs.delete(id)
+            if (availableStores.has('stockBatches')) for (const id of (manifest.stockBatches ?? [])) await db.stockBatches.delete(id)
+            if (availableStores.has('therapies')) for (const id of (manifest.therapies ?? [])) await db.therapies.delete(id)
+            if (availableStores.has('movements')) for (const id of (manifest.movements ?? [])) await db.movements.delete(id)
+            if (availableStores.has('reminders')) for (const id of (manifest.reminders ?? [])) await db.reminders.delete(id)
+        })
+    }
 
     await setSetting(SEED_MANIFEST_KEY, null)
 

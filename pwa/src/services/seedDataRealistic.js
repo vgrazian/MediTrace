@@ -14,6 +14,26 @@ import { db, getSetting, setSetting } from '../db'
 
 const REALISTIC_SEED_KEY = '_realisticSeedDataManifest'
 const REALISTIC_SEED_PREFIX = '__realistic__'
+const REALISTIC_SEED_STORE_NAMES = ['rooms', 'beds', 'hosts', 'drugs', 'stockBatches', 'therapies']
+
+async function getAvailableStoreNames(expectedStoreNames) {
+    if (typeof db.open === 'function') {
+        await db.open()
+    }
+
+    if (typeof db.backendDB !== 'function') {
+        return new Set(expectedStoreNames)
+    }
+
+    const backendDb = db.backendDB()
+    if (!backendDb?.objectStoreNames) {
+        return new Set(expectedStoreNames)
+    }
+
+    return new Set(
+        expectedStoreNames.filter(storeName => backendDb.objectStoreNames.contains(storeName))
+    )
+}
 
 async function findRealisticSeedIds(table) {
     if (!table || typeof table.toArray !== 'function') return []
@@ -369,25 +389,34 @@ export async function loadRealisticSeedData(options = {}) {
     }
 
     const bundle = generateRealisticSeedData()
+    const availableStores = await getAvailableStoreNames(REALISTIC_SEED_STORE_NAMES)
+    const transactionTables = [
+        availableStores.has('rooms') ? db.rooms : null,
+        availableStores.has('beds') ? db.beds : null,
+        availableStores.has('hosts') ? db.hosts : null,
+        availableStores.has('drugs') ? db.drugs : null,
+        availableStores.has('stockBatches') ? db.stockBatches : null,
+        availableStores.has('therapies') ? db.therapies : null,
+    ].filter(Boolean)
 
-    await db.transaction('rw', [
-        db.rooms, db.beds, db.hosts, db.drugs, db.stockBatches, db.therapies,
-    ], async () => {
-        for (const record of bundle.rooms) await db.rooms.put(record)
-        for (const record of bundle.beds) await db.beds.put(record)
-        for (const record of bundle.hosts) await db.hosts.put(record)
-        for (const record of bundle.drugs) await db.drugs.put(record)
-        for (const record of bundle.stockBatches) await db.stockBatches.put(record)
-        for (const record of bundle.therapies) await db.therapies.put(record)
-    })
+    if (transactionTables.length > 0) {
+        await db.transaction('rw', transactionTables, async () => {
+            if (availableStores.has('rooms')) for (const record of bundle.rooms) await db.rooms.put(record)
+            if (availableStores.has('beds')) for (const record of bundle.beds) await db.beds.put(record)
+            if (availableStores.has('hosts')) for (const record of bundle.hosts) await db.hosts.put(record)
+            if (availableStores.has('drugs')) for (const record of bundle.drugs) await db.drugs.put(record)
+            if (availableStores.has('stockBatches')) for (const record of bundle.stockBatches) await db.stockBatches.put(record)
+            if (availableStores.has('therapies')) for (const record of bundle.therapies) await db.therapies.put(record)
+        })
+    }
 
     const manifest = {
-        rooms: bundle.rooms.map(r => r.id),
-        beds: bundle.beds.map(r => r.id),
-        hosts: bundle.hosts.map(r => r.id),
-        drugs: bundle.drugs.map(r => r.id),
-        stockBatches: bundle.stockBatches.map(r => r.id),
-        therapies: bundle.therapies.map(r => r.id),
+        rooms: availableStores.has('rooms') ? bundle.rooms.map(r => r.id) : [],
+        beds: availableStores.has('beds') ? bundle.beds.map(r => r.id) : [],
+        hosts: availableStores.has('hosts') ? bundle.hosts.map(r => r.id) : [],
+        drugs: availableStores.has('drugs') ? bundle.drugs.map(r => r.id) : [],
+        stockBatches: availableStores.has('stockBatches') ? bundle.stockBatches.map(r => r.id) : [],
+        therapies: availableStores.has('therapies') ? bundle.therapies.map(r => r.id) : [],
     }
 
     await setSetting(REALISTIC_SEED_KEY, manifest)
@@ -409,16 +438,26 @@ export async function clearRealisticSeedData(options = {}) {
     const manifest = await getRealisticSeedManifest()
     if (!manifest) return { cleared: false, reason: 'nessun dato realistico trovato' }
 
-    await db.transaction('rw', [
-        db.rooms, db.beds, db.hosts, db.drugs, db.stockBatches, db.therapies,
-    ], async () => {
-        for (const id of (manifest.rooms ?? [])) await db.rooms.delete(id)
-        for (const id of (manifest.beds ?? [])) await db.beds.delete(id)
-        for (const id of (manifest.hosts ?? [])) await db.hosts.delete(id)
-        for (const id of (manifest.drugs ?? [])) await db.drugs.delete(id)
-        for (const id of (manifest.stockBatches ?? [])) await db.stockBatches.delete(id)
-        for (const id of (manifest.therapies ?? [])) await db.therapies.delete(id)
-    })
+    const availableStores = await getAvailableStoreNames(REALISTIC_SEED_STORE_NAMES)
+    const transactionTables = [
+        availableStores.has('rooms') ? db.rooms : null,
+        availableStores.has('beds') ? db.beds : null,
+        availableStores.has('hosts') ? db.hosts : null,
+        availableStores.has('drugs') ? db.drugs : null,
+        availableStores.has('stockBatches') ? db.stockBatches : null,
+        availableStores.has('therapies') ? db.therapies : null,
+    ].filter(Boolean)
+
+    if (transactionTables.length > 0) {
+        await db.transaction('rw', transactionTables, async () => {
+            if (availableStores.has('rooms')) for (const id of (manifest.rooms ?? [])) await db.rooms.delete(id)
+            if (availableStores.has('beds')) for (const id of (manifest.beds ?? [])) await db.beds.delete(id)
+            if (availableStores.has('hosts')) for (const id of (manifest.hosts ?? [])) await db.hosts.delete(id)
+            if (availableStores.has('drugs')) for (const id of (manifest.drugs ?? [])) await db.drugs.delete(id)
+            if (availableStores.has('stockBatches')) for (const id of (manifest.stockBatches ?? [])) await db.stockBatches.delete(id)
+            if (availableStores.has('therapies')) for (const id of (manifest.therapies ?? [])) await db.therapies.delete(id)
+        })
+    }
 
     await setSetting(REALISTIC_SEED_KEY, null)
     return { cleared: true, tables: Object.keys(manifest) }
