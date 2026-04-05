@@ -12,7 +12,8 @@ export function formatHostDisplay(host) {
     if (!host) return '—'
     const fullName = [host.cognome, host.nome].filter(Boolean).join(' ').trim()
     const namePart = fullName || host.iniziali || host.codiceInterno || host.id
-    return `[${host.id}] - ${namePart}`
+    const visibleId = host.codiceInterno || host.id
+    return `[${visibleId}] - ${namePart}`
 }
 
 // ── Pure helpers (testable) ────────────────────────────────────────────────────

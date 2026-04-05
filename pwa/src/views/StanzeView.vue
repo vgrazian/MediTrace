@@ -35,7 +35,8 @@ function formatHostLabel(host) {
   if (!host) return '—'
   const fullName = [host.cognome, host.nome].filter(Boolean).join(' ').trim()
   const displayName = fullName || host.iniziali || host.codiceInterno || host.id
-  return `[${host.id}] - ${displayName}`
+  const visibleId = host.codiceInterno || host.id
+  return `[${visibleId}] - ${displayName}`
 }
 
 async function loadData() {
