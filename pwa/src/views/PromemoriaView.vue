@@ -1,7 +1,7 @@
 <script setup>
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
-import { db } from '../db'
+import { db, enqueue, getSetting } from '../db'
 import { useAuth } from '../services/auth'
 import { buildReminderRows, markReminder, reminderStateBadge, REMINDER_OUTCOMES } from '../services/promemoria'
 
@@ -10,6 +10,7 @@ const { currentUser } = useAuth()
 
 const loading = ref(false)
 const markingId = ref(null)
+const savingEdit = ref(false)
 const message = ref('')
 const errorMessage = ref('')
 
@@ -20,6 +21,12 @@ const therapies = ref([])
 
 const dateFilter = ref('today')
 const stateFilter = ref('')
+const editingReminderId = ref('')
+const form = ref({
+  scheduledAt: '',
+  stato: 'DA_ESEGUIRE',
+  note: '',
+})
 
 const highlightedReminderId = computed(() => String(route.query.highlight || ''))
 
@@ -40,6 +47,13 @@ function formatSchedule(value) {
   const date = new Date(value)
   if (Number.isNaN(date.getTime())) return '—'
   return date.toLocaleString()
+}
+
+function toLocalDateTimeInput(value) {
+  const date = value ? new Date(value) : new Date()
+  if (Number.isNaN(date.getTime())) return ''
+  const pad = (v) => String(v).padStart(2, '0')
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`
 }
 
 async function loadData() {
@@ -79,6 +93,105 @@ async function applyOutcome(reminderId, outcome) {
     errorMessage.value = `Errore: ${err.message}`
   } finally {
     markingId.value = null
+  }
+}
+
+function startEdit(reminder) {
+  editingReminderId.value = reminder.id
+  form.value = {
+    scheduledAt: toLocalDateTimeInput(reminder.scheduledAt),
+    stato: reminder.stato || 'DA_ESEGUIRE',
+    note: reminder.note || '',
+  }
+}
+
+function resetForm() {
+  editingReminderId.value = ''
+  form.value = {
+    scheduledAt: '',
+    stato: 'DA_ESEGUIRE',
+    note: '',
+  }
+}
+
+async function saveReminderEdit() {
+  if (!editingReminderId.value) return
+  message.value = ''
+  errorMessage.value = ''
+  savingEdit.value = true
+
+  try {
+    const existing = await db.reminders.get(editingReminderId.value)
+    if (!existing || existing.deletedAt) throw new Error('Promemoria non trovato')
+
+    const now = new Date().toISOString()
+    const deviceId = await getSetting('deviceId', 'unknown')
+    const updated = {
+      ...existing,
+      scheduledAt: form.value.scheduledAt ? new Date(form.value.scheduledAt).toISOString() : existing.scheduledAt,
+      stato: form.value.stato || existing.stato || 'DA_ESEGUIRE',
+      note: form.value.note || '',
+      updatedAt: now,
+      syncStatus: 'pending',
+    }
+
+    await db.transaction('rw', db.reminders, db.syncQueue, db.activityLog, async () => {
+      await db.reminders.put(updated)
+      await enqueue('reminders', updated.id, 'upsert')
+      await db.activityLog.add({
+        entityType: 'reminders',
+        entityId: updated.id,
+        action: 'reminder_updated',
+        deviceId,
+        operatorId: currentUser.value?.login ?? null,
+        ts: now,
+      })
+    })
+
+    message.value = 'Promemoria aggiornato.'
+    resetForm()
+    await loadData()
+  } catch (err) {
+    errorMessage.value = `Errore: ${err.message}`
+  } finally {
+    savingEdit.value = false
+  }
+}
+
+async function deleteReminder(reminderId) {
+  if (!window.confirm('Confermi eliminazione promemoria?')) return
+  message.value = ''
+  errorMessage.value = ''
+
+  try {
+    const existing = await db.reminders.get(reminderId)
+    if (!existing || existing.deletedAt) throw new Error('Promemoria non trovato')
+
+    const now = new Date().toISOString()
+    const deviceId = await getSetting('deviceId', 'unknown')
+    await db.transaction('rw', db.reminders, db.syncQueue, db.activityLog, async () => {
+      await db.reminders.put({
+        ...existing,
+        deletedAt: now,
+        updatedAt: now,
+        syncStatus: 'pending',
+      })
+      await enqueue('reminders', reminderId, 'upsert')
+      await db.activityLog.add({
+        entityType: 'reminders',
+        entityId: reminderId,
+        action: 'reminder_deleted',
+        deviceId,
+        operatorId: currentUser.value?.login ?? null,
+        ts: now,
+      })
+    })
+
+    if (editingReminderId.value === reminderId) resetForm()
+    message.value = 'Promemoria eliminato.'
+    await loadData()
+  } catch (err) {
+    errorMessage.value = `Errore: ${err.message}`
   }
 }
 
@@ -150,7 +263,7 @@ watch(() => route.fullPath, () => void loadData())
               </span>
             </td>
             <td>
-              <div v-if="reminder.stato === 'DA_ESEGUIRE' || reminder.stato === 'POSTICIPATO'" style="display:flex;gap:.4rem;flex-wrap:wrap">
+              <div v-if="reminder.stato === 'DA_ESEGUIRE' || reminder.stato === 'POSTICIPATO'" style="display:flex;gap:.4rem;flex-wrap:wrap;margin-bottom:.35rem">
                 <button
                   :disabled="markingId === reminder.id"
                   style="padding:.2rem .55rem;font-size:.8rem"
@@ -173,7 +286,10 @@ watch(() => route.fullPath, () => void loadData())
                   Posticipa
                 </button>
               </div>
-              <span v-else class="muted" style="font-size:.8rem">—</span>
+              <div style="display:flex;gap:.4rem;flex-wrap:wrap">
+                <button :disabled="markingId === reminder.id || savingEdit" @click="startEdit(reminder)">Modifica</button>
+                <button :disabled="markingId === reminder.id || savingEdit" style="background:#c0392b" @click="deleteReminder(reminder.id)">Elimina</button>
+              </div>
             </td>
           </tr>
           <tr v-if="rows.length === 0 && !loading">
@@ -185,6 +301,39 @@ watch(() => route.fullPath, () => void loadData())
       <p v-if="loading" class="muted" style="margin-top:.55rem">Caricamento...</p>
       <p v-if="message" class="muted" style="margin-top:.55rem">{{ message }}</p>
       <p v-if="errorMessage" class="import-error">{{ errorMessage }}</p>
+    </div>
+
+    <div class="card">
+      <details>
+        <summary><strong>Gestione Promemoria</strong></summary>
+
+        <div style="margin-top:.75rem">
+          <p><strong>{{ editingReminderId ? `Modifica promemoria ${editingReminderId}` : 'Seleziona un promemoria da modificare' }}</strong></p>
+          <div class="import-form" style="margin-top:.65rem">
+            <label>
+              Orario promemoria
+              <input v-model="form.scheduledAt" type="datetime-local" :disabled="!editingReminderId || savingEdit" />
+            </label>
+            <label>
+              Stato
+              <select v-model="form.stato" :disabled="!editingReminderId || savingEdit">
+                <option value="DA_ESEGUIRE">Da eseguire</option>
+                <option value="ESEGUITO">Eseguito</option>
+                <option value="SALTATO">Saltato</option>
+                <option value="POSTICIPATO">Posticipato</option>
+              </select>
+            </label>
+            <label>
+              Note
+              <input v-model="form.note" type="text" placeholder="Note operative" :disabled="!editingReminderId || savingEdit" />
+            </label>
+            <button :disabled="!editingReminderId || savingEdit" @click="saveReminderEdit">
+              {{ savingEdit ? 'Salvataggio...' : 'Salva modifica' }}
+            </button>
+            <button type="button" :disabled="savingEdit" @click="resetForm">Annulla</button>
+          </div>
+        </div>
+      </details>
     </div>
   </div>
 </template>

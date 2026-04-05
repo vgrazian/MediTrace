@@ -1,7 +1,7 @@
 <script setup>
 import { onMounted, ref, computed } from 'vue'
 import { useAuth } from '../services/auth'
-import { buildHostRows, createHost, deactivateHost } from '../services/ospiti'
+import { buildHostRows, createHost, deleteHost, formatHostDisplay, updateHost } from '../services/ospiti'
 import { getRoomsWithBeds } from '../services/stanze'
 import { db } from '../db'
 
@@ -16,11 +16,19 @@ const allHosts = ref([])
 const therapies = ref([])
 const roomsData = ref([])
 const showAll = ref(false)
+const editingHostId = ref(null)
 
 const form = ref({
     id: '',
     codiceInterno: '',
     iniziali: '',
+  nome: '',
+  cognome: '',
+  luogoNascita: '',
+  dataNascita: '',
+  sesso: '',
+  codiceFiscale: '',
+  patologie: '',
     roomId: '',
     bedId: '',
     note: '',
@@ -32,7 +40,8 @@ const rows = computed(() => buildHostRows({
     showAll: showAll.value,
 }))
 
-const canCreate = computed(() => form.value.id.trim() && (form.value.codiceInterno.trim() || form.value.iniziali.trim()))
+const canCreate = computed(() => form.value.id.trim() && ((form.value.nome || '').trim() || (form.value.cognome || '').trim() || form.value.codiceInterno.trim() || form.value.iniziali.trim()))
+const canSave = computed(() => (editingHostId.value ? true : form.value.id.trim()) && ((form.value.nome || '').trim() || (form.value.cognome || '').trim() || form.value.codiceInterno.trim() || form.value.iniziali.trim()))
 
 const availableBeds = computed(() => {
     const room = roomsData.value.find(r => r.id === form.value.roomId)
@@ -58,7 +67,7 @@ async function loadData() {
     }
 }
 
-async function handleCreate() {
+async function handleSave() {
     message.value = ''
     errorMessage.value = ''
     saving.value = true
@@ -68,19 +77,48 @@ async function handleCreate() {
         const room = roomId ? roomsData.value.find(r => r.id === roomId) : null
         const bed = bedId ? room?.beds.find(b => b.id === bedId) : null
 
-        await createHost({
-            id: form.value.id,
+        if (editingHostId.value) {
+          await updateHost({
+            hostId: editingHostId.value,
             codiceInterno: form.value.codiceInterno,
             iniziali: form.value.iniziali,
+            nome: form.value.nome,
+            cognome: form.value.cognome,
+            luogoNascita: form.value.luogoNascita,
+            dataNascita: form.value.dataNascita,
+            sesso: form.value.sesso,
+            codiceFiscale: form.value.codiceFiscale,
+            patologie: form.value.patologie,
             roomId,
             bedId,
             stanza: room?.codice || '',
             letto: bed?.numero || '',
             note: form.value.note,
             operatorId: currentUser.value?.login ?? null,
-        })
-        message.value = `Ospite "${form.value.id}" creato.`
-        form.value = { id: '', codiceInterno: '', iniziali: '', roomId: '', bedId: '', note: '' }
+          })
+          message.value = `Ospite "${editingHostId.value}" aggiornato.`
+        } else {
+          await createHost({
+            id: form.value.id,
+            codiceInterno: form.value.codiceInterno,
+            iniziali: form.value.iniziali,
+            nome: form.value.nome,
+            cognome: form.value.cognome,
+            luogoNascita: form.value.luogoNascita,
+            dataNascita: form.value.dataNascita,
+            sesso: form.value.sesso,
+            codiceFiscale: form.value.codiceFiscale,
+            patologie: form.value.patologie,
+            roomId,
+            bedId,
+            stanza: room?.codice || '',
+            letto: bed?.numero || '',
+            note: form.value.note,
+            operatorId: currentUser.value?.login ?? null,
+          })
+          message.value = `Ospite "${form.value.id}" creato.`
+        }
+        resetForm()
         await loadData()
     } catch (err) {
         errorMessage.value = `Errore: ${err.message}`
@@ -90,20 +128,54 @@ async function handleCreate() {
 }
 
 async function handleDeactivate(hostId) {
-    if (!confirm(`Disattivare l'ospite "${hostId}"?`)) return
+  if (!confirm(`Eliminare l'ospite "${hostId}"?`)) return
     message.value = ''
     errorMessage.value = ''
     try {
-        await deactivateHost({ hostId, operatorId: currentUser.value?.login ?? null })
-        message.value = `Ospite "${hostId}" disattivato.`
+        await deleteHost({ hostId, operatorId: currentUser.value?.login ?? null })
+        message.value = `Ospite "${hostId}" eliminato.`
         await loadData()
     } catch (err) {
         errorMessage.value = `Errore: ${err.message}`
     }
 }
 
+function startEdit(host) {
+  editingHostId.value = host.id
+  form.value = {
+    id: host.id,
+    codiceInterno: host.codiceInterno || '',
+    iniziali: host.iniziali || '',
+    nome: host.nome || '',
+    cognome: host.cognome || '',
+    luogoNascita: host.luogoNascita || '',
+    dataNascita: host.dataNascita || '',
+    sesso: host.sesso || '',
+    codiceFiscale: host.codiceFiscale || '',
+    patologie: host.patologie || '',
+    roomId: host.roomId || '',
+    bedId: host.bedId || '',
+    note: host.note || '',
+  }
+}
+
 function resetForm() {
-    form.value = { id: '', codiceInterno: '', iniziali: '', roomId: '', bedId: '', note: '' }
+  editingHostId.value = null
+    form.value = {
+      id: '',
+      codiceInterno: '',
+      iniziali: '',
+      nome: '',
+      cognome: '',
+      luogoNascita: '',
+      dataNascita: '',
+      sesso: '',
+      codiceFiscale: '',
+      patologie: '',
+      roomId: '',
+      bedId: '',
+      note: '',
+    }
 }
 
 onMounted(() => void loadData())
@@ -124,8 +196,11 @@ onMounted(() => void loadData())
         <thead>
           <tr>
             <th>ID</th>
+            <th>Ospite</th>
             <th>Codice</th>
             <th>Iniziali</th>
+            <th>Nome</th>
+            <th>Cognome</th>
             <th>Stanza/Letto</th>
             <th>Terapie attive</th>
             <th>Azioni</th>
@@ -134,21 +209,30 @@ onMounted(() => void loadData())
         <tbody>
           <tr v-for="host in rows" :key="host.id">
             <td>{{ host.id }}</td>
+            <td>{{ formatHostDisplay(host) }}</td>
             <td>{{ host.codiceInterno || '—' }}</td>
             <td>{{ host.iniziali || '—' }}</td>
+            <td>{{ host.nome || '—' }}</td>
+            <td>{{ host.cognome || '—' }}</td>
             <td>{{ host.stanza }}{{ host.letto ? '/' + host.letto : '' }}</td>
             <td>{{ host.activeTherapies }}</td>
             <td>
               <button
+                style="padding:.2rem .55rem;font-size:.8rem;margin-right:.35rem"
+                @click="startEdit(host)"
+              >
+                Modifica
+              </button>
+              <button
                 style="padding:.2rem .55rem;font-size:.8rem;background:#c0392b"
                 @click="handleDeactivate(host.id)"
               >
-                Disattiva
+                Elimina
               </button>
             </td>
           </tr>
           <tr v-if="rows.length === 0 && !loading">
-            <td colspan="6" class="muted">Nessun ospite disponibile.</td>
+            <td colspan="9" class="muted">Nessun ospite disponibile.</td>
           </tr>
         </tbody>
       </table>
@@ -160,11 +244,11 @@ onMounted(() => void loadData())
         <summary><strong>Gestione Ospiti</strong></summary>
 
         <div style="margin-top:.75rem">
-          <p><strong>Aggiungi nuovo ospite</strong></p>
+          <p><strong>{{ editingHostId ? 'Modifica ospite' : 'Aggiungi nuovo ospite' }}</strong></p>
           <div class="import-form" style="margin-top:.65rem">
             <label>
               ID <span class="muted">(es. OSP-01)</span>
-              <input v-model="form.id" type="text" placeholder="OSP-01" />
+              <input v-model="form.id" type="text" placeholder="OSP-01" :disabled="Boolean(editingHostId)" />
             </label>
             <label>
               Codice interno
@@ -173,6 +257,39 @@ onMounted(() => void loadData())
             <label>
               Iniziali
               <input v-model="form.iniziali" type="text" placeholder="M.R." />
+            </label>
+            <label>
+              Nome
+              <input v-model="form.nome" type="text" placeholder="Mario" />
+            </label>
+            <label>
+              Cognome
+              <input v-model="form.cognome" type="text" placeholder="Rossi" />
+            </label>
+            <label>
+              Luogo di nascita
+              <input v-model="form.luogoNascita" type="text" placeholder="Roma" />
+            </label>
+            <label>
+              Data di nascita
+              <input v-model="form.dataNascita" type="date" />
+            </label>
+            <label>
+              Sesso
+              <select v-model="form.sesso">
+                <option value="">Seleziona</option>
+                <option value="M">M</option>
+                <option value="F">F</option>
+                <option value="Altro">Altro</option>
+              </select>
+            </label>
+            <label>
+              Codice fiscale
+              <input v-model="form.codiceFiscale" type="text" maxlength="16" placeholder="RSSMRA80A01H501U" />
+            </label>
+            <label>
+              Patologie
+              <input v-model="form.patologie" type="text" placeholder="Patologie o note cliniche" />
             </label>
             <label>
               Stanza
@@ -196,8 +313,11 @@ onMounted(() => void loadData())
               Note
               <input v-model="form.note" type="text" placeholder="Note opzionali" />
             </label>
-            <button :disabled="saving || !canCreate" @click="handleCreate">
-              {{ saving ? 'Salvataggio...' : 'Salva ospite' }}
+            <button :disabled="saving || !canSave" @click="handleSave">
+              {{ saving ? 'Salvataggio...' : (editingHostId ? 'Salva modifica' : 'Salva ospite') }}
+            </button>
+            <button type="button" :disabled="saving" @click="resetForm">
+              Annulla
             </button>
           </div>
         </div>

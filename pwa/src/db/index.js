@@ -47,6 +47,32 @@ db.version(1).stores({
     activityLog: '++id, entityType, entityId, action, deviceId, operatorId, ts',
 })
 
+db.version(2).stores({
+    settings: '&key',
+    rooms: 'id, codice, updatedAt, syncStatus',
+    beds: 'id, roomId, numero, updatedAt, syncStatus',
+    // Extended host demographics: indexed by surname/name for UI lookups and sorting
+    hosts: 'id, codiceInterno, cognome, nome, roomId, bedId, attivo, updatedAt, syncStatus',
+    drugs: 'id, principioAttivo, classeTerapeutica, updatedAt, syncStatus',
+    stockBatches: 'id, drugId, nomeCommerciale, scadenza, updatedAt, syncStatus',
+    therapies: 'id, hostId, drugId, stockBatchId, dataInizio, dataFine, updatedAt, syncStatus',
+    movements: 'id, stockBatchId, hostId, therapyId, type, updatedAt, syncStatus',
+    reminders: 'id, hostId, therapyId, scheduledAt, stato, updatedAt, syncStatus',
+    syncQueue: '++id, entityType, entityId, operation, createdAt',
+    syncState: '&key',
+    activityLog: '++id, entityType, entityId, action, deviceId, operatorId, ts',
+}).upgrade(async tx => {
+    await tx.table('hosts').toCollection().modify(host => {
+        host.nome = host.nome ?? ''
+        host.cognome = host.cognome ?? ''
+        host.luogoNascita = host.luogoNascita ?? ''
+        host.dataNascita = host.dataNascita ?? null
+        host.sesso = host.sesso ?? ''
+        host.codiceFiscale = host.codiceFiscale ?? ''
+        host.patologie = host.patologie ?? ''
+    })
+})
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 export async function getSetting(key, fallback = null) {

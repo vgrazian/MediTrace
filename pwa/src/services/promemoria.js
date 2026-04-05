@@ -53,9 +53,11 @@ export function buildReminderRows({ reminders, hosts, drugs, therapies, dateFilt
             const therapy = therapiesById.get(r.therapyId)
             const host = hostsById.get(r.hostId)
             const drug = drugsById.get(r.drugId ?? therapy?.drugId)
+            const fullName = host ? [host.cognome, host.nome].filter(Boolean).join(' ').trim() : ''
+            const hostName = fullName || host?.iniziali || host?.codiceInterno || r.hostId
             return {
                 ...r,
-                hostLabel: host ? (host.codiceInterno || host.iniziali || host.id) : (r.hostId ?? '—'),
+                hostLabel: hostName,
                 stanzaLetto: host ? `${host.stanza || '—'}/${host.letto || '—'}` : '—',
                 drugLabel: drug?.principioAttivo ?? (r.drugId ?? '—'),
                 stato: r.stato ?? 'DA_ESEGUIRE',

@@ -5,7 +5,15 @@ import { fullSync, exportBackupJson, listPendingConflicts, resolveConflict } fro
 import { getNotificationStatusSnapshot, requestNotificationPermission, sendTestNotification, triggerReminderNotificationsCheck } from '../services/notifications'
 import { listSupportedImportSources, importCsv } from '../services/csvImport'
 import { getSetting } from '../db'
-import { loadSeedData, clearSeedData, isSeedDataLoaded, getSeedStats } from '../services/seedData'
+import {
+  loadSeedData,
+  clearSeedData,
+  isSeedDataLoaded,
+  getSeedStats,
+  loadRealisticSeedData,
+  clearRealisticSeedData,
+  isRealisticSeedDataLoaded,
+} from '../services/seedData'
 
 const {
   accessToken,
@@ -52,6 +60,7 @@ const notificationStatus = ref(getNotificationStatusSnapshot())
 const notificationMessage = ref('')
 const notificationBusy = ref(false)
 const seedLoaded = ref(false)
+const seedActionMode = ref('load')
 const seedBusy = ref(false)
 const seedMessage = ref('')
 const seedStats = getSeedStats()
@@ -59,9 +68,18 @@ const seedStats = getSeedStats()
 const passwordPolicyState = computed(() => getPasswordPolicy(pwdNext.value))
 const canManageTestData = computed(() => currentUser.value?.role === 'admin')
 const testDataActionLabel = computed(() => {
-  if (seedBusy.value) return seedLoaded.value ? 'Rimozione in corso…' : 'Generazione in corso…'
-  return seedLoaded.value ? 'Rimuovi dati di test' : 'Genera dati di test'
+  if (seedBusy.value) return seedActionMode.value === 'clear' ? 'Rimozione in corso…' : 'Generazione in corso…'
+  return seedActionMode.value === 'clear' ? 'Rimuovi dati di test' : 'Genera dati di test'
 })
+
+async function refreshSeedStatus() {
+  const [legacySeedLoaded, realisticSeedLoaded] = await Promise.all([
+    isSeedDataLoaded(),
+    isRealisticSeedDataLoaded(),
+  ])
+  seedLoaded.value = legacySeedLoaded || realisticSeedLoaded
+  seedActionMode.value = seedLoaded.value ? 'clear' : 'load'
+}
 
 function formatValue(value) {
   if (value === null || value === undefined || value === '') return '—'
@@ -195,13 +213,14 @@ onMounted(async () => {
   await refreshUsers()
   await refreshSecurityInfo()
   refreshNotificationStatus()
-  seedLoaded.value = await isSeedDataLoaded()
+  await refreshSeedStatus()
 })
 
 async function handleToggleTestData() {
   if (!canManageTestData.value) return
 
-  const confirmed = seedLoaded.value
+  const shouldClear = seedActionMode.value === 'clear'
+  const confirmed = shouldClear
     ? window.confirm('Rimuovere tutti i dati di test dal database locale?')
     : window.confirm('Generare e importare dati di test nel database locale?')
   if (!confirmed) return
@@ -210,16 +229,27 @@ async function handleToggleTestData() {
   seedMessage.value = ''
 
   try {
-    if (seedLoaded.value) {
-      const result = await clearSeedData({ allowInProduction: true })
+    if (shouldClear) {
+      const [legacyResult, realisticResult] = await Promise.all([
+        clearSeedData({ allowInProduction: true }),
+        clearRealisticSeedData({ allowInProduction: true }),
+      ])
+      const cleared = Boolean(legacyResult?.cleared || realisticResult?.cleared)
       seedLoaded.value = false
-      seedMessage.value = result.cleared
+      seedActionMode.value = 'load'
+      seedMessage.value = cleared
         ? 'Dati di test rimossi.'
         : 'Nessun dato di test presente da rimuovere.'
+      if (!cleared) await refreshSeedStatus()
     } else {
-      const stats = await loadSeedData({ allowInProduction: true })
+      await Promise.all([
+        clearSeedData({ allowInProduction: true }),
+        clearRealisticSeedData({ allowInProduction: true }),
+      ])
+      const stats = await loadRealisticSeedData({ allowInProduction: true })
       seedLoaded.value = true
-      seedMessage.value = `Importati dati di test: ${stats.drugs} farmaci, ${stats.hosts} ospiti, ${stats.stockBatches} confezioni, ${stats.therapies} terapie, ${stats.movements} movimenti, ${stats.reminders} promemoria.`
+      seedActionMode.value = 'clear'
+      seedMessage.value = `Importati dati di test: ${stats.drugs} farmaci, ${stats.hosts} ospiti, ${stats.stockBatches} confezioni, ${stats.therapies} terapie, ${stats.rooms} stanze, ${stats.beds} letti.`
     }
   } catch (err) {
     seedMessage.value = `Errore gestione dati di test: ${err.message}`

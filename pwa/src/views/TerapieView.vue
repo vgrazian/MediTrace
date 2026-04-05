@@ -8,6 +8,7 @@ const { currentUser } = useAuth()
 const hosts = ref([])
 const drugs = ref([])
 const therapies = ref([])
+const editingTherapyId = ref(null)
 const loading = ref(false)
 const saving = ref(false)
 const message = ref('')
@@ -36,7 +37,9 @@ function formatDate(value) {
 function hostLabel(hostId) {
   const host = hosts.value.find(item => item.id === hostId)
   if (!host) return hostId
-  return host.codiceInterno || host.iniziali || hostId
+  const fullName = [host.cognome, host.nome].filter(Boolean).join(' ').trim()
+  const namePart = fullName || host.iniziali || host.codiceInterno || hostId
+  return `[${host.id}] - ${namePart}`
 }
 
 function drugLabel(drugId) {
@@ -74,7 +77,7 @@ async function loadData() {
   }
 }
 
-async function createTherapy() {
+async function saveTherapy() {
   message.value = ''
   errorMessage.value = ''
 
@@ -87,8 +90,11 @@ async function createTherapy() {
   const now = new Date().toISOString()
 
   try {
+    const therapyId = editingTherapyId.value || crypto.randomUUID()
+    const existing = editingTherapyId.value ? therapies.value.find(t => t.id === editingTherapyId.value) : null
     const record = {
-      id: crypto.randomUUID(),
+      ...(existing || {}),
+      id: therapyId,
       hostId: form.value.hostId,
       drugId: form.value.drugId,
       dosePerSomministrazione: Number(form.value.dosePerSomministrazione || 0),
@@ -99,7 +105,7 @@ async function createTherapy() {
       note: form.value.note || '',
       attiva: true,
       updatedAt: now,
-      deletedAt: null,
+      deletedAt: existing?.deletedAt ?? null,
       syncStatus: 'pending',
     }
 
@@ -111,7 +117,7 @@ async function createTherapy() {
       await db.activityLog.add({
         entityType: 'therapies',
         entityId: record.id,
-        action: 'therapy_created',
+        action: editingTherapyId.value ? 'therapy_updated' : 'therapy_created',
         deviceId,
         operatorId: currentUser.value?.login ?? null,
         ts: now,
@@ -128,12 +134,47 @@ async function createTherapy() {
       dataFine: '',
       note: '',
     }
-    message.value = 'Terapia salvata.'
+    editingTherapyId.value = null
+    message.value = existing ? 'Terapia aggiornata.' : 'Terapia salvata.'
     await loadData()
   } catch (err) {
     errorMessage.value = `Errore salvataggio: ${err.message}`
   } finally {
     saving.value = false
+  }
+}
+
+function startEditTherapy(therapy) {
+  editingTherapyId.value = therapy.id
+  const toDateInput = (value) => {
+    if (!value) return ''
+    const d = new Date(value)
+    if (Number.isNaN(d.getTime())) return ''
+    return d.toISOString().slice(0, 10)
+  }
+  form.value = {
+    hostId: therapy.hostId || '',
+    drugId: therapy.drugId || '',
+    dosePerSomministrazione: therapy.dosePerSomministrazione ?? '',
+    somministrazioniGiornaliere: therapy.somministrazioniGiornaliere ?? '',
+    consumoMedioSettimanale: therapy.consumoMedioSettimanale ?? '',
+    dataInizio: toDateInput(therapy.dataInizio),
+    dataFine: toDateInput(therapy.dataFine),
+    note: therapy.note || '',
+  }
+}
+
+function resetForm() {
+  editingTherapyId.value = null
+  form.value = {
+    hostId: '',
+    drugId: '',
+    dosePerSomministrazione: '',
+    somministrazioniGiornaliere: '',
+    consumoMedioSettimanale: '',
+    dataInizio: '',
+    dataFine: '',
+    note: '',
   }
 }
 
@@ -168,6 +209,7 @@ async function deactivateTherapy(therapy) {
     })
 
     message.value = 'Terapia disattivata.'
+    if (editingTherapyId.value === therapy.id) resetForm()
     await loadData()
   } catch (err) {
     errorMessage.value = `Errore disattivazione: ${err.message}`
@@ -212,7 +254,8 @@ onMounted(() => {
             <td>{{ formatDate(therapy.dataInizio) }}</td>
             <td>{{ formatDate(therapy.dataFine) }}</td>
             <td>
-              <button @click="deactivateTherapy(therapy)">Disattiva</button>
+              <button style="margin-right:.35rem" @click="startEditTherapy(therapy)">Modifica</button>
+              <button style="background:#c0392b" @click="deactivateTherapy(therapy)">Disattiva</button>
             </td>
           </tr>
           <tr v-if="therapies.length === 0 && !loading">
@@ -229,7 +272,7 @@ onMounted(() => {
         <summary><strong>Gestione Terapie</strong></summary>
 
         <div style="margin-top:.75rem">
-          <p><strong>Aggiungi nuova terapia</strong></p>
+          <p><strong>{{ editingTherapyId ? 'Modifica terapia' : 'Aggiungi nuova terapia' }}</strong></p>
           <p class="muted" style="margin-top:.25rem">Compila i campi minimi per registrare una terapia attiva per ospite.</p>
 
           <div class="import-form" style="margin-top:.65rem">
@@ -238,7 +281,7 @@ onMounted(() => {
               <select v-model="form.hostId" :disabled="saving || !hosts.length">
                 <option value="">Seleziona ospite</option>
                 <option v-for="host in hosts" :key="host.id" :value="host.id">
-                  {{ host.codiceInterno || host.id }}
+                  {{ hostLabel(host.id) }}
                 </option>
               </select>
             </label>
@@ -283,9 +326,10 @@ onMounted(() => {
               <input v-model="form.note" type="text" placeholder="Indicazioni operative" />
             </label>
 
-            <button :disabled="saving || !canCreate" @click="createTherapy">
-              {{ saving ? 'Salvataggio...' : 'Salva terapia' }}
+            <button :disabled="saving || !canCreate" @click="saveTherapy">
+              {{ saving ? 'Salvataggio...' : (editingTherapyId ? 'Salva modifica' : 'Salva terapia') }}
             </button>
+            <button type="button" :disabled="saving" @click="resetForm">Annulla</button>
           </div>
 
           <p v-if="!canCreate" class="muted" style="margin-top:.5rem;font-size:.85rem">

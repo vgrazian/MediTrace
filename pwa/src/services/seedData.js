@@ -12,13 +12,72 @@
  *   clearSeedData(options?)    — rimuove tutti i record demo
  *   isSeedDataLoaded() — true se il manifest è presente in settings
  *   getSeedStats()     — conteggio record per tabella (senza accesso al db)
+ *   
+ * Dati realistici (da CSV fixture):
+ *   loadRealisticSeedData(options?) — carica 30 ospiti + stanze/letti/farmaci/terapie realistici
+ *   clearRealisticSeedData(options?) — rimuove tutti i dati realistici
+ *   isRealisticSeedDataLoaded() — true se i dati realistici sono presenti
  */
 import { db, getSetting, setSetting } from '../db'
+import {
+    loadRealisticSeedData,
+    clearRealisticSeedData,
+    isRealisticSeedDataLoaded,
+} from './seedDataRealistic.js'
 
 // ── Guard ─────────────────────────────────────────────────────────────────────
 
 const SEED_ENABLED = import.meta.env.DEV || import.meta.env.VITE_SEED_DATA === '1'
 const SEED_MANIFEST_KEY = '_seedDataManifest'
+const LEGACY_SEED_PREFIX = '__seed__'
+const LEGACY_SEED_STORE_NAMES = ['rooms', 'beds', 'hosts', 'drugs', 'stockBatches', 'therapies', 'movements', 'reminders']
+
+async function getAvailableStoreNames(expectedStoreNames) {
+    if (typeof db.open === 'function') {
+        await db.open()
+    }
+
+    if (typeof db.backendDB !== 'function') {
+        return new Set(expectedStoreNames)
+    }
+
+    const backendDb = db.backendDB()
+    if (!backendDb?.objectStoreNames) {
+        return new Set(expectedStoreNames)
+    }
+
+    return new Set(
+        expectedStoreNames.filter(storeName => backendDb.objectStoreNames.contains(storeName))
+    )
+}
+
+async function findSeedIds(table, prefix) {
+    if (!table || typeof table.toArray !== 'function') return []
+    const rows = await table.toArray()
+    return rows
+        .map(row => row?.id)
+        .filter(id => typeof id === 'string' && id.startsWith(prefix))
+}
+
+async function getLegacySeedManifest() {
+    const manifest = await getSetting(SEED_MANIFEST_KEY, null)
+    if (manifest) return manifest
+
+    const [rooms, beds, hosts, drugs, stockBatches, therapies, movements, reminders] = await Promise.all([
+        findSeedIds(db.rooms, LEGACY_SEED_PREFIX),
+        findSeedIds(db.beds, LEGACY_SEED_PREFIX),
+        findSeedIds(db.hosts, LEGACY_SEED_PREFIX),
+        findSeedIds(db.drugs, LEGACY_SEED_PREFIX),
+        findSeedIds(db.stockBatches, LEGACY_SEED_PREFIX),
+        findSeedIds(db.therapies, LEGACY_SEED_PREFIX),
+        findSeedIds(db.movements, LEGACY_SEED_PREFIX),
+        findSeedIds(db.reminders, LEGACY_SEED_PREFIX),
+    ])
+
+    const fallbackManifest = { rooms, beds, hosts, drugs, stockBatches, therapies, movements, reminders }
+    const hasSeedRows = Object.values(fallbackManifest).some(ids => ids.length > 0)
+    return hasSeedRows ? fallbackManifest : null
+}
 
 function assertSeedEnabled(options = {}) {
     if (SEED_ENABLED || options.allowInProduction === true) return
@@ -58,16 +117,16 @@ const SEED_DRUGS = [
 ]
 
 const SEED_HOSTS = [
-    { id: '__seed__host-1', codiceInterno: 'OSP-01', iniziali: 'M.R.', roomId: '__seed__room-A', bedId: '__seed__bed-A-1', stanza: 'A', letto: '1', attivo: true, noteEssenziali: 'Allergia penicillina', updatedAt: NOW, deletedAt: null, syncStatus: 'pending', _seeded: true },
-    { id: '__seed__host-2', codiceInterno: 'OSP-02', iniziali: 'A.B.', roomId: '__seed__room-A', bedId: '__seed__bed-A-2', stanza: 'A', letto: '2', attivo: true, noteEssenziali: '', updatedAt: NOW, deletedAt: null, syncStatus: 'pending', _seeded: true },
-    { id: '__seed__host-3', codiceInterno: 'OSP-03', iniziali: 'G.P.', roomId: '__seed__room-B', bedId: '__seed__bed-B-1', stanza: 'B', letto: '1', attivo: true, noteEssenziali: '', updatedAt: NOW, deletedAt: null, syncStatus: 'pending', _seeded: true },
-    { id: '__seed__host-4', codiceInterno: 'OSP-04', iniziali: 'L.T.', roomId: '__seed__room-B', bedId: '__seed__bed-B-2', stanza: 'B', letto: '2', attivo: true, noteEssenziali: '', updatedAt: NOW, deletedAt: null, syncStatus: 'pending', _seeded: true },
-    { id: '__seed__host-5', codiceInterno: 'OSP-05', iniziali: 'E.S.', roomId: '__seed__room-C', bedId: '__seed__bed-C-1', stanza: 'C', letto: '1', attivo: true, noteEssenziali: 'Follow-up cardiologo mensile', updatedAt: NOW, deletedAt: null, syncStatus: 'pending', _seeded: true },
-    { id: '__seed__host-6', codiceInterno: 'OSP-06', iniziali: 'P.C.', roomId: '__seed__room-C', bedId: '__seed__bed-C-2', stanza: 'C', letto: '2', attivo: true, noteEssenziali: '', updatedAt: NOW, deletedAt: null, syncStatus: 'pending', _seeded: true },
-    { id: '__seed__host-7', codiceInterno: 'OSP-07', iniziali: 'V.D.', roomId: '__seed__room-A', bedId: null, stanza: 'A', letto: '3', attivo: true, noteEssenziali: 'Diabete controllato', updatedAt: NOW, deletedAt: null, syncStatus: 'pending', _seeded: true },
-    { id: '__seed__host-8', codiceInterno: 'OSP-08', iniziali: 'F.M.', roomId: '__seed__room-B', bedId: null, stanza: 'B', letto: '3', attivo: true, noteEssenziali: '', updatedAt: NOW, deletedAt: null, syncStatus: 'pending', _seeded: true },
-    { id: '__seed__host-9', codiceInterno: 'OSP-09', iniziali: 'C.N.', roomId: '__seed__room-C', bedId: null, stanza: 'C', letto: '3', attivo: true, noteEssenziali: 'Stato stabile', updatedAt: NOW, deletedAt: null, syncStatus: 'pending', _seeded: true },
-    { id: '__seed__host-10', codiceInterno: 'OSP-10', iniziali: 'S.R.', roomId: null, bedId: null, stanza: 'D', letto: '1', attivo: false, noteEssenziali: 'Dimesso 2026-03-28', updatedAt: NOW, deletedAt: NOW, syncStatus: 'pending', _seeded: true },
+    { id: '__seed__host-1', codiceInterno: 'OSP-01', iniziali: 'M.R.', nome: 'Mario', cognome: 'Rossi', luogoNascita: 'Roma', dataNascita: '1945-03-12', sesso: 'M', codiceFiscale: 'RSSMRA45C12H501X', patologie: 'Allergia penicillina', roomId: '__seed__room-A', bedId: '__seed__bed-A-1', stanza: 'A', letto: '1', attivo: true, noteEssenziali: 'Allergia penicillina', updatedAt: NOW, deletedAt: null, syncStatus: 'pending', _seeded: true },
+    { id: '__seed__host-2', codiceInterno: 'OSP-02', iniziali: 'A.B.', nome: 'Anna', cognome: 'Bianchi', luogoNascita: 'Milano', dataNascita: '1948-07-21', sesso: 'F', codiceFiscale: 'BNCNNA48L61F205X', patologie: 'Ipertensione', roomId: '__seed__room-A', bedId: '__seed__bed-A-2', stanza: 'A', letto: '2', attivo: true, noteEssenziali: '', updatedAt: NOW, deletedAt: null, syncStatus: 'pending', _seeded: true },
+    { id: '__seed__host-3', codiceInterno: 'OSP-03', iniziali: 'G.P.', nome: 'Giuseppe', cognome: 'Pini', luogoNascita: 'Napoli', dataNascita: '1942-11-03', sesso: 'M', codiceFiscale: 'PNIGPP42S03F839X', patologie: 'Diabete tipo 2', roomId: '__seed__room-B', bedId: '__seed__bed-B-1', stanza: 'B', letto: '1', attivo: true, noteEssenziali: '', updatedAt: NOW, deletedAt: null, syncStatus: 'pending', _seeded: true },
+    { id: '__seed__host-4', codiceInterno: 'OSP-04', iniziali: 'L.T.', nome: 'Laura', cognome: 'Tesi', luogoNascita: 'Torino', dataNascita: '1950-02-14', sesso: 'F', codiceFiscale: 'TSELRU50B54L219X', patologie: 'Artrosi', roomId: '__seed__room-B', bedId: '__seed__bed-B-2', stanza: 'B', letto: '2', attivo: true, noteEssenziali: '', updatedAt: NOW, deletedAt: null, syncStatus: 'pending', _seeded: true },
+    { id: '__seed__host-5', codiceInterno: 'OSP-05', iniziali: 'E.S.', nome: 'Elena', cognome: 'Seri', luogoNascita: 'Bologna', dataNascita: '1947-09-18', sesso: 'F', codiceFiscale: 'SRELEN47P58A944X', patologie: 'Cardiopatia ischemica', roomId: '__seed__room-C', bedId: '__seed__bed-C-1', stanza: 'C', letto: '1', attivo: true, noteEssenziali: 'Follow-up cardiologo mensile', updatedAt: NOW, deletedAt: null, syncStatus: 'pending', _seeded: true },
+    { id: '__seed__host-6', codiceInterno: 'OSP-06', iniziali: 'P.C.', nome: 'Paolo', cognome: 'Cerri', luogoNascita: 'Genova', dataNascita: '1944-05-09', sesso: 'M', codiceFiscale: 'CRRPLA44E09D969X', patologie: 'Reflusso gastroesofageo', roomId: '__seed__room-C', bedId: '__seed__bed-C-2', stanza: 'C', letto: '2', attivo: true, noteEssenziali: '', updatedAt: NOW, deletedAt: null, syncStatus: 'pending', _seeded: true },
+    { id: '__seed__host-7', codiceInterno: 'OSP-07', iniziali: 'V.D.', nome: 'Vito', cognome: 'Danti', luogoNascita: 'Bari', dataNascita: '1941-01-26', sesso: 'M', codiceFiscale: 'DNTVTI41A26A662X', patologie: 'Diabete controllato', roomId: '__seed__room-A', bedId: null, stanza: 'A', letto: '3', attivo: true, noteEssenziali: 'Diabete controllato', updatedAt: NOW, deletedAt: null, syncStatus: 'pending', _seeded: true },
+    { id: '__seed__host-8', codiceInterno: 'OSP-08', iniziali: 'F.M.', nome: 'Fatima', cognome: 'Mansouri', luogoNascita: 'Rabat', dataNascita: '1949-10-05', sesso: 'F', codiceFiscale: 'MNSFTM49R45Z330X', patologie: 'Ipertensione', roomId: '__seed__room-B', bedId: null, stanza: 'B', letto: '3', attivo: true, noteEssenziali: '', updatedAt: NOW, deletedAt: null, syncStatus: 'pending', _seeded: true },
+    { id: '__seed__host-9', codiceInterno: 'OSP-09', iniziali: 'C.N.', nome: 'أحمد', cognome: 'علي', luogoNascita: 'Casablanca', dataNascita: '1946-12-30', sesso: 'M', codiceFiscale: 'LIXHMD46T30Z330X', patologie: 'BPCO lieve', roomId: '__seed__room-C', bedId: null, stanza: 'C', letto: '3', attivo: true, noteEssenziali: 'Stato stabile', updatedAt: NOW, deletedAt: null, syncStatus: 'pending', _seeded: true },
+    { id: '__seed__host-10', codiceInterno: 'OSP-10', iniziali: 'S.R.', nome: 'Sara', cognome: 'Riva', luogoNascita: 'Firenze', dataNascita: '1952-04-11', sesso: 'F', codiceFiscale: 'RVISRA52D51D612X', patologie: 'Dimesso', roomId: null, bedId: null, stanza: 'D', letto: '1', attivo: false, noteEssenziali: 'Dimesso 2026-03-28', updatedAt: NOW, deletedAt: NOW, syncStatus: 'pending', _seeded: true },
 ]
 
 const SEED_STOCK_BATCHES = [
@@ -162,21 +221,41 @@ const SEED_MANIFEST = {
 export async function loadSeedData(options = {}) {
     assertSeedEnabled(options)
 
-    await db.transaction('rw', [
-        db.rooms, db.beds, db.hosts, db.drugs, db.stockBatches,
-        db.therapies, db.movements, db.reminders,
-    ], async () => {
-        for (const record of SEED_ROOMS) await db.rooms.put(record)
-        for (const record of SEED_BEDS) await db.beds.put(record)
-        for (const record of SEED_HOSTS) await db.hosts.put(record)
-        for (const record of SEED_DRUGS) await db.drugs.put(record)
-        for (const record of SEED_STOCK_BATCHES) await db.stockBatches.put(record)
-        for (const record of SEED_THERAPIES) await db.therapies.put(record)
-        for (const record of SEED_MOVEMENTS) await db.movements.put(record)
-        for (const record of SEED_REMINDERS) await db.reminders.put(record)
-    })
+    const availableStores = await getAvailableStoreNames(LEGACY_SEED_STORE_NAMES)
+    const transactionTables = [
+        availableStores.has('rooms') ? db.rooms : null,
+        availableStores.has('beds') ? db.beds : null,
+        availableStores.has('hosts') ? db.hosts : null,
+        availableStores.has('drugs') ? db.drugs : null,
+        availableStores.has('stockBatches') ? db.stockBatches : null,
+        availableStores.has('therapies') ? db.therapies : null,
+        availableStores.has('movements') ? db.movements : null,
+        availableStores.has('reminders') ? db.reminders : null,
+    ].filter(Boolean)
 
-    await setSetting(SEED_MANIFEST_KEY, SEED_MANIFEST)
+    if (transactionTables.length > 0) {
+        await db.transaction('rw', transactionTables, async () => {
+            if (availableStores.has('rooms')) for (const record of SEED_ROOMS) await db.rooms.put(record)
+            if (availableStores.has('beds')) for (const record of SEED_BEDS) await db.beds.put(record)
+            if (availableStores.has('hosts')) for (const record of SEED_HOSTS) await db.hosts.put(record)
+            if (availableStores.has('drugs')) for (const record of SEED_DRUGS) await db.drugs.put(record)
+            if (availableStores.has('stockBatches')) for (const record of SEED_STOCK_BATCHES) await db.stockBatches.put(record)
+            if (availableStores.has('therapies')) for (const record of SEED_THERAPIES) await db.therapies.put(record)
+            if (availableStores.has('movements')) for (const record of SEED_MOVEMENTS) await db.movements.put(record)
+            if (availableStores.has('reminders')) for (const record of SEED_REMINDERS) await db.reminders.put(record)
+        })
+    }
+
+    await setSetting(SEED_MANIFEST_KEY, {
+        rooms: availableStores.has('rooms') ? SEED_MANIFEST.rooms : [],
+        beds: availableStores.has('beds') ? SEED_MANIFEST.beds : [],
+        hosts: availableStores.has('hosts') ? SEED_MANIFEST.hosts : [],
+        drugs: availableStores.has('drugs') ? SEED_MANIFEST.drugs : [],
+        stockBatches: availableStores.has('stockBatches') ? SEED_MANIFEST.stockBatches : [],
+        therapies: availableStores.has('therapies') ? SEED_MANIFEST.therapies : [],
+        movements: availableStores.has('movements') ? SEED_MANIFEST.movements : [],
+        reminders: availableStores.has('reminders') ? SEED_MANIFEST.reminders : [],
+    })
 
     return getSeedStats()
 }
@@ -188,22 +267,33 @@ export async function loadSeedData(options = {}) {
 export async function clearSeedData(options = {}) {
     assertSeedEnabled(options)
 
-    const manifest = await getSetting(SEED_MANIFEST_KEY, null)
+    const manifest = await getLegacySeedManifest()
     if (!manifest) return { cleared: false, reason: 'nessun dato demo trovato' }
 
-    await db.transaction('rw', [
-        db.rooms, db.beds, db.hosts, db.drugs, db.stockBatches,
-        db.therapies, db.movements, db.reminders,
-    ], async () => {
-        for (const id of (manifest.rooms ?? [])) await db.rooms.delete(id)
-        for (const id of (manifest.beds ?? [])) await db.beds.delete(id)
-        for (const id of (manifest.hosts ?? [])) await db.hosts.delete(id)
-        for (const id of (manifest.drugs ?? [])) await db.drugs.delete(id)
-        for (const id of (manifest.stockBatches ?? [])) await db.stockBatches.delete(id)
-        for (const id of (manifest.therapies ?? [])) await db.therapies.delete(id)
-        for (const id of (manifest.movements ?? [])) await db.movements.delete(id)
-        for (const id of (manifest.reminders ?? [])) await db.reminders.delete(id)
-    })
+    const availableStores = await getAvailableStoreNames(LEGACY_SEED_STORE_NAMES)
+    const transactionTables = [
+        availableStores.has('rooms') ? db.rooms : null,
+        availableStores.has('beds') ? db.beds : null,
+        availableStores.has('hosts') ? db.hosts : null,
+        availableStores.has('drugs') ? db.drugs : null,
+        availableStores.has('stockBatches') ? db.stockBatches : null,
+        availableStores.has('therapies') ? db.therapies : null,
+        availableStores.has('movements') ? db.movements : null,
+        availableStores.has('reminders') ? db.reminders : null,
+    ].filter(Boolean)
+
+    if (transactionTables.length > 0) {
+        await db.transaction('rw', transactionTables, async () => {
+            if (availableStores.has('rooms')) for (const id of (manifest.rooms ?? [])) await db.rooms.delete(id)
+            if (availableStores.has('beds')) for (const id of (manifest.beds ?? [])) await db.beds.delete(id)
+            if (availableStores.has('hosts')) for (const id of (manifest.hosts ?? [])) await db.hosts.delete(id)
+            if (availableStores.has('drugs')) for (const id of (manifest.drugs ?? [])) await db.drugs.delete(id)
+            if (availableStores.has('stockBatches')) for (const id of (manifest.stockBatches ?? [])) await db.stockBatches.delete(id)
+            if (availableStores.has('therapies')) for (const id of (manifest.therapies ?? [])) await db.therapies.delete(id)
+            if (availableStores.has('movements')) for (const id of (manifest.movements ?? [])) await db.movements.delete(id)
+            if (availableStores.has('reminders')) for (const id of (manifest.reminders ?? [])) await db.reminders.delete(id)
+        })
+    }
 
     await setSetting(SEED_MANIFEST_KEY, null)
 
@@ -215,7 +305,7 @@ export async function clearSeedData(options = {}) {
  * (cioè i dati demo sono stati caricati).
  */
 export async function isSeedDataLoaded() {
-    const manifest = await getSetting(SEED_MANIFEST_KEY, null)
+    const manifest = await getLegacySeedManifest()
     return Boolean(manifest)
 }
 
@@ -249,3 +339,6 @@ export const seedDataTestUtils = {
     SEED_MOVEMENTS,
     SEED_REMINDERS,
 }
+
+// Re-export realistic seed data functions for UI convenience
+export { loadRealisticSeedData, clearRealisticSeedData, isRealisticSeedDataLoaded }

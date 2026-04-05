@@ -1,0 +1,31 @@
+nome,cognome,data_nascita,luogo_nascita,codice_fiscale,patologia
+Carlo,Russo,1941-12-07,Torino,RSSCRL41T07L219I,Insufficienza cardiaca severa
+Lucia,Ricci,1951-07-05,Torino,RCCLCU51L45L219U,Demenza senile con necessità di sorveglianza
+Paola,Greco,1953-02-13,Palermo,GRCPLA53B53G273F,Sclerosi multipla in fase progressiva
+Angela,Rossi,1954-01-26,Genova,RSSNGL54A66D969L,Parkinson in stadio avanzato
+Giovanni,Esposito,1954-09-08,Firenze,SPSGNN54P08D612L,Sclerosi multipla in fase progressiva
+Carlo,Russo,1948-04-23,Roma,RSSCRL48D23H501I,Parkinson in stadio avanzato
+Stefano,Ferrari,1956-10-20,Torino,FRRSFN56R20L219U,Alzheimer avanzato con assistenza continua
+Franco,Colombo,1954-06-18,Roma,CLMFNC54H18H501F,Insufficienza cardiaca severa
+Antonio,Marino,1959-10-08,Milano,MRNNTN59R08F205L,Sclerosi multipla in fase progressiva
+Paola,Ferrari,1955-12-20,Genova,FRRPLA55T60D969R,Parkinson in stadio avanzato
+Stefano,Ricci,1959-03-01,Napoli,RCCSFN59C01F839E,Insufficienza respiratoria cronica
+Angela,Esposito,1949-12-02,Torino,SPSNGL49T42L219B,Alzheimer avanzato con assistenza continua
+Giovanni,Esposito,1944-12-26,Palermo,SPSGNN44T26G273R,Sclerosi multipla in fase progressiva
+Giovanni,Romano,1950-02-26,Firenze,RMNGNN50B26D612D,Sclerosi multipla in fase progressiva
+Caterina,Marino,1955-10-27,Palermo,MRNCRN55R67G273W,Insufficienza cardiaca severa
+Stefano,Esposito,1951-11-14,Bologna,SPSSFN51S14A944X,Parkinson in stadio avanzato
+Stefano,Ricci,1942-09-04,Bari,RCCSFN42P04A662E,Parkinson in stadio avanzato
+Paola,Rossi,1951-02-13,Palermo,RSSPLA51B53G273E,Sclerosi multipla in fase progressiva
+Paola,Esposito,1953-06-06,Roma,SPSPLA53H46H501A,Insufficienza cardiaca severa
+Giuseppina,Ferrari,1955-04-17,Torino,FRRGPP55D57L219R,Sclerosi multipla in fase progressiva
+Giuseppe,Russo,1954-04-07,Napoli,RSSGPP54D07F839V,Parkinson in stadio avanzato
+Franco,Colombo,1961-07-22,Torino,CLMFNC61L22L219W,Demenza senile con necessità di sorveglianza
+Giovanni,Russo,1955-05-21,Firenze,RSSGNN55E21D612A,SLA (sclerosi laterale amiotrofica)
+Lucia,Rossi,1945-04-11,Catania,RSSLCU45D51C351K,SLA (sclerosi laterale amiotrofica)
+Caterina,Marino,1943-12-21,Bologna,MRNCRN43T61A944O,Alzheimer avanzato con assistenza continua
+Angela,Greco,1960-09-11,Torino,GRCNGL60P51L219H,Insufficienza respiratoria cronica
+Mario,Colombo,1956-10-20,Milano,CLMMRA56R20F205D,Sclerosi multipla in fase progressiva
+Anna,Esposito,1955-03-26,Torino,SPSNNA55C66L219Y,Parkinson in stadio avanzato
+Rosa,Ferrari,1949-08-08,Firenze,FRRRSO49M48D612I,Insufficienza cardiaca severa
+Roberto,Rossi,1944-07-07,Firenze,RSSRRT44L07D612K,Demenza senile con necessità di sorveglianza

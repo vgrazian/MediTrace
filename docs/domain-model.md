@@ -33,14 +33,24 @@ Questa entita' separa il principio attivo dal modo in cui il farmaco entra realm
 - `id`: UUID
 - `codiceInterno`
 - `iniziali`
+- `nome`: string — nome di battesimo
+- `cognome`: string — cognome
+- `luogoNascita`: string opzionale
+- `dataNascita`: string ISO date (YYYY-MM-DD)
+- `sesso`: enum `M` | `F` | `Altro` opzionale
+- `codiceFiscale`: string opzionale (16 caratteri)
 - `casaAlloggio`
-- `stanzaId`: foreign key a Stanza (opzionale, retrocompatibilità)
-- `lettoId`: foreign key a Letto (opzionale, retrocompatibilità)
-- `dataNascita`
-- `noteClinicheEssenziali`
+- `stanzaId`: foreign key a Stanza (opzionale)
+- `lettoId`: foreign key a Letto (opzionale)
+- `patologie`: string testo libero — elenco patologie o note cliniche
 - `attivo`
 - `updatedAt`
 - `isSynced`
+
+**Note UX:**
+
+- In tutti i pannelli e dropdown dove l'ospite è menzionato va mostrato `cognome nome` accanto all'ID, nella forma `[ID] - Cognome Nome`.
+- La sezione Gestione deve offrire tre azioni: **Crea**, **Modifica** (pre-compilazione form con dati esistenti), **Elimina** (soft-delete con conferma).
 
 ### Operatore
 

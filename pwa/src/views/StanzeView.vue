@@ -31,6 +31,13 @@ const canCreateRoom = computed(() => roomForm.value.id.trim() || roomForm.value.
 
 const canCreateBed = computed(() => bedForm.value.roomId && Number(bedForm.value.numero) > 0)
 
+function formatHostLabel(host) {
+  if (!host) return '—'
+  const fullName = [host.cognome, host.nome].filter(Boolean).join(' ').trim()
+  const displayName = fullName || host.iniziali || host.codiceInterno || host.id
+  return `[${host.id}] - ${displayName}`
+}
+
 async function loadData() {
   loading.value = true
   errorMessage.value = ''
@@ -232,6 +239,7 @@ onMounted(() => void loadData())
               <tr>
                 <th>Letto</th>
                 <th>ID</th>
+                <th>Ospite</th>
                 <th>Note</th>
                 <th>Azione</th>
               </tr>
@@ -240,6 +248,7 @@ onMounted(() => void loadData())
               <tr v-for="bed in room.beds" :key="bed.id">
                 <td>{{ bed.numero }}</td>
                 <td>{{ bed.id }}</td>
+                <td>{{ formatHostLabel(bed.host) }}</td>
                 <td>{{ bed.note || '—' }}</td>
                 <td>
                   <button
@@ -252,7 +261,7 @@ onMounted(() => void loadData())
                 </td>
               </tr>
               <tr v-if="room.beds.length === 0">
-                <td colspan="4" class="muted">Nessun letto.</td>
+                <td colspan="5" class="muted">Nessun letto.</td>
               </tr>
             </tbody>
           </table>

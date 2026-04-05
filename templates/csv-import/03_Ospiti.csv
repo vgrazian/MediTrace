@@ -1,1 +1,1 @@
-guest_id,codice_interno,iniziali,casa_alloggio,attivo,note_essenziali,updated_at,deleted_at
+guest_id,codice_interno,iniziali,nome,cognome,luogo_nascita,data_nascita,sesso,codice_fiscale,casa_alloggio,stanza_id,letto_id,patologie,attivo,note_essenziali,updated_at,deleted_at
