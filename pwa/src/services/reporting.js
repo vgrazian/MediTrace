@@ -6,6 +6,7 @@ const SEVERITY_ORDER = {
     media: 2,
     ok: 3,
 }
+const ADHERENCE_WINDOW_DAYS = 7
 
 function toNumber(value, fallback = 0) {
     const parsed = Number(value)
@@ -82,6 +83,102 @@ function buildRecentWeekKeys(now = new Date(), weeks = 8) {
     return out
 }
 
+function parseReminderDate(reminder) {
+    const raw = reminder?.scheduledAt ?? reminder?.updatedAt
+    if (!raw) return null
+    const parsed = new Date(raw)
+    if (Number.isNaN(parsed.getTime())) return null
+    return parsed
+}
+
+function normalizeReminderState(reminder) {
+    return String(reminder?.stato ?? 'DA_ESEGUIRE').toUpperCase()
+}
+
+function formatHostDisplay(host, fallbackHostId = '') {
+    if (!host) return fallbackHostId || '—'
+    const fullName = [host.cognome, host.nome].filter(Boolean).join(' ').trim()
+    if (fullName) return fullName
+    return host.codiceInterno || host.iniziali || host.id || fallbackHostId || '—'
+}
+
+function buildAdherenceSnapshot(reminders, hostsById, now = new Date(), windowDays = ADHERENCE_WINDOW_DAYS) {
+    const windowStart = new Date(now)
+    windowStart.setDate(windowStart.getDate() - Math.max(1, windowDays))
+
+    const totals = {
+        windowDays: Math.max(1, windowDays),
+        totalScheduled: 0,
+        executed: 0,
+        skipped: 0,
+        postponed: 0,
+        pending: 0,
+        adherenceRate: null,
+    }
+
+    const byHost = new Map()
+
+    for (const reminder of reminders) {
+        if (reminder?.deletedAt) continue
+
+        const scheduledAt = parseReminderDate(reminder)
+        if (!scheduledAt || scheduledAt < windowStart || scheduledAt > now) continue
+
+        const state = normalizeReminderState(reminder)
+        totals.totalScheduled += 1
+
+        if (state === 'ESEGUITO') totals.executed += 1
+        else if (state === 'SALTATO') totals.skipped += 1
+        else if (state === 'POSTICIPATO') totals.postponed += 1
+        else totals.pending += 1
+
+        const hostId = reminder.hostId || 'unknown-host'
+        const host = hostsById.get(hostId)
+        const agg = byHost.get(hostId) ?? {
+            hostId,
+            hostLabel: formatHostDisplay(host, hostId),
+            totalScheduled: 0,
+            executed: 0,
+            skipped: 0,
+            postponed: 0,
+            pending: 0,
+            adherenceRate: null,
+        }
+
+        agg.totalScheduled += 1
+        if (state === 'ESEGUITO') agg.executed += 1
+        else if (state === 'SALTATO') agg.skipped += 1
+        else if (state === 'POSTICIPATO') agg.postponed += 1
+        else agg.pending += 1
+
+        byHost.set(hostId, agg)
+    }
+
+    if (totals.totalScheduled > 0) {
+        totals.adherenceRate = (totals.executed / totals.totalScheduled) * 100
+    }
+
+    const hostRows = Array.from(byHost.values())
+        .map(row => ({
+            ...row,
+            adherenceRate: row.totalScheduled > 0
+                ? (row.executed / row.totalScheduled) * 100
+                : null,
+        }))
+        .sort((a, b) => {
+            const aRate = Number.isFinite(a.adherenceRate) ? a.adherenceRate : Infinity
+            const bRate = Number.isFinite(b.adherenceRate) ? b.adherenceRate : Infinity
+            if (aRate !== bRate) return aRate - bRate
+            if (b.totalScheduled !== a.totalScheduled) return b.totalScheduled - a.totalScheduled
+            return a.hostLabel.localeCompare(b.hostLabel)
+        })
+
+    return {
+        summary: totals,
+        hostRows,
+    }
+}
+
 function computePriority({ stockCurrent, weeklyConsumption, reorderThreshold }) {
     const coverageWeeks = weeklyConsumption > 0 ? stockCurrent / weeklyConsumption : null
 
@@ -105,12 +202,13 @@ function computePriority({ stockCurrent, weeklyConsumption, reorderThreshold }) 
 }
 
 export async function buildOperationalReport() {
-    const [drugs, stockBatches, movements, therapies, hosts] = await Promise.all([
+    const [drugs, stockBatches, movements, therapies, hosts, reminders] = await Promise.all([
         db.drugs.toArray(),
         db.stockBatches.toArray(),
         db.movements.toArray(),
         db.therapies.toArray(),
         db.hosts.toArray(),
+        db.reminders.toArray(),
     ])
 
     const now = new Date()
@@ -282,6 +380,8 @@ export async function buildOperationalReport() {
         ok: rows.filter(row => row.warningPriority === 'ok').length,
     }
 
+    const adherence = buildAdherenceSnapshot(reminders, hostsById, now, ADHERENCE_WINDOW_DAYS)
+
     return {
         generatedAt: new Date().toISOString(),
         rows,
@@ -289,6 +389,8 @@ export async function buildOperationalReport() {
         trendWeeks,
         trendRows,
         summary,
+        adherence: adherence.summary,
+        adherenceHostRows: adherence.hostRows,
     }
 }
 
@@ -374,6 +476,42 @@ function trendSectionToCsv(trendRows, trendWeeks) {
     return lines.join('\n')
 }
 
+function adherenceSummaryToCsv(adherence) {
+    const rows = [
+        ['metric', 'value'].join(','),
+        ['window_days', adherence?.windowDays ?? ADHERENCE_WINDOW_DAYS].join(','),
+        ['total_scheduled', adherence?.totalScheduled ?? 0].join(','),
+        ['executed', adherence?.executed ?? 0].join(','),
+        ['skipped', adherence?.skipped ?? 0].join(','),
+        ['postponed', adherence?.postponed ?? 0].join(','),
+        ['pending', adherence?.pending ?? 0].join(','),
+        ['adherence_rate_percent', adherence?.adherenceRate === null || adherence?.adherenceRate === undefined ? '' : Number(adherence.adherenceRate).toFixed(2)].join(','),
+    ]
+
+    return rows.join('\n')
+}
+
+function adherenceByHostToCsv(adherenceHostRows) {
+    const header = ['host_id', 'host_label', 'total_scheduled', 'executed', 'skipped', 'postponed', 'pending', 'adherence_rate_percent']
+    const lines = [header.join(',')]
+
+    for (const row of adherenceHostRows ?? []) {
+        const values = [
+            row.hostId,
+            row.hostLabel,
+            row.totalScheduled,
+            row.executed,
+            row.skipped,
+            row.postponed,
+            row.pending,
+            row.adherenceRate === null || row.adherenceRate === undefined ? '' : Number(row.adherenceRate).toFixed(2),
+        ]
+        lines.push(values.map(escapeCsvValue).join(','))
+    }
+
+    return lines.join('\n')
+}
+
 export function operationalReportToCsv(reportOrRows) {
     if (Array.isArray(reportOrRows)) {
         return stockSectionToCsv(reportOrRows)
@@ -383,6 +521,8 @@ export function operationalReportToCsv(reportOrRows) {
     const hostRows = reportOrRows?.hostRows ?? []
     const trendRows = reportOrRows?.trendRows ?? []
     const trendWeeks = reportOrRows?.trendWeeks ?? []
+    const adherence = reportOrRows?.adherence ?? null
+    const adherenceHostRows = reportOrRows?.adherenceHostRows ?? []
 
     const sections = [
         '# section: stock',
@@ -393,6 +533,12 @@ export function operationalReportToCsv(reportOrRows) {
         '',
         '# section: trend',
         trendSectionToCsv(trendRows, trendWeeks),
+        '',
+        '# section: adherence_summary',
+        adherenceSummaryToCsv(adherence),
+        '',
+        '# section: adherence_by_host',
+        adherenceByHostToCsv(adherenceHostRows),
     ]
 
     return sections.join('\n')
@@ -415,7 +561,11 @@ export const reportingTestUtils = {
     computePriority,
     isConsumptionMovement,
     parseMovementDate,
+    parseReminderDate,
+    normalizeReminderState,
     toIsoWeekKey,
     buildRecentWeekKeys,
+    formatHostDisplay,
+    buildAdherenceSnapshot,
     escapeCsvValue,
 }

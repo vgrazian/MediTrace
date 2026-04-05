@@ -1,4 +1,4 @@
-import { defineConfig } from '@playwright/test'
+import { defineConfig, devices } from '@playwright/test'
 
 const PORT = 4173
 const BASE_URL = `http://127.0.0.1:${PORT}`
@@ -9,9 +9,25 @@ export default defineConfig({
     use: {
         baseURL: BASE_URL,
         trace: 'on-first-retry',
-        browserName: 'chromium',
         headless: true,
     },
+    projects: [
+        {
+            name: 'desktop-chromium',
+            use: {
+                browserName: 'chromium',
+            },
+        },
+        {
+            // Safari iOS-like run (WebKit + iPhone viewport/user-agent)
+            name: 'mobile-webkit-notifications',
+            testMatch: '**/notifications.spec.js',
+            use: {
+                ...devices['iPhone 13'],
+                browserName: 'webkit',
+            },
+        },
+    ],
     webServer: {
         command: `npm run dev -- --host 127.0.0.1 --port ${PORT}`,
         url: BASE_URL,
