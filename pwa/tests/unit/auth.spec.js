@@ -2,6 +2,22 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const settings = new Map()
 const authEvents = []
+const supabaseAuth = {
+    resetPasswordForEmail: vi.fn(),
+    signInWithOtp: vi.fn(),
+    getSession: vi.fn(),
+    getUser: vi.fn(),
+    updateUser: vi.fn(),
+    signOut: vi.fn(),
+}
+
+vi.mock('../../src/services/supabaseClient', () => ({
+    isSupabaseConfigured: true,
+    getSupabaseRedirectTo: vi.fn(() => 'http://localhost:5173/#/auth/reset-password'),
+    supabase: {
+        auth: supabaseAuth,
+    },
+}))
 
 vi.mock('../../src/db', () => ({
     db: {
@@ -63,6 +79,19 @@ describe('auth service', () => {
         settings.clear()
         authEvents.length = 0
         setupGithubUserFetchMock()
+        supabaseAuth.resetPasswordForEmail.mockReset()
+        supabaseAuth.signInWithOtp.mockReset()
+        supabaseAuth.getSession.mockReset()
+        supabaseAuth.getUser.mockReset()
+        supabaseAuth.updateUser.mockReset()
+        supabaseAuth.signOut.mockReset()
+
+        supabaseAuth.resetPasswordForEmail.mockResolvedValue({ error: null })
+        supabaseAuth.signInWithOtp.mockResolvedValue({ error: null })
+        supabaseAuth.getSession.mockResolvedValue({ data: { session: null }, error: null })
+        supabaseAuth.getUser.mockResolvedValue({ data: { user: null }, error: null })
+        supabaseAuth.updateUser.mockResolvedValue({ error: null })
+        supabaseAuth.signOut.mockResolvedValue({ error: null })
     })
 
     it('registers, signs in and changes password with local credentials', async () => {
@@ -74,6 +103,9 @@ describe('auth service', () => {
 
         await auth.register({
             username: 'Operatore',
+            firstName: 'Mario',
+            lastName: 'Rossi',
+            email: 'mario.rossi@example.com',
             password: 'Password123!',
             confirmPassword: 'Password123!',
             githubToken: 'github_pat_any_value',
@@ -109,6 +141,9 @@ describe('auth service', () => {
 
         await auth.register({
             username: 'tester',
+            firstName: 'Luca',
+            lastName: 'Bianchi',
+            email: 'luca.bianchi@example.com',
             password: 'Password123!',
             confirmPassword: 'Password123!',
             githubToken: 'github_pat_any_value',
@@ -127,6 +162,9 @@ describe('auth service', () => {
         await initAuth()
         await auth.register({
             username: 'expireme',
+            firstName: 'Anna',
+            lastName: 'Verdi',
+            email: 'anna.verdi@example.com',
             password: 'Password123!',
             confirmPassword: 'Password123!',
             githubToken: 'github_pat_any_value',
@@ -157,6 +195,9 @@ describe('auth service', () => {
         await initAuth()
         await auth.register({
             username: 'operatore1',
+            firstName: 'Primo',
+            lastName: 'Operatore',
+            email: 'operatore1@example.com',
             password: 'Password123!',
             confirmPassword: 'Password123!',
             githubToken: 'github_pat_any_value',
@@ -164,6 +205,9 @@ describe('auth service', () => {
 
         await auth.register({
             username: 'operatore2',
+            firstName: 'Secondo',
+            lastName: 'Operatore',
+            email: 'operatore2@example.com',
             password: 'Password123!',
             confirmPassword: 'Password123!',
             githubToken: 'github_pat_any_value',
@@ -192,6 +236,9 @@ describe('auth service', () => {
 
         await expect(auth.register({
             username: 'weakuser',
+            firstName: 'Weak',
+            lastName: 'User',
+            email: 'weak.user@example.com',
             password: 'weakpass',
             confirmPassword: 'weakpass',
             githubToken: 'github_pat_any_value',
@@ -206,6 +253,9 @@ describe('auth service', () => {
         await initAuth()
         await auth.register({
             username: 'policyuser',
+            firstName: 'Policy',
+            lastName: 'User',
+            email: 'policy.user@example.com',
             password: 'Password123!',
             confirmPassword: 'Password123!',
             githubToken: 'github_pat_any_value',
@@ -229,6 +279,9 @@ describe('auth service', () => {
 
         await expect(auth.register({
             username: 'bad<script>',
+            firstName: 'Bad',
+            lastName: 'User',
+            email: 'bad.user@example.com',
             password: 'Password123!',
             confirmPassword: 'Password123!',
             githubToken: 'github_pat_any_value',
@@ -251,5 +304,117 @@ describe('auth service', () => {
         const { authTestUtils } = authModule
 
         expect(authTestUtils.sanitizeUsernameInput('  Operatore<script>!  ')).toBe('operatorescript')
+    })
+
+    it('requests password reset email via Supabase', async () => {
+        const authModule = await import('../../src/services/auth')
+        const { initAuth, useAuth } = authModule
+        const auth = useAuth()
+
+        await initAuth()
+        await auth.requestPasswordResetByEmail('  User.Email@Example.com  ', {
+            redirectTo: 'http://localhost:5173/#/auth/reset-password',
+        })
+
+        expect(supabaseAuth.resetPasswordForEmail).toHaveBeenCalledWith(
+            'user.email@example.com',
+            { redirectTo: 'http://localhost:5173/#/auth/reset-password' },
+        )
+    })
+
+    it('sends invite link via Supabase for admin user', async () => {
+        const authModule = await import('../../src/services/auth')
+        const { initAuth, useAuth } = authModule
+        const auth = useAuth()
+
+        await initAuth()
+
+        await auth.register({
+            username: 'inviter',
+            firstName: 'Admin',
+            lastName: 'User',
+            email: 'admin.user@example.com',
+            password: 'Password123!',
+            confirmPassword: 'Password123!',
+            githubToken: 'github_pat_any_value',
+        })
+
+        const users = settings.get('authUsers')
+        const inviterIndex = users.findIndex(user => user.username === 'inviter')
+        users[inviterIndex] = {
+            ...users[inviterIndex],
+            role: 'admin',
+            updatedAt: new Date().toISOString(),
+        }
+        settings.set('authUsers', users)
+
+        await auth.signOut()
+        await auth.signIn({ username: 'inviter', password: 'Password123!' })
+
+        await auth.sendInviteLink({
+            email: 'new.operator@example.com',
+            firstName: 'New',
+            lastName: 'Operator',
+            redirectTo: 'http://localhost:5173/#/auth/reset-password',
+        })
+
+        expect(supabaseAuth.signInWithOtp).toHaveBeenCalledWith({
+            email: 'new.operator@example.com',
+            options: {
+                shouldCreateUser: true,
+                emailRedirectTo: 'http://localhost:5173/#/auth/reset-password',
+                data: {
+                    firstName: 'New',
+                    lastName: 'Operator',
+                    invitedBy: 'inviter',
+                    inviteFlow: 'meditrace-admin',
+                },
+            },
+        })
+    })
+
+    it('completes password recovery and updates local password hash', async () => {
+        const authModule = await import('../../src/services/auth')
+        const { initAuth, useAuth } = authModule
+        const auth = useAuth()
+
+        await initAuth()
+        await auth.register({
+            username: 'recoverme',
+            firstName: 'Recover',
+            lastName: 'Me',
+            email: 'recover.me@example.com',
+            password: 'Password123!',
+            confirmPassword: 'Password123!',
+            githubToken: 'github_pat_any_value',
+        })
+
+        supabaseAuth.getUser.mockResolvedValue({
+            data: {
+                user: {
+                    email: 'recover.me@example.com',
+                },
+            },
+            error: null,
+        })
+
+        const result = await auth.completePasswordRecovery({
+            newPassword: 'Recovery123!#',
+            confirmPassword: 'Recovery123!#',
+        })
+
+        expect(result).toEqual({
+            username: 'recoverme',
+            email: 'recover.me@example.com',
+        })
+
+        expect(supabaseAuth.updateUser).toHaveBeenCalledWith({
+            password: 'Recovery123!#',
+        })
+        expect(supabaseAuth.signOut).toHaveBeenCalled()
+
+        await expect(auth.signIn({ username: 'recoverme', password: 'Password123!' })).rejects.toThrow('Password non valida')
+        await auth.signIn({ username: 'recoverme', password: 'Recovery123!#' })
+        expect(auth.currentUser.value?.username).toBe('recoverme')
     })
 })

@@ -39,7 +39,8 @@ function hostLabel(hostId) {
   if (!host) return hostId
   const fullName = [host.cognome, host.nome].filter(Boolean).join(' ').trim()
   const namePart = fullName || host.iniziali || host.codiceInterno || hostId
-  return `[${host.id}] - ${namePart}`
+  const visibleId = host.codiceInterno || host.id
+  return `[${visibleId}] - ${namePart}`
 }
 
 function drugLabel(drugId) {

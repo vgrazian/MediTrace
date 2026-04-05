@@ -11,10 +11,110 @@
  */
 
 import { db, getSetting, setSetting } from '../db'
+import realisticDataset from '../data/realisticDataset.json'
 
 const REALISTIC_SEED_KEY = '_realisticSeedDataManifest'
 const REALISTIC_SEED_PREFIX = '__realistic__'
 const REALISTIC_SEED_STORE_NAMES = ['rooms', 'beds', 'hosts', 'drugs', 'stockBatches', 'therapies']
+
+const DATASET_REQUIRED_ARRAY_KEYS = ['rooms', 'beds', 'hosts', 'therapies']
+const DATASET_REQUIRED_FIELDS = {
+    rooms: ['id', 'codice', 'descrizione'],
+    beds: ['id', 'roomId', 'numero', 'occupato'],
+    hosts: ['id', 'codiceInterno', 'nome', 'cognome', 'patologie', 'roomId', 'bedId'],
+    therapies: ['id', 'hostId', 'drugId', 'dataInizio', 'dosaggio', 'frequenza'],
+}
+
+function isPlainObject(value) {
+    return value !== null && typeof value === 'object' && !Array.isArray(value)
+}
+
+function isMissingRequiredValue(value) {
+    if (value === null || value === undefined) return true
+    if (typeof value === 'string') return value.trim() === ''
+    return false
+}
+
+function toSafeNumericId(value) {
+    const parsed = Number(value)
+    return Number.isInteger(parsed) && parsed > 0 ? parsed : null
+}
+
+export function validateRealisticDataset(dataset = realisticDataset) {
+    const errors = []
+
+    if (!isPlainObject(dataset)) {
+        return { valid: false, errors: ['dataset deve essere un oggetto JSON'] }
+    }
+
+    for (const collectionKey of DATASET_REQUIRED_ARRAY_KEYS) {
+        if (!Array.isArray(dataset[collectionKey])) {
+            errors.push(`${collectionKey} deve essere un array`)
+            continue
+        }
+        if (dataset[collectionKey].length === 0) {
+            errors.push(`${collectionKey} non puo' essere vuoto`)
+            continue
+        }
+
+        for (const [idx, row] of dataset[collectionKey].entries()) {
+            if (!isPlainObject(row)) {
+                errors.push(`${collectionKey}[${idx}] deve essere un oggetto`)
+                continue
+            }
+
+            const requiredFields = DATASET_REQUIRED_FIELDS[collectionKey] ?? []
+            for (const field of requiredFields) {
+                if (isMissingRequiredValue(row[field])) {
+                    errors.push(`${collectionKey}[${idx}].${field} e' obbligatorio`)
+                }
+            }
+        }
+    }
+
+    const roomIds = new Set((Array.isArray(dataset.rooms) ? dataset.rooms : [])
+        .map(row => toSafeNumericId(row?.id))
+        .filter(Boolean))
+
+    const bedIds = new Set((Array.isArray(dataset.beds) ? dataset.beds : [])
+        .map(row => toSafeNumericId(row?.id))
+        .filter(Boolean))
+
+    const hostIds = new Set((Array.isArray(dataset.hosts) ? dataset.hosts : [])
+        .map(row => toSafeNumericId(row?.id))
+        .filter(Boolean))
+
+    for (const [idx, bed] of (Array.isArray(dataset.beds) ? dataset.beds : []).entries()) {
+        const roomId = toSafeNumericId(bed?.roomId)
+        if (roomId === null || !roomIds.has(roomId)) {
+            errors.push(`beds[${idx}].roomId deve riferire una room esistente`)
+        }
+    }
+
+    for (const [idx, host] of (Array.isArray(dataset.hosts) ? dataset.hosts : []).entries()) {
+        const roomId = toSafeNumericId(host?.roomId)
+        const bedId = toSafeNumericId(host?.bedId)
+        if (roomId === null || !roomIds.has(roomId)) {
+            errors.push(`hosts[${idx}].roomId deve riferire una room esistente`)
+        }
+        if (bedId === null || !bedIds.has(bedId)) {
+            errors.push(`hosts[${idx}].bedId deve riferire un letto esistente`)
+        }
+    }
+
+    for (const [idx, therapy] of (Array.isArray(dataset.therapies) ? dataset.therapies : []).entries()) {
+        const hostId = toSafeNumericId(therapy?.hostId)
+        const drugId = toSafeNumericId(therapy?.drugId)
+        if (hostId === null || !hostIds.has(hostId)) {
+            errors.push(`therapies[${idx}].hostId deve riferire un host esistente`)
+        }
+        if (drugId === null) {
+            errors.push(`therapies[${idx}].drugId deve essere un numero intero positivo`)
+        }
+    }
+
+    return { valid: errors.length === 0, errors }
+}
 
 async function getAvailableStoreNames(expectedStoreNames) {
     if (typeof db.open === 'function') {
@@ -60,41 +160,6 @@ async function getRealisticSeedManifest() {
     const hasSeedRows = Object.values(fallbackManifest).some(ids => ids.length > 0)
     return hasSeedRows ? fallbackManifest : null
 }
-
-/**
- * CSV fixture data embedded inline for browser compatibility
- */
-const CSV_PERSONE = `nome,cognome,data_nascita,luogo_nascita,codice_fiscale,patologia
-Carlo,Russo,1941-12-07,Torino,RSSCRL41T07L219I,Insufficienza cardiaca severa
-Lucia,Ricci,1951-07-05,Torino,RCCLCU51L45L219U,Demenza senile con necessità di sorveglianza
-Paola,Greco,1953-02-13,Palermo,GRCPLA53B53G273F,Sclerosi multipla in fase progressiva
-Angela,Rossi,1954-01-26,Genova,RSSNGL54A66D969L,Parkinson in stadio avanzato
-Giovanni,Esposito,1954-09-08,Firenze,SPSGNN54P08D612L,Sclerosi multipla in fase progressiva
-Carlo,Russo,1948-04-23,Roma,RSSCRL48D23H501I,Parkinson in stadio avanzato
-Stefano,Ferrari,1956-10-20,Torino,FRRSFN56R20L219U,Alzheimer avanzato con assistenza continua
-Franco,Colombo,1954-06-18,Roma,CLMFNC54H18H501F,Insufficienza cardiaca severa
-Antonio,Marino,1959-10-08,Milano,MRNNTN59R08F205L,Sclerosi multipla in fase progressiva
-Paola,Ferrari,1955-12-20,Genova,FRRPLA55T60D969R,Parkinson in stadio avanzato
-Stefano,Ricci,1959-03-01,Napoli,RCCSFN59C01F839E,Insufficienza respiratoria cronica
-Angela,Esposito,1949-12-02,Torino,SPSNGL49T42L219B,Alzheimer avanzato con assistenza continua
-Giovanni,Esposito,1944-12-26,Palermo,SPSGNN44T26G273R,Sclerosi multipla in fase progressiva
-Giovanni,Romano,1950-02-26,Firenze,RMNGNN50B26D612D,Sclerosi multipla in fase progressiva
-Caterina,Marino,1955-10-27,Palermo,MRNCRN55R67G273W,Insufficienza cardiaca severa
-Stefano,Esposito,1951-11-14,Bologna,SPSSFN51S14A944X,Parkinson in stadio avanzato
-Stefano,Ricci,1942-09-04,Bari,RCCSFN42P04A662E,Parkinson in stadio avanzato
-Paola,Rossi,1951-02-13,Palermo,RSSPLA51B53G273E,Sclerosi multipla in fase progressiva
-Paola,Esposito,1953-06-06,Roma,SPSPLA53H46H501A,Insufficienza cardiaca severa
-Giuseppina,Ferrari,1955-04-17,Torino,FRRGPP55D57L219R,Sclerosi multipla in fase progressiva
-Giuseppe,Russo,1954-04-07,Napoli,RSSGPP54D07F839V,Parkinson in stadio avanzato
-Franco,Colombo,1961-07-22,Torino,CLMFNC61L22L219W,Demenza senile con necessità di sorveglianza
-Giovanni,Russo,1955-05-21,Firenze,RSSGNN55E21D612A,SLA (sclerosi laterale amiotrofica)
-Lucia,Rossi,1945-04-11,Catania,RSSLCU45D51C351K,SLA (sclerosi laterale amiotrofica)
-Caterina,Marino,1943-12-21,Bologna,MRNCRN43T61A944O,Alzheimer avanzato con assistenza continua
-Angela,Greco,1960-09-11,Torino,GRCNGL60P51L219H,Insufficienza respiratoria cronica
-Mario,Colombo,1956-10-20,Milano,CLMMRA56R20F205D,Sclerosi multipla in fase progressiva
-Anna,Esposito,1955-03-26,Torino,SPSNNA55C66L219Y,Parkinson in stadio avanzato
-Rosa,Ferrari,1949-08-08,Firenze,FRRRSO49M48D612I,Insufficienza cardiaca severa
-Roberto,Rossi,1944-07-07,Firenze,RSSRRT44L07D612K,Demenza senile con necessità di sorveglianza`
 
 const CSV_FARMACI = `marca,farmaco
 Pfizer,Donepezil
@@ -145,32 +210,40 @@ function parseCSV(csvContent) {
     })
 }
 
-/**
- * Generate realistic hosts from CSV data
- */
-function generateRealisticHosts() {
-    const rows = parseCSV(CSV_PERSONE)
-    const now = new Date().toISOString()
+function normalizePatologie(value) {
+    if (Array.isArray(value)) return value.filter(Boolean).join(', ')
+    return String(value ?? '').trim()
+}
 
-    return rows.map((row, idx) => ({
-        id: `__realistic__host-${idx + 1}`,
-        codiceInterno: `H${String(idx + 1).padStart(3, '0')}`,
-        iniziali: `${row.nome?.[0] ?? ''}${row.cognome?.[0] ?? ''}`.toUpperCase(),
-        nome: row.nome || '',
-        cognome: row.cognome || '',
-        luogoNascita: row.luogo_nascita || '',
-        dataNascita: row.data_nascita || null,
-        sesso: 'M',
-        codiceFiscale: row.codice_fiscale || '',
-        patologie: row.patologia || '',
-        roomId: null,
-        bedId: null,
-        attivo: true,
-        updatedAt: now,
-        deletedAt: null,
-        syncStatus: 'pending',
-        _seeded: true,
-    }))
+/**
+ * Generate realistic hosts from provided JSON dataset
+ */
+function generateRealisticHosts(now) {
+    const templateHosts = Array.isArray(realisticDataset?.hosts) ? realisticDataset.hosts : []
+    return templateHosts.map((row, idx) => {
+        const templateId = Number(row.id || idx + 1)
+        const nome = String(row.nome ?? '').trim()
+        const cognome = String(row.cognome ?? '').trim()
+        return {
+            id: `__realistic__host-${templateId}`,
+            codiceInterno: String(row.codiceInterno || `OSP-${String(templateId).padStart(3, '0')}`),
+            iniziali: `${nome?.[0] ?? ''}${cognome?.[0] ?? ''}`.toUpperCase(),
+            nome,
+            cognome,
+            luogoNascita: '',
+            dataNascita: null,
+            sesso: '',
+            codiceFiscale: '',
+            patologie: normalizePatologie(row.patologie),
+            roomId: row.roomId ? `__realistic__room-${Number(row.roomId)}` : null,
+            bedId: row.bedId ? `__realistic__bed-${Number(row.bedId)}` : null,
+            attivo: true,
+            updatedAt: now,
+            deletedAt: null,
+            syncStatus: 'pending',
+            _seeded: true,
+        }
+    })
 }
 
 /**
@@ -196,52 +269,36 @@ function generateRealisticDrugs() {
 }
 
 /**
- * Generate rooms and beds to accommodate all hosts
+ * Generate rooms and beds from provided JSON dataset
  */
-function generateRealisticRoomsAndBeds(hostCount) {
-    const now = new Date().toISOString()
-    const roomConfigs = []
-    let totalBeds = 0
+function generateRealisticRoomsAndBeds(now) {
+    const templateRooms = Array.isArray(realisticDataset?.rooms) ? realisticDataset.rooms : []
+    const templateBeds = Array.isArray(realisticDataset?.beds) ? realisticDataset.beds : []
 
-    // 4-bed rooms
-    const bedsFour = Math.floor(hostCount / 4)
-    for (let i = 0; i < bedsFour; i++) {
-        roomConfigs.push({ bedsCount: 4, codice: `R${String(i + 1).padStart(2, '0')}` })
-        totalBeds += 4
-    }
+    const rooms = templateRooms.map((room, idx) => {
+        const roomId = Number(room.id || idx + 1)
+        return {
+            id: `__realistic__room-${roomId}`,
+            codice: String(room.codice || `Stanza ${roomId}`),
+            descrizione: String(room.descrizione || ''),
+            updatedAt: now,
+            deletedAt: null,
+            syncStatus: 'pending',
+            _seeded: true,
+        }
+    })
 
-    // 2-bed rooms for remainder
-    const remaining = hostCount - totalBeds
-    const bedsTwo = Math.ceil(remaining / 2)
-    for (let i = 0; i < bedsTwo; i++) {
-        roomConfigs.push({ bedsCount: 2, codice: `R${String(bedsFour + i + 1).padStart(2, '0')}` })
-    }
-
-    // Generate rooms
-    const rooms = roomConfigs.map((config, idx) => ({
-        id: `__realistic__room-${idx + 1}`,
-        codice: config.codice,
-        descrizione: config.bedsCount === 4 ? 'Stanza 4 letti' : 'Stanza 2 letti',
-        updatedAt: now,
-        deletedAt: null,
-        syncStatus: 'pending',
-        _seeded: true,
-    }))
-
-    // Generate beds
-    const beds = []
-    roomConfigs.forEach((config, roomIdx) => {
-        for (let i = 0; i < config.bedsCount; i++) {
-            beds.push({
-                id: `__realistic__bed-${roomIdx + 1}-${i + 1}`,
-                roomId: rooms[roomIdx].id,
-                numero: i + 1,
-                occupato: false,
-                updatedAt: now,
-                deletedAt: null,
-                syncStatus: 'pending',
-                _seeded: true,
-            })
+    const beds = templateBeds.map((bed, idx) => {
+        const bedId = Number(bed.id || idx + 1)
+        return {
+            id: `__realistic__bed-${bedId}`,
+            roomId: `__realistic__room-${Number(bed.roomId)}`,
+            numero: Number(bed.numero || 1),
+            occupato: Boolean(bed.occupato),
+            updatedAt: now,
+            deletedAt: null,
+            syncStatus: 'pending',
+            _seeded: true,
         }
     })
 
@@ -281,94 +338,62 @@ function generateRealisticStockBatches(drugs) {
 }
 
 /**
- * Generate therapies for all hosts
+ * Generate therapies from provided JSON dataset
  */
-function generateRealisticTherapies(hosts, drugs, batches) {
-    const now = new Date().toISOString()
-    const therapies = []
+function generateRealisticTherapies(hosts, drugs, batches, now) {
+    const templateTherapies = Array.isArray(realisticDataset?.therapies) ? realisticDataset.therapies : []
 
-    const pathologyDrugMap = {
-        'Insufficienza cardiaca': [0, 1, 13, 14],
-        'Demenza senile': [0, 1, 2],
-        'Sclerosi multipla': [3, 4, 5],
-        'Parkinson': [6, 7, 8],
-        'SLA': [23, 24],
-        'Alzheimer': [0, 1, 2],
-    }
+    return templateTherapies
+        .map((therapy, idx) => {
+            const hostId = `__realistic__host-${Number(therapy.hostId)}`
+            const host = hosts.find(item => item.id === hostId)
+            if (!host || drugs.length === 0) return null
 
-    hosts.forEach((host) => {
-        let therapyCount = 1
-        if (host.patologie && host.patologie.length > 10) {
-            therapyCount = 2 + Math.floor(Math.random() * 2)
-        } else if (host.patologie) {
-            therapyCount = 1 + Math.floor(Math.random() * 2)
-        }
+            const drugIdx = ((Number(therapy.drugId) || 1) - 1) % drugs.length
+            const safeDrugIdx = drugIdx < 0 ? 0 : drugIdx
+            const drug = drugs[safeDrugIdx]
+            const associatedBatches = batches.filter(batch => batch.drugId === drug.id)
+            const batch = associatedBatches[0] ?? null
 
-        const matchingDrugs = []
-        Object.entries(pathologyDrugMap).forEach(([pathology, drugIndices]) => {
-            if (host.patologie && host.patologie.includes(pathology)) {
-                matchingDrugs.push(...drugIndices)
-            }
-        })
-
-        if (matchingDrugs.length === 0) {
-            for (let i = 0; i < therapyCount; i++) {
-                matchingDrugs.push(Math.floor(Math.random() * drugs.length))
-            }
-        }
-
-        for (let i = 0; i < therapyCount; i++) {
-            const drugIdx = Math.min(matchingDrugs[i % matchingDrugs.length], drugs.length - 1)
-            const drug = drugs[drugIdx]
-            const associatedBatches = batches.filter(b => b.drugId === drug.id)
-            const batch = associatedBatches.length > 0
-                ? associatedBatches[Math.floor(Math.random() * associatedBatches.length)]
-                : null
-
-            const startDate = new Date()
-            startDate.setDate(startDate.getDate() - Math.floor(Math.random() * 30))
-
-            therapies.push({
-                id: `__realistic__therapy-${host.id}-${i + 1}`.replace('__realistic__host-', ''),
+            return {
+                id: `__realistic__therapy-${Number(therapy.id || idx + 1)}`,
                 hostId: host.id,
                 drugId: drug.id,
                 stockBatchId: batch ? batch.id : null,
-                dataInizio: startDate.toISOString().split('T')[0],
-                dataFine: null,
-                dosaggio: `${(500 + Math.random() * 500).toFixed(0)} mg`,
-                frequenza: ['1 volta al giorno', '2 volte al giorno', '3 volte al giorno'][Math.floor(Math.random() * 3)],
-                notaTerapia: `Terapia per ${host.patologie || 'patologia'}`,
-                attiva: true,
+                dataInizio: therapy.dataInizio || now.slice(0, 10),
+                dataFine: therapy.dataFine || null,
+                dosaggio: String(therapy.dosaggio || '1 compressa'),
+                frequenza: String(therapy.frequenza || '1 volta/die'),
+                notaTerapia: String(therapy.notaTerapia || `Terapia per ${host.patologie || 'patologia'}`),
+                attiva: !therapy.dataFine,
                 updatedAt: now,
                 deletedAt: null,
                 syncStatus: 'pending',
                 _seeded: true,
-            })
-        }
-    })
-
-    return therapies
+            }
+        })
+        .filter(Boolean)
 }
 
 /**
  * Generate complete realistic seed data bundle
  */
 export function generateRealisticSeedData() {
-    const hosts = generateRealisticHosts()
-    const drugs = generateRealisticDrugs()
-    const { rooms, beds } = generateRealisticRoomsAndBeds(hosts.length)
-    const batches = generateRealisticStockBatches(drugs)
-    const therapies = generateRealisticTherapies(hosts, drugs, batches)
+    const validation = validateRealisticDataset(realisticDataset)
+    if (!validation.valid) {
+        const details = validation.errors.map(error => `- ${error}`).join('\n')
+        throw new Error(`Dataset realistico non valido:\n${details}`)
+    }
 
-    // Assign hosts to beds
-    const hostsWithAssignments = hosts.map((host, idx) => ({
-        ...host,
-        roomId: beds[idx] ? beds[idx].roomId : null,
-        bedId: beds[idx] ? beds[idx].id : null,
-    }))
+    const now = new Date().toISOString()
+    const hosts = generateRealisticHosts(now)
+    const drugs = generateRealisticDrugs()
+    const { rooms, beds } = generateRealisticRoomsAndBeds(now)
+    const batches = generateRealisticStockBatches(drugs)
+    const therapies = generateRealisticTherapies(hosts, drugs, batches, now)
 
     return {
-        hosts: hostsWithAssignments,
+        hosts,
         rooms,
         beds,
         drugs,
@@ -473,6 +498,7 @@ export async function isRealisticSeedDataLoaded() {
 
 export default {
     generateRealisticSeedData,
+    validateRealisticDataset,
     loadRealisticSeedData,
     clearRealisticSeedData,
     isRealisticSeedDataLoaded,

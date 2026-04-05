@@ -1,98 +1,175 @@
 # MediTrace
 
-MediTrace e' un progetto offline-first per tracciare farmaci, terapie e scorte in contesto socio-sanitario, con supporto multi-dispositivo e sincronizzazione cloud personale.
+MediTrace è un'applicazione offline-first per la gestione farmacologica integrata in contesto socio-sanitario. Consente la tracciatura di ospiti, farmaci, scorte, terapie e promemoria con sincronizzazione cloud bidirezionale, supporto multi-dispositivo e affidabilità anche in assenza di connessione.
 
-## Architettura corrente (v1 approved)
+## Architettura attuale (v0.20.5)
 
-- frontend: PWA Vue.js + Vite
-- storage locale: IndexedDB (Dexie.js)
-- autenticazione: utenza + password (con token GitHub gestito internamente per sync Gist)
-- sync cloud: GitHub Gist privato (snapshot JSON)
-- hosting: GitHub Pages
+| Componente | Implementazione |
+| --- | --- |
+| **Frontend** | PWA Vue.js 3 + Vite 5 |
+| **Storage locale** | IndexedDB (Dexie.js 3.2.7) |
+| **Autenticazione** | Utenza + password locale + profilo utente (nome/cognome/email) + Supabase Auth per reset/inviti email |
+| **Sync cloud** | GitHub Gist privato (manifest + snapshot dati) |
+| **Hosting** | GitHub Pages + PWA Service Worker |
+| **Test** | Vitest (unit + coverage v8) + Playwright (E2E) |
+| **Build** | Vite 5.4.21 (56 moduli → 70kb gzip) |
 
-## Obiettivi della prima fase
+## Funzionalità MVP attive
 
-- registrare i farmaci disponibili e assegnati ai pazienti
-- rendere immediato l'inserimento dati anche senza rete (offline-first)
-- sincronizzare appena disponibile una connessione
-- evidenziare scorte basse e necessita' di riordino
-- notificare/promuovere il completamento promemoria di somministrazione per paziente
-- consentire all'operatore di aggiornare posologia e terapia con sync remoto
-- mantenere log operativo sincronizzabile per audit
-- garantire una UI flessibile per telefoni e tablet con dimensioni diverse
-- garantire backup dati e procedura di ripristino semplice
-- consentire aggiornamenti applicativi controllati senza perdita dati locali
-- mantenere costi e complessita' operativa minimi
+✅ **Ospiti**: crud con anagrafica base (nome, cognome, DOB, patologie)  
+✅ **Farmaci**: catalogo con dosaggio, scadenza, quantità; scorte settimanali  
+✅ **Terapie**: assegnazione agli ospiti con posologia e frequency  
+✅ **Promemoria**: notifiche di somministrazione con mark eseguito/saltato  
+✅ **Sync bidirezionale**: upload locale → Gist, download Gist → locale  
+✅ **Offline-first**: UI completa usabile senza connessione  
+✅ **Multi-dispositivo**: responsive (telefono, tablet, desktop)  
+✅ **Backup**: esportazione manuale JSON + ripristino automatico  
+✅ **Audit log**: cronologia operazioni con timestamp e operatore  
+✅ **Test data**: dataset realistico JSON (60 ospiti, 20 stanze, 60 letti, 81 terapie) generabile via UI (fixture system)
 
-## Vincoli di piattaforma
+## Quality & Coverage
 
-- l'app deve funzionare su smartphone e tablet economici
-- UX e prestazioni devono restare stabili anche su device entry-level
-- la UI deve adattarsi a schermi piccoli (telefono) e grandi (tablet)
+**Test Automation**:
 
-## Struttura del repository
+- 72/72 unit tests ✅ (auth, seed, promemoria, CSV import)
+- 29/29 E2E tests ✅ (UI flows, sync, offline, conflict resolution)
+- CI/CD: GitHub Actions quality gate (test status check required for merge)
 
-- `docs/architecture.md`: architettura tecnica corrente (Option A)
-- `docs/decisione-v1-approved.md`: freeze scope e decisione tecnica approvata
-- `docs/checklist-esecutiva.md`: checklist operativa MVP
-- `docs/schema-json-mapping-v1.md`: mapping CSV -> dataset JSON
-- `docs/domain-model.md`: modello dati applicativo
-- `docs/roadmap.md`: roadmap ed evolutive priorizzate
-- `docs/ui-color-policy.md`: palette UI ufficiale (blu/azzurro/bianco) e regole anti-regressione
-- `docs/release-rollback-runbook.md`: procedura rollback deploy Pages
-- `docs/archive/`: documenti legacy superseded
-- `pwa/`: applicazione Vue/Vite/PWA (hosting: GitHub Pages)
-- `templates/csv-import/`: file CSV di riferimento per l'importazione guidata (E4)
-- `prototype/`: prototipo statico storico
+**Code Coverage** (v8 instrumentation):
 
-## Avvio rapido PWA (sviluppo)
+- Statements: 63.79% | Branches: 50.22% | Funcs: 66.66% | Lines: 67.85%
+- Best: promemoria.js (100% lines), reporting.js (97% lines), homeDashboard.js (100% functions)
+- To improve: notifications.js (45% statements), seedDataRealistic.js (3% lines — E2E-only, browser-generated)
 
-1. Installare dipendenze:
+**Performance**:
 
- ```bash
- npm --prefix pwa install
- ```
+- Initial load: <2s (GitHub Pages CDN)
+- E2E test suite: ~11s (29 tests × 4 workers)
+- Production build: 191kb raw → 70kb gzip
 
-1. Avviare in locale:
+## Struttura repository
 
- ```bash
- npm --prefix pwa run dev
- ```
+```text
+docs/
+  ├── architecture.md              (scelte tecniche, Option A approvata)
+  ├── requisiti-tecnici.md         (spec funzionali + non-funzionali)
+  ├── domain-model.md              (modello dati: ospiti, farmaci, terapie)
+  ├── schema-json-mapping-v1.md    (CSV ↔ JSON)
+  ├── roadmap.md                   (priorità evolutive)
+  ├── ui-color-policy.md           (palette + anti-regressione)
+  ├── security-secrets-policy.md   (credenziali, token management)
+  └── release-rollback-runbook.md  (deploy/rollback GH Pages)
 
-1. Aprire l'URL mostrato (default `http://localhost:5173/`).
+pwa/
+  ├── src/
+  │   ├── services/
+  │   │   ├── auth.js              (utenti, credenziali, sessioni, audit)
+  │   │   ├── sync.js              (GitHub Gist bidirezionale)
+  │   │   ├── csvImport.js         (parsing CSV, bulk import)
+  │   │   ├── seedData.js          (demo data + fixture loading)
+  │   │   ├── seedDataRealistic.js (dataset JSON realistico: 60 ospiti, 20 stanze, 81 terapie)
+  │   │   ├── promemoria.js        (reminder scheduling + notifications)
+  │   │   ├── notifications.js     (Web Push API)
+  │   │   └── [altri servizi]
+  │   ├── views/                   (Vue components: Ospiti, Farmaci, Terapie, Stanze, etc.)
+  │   ├── router/                  (Vue Router v4)
+  │   ├── db/                      (Dexie schema, object stores)
+  │   └── App.vue
+  ├── tests/
+  │   ├── unit/                    (Vitest mocks)
+  │   ├── e2e/                     (Playwright browser automation)
+  │   └── fixtures/                (CSV test data + testDataLoader)
+  ├── public/                      (manifest.json, icons, branding)
+  └── package.json
 
-2. Al primo avvio creare utenza/password operatore e completare il bootstrap remoto.
+templates/csv-import/             (CSV templates per data import)
+prototype/                        (legacy prototipo)
+```
 
-## Quality Gate automatico (no test manuali)
+## Avvio rapido
 
-Requisito: i flussi critici devono essere esercitabili automaticamente.
-
-Comandi locali:
+### Sviluppo
 
 ```bash
+# Installare dipendenze
+npm --prefix pwa install
+
+# Avviare server locale (hot reload)
+npm --prefix pwa run dev
+# → http://localhost:5173
+
+# Al primo avvio:
+# 1. Registrati con username/password e GitHub PAT
+# 2. L'app crea automaticamente Gist privato per il sync
+# 3. Accedi su altri dispositivi con stesse credenziali
+
+# Per abilitare reset password/inviti email (Supabase)
+# Copiare pwa/.env.example in pwa/.env.local e impostare:
+# - VITE_SUPABASE_URL
+# - VITE_SUPABASE_PUBLISHABLE_KEY
+# - VITE_SUPABASE_REDIRECT_TO
+```
+
+### Test
+
+```bash
+# Unit tests + coverage report
 npm --prefix pwa run test:unit
+
+# E2E tests (Playwright, browser real)
 npm --prefix pwa run test:e2e
+
+# Tutti i test + palette check + build pre-verify
 npm --prefix pwa run test
 ```
 
-In CI il workflow `.github/workflows/quality-gate.yml` esegue unit test + E2E ad ogni push/PR su `main`.
-
-Su `main` il check richiesto e' `test`: se il quality gate fallisce, il merge e' bloccato.
-
-## Build produzione
+### Produzione
 
 ```bash
+# Build ottimizzato (Vite, tree-shaking, minify)
 npm --prefix pwa run build
+
+# Output: pwa/dist/ → deploy su GitHub Pages via Actions
+
+# Preview build
 npm --prefix pwa run preview
 ```
 
-## Sicurezza operativa
+## Workflow tipico developer
 
-- Non committare token, credenziali o file `.env` con segreti.
-- Applicare policy robuste per utenze/password operative e ruotare periodicamente i segreti tecnici di sync.
-- Per policy dettagliate consultare `docs/security-secrets-policy.md`.
+1. **Feature branch**: `git checkout -b feat/feature-name`
+2. **Develop + test locally**: `npm --prefix pwa run dev` + `npm --prefix pwa run test:unit`
+3. **E2E validation**: `npm --prefix pwa run test:e2e` (full PWA integration)
+4. **Commit**: `git add . && git commit -m "type(scope): message"`
+5. **Push + PR**: GitHub Actions quality gate runs automatically
+6. **Status check**: test workflow must PASS (unit + E2E + coverage)
+7. **Merge**: fast-forward su main, auto-deploy su GitHub Pages
 
-## Stato progetto
+## Security & Privacy
 
-- Week 1: chiusa (setup, bootstrap, smoke test, install test).
-- Week 2+: in corso flussi MVP, resilienza sync e quality gates.
+- **Dati**: Esclusivamente sul dispositivo (IndexedDB) o Gist privato GitHub (con crittografia utente via GitHub OAuth)
+- **Credenziali**: Password con salt/hash SHA256 locale; GitHub PAT solo per sync Gist
+- **Audit**: Cronologia operazioni salvata e sincronizzabile
+- **Policy**: Vedi `docs/security-secrets-policy.md`
+
+## Roadmap
+
+**Phase 2 (in progress)**:
+
+- [x] Gestione utenti estesa: nome, cognome, email (avvio implementazione)
+- [x] Password reset via email (Supabase, avvio implementazione)
+- [x] Invito utenti via link email (Supabase OTP, avvio implementazione)
+- [ ] Management panel per admin
+
+**Phase 3 (pianificato)**:
+
+- [ ] Crittografia end-to-end opzionale su Gist
+- [ ] Multi-organizzazione (team, facility)
+- [ ] Reporting avanzato + export PDF/Excel
+- [ ] Mobile app nativa (React Native / Flutter)
+
+## Supporto & Issues
+
+- Consultare [docs/](./docs) per dettagli tecnici
+- Aprire issue su GitHub per bug/feature requests
+- Vedi `docs/release-rollback-runbook.md` per procedure di emergenza
