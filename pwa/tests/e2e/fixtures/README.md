@@ -1,13 +1,17 @@
 # Test Data Fixtures
 
-Questa cartella contiene dati realistici in CSV per test E2E.
+Questa cartella contiene fixture realistiche per test E2E.
+La sorgente principale è ora un dataset JSON condiviso con la seed reale della PWA.
 
 ## File disponibili
 
-- **persone_test_sanitarie.csv** – 30 ospiti con dati anagrafi realistici
+- **realisticDataset.json** (in `src/data/`) – dataset realistico principale
+  - 20 stanze, 60 letti, 60 ospiti, 81 terapie
+
+- **persone_test_sanitarie.csv** – CSV di supporto storico
   - nome, cognome, data_nascita, luogo_nascita, codice_fiscale, patologia
   
-- **farmaci_test_sanitari.csv** – 30 farmaci realistici
+- **farmaci_test_sanitari.csv** – 30 farmaci realistici (sorgente farmaci)
   - marca, farmaco (principio attivo)
 
 ## Utilizzo
@@ -23,13 +27,13 @@ test('ospiti scenario', () => {
   console.log(hosts[0])
   // {
   //   id: 'uuid-...',
-  //   codiceInterno: 'H001',
+  //   codiceInterno: 'OSP-001',
   //   nome: 'Carlo',
   //   cognome: 'Russo',
-  //   luogoNascita: 'Torino',
-  //   dataNascita: '1941-12-07',
-  //   codiceFiscale: 'RSSCRL41T07L219I',
-  //   patologie: 'Insufficienza cardiaca severa',
+  //   luogoNascita: '',
+  //   dataNascita: null,
+  //   codiceFiscale: 'ABCDEF10A01A100A' (fittizio),
+  //   patologie: 'Parkinson',
   //   ...
   // }
 })
@@ -91,12 +95,12 @@ test('test with seeded database', async ({ page }) => {
 ```javascript
 {
   id: string (UUID),
-  codiceInterno: string (H001, H002, ...)
+  codiceInterno: string (OSP-001, OSP-002, ...)
   iniziali: string (2 chars)
   nome: string
   cognome: string
-  luogoNascita: string
-  dataNascita: string (YYYY-MM-DD)
+  luogoNascita: string (può essere vuoto)
+  dataNascita: string|null
   sesso: string (M/F/Altro)
   codiceFiscale: string
   patologie: string
@@ -121,27 +125,17 @@ test('test with seeded database', async ({ page }) => {
 }
 ```
 
-## Aggiungi nuovi CSV
+## Aggiorna dataset realistico
 
-Se vuoi aggiungere altri CSV di dati realistici:
+Per aggiornare i dati test realistici:
 
-1. Metti il file `.csv` in questa cartella
-2. Aggiungi una funzione helper in `testDataLoader.js`:
-
-   ```javascript
-   export function loadMyDataFromCSV() {
-     const csvPath = path.join(__dirname, 'mydata.csv')
-     const csvContent = fs.readFileSync(csvPath, 'utf-8')
-     const rows = parseCSV(csvContent)
-     // Trasforma e ritorna...
-   }
-   ```
-
-3. Usa nei test come gli altri
+1. Sostituisci/aggiorna `pwa/src/data/realisticDataset.json`
+2. Verifica schema minimo: `rooms`, `beds`, `hosts`, `therapies`
+3. Esegui `npm --prefix pwa run test:e2e -- tests/e2e/fixtures.spec.js`
 
 ## Note
 
-- Tutti gli ospiti hanno `uuid` generati automaticamente
-- Il `codiceInterno` segue pattern H001, H002, etc.
-- I dati fiscali (CF) sono realistici ma fittizi
-- I farmaci usano nomi commerciali reali ma senza fini medici
+- Tutti gli ospiti hanno `uuid` runtime nei test
+- Il `codiceInterno` segue pattern OSP-001, OSP-002, etc.
+- I CF nei test sono fittizi e generati automaticamente
+- Le terapie riflettono frequenze realistiche (`1 volta/die`, `2 volte/die`, `ogni 8 ore`, `al bisogno`)

@@ -25,7 +25,7 @@ MediTrace è un'applicazione offline-first per la gestione farmacologica integra
 ✅ **Multi-dispositivo**: responsive (telefono, tablet, desktop)  
 ✅ **Backup**: esportazione manuale JSON + ripristino automatico  
 ✅ **Audit log**: cronologia operazioni con timestamp e operatore  
-✅ **Test data**: 30 ospiti realistici + 70+ terapie generabili via UI (fixture system)
+✅ **Test data**: dataset realistico JSON (60 ospiti, 20 stanze, 60 letti, 81 terapie) generabile via UI (fixture system)
 
 ## Quality & Coverage
 
@@ -67,7 +67,7 @@ pwa/
   │   │   ├── sync.js              (GitHub Gist bidirezionale)
   │   │   ├── csvImport.js         (parsing CSV, bulk import)
   │   │   ├── seedData.js          (demo data + fixture loading)
-  │   │   ├── seedDataRealistic.js (30 ospiti, 9 stanze, 70+ terapie)
+  │   │   ├── seedDataRealistic.js (dataset JSON realistico: 60 ospiti, 20 stanze, 81 terapie)
   │   │   ├── promemoria.js        (reminder scheduling + notifications)
   │   │   ├── notifications.js     (Web Push API)
   │   │   └── [altri servizi]

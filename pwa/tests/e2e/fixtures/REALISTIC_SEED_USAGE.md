@@ -10,7 +10,7 @@ import { loadRealisticSeedData, clearRealisticSeedData } from '@/services/seedDa
 
 // Genera tutti i dati realistici nel DB
 await loadRealisticSeedData()
-// ✓ Carica: 30 ospiti assegnati a 30 letti in 9 stanze, 30 farmaci, 70+ terapie
+// ✓ Carica: 60 ospiti assegnati a 60 letti in 20 stanze, 30 farmaci, 81 terapie
 
 // Pulisci i dati generati
 await clearRealisticSeedData()
@@ -18,20 +18,19 @@ await clearRealisticSeedData()
 
 ## Dati Generati
 
-### Ospiti (30 totali)
+### Ospiti (60 totali)
 
-- Da CSV `persone_test_sanitarie.csv`
+- Da `src/data/realisticDataset.json`
 - Assegnati automaticamente a letti/stanze
 - Con dati demografici (nome, cognome, CF, patologia, data nascita)
-- IDs con prefisso `__realistic__host-1` ... `__realistic__host-30`
+- IDs con prefisso `__realistic__host-1` ... `__realistic__host-60`
 
 ### Stanze e Letti
 
-Scalate automaticamente al numero di ospiti:
+Derivate dal dataset realistico JSON:
 
-- **6 stanze da 4 letti** = 24 posti
-- **3 stanze da 2 letti** = 6 posti
-- **Totale: 9 stanze, 30 letti**
+- **20 stanze**
+- **60 letti**
 - Ogni ospite assegnato a 1 letto univoco
 
 ### Farmaci (30 totali)
@@ -47,11 +46,10 @@ Scalate automaticamente al numero di ospiti:
 - Quantità realistiche (500-1000 unità)
 - IDs con prefisso `__realistic__batch-X-Y`
 
-### Terapie (70+ totali)
+### Terapie (81 totali)
 
-- 1-3 terapie per ospite (basate su patologie)
-- Assegnate coerentemente (es: diabetici → antidiabetici)
-- Con dosaggio, frequenza (1-3x/giorno), note
+- 1-3 terapie per ospite
+- Con dosaggio, frequenze realistiche (`1 volta/die`, `2 volte/die`, `ogni 8 ore`, `al bisogno`), note
 - IDs con prefisso `__realistic__therapy-...`
 
 ## Come Usare nella UI
@@ -122,10 +120,10 @@ export async function ensureTestDataIfDev() {
 
 | Feature | loadSeedData() | loadRealisticSeedData() |
 |---------|---|---|
-| **Ospiti** | 10 ospiti mini | **30 ospiti realistici** |
-| **Stanze/Letti** | 3 stanze, 6 letti | **9 stanze, 30 letti** |
+| **Ospiti** | 10 ospiti mini | **60 ospiti realistici** |
+| **Stanze/Letti** | 3 stanze, 6 letti | **20 stanze, 60 letti** |
 | **Farmaci** | 10 farmaci | **30 farmaci** |
-| **Terapie** | 15 terapie | **70+ terapie** |
+| **Terapie** | 15 terapie | **81 terapie** |
 | **Dati demografici** | Baselinari | **Nomi reali, CF, patologie simili** |
 | **Assegnamento ospiti** | Manuale | **Automatico a letti/stanze** |
 | **Logica terapie** | Statiche | **Basata su patologie ospiti** |
@@ -133,19 +131,17 @@ export async function ensureTestDataIfDev() {
 
 ## Implementazione Interna
 
-I dati realistici sono inlined in `seedDataRealistic.js`:
+I dati realistici usano `src/data/realisticDataset.json` per rooms/beds/hosts/therapies,
+e `farmaci_test_sanitari.csv` per il catalogo farmaci.
 
-- CSV persone_test_sanitarie.csv e farmaci_test_sanitari.csv embedded come stringhe
-- Parser CSV browser-safe (no fs)
-- Generatore di stanze/letti intelligente
-- Logica di assegnamento terapie basata su patologie
-
-Non dipende da file system → funziona anche in production (se VITE_SEED_DATA=1).
+- Mapping browser-safe in `seedDataRealistic.js`
+- IDs seed prefissati `__realistic__*`
+- Compatibile anche in production (se `VITE_SEED_DATA=1`)
 
 ## Limitazioni
 
 - ✓ Funziona solo in modalità DEV o con `VITE_SEED_DATA=1`
-- ✓ Genera sempre gli stessi 30 ospiti (deterministico)
+- ✓ Genera sempre gli stessi 60 ospiti (deterministico)
 - ✓ Non usa `crypto.randomUUID` negli ID (usa prefissi fissi)
 - ✓ Idempotente: puoi chiamare più volte, sovrascrive
 
@@ -154,4 +150,4 @@ Non dipende da file system → funziona anche in production (se VITE_SEED_DATA=1
 1. **Prefissi univoci**: Tutti gli ID usano `__realistic__` per non conflittare con dati manuali o seed classici
 2. **Pulizzia sicura**: `clearRealisticSeedData()` rimuove SOLO i record con prefisso `__realistic__`
 3. **Patologie coerenti**: Le terapie rispecchiano le patologie degli ospiti (logica intelligente)
-4. **Scalabilità**: Puoi usare `generateRealisticSeedData()` (solo generazione, non DB) e limitare con `maxHostsCount`
+4. **Determinismo**: Dataset stabile per regressioni e confronti E2E ripetibili
