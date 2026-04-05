@@ -78,6 +78,9 @@ router.onError((error) => {
 
     if (!isChunkLoadError) return
 
+    // Do not force reload while offline; keep current app shell usable.
+    if (typeof navigator !== 'undefined' && navigator.onLine === false) return
+
     // Recover once from stale cached chunks after a new deploy.
     const reloadKey = 'meditrace:chunk-reload-once'
     const alreadyReloaded = sessionStorage.getItem(reloadKey) === '1'
