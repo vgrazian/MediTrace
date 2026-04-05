@@ -51,6 +51,11 @@ function formatCoverage(value) {
   return `${Number(value).toFixed(2)} settimane`
 }
 
+function formatPercent(value) {
+  if (value === null || value === undefined || !Number.isFinite(Number(value))) return '—'
+  return `${Number(value).toFixed(1)}%`
+}
+
 function formatWeekLabel(weekKey) {
   return String(weekKey || '').replace('-W', ' W')
 }
@@ -393,6 +398,43 @@ onMounted(() => {
           </tr>
           <tr v-if="(report.trendRows || []).length === 0">
             <td :colspan="(report.trendWeeks || []).length + 2" class="muted">Nessun trend disponibile nel dataset locale.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div v-if="report" class="card">
+      <p><strong>Aderenza terapie (ultimi {{ report.adherence?.windowDays || 7 }} giorni)</strong></p>
+      <p class="muted" style="margin-top:.25rem">
+        Somministrazioni pianificate: {{ report.adherence?.totalScheduled || 0 }}<br />
+        Eseguite: {{ report.adherence?.executed || 0 }} · Saltate: {{ report.adherence?.skipped || 0 }} · Posticipate: {{ report.adherence?.postponed || 0 }} · Pending: {{ report.adherence?.pending || 0 }}<br />
+        Aderenza complessiva: {{ formatPercent(report.adherence?.adherenceRate) }}
+      </p>
+
+      <table class="conflict-table" style="margin-top:.75rem">
+        <thead>
+          <tr>
+            <th>Ospite</th>
+            <th>Pianificate</th>
+            <th>Eseguite</th>
+            <th>Saltate</th>
+            <th>Posticipate</th>
+            <th>Pending</th>
+            <th>Aderenza</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="row in report.adherenceHostRows" :key="`adh-${row.hostId}`">
+            <td>{{ row.hostLabel }}</td>
+            <td>{{ row.totalScheduled }}</td>
+            <td>{{ row.executed }}</td>
+            <td>{{ row.skipped }}</td>
+            <td>{{ row.postponed }}</td>
+            <td>{{ row.pending }}</td>
+            <td>{{ formatPercent(row.adherenceRate) }}</td>
+          </tr>
+          <tr v-if="(report.adherenceHostRows || []).length === 0">
+            <td colspan="7" class="muted">Nessun dato aderenza disponibile nella finestra analizzata.</td>
           </tr>
         </tbody>
       </table>

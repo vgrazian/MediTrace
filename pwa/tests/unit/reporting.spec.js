@@ -6,6 +6,7 @@ const data = {
     stockBatches: [],
     movements: [],
     therapies: [],
+    reminders: [],
 }
 
 vi.mock('../../src/db', () => ({
@@ -15,6 +16,7 @@ vi.mock('../../src/db', () => ({
         stockBatches: { async toArray() { return data.stockBatches } },
         movements: { async toArray() { return data.movements } },
         therapies: { async toArray() { return data.therapies } },
+        reminders: { async toArray() { return data.reminders } },
     },
 }))
 
@@ -74,6 +76,37 @@ describe('operational reporting', () => {
                 somministrazioniGiornaliere: 1,
             },
         ]
+
+        data.reminders = [
+            {
+                id: 'r-1',
+                hostId: 'host-1',
+                therapyId: 't-a',
+                scheduledAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+                stato: 'ESEGUITO',
+            },
+            {
+                id: 'r-2',
+                hostId: 'host-1',
+                therapyId: 't-a',
+                scheduledAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
+                stato: 'SALTATO',
+            },
+            {
+                id: 'r-3',
+                hostId: 'host-2',
+                therapyId: 't-b',
+                scheduledAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
+                stato: 'POSTICIPATO',
+            },
+            {
+                id: 'r-4',
+                hostId: 'host-2',
+                therapyId: 't-b',
+                scheduledAt: new Date(Date.now() - 1 * 60 * 60 * 1000).toISOString(),
+                stato: 'DA_ESEGUIRE',
+            },
+        ]
     })
 
     it('builds sorted report rows with warning priorities', async () => {
@@ -94,6 +127,11 @@ describe('operational reporting', () => {
         const trendTotal = Object.values(report.trendRows[0].weeklyConsumptionByWeek)
             .reduce((sum, value) => sum + Number(value), 0)
         expect(trendTotal).toBeGreaterThan(0)
+
+        expect(report.adherence.totalScheduled).toBe(4)
+        expect(report.adherence.executed).toBe(1)
+        expect(report.adherence.adherenceRate).toBe(25)
+        expect(report.adherenceHostRows.length).toBe(2)
     })
 
     it('exports report rows to CSV with header and values', () => {
@@ -123,6 +161,8 @@ describe('operational reporting', () => {
         expect(csv).toContain('# section: stock')
         expect(csv).toContain('# section: host_kpi')
         expect(csv).toContain('# section: trend')
+        expect(csv).toContain('# section: adherence_summary')
+        expect(csv).toContain('# section: adherence_by_host')
         expect(csv).toContain('host_id,codice_interno')
         expect(csv).toContain('drug_id,principio_attivo,week_key,weekly_consumption')
     })
@@ -139,6 +179,10 @@ describe('operational reporting', () => {
 
         expect(reportingTestUtils.toIsoWeekKey(now)).toMatch(/^\d{4}-W\d{2}$/)
         expect(reportingTestUtils.buildRecentWeekKeys(now, 4)).toHaveLength(4)
+
+        expect(reportingTestUtils.normalizeReminderState({ stato: 'eseguito' })).toBe('ESEGUITO')
+        expect(reportingTestUtils.parseReminderDate({ scheduledAt: '2026-04-02T12:00:00.000Z' })?.toISOString())
+            .toContain('2026-04-02')
     })
 
     it('computes stock/movement/priority helpers and escapes CSV values', () => {
@@ -163,5 +207,14 @@ describe('operational reporting', () => {
 
         expect(reportingTestUtils.escapeCsvValue('campo,con,virgole')).toBe('"campo,con,virgole"')
         expect(reportingTestUtils.escapeCsvValue('valore "quoted"')).toBe('"valore ""quoted"""')
+
+        const adherence = reportingTestUtils.buildAdherenceSnapshot([
+            { id: 'r1', hostId: 'host-1', scheduledAt: '2026-04-04T10:00:00.000Z', stato: 'ESEGUITO' },
+            { id: 'r2', hostId: 'host-1', scheduledAt: '2026-04-04T11:00:00.000Z', stato: 'SALTATO' },
+        ], new Map([['host-1', { id: 'host-1', codiceInterno: 'OSP-01', nome: 'Mario', cognome: 'Rossi' }]]), new Date('2026-04-05T12:00:00.000Z'), 7)
+
+        expect(adherence.summary.totalScheduled).toBe(2)
+        expect(adherence.summary.adherenceRate).toBe(50)
+        expect(adherence.hostRows[0].hostLabel).toBe('Rossi Mario')
     })
 })
