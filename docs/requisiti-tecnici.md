@@ -1,6 +1,6 @@
 # Requisiti Tecnici - MediTrace
 
-Data: 2026-03-31
+Data: 2026-04-05
 
 ---
 
@@ -41,7 +41,21 @@ La sezione Gestione ospiti deve offrire tre azioni:
 
 - Login applicativo tramite utenza + password.
 - Gestione credenziali utente: creazione utenza, cambio password, revoca/disattivazione utenza.
+- Ogni utente deve includere i campi anagrafici minimi: **nome**, **cognome**, **email** (obbligatori).
+- L'email deve essere validata sintatticamente e mantenuta univoca tra utenti attivi.
 - La gestione autenticazione non deve richiedere inserimento manuale di GitHub PAT lato operatore.
+
+### 1.3a Reset password via email
+
+- Deve essere disponibile un flusso **"Password dimenticata"** con invio email di reset.
+- Il reset deve essere gestito da provider esterno (Supabase Auth free tier) con link one-time.
+- L'app deve mostrare feedback esplicito di invio riuscito/errore.
+
+### 1.3b Inviti utente via email
+
+- Un utente admin deve poter inviare un **link di invito** a nuovo operatore tramite email.
+- Il payload invito deve includere nome/cognome/email del destinatario.
+- Il flusso invito deve appoggiarsi a Supabase Auth (magic link / OTP) senza esporre chiavi privilegiate lato client.
 
 ### 1.4 Inizializzazione storage
 
@@ -85,6 +99,8 @@ La sezione Gestione ospiti deve offrire tre azioni:
 - I dati risiedono esclusivamente sul dispositivo dell'utente o nel suo Gist privato GitHub.
 - Nessun server intermedio ha accesso ai dati.
 - Architettura compatibile con crittografia client-side (zero-knowledge opzionale).
+- Le chiavi Supabase privilegiate (service role, DB password) non devono mai essere inserite nel frontend PWA.
+- In frontend deve essere usata solo chiave publishable/anon.
 
 ### 2.3 Disponibilità offline
 
@@ -118,7 +134,7 @@ La sezione Gestione ospiti deve offrire tre azioni:
 | Hosting         | GitHub Pages (HTTPS obbligatorio)                   |
 | Database locale | IndexedDB — libreria Dexie.js                       |
 | Sincronizzazione| GitHub Gist API v3 via JavaScript                   |
-| Autenticazione  | Utenza + password con gestione credenziali          |
+| Autenticazione  | Utenza + password locale + Supabase Auth per email reset/inviti |
 | UI Framework    | Vue.js 3 + Vite                                     |
 | PWA             | Vite PWA Plugin (manifest, service worker, icone)   |
 | Deploy CI/CD    | GitHub Actions (push → build → deploy su Pages)     |
