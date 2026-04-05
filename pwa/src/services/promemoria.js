@@ -57,7 +57,7 @@ export function buildReminderRows({ reminders, hosts, drugs, therapies, dateFilt
             const hostName = fullName || host?.iniziali || host?.codiceInterno || r.hostId
             return {
                 ...r,
-                hostLabel: host ? `[${host.id}] - ${hostName}` : (r.hostId ?? '—'),
+                hostLabel: hostName,
                 stanzaLetto: host ? `${host.stanza || '—'}/${host.letto || '—'}` : '—',
                 drugLabel: drug?.principioAttivo ?? (r.drugId ?? '—'),
                 stato: r.stato ?? 'DA_ESEGUIRE',
