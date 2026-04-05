@@ -13,6 +13,33 @@
 import { db, getSetting, setSetting } from '../db'
 
 const REALISTIC_SEED_KEY = '_realisticSeedDataManifest'
+const REALISTIC_SEED_PREFIX = '__realistic__'
+
+async function findRealisticSeedIds(table) {
+    if (!table || typeof table.toArray !== 'function') return []
+    const rows = await table.toArray()
+    return rows
+        .map(row => row?.id)
+        .filter(id => typeof id === 'string' && id.startsWith(REALISTIC_SEED_PREFIX))
+}
+
+async function getRealisticSeedManifest() {
+    const manifest = await getSetting(REALISTIC_SEED_KEY, null)
+    if (manifest) return manifest
+
+    const [rooms, beds, hosts, drugs, stockBatches, therapies] = await Promise.all([
+        findRealisticSeedIds(db.rooms),
+        findRealisticSeedIds(db.beds),
+        findRealisticSeedIds(db.hosts),
+        findRealisticSeedIds(db.drugs),
+        findRealisticSeedIds(db.stockBatches),
+        findRealisticSeedIds(db.therapies),
+    ])
+
+    const fallbackManifest = { rooms, beds, hosts, drugs, stockBatches, therapies }
+    const hasSeedRows = Object.values(fallbackManifest).some(ids => ids.length > 0)
+    return hasSeedRows ? fallbackManifest : null
+}
 
 /**
  * CSV fixture data embedded inline for browser compatibility
@@ -379,7 +406,7 @@ export async function loadRealisticSeedData(options = {}) {
  * Clear realistic seed data from database
  */
 export async function clearRealisticSeedData(options = {}) {
-    const manifest = await getSetting(REALISTIC_SEED_KEY, null)
+    const manifest = await getRealisticSeedManifest()
     if (!manifest) return { cleared: false, reason: 'nessun dato realistico trovato' }
 
     await db.transaction('rw', [
@@ -401,7 +428,7 @@ export async function clearRealisticSeedData(options = {}) {
  * Check if realistic seed data is loaded
  */
 export async function isRealisticSeedDataLoaded() {
-    const manifest = await getSetting(REALISTIC_SEED_KEY, null)
+    const manifest = await getRealisticSeedManifest()
     return Boolean(manifest)
 }
 

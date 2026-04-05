@@ -29,6 +29,35 @@ import {
 
 const SEED_ENABLED = import.meta.env.DEV || import.meta.env.VITE_SEED_DATA === '1'
 const SEED_MANIFEST_KEY = '_seedDataManifest'
+const LEGACY_SEED_PREFIX = '__seed__'
+
+async function findSeedIds(table, prefix) {
+    if (!table || typeof table.toArray !== 'function') return []
+    const rows = await table.toArray()
+    return rows
+        .map(row => row?.id)
+        .filter(id => typeof id === 'string' && id.startsWith(prefix))
+}
+
+async function getLegacySeedManifest() {
+    const manifest = await getSetting(SEED_MANIFEST_KEY, null)
+    if (manifest) return manifest
+
+    const [rooms, beds, hosts, drugs, stockBatches, therapies, movements, reminders] = await Promise.all([
+        findSeedIds(db.rooms, LEGACY_SEED_PREFIX),
+        findSeedIds(db.beds, LEGACY_SEED_PREFIX),
+        findSeedIds(db.hosts, LEGACY_SEED_PREFIX),
+        findSeedIds(db.drugs, LEGACY_SEED_PREFIX),
+        findSeedIds(db.stockBatches, LEGACY_SEED_PREFIX),
+        findSeedIds(db.therapies, LEGACY_SEED_PREFIX),
+        findSeedIds(db.movements, LEGACY_SEED_PREFIX),
+        findSeedIds(db.reminders, LEGACY_SEED_PREFIX),
+    ])
+
+    const fallbackManifest = { rooms, beds, hosts, drugs, stockBatches, therapies, movements, reminders }
+    const hasSeedRows = Object.values(fallbackManifest).some(ids => ids.length > 0)
+    return hasSeedRows ? fallbackManifest : null
+}
 
 function assertSeedEnabled(options = {}) {
     if (SEED_ENABLED || options.allowInProduction === true) return
@@ -198,7 +227,7 @@ export async function loadSeedData(options = {}) {
 export async function clearSeedData(options = {}) {
     assertSeedEnabled(options)
 
-    const manifest = await getSetting(SEED_MANIFEST_KEY, null)
+    const manifest = await getLegacySeedManifest()
     if (!manifest) return { cleared: false, reason: 'nessun dato demo trovato' }
 
     await db.transaction('rw', [
@@ -225,7 +254,7 @@ export async function clearSeedData(options = {}) {
  * (cioè i dati demo sono stati caricati).
  */
 export async function isSeedDataLoaded() {
-    const manifest = await getSetting(SEED_MANIFEST_KEY, null)
+    const manifest = await getLegacySeedManifest()
     return Boolean(manifest)
 }
 
