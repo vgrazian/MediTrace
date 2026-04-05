@@ -243,6 +243,9 @@ watch(() => route.fullPath, () => void loadData())
             <th>Ospite</th>
             <th>Stanza/Letto</th>
             <th>Farmaco</th>
+            <th>Dose</th>
+            <th>Freq./giorno</th>
+            <th>Consumo sett.</th>
             <th>Stato</th>
             <th>Azioni</th>
           </tr>
@@ -257,6 +260,9 @@ watch(() => route.fullPath, () => void loadData())
             <td>{{ reminder.hostLabel }}</td>
             <td>{{ reminder.stanzaLetto }}</td>
             <td>{{ reminder.drugLabel }}</td>
+            <td>{{ reminder.dosePerSomministrazione ?? '—' }}</td>
+            <td>{{ reminder.somministrazioniGiornaliere ?? '—' }}</td>
+            <td>{{ reminder.consumoMedioSettimanale ?? '—' }}</td>
             <td>
               <span :class="['reminder-state', reminderStateBadge(reminder.stato)]">
                 {{ reminder.stato }}
@@ -293,7 +299,7 @@ watch(() => route.fullPath, () => void loadData())
             </td>
           </tr>
           <tr v-if="rows.length === 0 && !loading">
-            <td colspan="6" class="muted">Nessun promemoria per il filtro selezionato.</td>
+            <td colspan="9" class="muted">Nessun promemoria per il filtro selezionato.</td>
           </tr>
         </tbody>
       </table>

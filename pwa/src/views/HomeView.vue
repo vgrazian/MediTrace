@@ -60,6 +60,7 @@ onMounted(async () => {
           <RouterLink class="quick-link" to="/stanze">Stanze e Letti</RouterLink>
           <RouterLink class="quick-link" to="/terapie">Piani Terapici</RouterLink>
           <RouterLink class="quick-link" to="/impostazioni">Impostazioni</RouterLink>
+                  <RouterLink class="quick-link" to="/audit">Audit Log</RouterLink>
         </div>
       </div>
     </div>

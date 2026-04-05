@@ -6,7 +6,7 @@
  *   - createHost()        crea un nuovo ospite (scrive su DB + audit log)
  *   - deactivateHost()    disattiva un ospite (soft-delete + audit log)
  */
-import { db, enqueue } from '../db'
+import { db, enqueue, getSetting } from '../db'
 
 export function formatHostDisplay(host) {
     if (!host) return '—'
@@ -87,6 +87,7 @@ export async function createHost({
     if (existing && !existing.deletedAt) throw new Error(`Ospite con ID "${id.trim()}" esiste già`)
 
     const now = new Date().toISOString()
+    const deviceId = await getSetting('deviceId', 'unknown')
     const record = {
         id: id.trim(),
         codiceInterno: codiceInterno?.trim() ?? '',
@@ -117,9 +118,9 @@ export async function createHost({
             entityType: 'hosts',
             entityId: record.id,
             action: 'host_created',
+            deviceId,
             operatorId: operatorId ?? null,
-            timestamp: now,
-            note: '',
+            ts: now,
         })
     })
 
@@ -139,6 +140,7 @@ export async function deactivateHost({ hostId, operatorId }) {
     if (!host || host.deletedAt) throw new Error(`Ospite "${hostId}" non trovato`)
 
     const now = new Date().toISOString()
+    const deviceId = await getSetting('deviceId', 'unknown')
     const updated = {
         ...host,
         attivo: false,
@@ -153,10 +155,10 @@ export async function deactivateHost({ hostId, operatorId }) {
         await db.activityLog.add({
             entityType: 'hosts',
             entityId: hostId,
-            action: 'host_deactivated',
+            action: 'host_deleted',
+            deviceId,
             operatorId: operatorId ?? null,
-            timestamp: now,
-            note: '',
+            ts: now,
         })
     })
 
@@ -185,6 +187,7 @@ export async function updateHost({
     if (!host || host.deletedAt) throw new Error(`Ospite "${hostId}" non trovato`)
 
     const now = new Date().toISOString()
+    const deviceId = await getSetting('deviceId', 'unknown')
     const updated = {
         ...host,
         codiceInterno: codiceInterno?.trim() ?? '',
@@ -212,9 +215,9 @@ export async function updateHost({
             entityType: 'hosts',
             entityId: hostId,
             action: 'host_updated',
+            deviceId,
             operatorId: operatorId ?? null,
-            timestamp: now,
-            note: '',
+            ts: now,
         })
     })
 

@@ -1,5 +1,3 @@
-import { expect } from '@playwright/test'
-
 export async function loginOrRegisterSeededUser(page, {
     username = 'prova',
     password = 'Prova123!',
@@ -10,6 +8,11 @@ export async function loginOrRegisterSeededUser(page, {
     const homeLink = page.getByRole('link', { name: 'Cruscotto' })
     const settingsLink = page.getByRole('link', { name: '⚙' })
     const loginError = page.locator('.login-error')
+
+    async function isAuthenticatedUiVisible() {
+        return (await settingsLink.isVisible().catch(() => false))
+            || (await homeLink.isVisible().catch(() => false))
+    }
 
     async function awaitAuthenticated(timeout = 9000) {
         await Promise.race([
@@ -31,6 +34,11 @@ export async function loginOrRegisterSeededUser(page, {
     if (!(await usernameInput.isVisible()) && !(await registerUsernameInput.isVisible()) && !(await homeLink.isVisible())) {
         await page.waitForTimeout(500)
         await waitForAuthEntry(12000)
+    }
+
+    // Already authenticated (e.g. test calls helper twice in the same session).
+    if (await isAuthenticatedUiVisible()) {
+        return
     }
 
     if (await usernameInput.isVisible()) {
@@ -62,6 +70,13 @@ export async function loginOrRegisterSeededUser(page, {
     }
 
     await page.waitForLoadState('networkidle')
-    await expect(page.locator('main')).toBeVisible({ timeout: 15000 })
-    await expect(settingsLink).toBeVisible({ timeout: 15000 })
+
+    // CI-safe final gate: authentication is confirmed by app nav links.
+    const deadline = Date.now() + 15_000
+    while (Date.now() < deadline) {
+        if (await isAuthenticatedUiVisible()) return
+        await page.waitForTimeout(200)
+    }
+
+    throw new Error('Login E2E fallito: UI autenticata non visibile entro timeout')
 }

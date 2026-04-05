@@ -1,7 +1,7 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue'
 import { db, enqueue, getSetting } from '../db'
-import { buildOperationalReport, operationalReportToCsv } from '../services/reporting'
+import { buildOperationalReport, buildOrderDraftText, operationalReportToCsv } from '../services/reporting'
 import { useAuth } from '../services/auth'
 
 const { currentUser } = useAuth()
@@ -9,6 +9,8 @@ const { currentUser } = useAuth()
 const report = ref(null)
 const reportLoading = ref(false)
 const reportError = ref('')
+const reportActionMessage = ref('')
+const reportActionError = ref('')
 const actionMessage = ref('')
 const actionError = ref('')
 const savingBatch = ref(false)
@@ -305,6 +307,65 @@ function exportReportCsv() {
   anchor.click()
 }
 
+function copyTextFallback(text) {
+  const textarea = document.createElement('textarea')
+  textarea.value = text
+  textarea.setAttribute('readonly', '')
+  textarea.style.position = 'absolute'
+  textarea.style.left = '-9999px'
+  document.body.appendChild(textarea)
+  textarea.select()
+  let copied = false
+  try {
+    copied = document.execCommand('copy')
+  } finally {
+    document.body.removeChild(textarea)
+  }
+  return copied
+}
+
+async function prepareOrderDraft() {
+  reportActionMessage.value = ''
+  reportActionError.value = ''
+
+  if (!report.value) {
+    reportActionError.value = 'Report non disponibile.'
+    return
+  }
+
+  const draftText = buildOrderDraftText(report.value)
+  if (!draftText) {
+    reportActionError.value = 'Nessun farmaco con priorita\' critica/alta/media da includere nell\'ordine.'
+    return
+  }
+
+  let copied = false
+  try {
+    if (navigator?.clipboard?.writeText) {
+      await navigator.clipboard.writeText(draftText)
+      copied = true
+    }
+  } catch {
+    copied = false
+  }
+
+  if (!copied) {
+    copied = copyTextFallback(draftText)
+  }
+
+  if (copied) {
+    reportActionMessage.value = 'Testo ordine copiato negli appunti.'
+    return
+  }
+
+  const date = new Date().toISOString().slice(0, 10)
+  const anchor = document.createElement('a')
+  anchor.href = URL.createObjectURL(new Blob([draftText], { type: 'text/plain;charset=utf-8' }))
+  anchor.download = `meditrace-ordine-farmaci-${date}.txt`
+  anchor.click()
+  reportActionMessage.value = 'Clipboard non disponibile: scaricato file .txt con il testo ordine.'
+}
+
 onMounted(() => {
   void refreshReport()
 })
@@ -327,9 +388,14 @@ onMounted(() => {
         <button :disabled="!report" @click="exportReportCsv">
           Esporta CSV report
         </button>
+        <button :disabled="!report" @click="prepareOrderDraft">
+          Prepara testo ordine farmaci
+        </button>
       </div>
 
       <p v-if="reportError" class="import-error" style="margin-top:.5rem">Errore report: {{ reportError }}</p>
+      <p v-if="reportActionMessage" class="muted" style="margin-top:.5rem">{{ reportActionMessage }}</p>
+      <p v-if="reportActionError" class="import-error" style="margin-top:.5rem">{{ reportActionError }}</p>
     </div>
 
     <div v-if="report" class="card">

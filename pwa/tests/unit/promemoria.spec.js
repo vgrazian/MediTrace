@@ -33,8 +33,8 @@ import { markReminder } from '../../src/services/promemoria'
 const NOW = new Date('2026-04-04T14:00:00.000Z')
 
 const HOSTS = [
-    { id: 'h1', codiceInterno: 'OSP-01', stanza: 'A1', letto: '1', deletedAt: null },
-    { id: 'h2', codiceInterno: 'OSP-02', stanza: 'A2', letto: '2', deletedAt: null },
+    { id: 'h1', codiceInterno: 'OSP-01', roomId: 1, bedId: 1, deletedAt: null },
+    { id: 'h2', codiceInterno: 'OSP-02', roomId: 2, bedId: 2, deletedAt: null },
 ]
 
 const DRUGS = [
@@ -72,7 +72,7 @@ describe('buildReminderRows', () => {
         const rows = buildReminderRows({ reminders: REMINDERS_TODAY, hosts: HOSTS, drugs: DRUGS, therapies: THERAPIES, dateFilter: 'all', now: NOW })
         const r1 = rows.find(r => r.id === 'r1')
         expect(r1.hostLabel).toBe('OSP-01')
-        expect(r1.stanzaLetto).toBe('A1/1')
+        expect(r1.stanzaLetto).toBe('1/1')
         expect(r1.drugLabel).toBe('Paracetamolo')
     })
 
@@ -203,11 +203,40 @@ describe('markReminder', () => {
         expect(enqueueCalls).toEqual([{ entityType: 'reminders', entityId: 'r-test', operation: 'upsert' }])
     })
 
-    it('adds an audit log entry with correct action', async () => {
-        await markReminder({ reminderId: 'r-test', outcome: 'ESEGUITO', operatorId: 'op-1' })
+    it('records standard audit fields for reminder eseguito', async () => {
+        await markReminder({ reminderId: 'r-test', outcome: 'ESEGUITO', operatorId: 'op-admin' })
         expect(activityLogRows.length).toBe(1)
-        expect(activityLogRows[0].action).toBe('reminder_eseguito')
-        expect(activityLogRows[0].operatorId).toBe('op-1')
+        const audit = activityLogRows[0]
+        expect(audit.entityType).toBe('reminders')
+        expect(audit.entityId).toBe('r-test')
+        expect(audit.action).toBe('reminder_eseguito')
+        expect(audit.operatorId).toBe('op-admin')
+        expect(audit.deviceId).toBe('unknown')
+        expect(typeof audit.ts).toBe('string')
+    })
+
+    it('records standard audit fields for reminder saltato', async () => {
+        await markReminder({ reminderId: 'r-test', outcome: 'SALTATO', operatorId: 'op-nurse' })
+        expect(activityLogRows.length).toBe(1)
+        const audit = activityLogRows[0]
+        expect(audit.entityType).toBe('reminders')
+        expect(audit.entityId).toBe('r-test')
+        expect(audit.action).toBe('reminder_saltato')
+        expect(audit.operatorId).toBe('op-nurse')
+        expect(audit.deviceId).toBe('unknown')
+        expect(typeof audit.ts).toBe('string')
+    })
+
+    it('records standard audit fields for reminder posticipato', async () => {
+        await markReminder({ reminderId: 'r-test', outcome: 'POSTICIPATO', operatorId: 'op-admin' })
+        expect(activityLogRows.length).toBe(1)
+        const audit = activityLogRows[0]
+        expect(audit.entityType).toBe('reminders')
+        expect(audit.entityId).toBe('r-test')
+        expect(audit.action).toBe('reminder_posticipato')
+        expect(audit.operatorId).toBe('op-admin')
+        expect(audit.deviceId).toBe('unknown')
+        expect(typeof audit.ts).toBe('string')
     })
 
     it('does not overwrite eseguitoAt when marking SALTATO', async () => {

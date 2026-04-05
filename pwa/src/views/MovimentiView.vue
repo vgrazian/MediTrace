@@ -1,7 +1,8 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue'
-import { db, enqueue, getSetting } from '../db'
+import { db } from '../db'
 import { useAuth } from '../services/auth'
+import { softDeleteMovement, upsertMovement } from '../services/movimenti'
 
 const { currentUser } = useAuth()
 
@@ -130,45 +131,24 @@ async function saveMovement() {
     return
   }
 
-  const now = new Date().toISOString()
   const movementDate = form.value.dataMovimento
     ? new Date(form.value.dataMovimento).toISOString()
-    : now
+    : new Date().toISOString()
 
   const movementId = editingMovementId.value || crypto.randomUUID()
   const existing = editingMovementId.value ? movements.value.find(m => m.id === editingMovementId.value) : null
-  const record = {
-    ...(existing || {}),
-    id: movementId,
-    stockBatchId: form.value.stockBatchId,
-    drugId: selectedBatch.drugId || null,
-    hostId: form.value.hostId || null,
-    therapyId: form.value.therapyId || null,
-    type: form.value.tipoMovimento,
-    tipoMovimento: form.value.tipoMovimento,
-    quantita: quantity,
-    dataMovimento: movementDate,
-    note: form.value.note.trim() || '',
-    updatedAt: now,
-    deletedAt: existing?.deletedAt ?? null,
-    syncStatus: 'pending',
-  }
-
   saving.value = true
   try {
-    const deviceId = await getSetting('deviceId', 'unknown')
-
-    await db.transaction('rw', db.movements, db.syncQueue, db.activityLog, async () => {
-      await db.movements.put(record)
-      await enqueue('movements', record.id, 'upsert')
-      await db.activityLog.add({
-        entityType: 'movements',
-        entityId: record.id,
-        action: editingMovementId.value ? 'movement_updated' : 'movement_created',
-        deviceId,
-        operatorId: currentUser.value?.login ?? null,
-        ts: now,
-      })
+    await upsertMovement({
+      existing,
+      movementId,
+      form: {
+        ...form.value,
+        quantita: quantity,
+      },
+      selectedBatch,
+      movementDate,
+      operatorId: currentUser.value?.login ?? null,
     })
 
     form.value = {
@@ -231,26 +211,10 @@ async function deleteMovement(movement) {
 
   message.value = ''
   errorMessage.value = ''
-  const now = new Date().toISOString()
   try {
-    const deviceId = await getSetting('deviceId', 'unknown')
-
-    await db.transaction('rw', db.movements, db.syncQueue, db.activityLog, async () => {
-      await db.movements.put({
-        ...movement,
-        deletedAt: now,
-        updatedAt: now,
-        syncStatus: 'pending',
-      })
-      await enqueue('movements', movement.id, 'upsert')
-      await db.activityLog.add({
-        entityType: 'movements',
-        entityId: movement.id,
-        action: 'movement_deleted',
-        deviceId,
-        operatorId: currentUser.value?.login ?? null,
-        ts: now,
-      })
+    await softDeleteMovement({
+      movement,
+      operatorId: currentUser.value?.login ?? null,
     })
 
     if (editingMovementId.value === movement.id) resetForm()

@@ -45,6 +45,7 @@ const PENDING_CONFLICTS_KEY = 'pendingConflicts'
 export async function fullSync(token) {
     if (!token) return { skipped: true, reason: 'no-token' }
 
+    const deviceId = (await getSetting('deviceId')) ?? 'unknown'
     const files = await listAppFiles(token)
     const manifestFile = files.find(f => f.name === FILE_NAMES.MANIFEST)
     const dataFile = files.find(f => f.name === FILE_NAMES.DATA)
@@ -54,6 +55,17 @@ export async function fullSync(token) {
         const { manifest, gistId } = await bootstrapDriveFiles(token)
         await setSyncState('gistId', gistId)
         await setSetting('datasetVersion', manifest.datasetVersion)
+
+        // Audit: sync bootstrap
+        await db.activityLog.add({
+            entityType: 'sync',
+            entityId: `bootstrap:${gistId}`,
+            action: 'sync_bootstrapped',
+            deviceId,
+            operatorId: null,
+            ts: new Date().toISOString(),
+        })
+
         return { bootstrapped: true }
     }
 
@@ -68,6 +80,39 @@ export async function fullSync(token) {
         const conflicts = await mergeRemoteDataset(remoteDataset)
         await setSetting('datasetVersion', remoteManifest.datasetVersion)
         await setSyncState('gistId', gistId)
+
+        // Audit: sync downloaded (and log conflicts if detected)
+        await db.activityLog.add({
+            entityType: 'sync',
+            entityId: `download:${remoteManifest.datasetVersion}`,
+            action: 'sync_downloaded',
+            deviceId,
+            operatorId: null,
+            ts: new Date().toISOString(),
+            details: {
+                remoteVersion: remoteManifest.datasetVersion,
+                conflictsDetected: conflicts.length,
+            },
+        })
+
+        // Log individual conflict detection if any
+        if (conflicts.length > 0) {
+            for (const conflict of conflicts) {
+                await db.activityLog.add({
+                    entityType: 'sync',
+                    entityId: conflict.conflictId,
+                    action: 'sync_conflict_detected',
+                    deviceId,
+                    operatorId: null,
+                    ts: new Date().toISOString(),
+                    details: {
+                        table: conflict.table,
+                        fields: conflict.fields,
+                    },
+                })
+            }
+        }
+
         return {
             downloaded: true,
             datasetVersion: remoteManifest.datasetVersion,
@@ -78,6 +123,19 @@ export async function fullSync(token) {
     // Local is current — push any pending changes
     const unresolvedConflicts = await listPendingConflicts()
     if (unresolvedConflicts.length > 0) {
+        // Audit: sync blocked by pending conflicts
+        await db.activityLog.add({
+            entityType: 'sync',
+            entityId: `pending-conflicts:${unresolvedConflicts.length}`,
+            action: 'sync_blocked_by_conflicts',
+            deviceId,
+            operatorId: null,
+            ts: new Date().toISOString(),
+            details: {
+                pendingConflictCount: unresolvedConflicts.length,
+            },
+        })
+
         return {
             blocked: true,
             reason: 'pending-conflicts',
@@ -86,10 +144,20 @@ export async function fullSync(token) {
     }
 
     const pendingCount = await db.syncQueue.count()
-    if (pendingCount === 0) return { upToDate: true }
+    if (pendingCount === 0) {
+        // Audit: sync completed (no-op, everything up-to-date)
+        await db.activityLog.add({
+            entityType: 'sync',
+            entityId: 'sync-uptodate',
+            action: 'sync_completed_no_changes',
+            deviceId,
+            operatorId: null,
+            ts: new Date().toISOString(),
+        })
+        return { upToDate: true }
+    }
 
     const newVersion = (remoteManifest.datasetVersion ?? 0) + 1
-    const deviceId = (await getSetting('deviceId')) ?? 'unknown'
     const dataset = await exportLocalDataset(newVersion)
 
     await uploadFile(token, FILE_NAMES.DATA, dataset, gistId)
@@ -104,6 +172,20 @@ export async function fullSync(token) {
 
     await db.syncQueue.clear()
     await setSetting('datasetVersion', newVersion)
+
+    // Audit: sync uploaded
+    await db.activityLog.add({
+        entityType: 'sync',
+        entityId: `upload:${newVersion}`,
+        action: 'sync_uploaded',
+        deviceId,
+        operatorId: null,
+        ts: new Date().toISOString(),
+        details: {
+            newVersion,
+            itemsSynced: pendingCount,
+        },
+    })
 
     return { uploaded: true, datasetVersion: newVersion }
 }

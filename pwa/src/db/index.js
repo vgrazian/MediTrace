@@ -73,6 +73,25 @@ db.version(2).stores({
     })
 })
 
+db.version(3).stores({
+    settings: '&key',
+    rooms: 'id, codice, updatedAt, syncStatus',
+    beds: 'id, roomId, numero, updatedAt, syncStatus',
+    hosts: 'id, codiceInterno, cognome, nome, roomId, bedId, attivo, updatedAt, syncStatus',
+    drugs: 'id, nomeFarmaco, principioAttivo, classeTerapeutica, updatedAt, syncStatus',
+    stockBatches: 'id, drugId, nomeCommerciale, scadenza, updatedAt, syncStatus',
+    therapies: 'id, hostId, drugId, stockBatchId, dataInizio, dataFine, updatedAt, syncStatus',
+    movements: 'id, stockBatchId, hostId, therapyId, type, updatedAt, syncStatus',
+    reminders: 'id, hostId, therapyId, scheduledAt, stato, updatedAt, syncStatus',
+    syncQueue: '++id, entityType, entityId, operation, createdAt',
+    syncState: '&key',
+    activityLog: '++id, entityType, entityId, action, deviceId, operatorId, ts',
+}).upgrade(async tx => {
+    await tx.table('drugs').toCollection().modify(drug => {
+        drug.nomeFarmaco = String(drug.nomeFarmaco ?? '').trim()
+    })
+})
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 export async function getSetting(key, fallback = null) {

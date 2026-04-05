@@ -1,7 +1,8 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue'
-import { db, enqueue, getSetting } from '../db'
+import { db, getSetting } from '../db'
 import { useAuth } from '../services/auth'
+import { upsertDrug, deleteDrug, upsertBatch, deactivateBatch } from '../services/farmaci'
 
 const { currentUser } = useAuth()
 
@@ -18,6 +19,7 @@ const editingBatchId = ref(null)
 
 const drugForm = ref({
   id: '',
+  nomeFarmaco: '',
   principioAttivo: '',
   classeTerapeutica: '',
   scortaMinima: '',
@@ -44,7 +46,13 @@ function toIdFromName(name) {
 
 function drugLabel(drugId) {
   const item = drugs.value.find(drug => drug.id === drugId)
-  return item?.principioAttivo ?? drugId
+  if (!item) return drugId
+  const name = String(item.nomeFarmaco || '').trim()
+  const activeIngredient = String(item.principioAttivo || '').trim()
+  if (name && activeIngredient && name !== activeIngredient) {
+    return `${name} (${activeIngredient})`
+  }
+  return name || activeIngredient || drugId
 }
 
 function formatDate(value) {
@@ -65,7 +73,7 @@ async function loadData() {
 
     drugs.value = rawDrugs
       .filter(item => !item.deletedAt)
-      .sort((a, b) => (a.principioAttivo || a.id).localeCompare(b.principioAttivo || b.id))
+      .sort((a, b) => (a.nomeFarmaco || a.principioAttivo || a.id).localeCompare(b.nomeFarmaco || b.principioAttivo || b.id))
 
     batches.value = rawBatches
       .filter(item => !item.deletedAt)
@@ -81,14 +89,14 @@ async function createDrug() {
   message.value = ''
   errorMessage.value = ''
 
-  const name = drugForm.value.principioAttivo.trim()
-  if (!name) {
-    errorMessage.value = 'Inserisci almeno il principio attivo.'
+  const nomeFarmaco = drugForm.value.nomeFarmaco.trim()
+  const principioAttivo = drugForm.value.principioAttivo.trim()
+  if (!nomeFarmaco || !principioAttivo) {
+    errorMessage.value = 'Inserisci nome farmaco e principio attivo.'
     return
   }
 
-  const id = (editingDrugId.value || drugForm.value.id || toIdFromName(name) || crypto.randomUUID()).trim()
-  const now = new Date().toISOString()
+  const id = (editingDrugId.value || drugForm.value.id || toIdFromName(nomeFarmaco) || crypto.randomUUID()).trim()
 
   savingDrug.value = true
   try {
@@ -97,34 +105,19 @@ async function createDrug() {
       throw new Error('ID farmaco già esistente')
     }
 
-    const record = {
-      ...(existing || {}),
-      id,
-      principioAttivo: name,
+    await upsertDrug({
+      drugId: id,
+      existing: existing && !existing.deletedAt ? existing : null,
+      nomeFarmaco,
+      principioAttivo,
       classeTerapeutica: drugForm.value.classeTerapeutica.trim() || '',
       scortaMinima: Number(drugForm.value.scortaMinima || 0),
-      updatedAt: now,
-      deletedAt: null,
-      syncStatus: 'pending',
-    }
-
-    const deviceId = await getSetting('deviceId', 'unknown')
-
-    await db.transaction('rw', db.drugs, db.syncQueue, db.activityLog, async () => {
-      await db.drugs.put(record)
-      await enqueue('drugs', record.id, 'upsert')
-      await db.activityLog.add({
-        entityType: 'drugs',
-        entityId: record.id,
-        action: editingDrugId.value ? 'drug_updated' : 'drug_created',
-        deviceId,
-        operatorId: currentUser.value?.login ?? null,
-        ts: now,
-      })
+      operatorId: currentUser.value?.login ?? null,
     })
 
     drugForm.value = {
       id: '',
+      nomeFarmaco: '',
       principioAttivo: '',
       classeTerapeutica: '',
       scortaMinima: '',
@@ -154,39 +147,22 @@ async function createBatch() {
     return
   }
 
-  const now = new Date().toISOString()
   const id = editingBatchId.value || crypto.randomUUID()
 
   savingBatch.value = true
   try {
     const existing = editingBatchId.value ? await db.stockBatches.get(editingBatchId.value) : null
-    const record = {
-      ...(existing || {}),
-      id,
+
+    await upsertBatch({
+      batchId: id,
+      existing,
       drugId: batchForm.value.drugId,
       nomeCommerciale: name,
       dosaggio: batchForm.value.dosaggio.trim() || '',
       quantitaAttuale: Number(batchForm.value.quantitaAttuale || 0),
       sogliaRiordino: Number(batchForm.value.sogliaRiordino || 0),
       scadenza: batchForm.value.scadenza || null,
-      updatedAt: now,
-      deletedAt: null,
-      syncStatus: 'pending',
-    }
-
-    const deviceId = await getSetting('deviceId', 'unknown')
-
-    await db.transaction('rw', db.stockBatches, db.syncQueue, db.activityLog, async () => {
-      await db.stockBatches.put(record)
-      await enqueue('stockBatches', record.id, 'upsert')
-      await db.activityLog.add({
-        entityType: 'stockBatches',
-        entityId: record.id,
-        action: editingBatchId.value ? 'stock_batch_updated' : 'stock_batch_created',
-        deviceId,
-        operatorId: currentUser.value?.login ?? null,
-        ts: now,
-      })
+      operatorId: currentUser.value?.login ?? null,
     })
 
     batchForm.value = {
@@ -207,33 +183,18 @@ async function createBatch() {
   }
 }
 
-async function deactivateBatch(batch) {
+async function deactivateBatchUI(batch) {
   const confirmed = window.confirm('Confermi disattivazione confezione?')
   if (!confirmed) return
 
   message.value = ''
   errorMessage.value = ''
-  const now = new Date().toISOString()
 
   try {
-    const deviceId = await getSetting('deviceId', 'unknown')
-
-    await db.transaction('rw', db.stockBatches, db.syncQueue, db.activityLog, async () => {
-      await db.stockBatches.put({
-        ...batch,
-        deletedAt: now,
-        updatedAt: now,
-        syncStatus: 'pending',
-      })
-      await enqueue('stockBatches', batch.id, 'upsert')
-      await db.activityLog.add({
-        entityType: 'stockBatches',
-        entityId: batch.id,
-        action: 'stock_batch_deactivated',
-        deviceId,
-        operatorId: currentUser.value?.login ?? null,
-        ts: now,
-      })
+    await deactivateBatch({
+      batchId: batch.id,
+      existing: batch,
+      operatorId: currentUser.value?.login ?? null,
     })
 
     message.value = 'Confezione disattivata.'
@@ -247,6 +208,7 @@ function startEditDrug(drug) {
   editingDrugId.value = drug.id
   drugForm.value = {
     id: drug.id,
+    nomeFarmaco: drug.nomeFarmaco || '',
     principioAttivo: drug.principioAttivo || '',
     classeTerapeutica: drug.classeTerapeutica || '',
     scortaMinima: String(drug.scortaMinima ?? ''),
@@ -269,6 +231,7 @@ function resetDrugForm() {
   editingDrugId.value = null
   drugForm.value = {
     id: '',
+    nomeFarmaco: '',
     principioAttivo: '',
     classeTerapeutica: '',
     scortaMinima: '',
@@ -287,32 +250,18 @@ function resetBatchForm() {
   }
 }
 
-async function deleteDrug(drug) {
+async function deleteDrugRecord(drug) {
   const confirmed = window.confirm('Confermi eliminazione farmaco?')
   if (!confirmed) return
 
   message.value = ''
   errorMessage.value = ''
-  const now = new Date().toISOString()
 
   try {
-    const deviceId = await getSetting('deviceId', 'unknown')
-    await db.transaction('rw', db.drugs, db.syncQueue, db.activityLog, async () => {
-      await db.drugs.put({
-        ...drug,
-        deletedAt: now,
-        updatedAt: now,
-        syncStatus: 'pending',
-      })
-      await enqueue('drugs', drug.id, 'upsert')
-      await db.activityLog.add({
-        entityType: 'drugs',
-        entityId: drug.id,
-        action: 'drug_deleted',
-        deviceId,
-        operatorId: currentUser.value?.login ?? null,
-        ts: now,
-      })
+    await deleteDrug({
+      drugId: drug.id,
+      existing: drug,
+      operatorId: currentUser.value?.login ?? null,
     })
 
     if (editingDrugId.value === drug.id) resetDrugForm()
@@ -340,6 +289,7 @@ onMounted(() => {
         <thead>
           <tr>
             <th>ID</th>
+            <th>Nome farmaco</th>
             <th>Principio attivo</th>
             <th>Classe</th>
             <th>Scorta minima</th>
@@ -349,16 +299,17 @@ onMounted(() => {
         <tbody>
           <tr v-for="drug in drugs" :key="drug.id">
             <td>{{ drug.id }}</td>
+            <td>{{ drug.nomeFarmaco || '—' }}</td>
             <td>{{ drug.principioAttivo }}</td>
             <td>{{ drug.classeTerapeutica || '—' }}</td>
             <td>{{ drug.scortaMinima ?? 0 }}</td>
             <td>
               <button style="margin-right:.35rem" @click="startEditDrug(drug)">Modifica</button>
-              <button style="background:#c0392b" @click="deleteDrug(drug)">Elimina</button>
+              <button style="background:#c0392b" @click="deleteDrugRecord(drug)">Elimina</button>
             </td>
           </tr>
           <tr v-if="drugs.length === 0 && !loading">
-            <td colspan="5" class="muted">Nessun farmaco disponibile.</td>
+            <td colspan="6" class="muted">Nessun farmaco disponibile.</td>
           </tr>
         </tbody>
       </table>
@@ -389,7 +340,7 @@ onMounted(() => {
             <td>{{ formatDate(batch.scadenza) }}</td>
             <td>
               <button style="margin-right:.35rem" @click="startEditBatch(batch)">Modifica</button>
-              <button style="background:#c0392b" @click="deactivateBatch(batch)">Disattiva</button>
+              <button style="background:#c0392b" @click="deactivateBatchUI(batch)">Disattiva</button>
             </td>
           </tr>
           <tr v-if="batches.length === 0 && !loading">
@@ -412,6 +363,11 @@ onMounted(() => {
             <label>
               ID farmaco (opzionale)
               <input v-model="drugForm.id" type="text" placeholder="es. paracetamolo" :disabled="Boolean(editingDrugId)" />
+            </label>
+
+            <label>
+              Nome farmaco
+              <input v-model="drugForm.nomeFarmaco" type="text" placeholder="Tachipirina" />
             </label>
 
             <label>
@@ -443,7 +399,7 @@ onMounted(() => {
               Farmaco
               <select v-model="batchForm.drugId" :disabled="!canCreateBatch || savingBatch">
                 <option value="">Seleziona farmaco</option>
-                <option v-for="drug in drugs" :key="drug.id" :value="drug.id">{{ drug.principioAttivo }}</option>
+                <option v-for="drug in drugs" :key="drug.id" :value="drug.id">{{ drugLabel(drug.id) }}</option>
               </select>
             </label>
 

@@ -1,7 +1,8 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue'
-import { db, enqueue, getSetting } from '../db'
+import { db } from '../db'
 import { useAuth } from '../services/auth'
+import { deactivateTherapyRecord, upsertTherapy } from '../services/terapie'
 
 const { currentUser } = useAuth()
 
@@ -88,41 +89,14 @@ async function saveTherapy() {
   }
 
   saving.value = true
-  const now = new Date().toISOString()
-
   try {
     const therapyId = editingTherapyId.value || crypto.randomUUID()
     const existing = editingTherapyId.value ? therapies.value.find(t => t.id === editingTherapyId.value) : null
-    const record = {
-      ...(existing || {}),
-      id: therapyId,
-      hostId: form.value.hostId,
-      drugId: form.value.drugId,
-      dosePerSomministrazione: Number(form.value.dosePerSomministrazione || 0),
-      somministrazioniGiornaliere: Number(form.value.somministrazioniGiornaliere || 0),
-      consumoMedioSettimanale: Number(form.value.consumoMedioSettimanale || 0),
-      dataInizio: form.value.dataInizio || now,
-      dataFine: form.value.dataFine || null,
-      note: form.value.note || '',
-      attiva: true,
-      updatedAt: now,
-      deletedAt: existing?.deletedAt ?? null,
-      syncStatus: 'pending',
-    }
-
-    const deviceId = await getSetting('deviceId', 'unknown')
-
-    await db.transaction('rw', db.therapies, db.syncQueue, db.activityLog, async () => {
-      await db.therapies.put(record)
-      await enqueue('therapies', record.id, 'upsert')
-      await db.activityLog.add({
-        entityType: 'therapies',
-        entityId: record.id,
-        action: editingTherapyId.value ? 'therapy_updated' : 'therapy_created',
-        deviceId,
-        operatorId: currentUser.value?.login ?? null,
-        ts: now,
-      })
+    await upsertTherapy({
+      existing,
+      therapyId,
+      form: form.value,
+      operatorId: currentUser.value?.login ?? null,
     })
 
     form.value = {
@@ -185,28 +159,10 @@ async function deactivateTherapy(therapy) {
 
   message.value = ''
   errorMessage.value = ''
-  const now = new Date().toISOString()
-
   try {
-    const deviceId = await getSetting('deviceId', 'unknown')
-
-    await db.transaction('rw', db.therapies, db.syncQueue, db.activityLog, async () => {
-      await db.therapies.put({
-        ...therapy,
-        attiva: false,
-        deletedAt: now,
-        updatedAt: now,
-        syncStatus: 'pending',
-      })
-      await enqueue('therapies', therapy.id, 'upsert')
-      await db.activityLog.add({
-        entityType: 'therapies',
-        entityId: therapy.id,
-        action: 'therapy_deactivated',
-        deviceId,
-        operatorId: currentUser.value?.login ?? null,
-        ts: now,
-      })
+    await deactivateTherapyRecord({
+      therapy,
+      operatorId: currentUser.value?.login ?? null,
     })
 
     message.value = 'Terapia disattivata.'

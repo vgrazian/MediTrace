@@ -47,6 +47,11 @@ const routes = [
         meta: { title: 'Promemoria' },
     },
     {
+        path: '/audit',
+        component: () => import('../views/AuditLogView.vue'),
+        meta: { title: 'Audit Log' },
+    },
+    {
         path: '/impostazioni',
         component: () => import('../views/ImpostazioniView.vue'),
         meta: { title: 'Impostazioni' },

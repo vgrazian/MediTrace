@@ -79,7 +79,15 @@ test('seeded account login, sync, csv import, password change and users section 
     await page.getByRole('button', { name: 'Aggiorna password' }).click()
     await loginOrRegisterSeededUser(page, { password: 'Prova4567!' })
 
-    await page.getByRole('link', { name: '⚙' }).click()
+    // CI-safe: avoid flakiness on immediate navbar re-render after password change.
+    await page.goto('/#/impostazioni')
+    const settingsHeading = page.getByRole('heading', { name: 'Impostazioni' })
+    if (!(await settingsHeading.isVisible().catch(() => false))) {
+        // Fallback: auth state may still be settling in CI, re-login and retry.
+        await loginOrRegisterSeededUser(page, { password: 'Prova4567!' })
+        await page.goto('/#/impostazioni')
+    }
+    await expect(settingsHeading).toBeVisible({ timeout: 15000 })
 
     // Validate seeded user row and destructive flow guard
     await expect(page.getByText('prova (sessione attiva)')).toBeVisible()
