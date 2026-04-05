@@ -1,14 +1,23 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { computed, ref, onMounted } from 'vue'
+import { useRoute } from 'vue-router'
 import AppNav from './components/AppNav.vue'
-import { initAuth, sanitizeUsernameInput, useAuth } from './services/auth'
+import { initAuth, sanitizeEmailInput, sanitizeUsernameInput, useAuth } from './services/auth'
 
-const { currentUser, hasUsers, isInitialized, signIn, register } = useAuth()
+const { currentUser, hasUsers, isInitialized, signIn, register, requestPasswordResetByEmail } = useAuth()
+const route = useRoute()
+const isAuthRecoveryRoute = computed(() => route.path === '/auth/reset-password')
 
 const username = ref('')
 const password = ref('')
+const resetEmail = ref('')
+const resetBusy = ref(false)
+const resetMessage = ref('')
 
 const regUsername = ref('')
+const regFirstName = ref('')
+const regLastName = ref('')
+const regEmail = ref('')
 const regPassword = ref('')
 const regConfirmPassword = ref('')
 const regGithubToken = ref('')
@@ -24,6 +33,14 @@ function handleUsernameInput(event) {
 
 function handleRegUsernameInput(event) {
   regUsername.value = sanitizeUsernameInput(event.target.value)
+}
+
+function handleRegEmailInput(event) {
+  regEmail.value = sanitizeEmailInput(event.target.value)
+}
+
+function handleResetEmailInput(event) {
+  resetEmail.value = sanitizeEmailInput(event.target.value)
 }
 
 async function handleLogin() {
@@ -43,18 +60,32 @@ async function handleLogin() {
 }
 
 async function handleRegister() {
-  if (!regUsername.value.trim() || !regPassword.value || !regConfirmPassword.value || !regGithubToken.value.trim()) return
+  if (
+    !regUsername.value.trim()
+    || !regFirstName.value.trim()
+    || !regLastName.value.trim()
+    || !regEmail.value.trim()
+    || !regPassword.value
+    || !regConfirmPassword.value
+    || !regGithubToken.value.trim()
+  ) return
 
   loginBusy.value = true
   loginError.value = ''
   try {
     await register({
       username: regUsername.value.trim(),
+      firstName: regFirstName.value.trim(),
+      lastName: regLastName.value.trim(),
+      email: regEmail.value.trim(),
       password: regPassword.value,
       confirmPassword: regConfirmPassword.value,
       githubToken: regGithubToken.value.trim(),
     })
 
+    regFirstName.value = ''
+    regLastName.value = ''
+    regEmail.value = ''
     regPassword.value = ''
     regConfirmPassword.value = ''
     regGithubToken.value = ''
@@ -64,6 +95,21 @@ async function handleRegister() {
     loginBusy.value = false
   }
 }
+
+async function handlePasswordResetEmail() {
+  if (!resetEmail.value.trim()) return
+
+  resetBusy.value = true
+  resetMessage.value = ''
+  try {
+    await requestPasswordResetByEmail(resetEmail.value.trim())
+    resetMessage.value = 'Email di reset inviata. Controlla la casella di posta.'
+  } catch (err) {
+    resetMessage.value = err.message
+  } finally {
+    resetBusy.value = false
+  }
+}
 </script>
 
 <template>
@@ -71,7 +117,11 @@ async function handleRegister() {
     <div v-if="!isInitialized" class="loading">Caricamento...</div>
 
     <template v-else-if="!currentUser">
-      <div class="login-screen">
+      <main v-if="isAuthRecoveryRoute">
+        <RouterView />
+      </main>
+
+      <div v-else class="login-screen">
         <h1>MediTrace</h1>
         <p>Accesso con utenza e password</p>
 
@@ -88,6 +138,22 @@ async function handleRegister() {
             @input="handleRegUsernameInput"
           />
 
+          <label for="reg-first-name">Nome</label>
+          <input id="reg-first-name" v-model="regFirstName" type="text" placeholder="Mario" autocomplete="given-name" />
+
+          <label for="reg-last-name">Cognome</label>
+          <input id="reg-last-name" v-model="regLastName" type="text" placeholder="Rossi" autocomplete="family-name" />
+
+          <label for="reg-email">Email</label>
+          <input
+            id="reg-email"
+            v-model="regEmail"
+            type="email"
+            placeholder="mario.rossi@example.com"
+            autocomplete="email"
+            @input="handleRegEmailInput"
+          />
+
           <label for="reg-password">Password</label>
           <input id="reg-password" v-model="regPassword" type="password" placeholder="Minimo 8 caratteri" autocomplete="new-password" />
 
@@ -97,7 +163,7 @@ async function handleRegister() {
           <label for="reg-gh-token">Token GitHub (solo configurazione iniziale sincronizzazione)</label>
           <input id="reg-gh-token" v-model="regGithubToken" type="password" placeholder="github_pat_..." autocomplete="off" />
 
-          <button :disabled="loginBusy || !regUsername.trim() || !regPassword || !regConfirmPassword || !regGithubToken.trim()" @click="handleRegister">
+          <button :disabled="loginBusy || !regUsername.trim() || !regFirstName.trim() || !regLastName.trim() || !regEmail.trim() || !regPassword || !regConfirmPassword || !regGithubToken.trim()" @click="handleRegister">
             {{ loginBusy ? 'Creazione account…' : 'Crea account e accedi' }}
           </button>
         </div>
@@ -121,6 +187,23 @@ async function handleRegister() {
           <button :disabled="loginBusy || !username.trim() || !password" @click="handleLogin">
             {{ loginBusy ? 'Accesso in corso…' : 'Accedi' }}
           </button>
+
+          <hr style="border:none;border-top:1px solid #e5e7eb;margin:.25rem 0 .5rem" />
+
+          <label for="reset-email">Reset password via email</label>
+          <input
+            id="reset-email"
+            v-model="resetEmail"
+            type="email"
+            placeholder="utente@example.com"
+            autocomplete="email"
+            @input="handleResetEmailInput"
+          />
+
+          <button :disabled="resetBusy || !resetEmail.trim()" @click="handlePasswordResetEmail">
+            {{ resetBusy ? 'Invio in corso…' : 'Invia email reset password' }}
+          </button>
+          <p v-if="resetMessage" class="auth-help" style="margin-top:.25rem">{{ resetMessage }}</p>
         </div>
 
         <p v-if="loginError" class="login-error">{{ loginError }}</p>

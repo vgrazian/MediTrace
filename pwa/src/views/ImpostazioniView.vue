@@ -26,6 +26,8 @@ const {
   getPasswordPolicy,
   disableCurrentTestUser,
   listUsers,
+  listInvitedProfiles,
+  sendInviteLink,
   reactivateSeededUser,
   deleteSeededUser,
 } = useAuth()
@@ -52,6 +54,13 @@ const testUserMessage = ref('')
 const users = ref([])
 const usersBusy = ref(false)
 const usersMessage = ref('')
+const invitedProfiles = ref([])
+const invitedProfilesMessage = ref('')
+const inviteFirstName = ref('')
+const inviteLastName = ref('')
+const inviteEmail = ref('')
+const inviteBusy = ref(false)
+const inviteMessage = ref('')
 const sessionInfo = ref(null)
 const credentialPolicy = ref(null)
 const authEvents = ref([])
@@ -106,6 +115,21 @@ async function refreshUsers() {
   } catch (err) {
     users.value = []
     usersMessage.value = `Errore utenti: ${err.message}`
+  }
+}
+
+async function refreshInvitedProfiles() {
+  invitedProfilesMessage.value = ''
+  if (currentUser.value?.role !== 'admin') {
+    invitedProfiles.value = []
+    return
+  }
+
+  try {
+    invitedProfiles.value = await listInvitedProfiles()
+  } catch (err) {
+    invitedProfiles.value = []
+    invitedProfilesMessage.value = `Errore profili invitati: ${err.message}`
   }
 }
 
@@ -211,6 +235,7 @@ onMounted(async () => {
   gistId.value = await getSetting('gistId')
   await refreshPendingConflicts()
   await refreshUsers()
+  await refreshInvitedProfiles()
   await refreshSecurityInfo()
   refreshNotificationStatus()
   await refreshSeedStatus()
@@ -370,6 +395,30 @@ async function handleDeleteSeeded(username) {
     usersBusy.value = false
   }
 }
+
+async function handleInviteUser() {
+  if (currentUser.value?.role !== 'admin') return
+  if (!inviteFirstName.value.trim() || !inviteLastName.value.trim() || !inviteEmail.value.trim()) return
+
+  inviteBusy.value = true
+  inviteMessage.value = ''
+  try {
+    await sendInviteLink({
+      firstName: inviteFirstName.value.trim(),
+      lastName: inviteLastName.value.trim(),
+      email: inviteEmail.value.trim(),
+    })
+    await refreshInvitedProfiles()
+    inviteMessage.value = `Invito inviato a ${inviteEmail.value.trim()}.`
+    inviteFirstName.value = ''
+    inviteLastName.value = ''
+    inviteEmail.value = ''
+  } catch (err) {
+    inviteMessage.value = `Errore invito: ${err.message}`
+  } finally {
+    inviteBusy.value = false
+  }
+}
 </script>
 
 <template>
@@ -379,6 +428,8 @@ async function handleDeleteSeeded(username) {
     <div class="card">
       <p><strong>Account operatore</strong></p>
       <p class="muted">Username: {{ currentUser?.username }}</p>
+      <p class="muted">Nome: {{ currentUser?.firstName || '—' }} {{ currentUser?.lastName || '' }}</p>
+      <p class="muted">Email: {{ currentUser?.email || '—' }}</p>
       <p class="muted">Ruolo: {{ currentUser?.role === 'admin' ? 'amministratore' : 'operatore' }}</p>
       <p class="muted">Sincronizzazione GitHub: @{{ currentUser?.login }}<span v-if="currentUser?.name !== currentUser?.login"> ({{ currentUser?.name }})</span></p>
       <p class="muted" style="font-size:.8rem;margin-top:.25rem">
@@ -445,6 +496,9 @@ async function handleDeleteSeeded(username) {
         <thead>
           <tr>
             <th>Username</th>
+            <th>Nome</th>
+            <th>Cognome</th>
+            <th>Email</th>
             <th>GitHub</th>
             <th>Ruolo</th>
             <th>Tipo</th>
@@ -455,6 +509,9 @@ async function handleDeleteSeeded(username) {
         <tbody>
           <tr v-for="user in users" :key="user.username">
             <td>{{ user.username }}<span v-if="user.isCurrent"> (sessione attiva)</span></td>
+            <td>{{ user.firstName || '—' }}</td>
+            <td>{{ user.lastName || '—' }}</td>
+            <td>{{ user.email || '—' }}</td>
             <td>@{{ user.login }}</td>
             <td>{{ user.role }}</td>
             <td>{{ user.isSeeded ? 'prova' : 'standard' }}</td>
@@ -481,6 +538,61 @@ async function handleDeleteSeeded(username) {
           </tr>
         </tbody>
       </table>
+
+      <div v-if="currentUser?.role === 'admin'" class="import-form" style="margin-top:.75rem">
+        <p><strong>Invita nuovo utente via email</strong></p>
+        <label>
+          Nome
+          <input v-model="inviteFirstName" type="text" autocomplete="given-name" />
+        </label>
+        <label>
+          Cognome
+          <input v-model="inviteLastName" type="text" autocomplete="family-name" />
+        </label>
+        <label>
+          Email
+          <input v-model="inviteEmail" type="email" autocomplete="email" />
+        </label>
+        <button :disabled="inviteBusy || !inviteFirstName || !inviteLastName || !inviteEmail" @click="handleInviteUser">
+          {{ inviteBusy ? 'Invio invito…' : 'Invia link di invito' }}
+        </button>
+        <p v-if="inviteMessage" class="muted" style="margin-top:.5rem;font-size:.8rem">{{ inviteMessage }}</p>
+      </div>
+
+      <div v-if="currentUser?.role === 'admin'" style="margin-top:.85rem">
+        <p><strong>Profili invitati (Supabase)</strong></p>
+        <p class="muted" style="margin-top:.25rem;font-size:.85rem">
+          Elenco profili acquisiti dal session recovery/invite flow e salvati localmente.
+        </p>
+
+        <table class="conflict-table" style="margin-top:.5rem">
+          <thead>
+            <tr>
+              <th>Email</th>
+              <th>Nome</th>
+              <th>Cognome</th>
+              <th>Invitato da</th>
+              <th>Ultimo accesso</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="profile in invitedProfiles" :key="profile.email">
+              <td>{{ profile.email }}</td>
+              <td>{{ profile.firstName || '—' }}</td>
+              <td>{{ profile.lastName || '—' }}</td>
+              <td>{{ profile.invitedBy || '—' }}</td>
+              <td>{{ profile.lastSeenAt || profile.acceptedAt || '—' }}</td>
+            </tr>
+            <tr v-if="invitedProfiles.length === 0">
+              <td colspan="5" class="muted">Nessun profilo invitato acquisito localmente.</td>
+            </tr>
+          </tbody>
+        </table>
+        <button style="margin-top:.5rem" :disabled="usersBusy || inviteBusy" @click="refreshInvitedProfiles">
+          Aggiorna profili invitati
+        </button>
+        <p v-if="invitedProfilesMessage" class="muted" style="margin-top:.5rem;font-size:.8rem">{{ invitedProfilesMessage }}</p>
+      </div>
 
       <div v-if="currentUser?.role === 'admin'" style="margin-top:.85rem;padding:.75rem;border:1px dashed #d8b154;border-radius:.55rem">
         <p><strong>Dati di test (live)</strong></p>

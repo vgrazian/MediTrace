@@ -1,10 +1,13 @@
 import { reactive, readonly, toRefs } from 'vue'
 import { db, getSetting, setSetting } from '../db'
+import { getSupabaseRedirectTo, isSupabaseConfigured, supabase } from './supabaseClient'
 
 const AUTH_USERS_KEY = 'authUsers'
+const AUTH_INVITED_PROFILES_KEY = 'authInvitedProfiles'
 const AUTH_SESSION_KEY = 'authSession'
 const AUTH_SESSION_USERNAME_KEY = 'authSessionUsername'
 const USERNAME_PATTERN = /^[a-z0-9._-]{3,32}$/
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 const PASSWORD_ROTATION_DAYS = Number.parseInt(import.meta.env.VITE_PASSWORD_ROTATION_DAYS || '90', 10)
 const PASSWORD_EXPIRY_WARNING_DAYS = Number.parseInt(import.meta.env.VITE_PASSWORD_EXPIRY_WARNING_DAYS || '14', 10)
 const AUTH_SESSION_TTL_MINUTES = Number.parseInt(import.meta.env.VITE_SESSION_TTL_MINUTES || '480', 10)
@@ -28,16 +31,32 @@ function normalizeUsername(value) {
     return String(value ?? '').trim().toLowerCase()
 }
 
+function normalizeEmail(value) {
+    return String(value ?? '').trim().toLowerCase()
+}
+
 export function sanitizeUsernameInput(value) {
     return normalizeUsername(value)
         .replace(/[^a-z0-9._-]/g, '')
         .slice(0, 32)
 }
 
+export function sanitizeEmailInput(value) {
+    return normalizeEmail(value).slice(0, 120)
+}
+
 function assertValidUsername(username) {
     const normalized = normalizeUsername(username)
     if (!USERNAME_PATTERN.test(normalized)) {
         throw new Error('Username non valido: usa 3-32 caratteri [a-z0-9._-]')
+    }
+    return normalized
+}
+
+function assertValidEmail(email) {
+    const normalized = normalizeEmail(email)
+    if (!EMAIL_PATTERN.test(normalized)) {
+        throw new Error('Email non valida')
     }
     return normalized
 }
@@ -126,6 +145,9 @@ function normalizeUsersRoles(users) {
     const normalized = users.map(user => ({
         ...user,
         role: normalizeRole(user.role),
+        firstName: String(user.firstName ?? '').trim(),
+        lastName: String(user.lastName ?? '').trim(),
+        email: normalizeEmail(user.email),
     }))
 
     const hasActiveAdmin = normalized.some(user => !user.disabled && user.role === 'admin')
@@ -172,6 +194,80 @@ async function saveUsers(users) {
     state.hasUsers = users.some(u => !u.disabled)
 }
 
+function normalizeInvitedProfileEntry(entry) {
+    return {
+        email: normalizeEmail(entry?.email),
+        firstName: String(entry?.firstName ?? '').trim(),
+        lastName: String(entry?.lastName ?? '').trim(),
+        supabaseUserId: String(entry?.supabaseUserId ?? '').trim(),
+        invitedBy: String(entry?.invitedBy ?? '').trim(),
+        inviteFlow: String(entry?.inviteFlow ?? '').trim(),
+        acceptedAt: String(entry?.acceptedAt ?? nowIso()),
+        lastSeenAt: String(entry?.lastSeenAt ?? nowIso()),
+    }
+}
+
+async function loadInvitedProfiles() {
+    const raw = await getSetting(AUTH_INVITED_PROFILES_KEY, [])
+    const list = Array.isArray(raw) ? raw : []
+    return list
+        .map(normalizeInvitedProfileEntry)
+        .filter(item => item.email)
+}
+
+async function saveInvitedProfiles(entries) {
+    await setSetting(AUTH_INVITED_PROFILES_KEY, entries)
+}
+
+async function upsertInvitedProfile(entry) {
+    const normalizedEntry = normalizeInvitedProfileEntry(entry)
+    if (!normalizedEntry.email) return null
+
+    const entries = await loadInvitedProfiles()
+    const idx = entries.findIndex(item => item.email === normalizedEntry.email)
+    if (idx >= 0) {
+        entries[idx] = {
+            ...entries[idx],
+            ...normalizedEntry,
+            acceptedAt: entries[idx].acceptedAt || normalizedEntry.acceptedAt,
+            lastSeenAt: nowIso(),
+        }
+    } else {
+        entries.push({
+            ...normalizedEntry,
+            acceptedAt: nowIso(),
+            lastSeenAt: nowIso(),
+        })
+    }
+
+    await saveInvitedProfiles(entries)
+    return idx >= 0 ? entries[idx] : entries[entries.length - 1]
+}
+
+async function persistInvitedProfileFromSupabaseSession() {
+    if (!isSupabaseConfigured || !supabase) return null
+
+    const { data, error } = await supabase.auth.getSession()
+    if (error) throw new Error(error.message)
+
+    const user = data?.session?.user
+    if (!user?.email) return null
+
+    const metadata = user.user_metadata ?? {}
+    const inviteFlow = String(metadata.inviteFlow ?? '').trim()
+    const invitedBy = String(metadata.invitedBy ?? '').trim()
+    if (!inviteFlow && !invitedBy) return null
+
+    return upsertInvitedProfile({
+        email: user.email,
+        firstName: metadata.firstName ?? metadata.first_name ?? '',
+        lastName: metadata.lastName ?? metadata.last_name ?? '',
+        supabaseUserId: user.id,
+        invitedBy,
+        inviteFlow,
+    })
+}
+
 async function fetchGithubProfile(githubToken) {
     const res = await fetch('https://api.github.com/user', {
         headers: {
@@ -186,10 +282,16 @@ async function fetchGithubProfile(githubToken) {
 }
 
 function toSessionUser(authUser) {
+    const firstName = String(authUser.firstName ?? '').trim()
+    const lastName = String(authUser.lastName ?? '').trim()
+    const fullName = [firstName, lastName].filter(Boolean).join(' ').trim()
     return {
         username: authUser.username,
         login: authUser.githubLogin,
-        name: authUser.displayName ?? authUser.githubLogin,
+        name: fullName || authUser.displayName || authUser.githubLogin,
+        firstName,
+        lastName,
+        email: normalizeEmail(authUser.email),
         role: normalizeRole(authUser.role),
         avatarUrl: authUser.avatarUrl,
         isSeeded: Boolean(authUser.isSeeded),
@@ -308,10 +410,15 @@ async function requireAdminSession() {
 }
 
 function summarizeUser(authUser) {
+    const firstName = String(authUser.firstName ?? '').trim()
+    const lastName = String(authUser.lastName ?? '').trim()
     return {
         username: authUser.username,
         login: authUser.githubLogin,
         name: authUser.displayName ?? authUser.githubLogin,
+        firstName,
+        lastName,
+        email: normalizeEmail(authUser.email),
         role: normalizeRole(authUser.role),
         isSeeded: Boolean(authUser.isSeeded),
         disabled: Boolean(authUser.disabled),
@@ -321,7 +428,7 @@ function summarizeUser(authUser) {
     }
 }
 
-async function buildAuthUser({ username, password, githubToken, role = 'operator' }) {
+async function buildAuthUser({ username, password, githubToken, firstName, lastName, email, role = 'operator' }) {
     const profile = await fetchGithubProfile(githubToken.trim())
     const passwordSalt = randomSaltHex()
     const passwordHash = await hashPassword(password, passwordSalt)
@@ -335,6 +442,9 @@ async function buildAuthUser({ username, password, githubToken, role = 'operator
         githubToken: githubToken.trim(),
         githubLogin: profile.login,
         displayName: profile.name,
+        firstName: String(firstName ?? '').trim(),
+        lastName: String(lastName ?? '').trim(),
+        email: normalizeEmail(email),
         avatarUrl: profile.avatarUrl,
         role: normalizeRole(role),
         createdAt: now,
@@ -375,6 +485,12 @@ export async function initAuth() {
         users = await ensureDevSeedAccount(users)
         state.hasUsers = users.some(u => !u.disabled)
 
+        try {
+            await persistInvitedProfileFromSupabaseSession()
+        } catch (err) {
+            console.warn('[auth] invited profile sync error:', err.message)
+        }
+
         const storedSession = await readSession()
         const sessionUsername = normalizeUsername(storedSession?.username)
         if (sessionUsername) {
@@ -403,8 +519,14 @@ export function useAuth() {
     return {
         ...toRefs(readonly(state)),
 
-        async register({ username, password, confirmPassword, githubToken }) {
+        async register({ username, password, confirmPassword, githubToken, firstName, lastName, email }) {
             const normalized = assertValidUsername(username)
+            const normalizedEmail = assertValidEmail(email)
+            const normalizedFirstName = String(firstName ?? '').trim()
+            const normalizedLastName = String(lastName ?? '').trim()
+            if (!normalizedFirstName || !normalizedLastName) {
+                throw new Error('Nome e cognome sono obbligatori')
+            }
             const passwordPolicyError = getPasswordPolicyErrorMessage(password)
             if (passwordPolicyError) throw new Error(passwordPolicyError)
             if (password !== confirmPassword) throw new Error('Le password non coincidono')
@@ -413,11 +535,17 @@ export function useAuth() {
             if (users.some(u => u.username === normalized && !u.disabled)) {
                 throw new Error('Username gia esistente')
             }
+            if (users.some(u => !u.disabled && normalizeEmail(u.email) === normalizedEmail)) {
+                throw new Error('Email gia esistente')
+            }
 
             const newUser = await buildAuthUser({
                 username: normalized,
                 password,
                 githubToken,
+                firstName: normalizedFirstName,
+                lastName: normalizedLastName,
+                email: normalizedEmail,
                 role: users.some(u => !u.disabled) ? 'operator' : 'admin',
             })
 
@@ -515,6 +643,119 @@ export function useAuth() {
             return users
                 .map(summarizeUser)
                 .sort((a, b) => a.username.localeCompare(b.username))
+        },
+
+        async requestPasswordResetByEmail(email, { redirectTo } = {}) {
+            const normalizedEmail = assertValidEmail(email)
+            if (!isSupabaseConfigured || !supabase) {
+                throw new Error('Reset email non disponibile: configura Supabase in .env.local')
+            }
+
+            const targetRedirect = redirectTo || getSupabaseRedirectTo('/#/impostazioni')
+            const { error } = await supabase.auth.resetPasswordForEmail(normalizedEmail, {
+                redirectTo: targetRedirect,
+            })
+            if (error) throw new Error(error.message)
+
+            await appendAuthAudit('auth_password_reset_email_requested', normalizedEmail, {
+                targetEmail: normalizedEmail,
+                provider: 'supabase',
+            })
+        },
+
+        async completePasswordRecovery({ newPassword, confirmPassword }) {
+            if (!isSupabaseConfigured || !supabase) {
+                throw new Error('Recupero password non disponibile: configura Supabase in .env.local')
+            }
+
+            const passwordPolicyError = getPasswordPolicyErrorMessage(newPassword)
+            if (passwordPolicyError) throw new Error(passwordPolicyError)
+            if (newPassword !== confirmPassword) throw new Error('Le nuove password non coincidono')
+
+            const { data: userData, error: userError } = await supabase.auth.getUser()
+            if (userError) throw new Error(userError.message)
+
+            const recoveryEmail = normalizeEmail(userData?.user?.email)
+            if (!recoveryEmail) {
+                throw new Error('Sessione di recupero non valida o scaduta. Richiedi un nuovo link email.')
+            }
+
+            const users = await loadUsers()
+            const idx = users.findIndex(u => !u.disabled && normalizeEmail(u.email) === recoveryEmail)
+            if (idx < 0) {
+                throw new Error('Nessun utente locale associato a questa email')
+            }
+
+            const { error: supabaseUpdateError } = await supabase.auth.updateUser({
+                password: newPassword,
+            })
+            if (supabaseUpdateError) throw new Error(supabaseUpdateError.message)
+
+            const newSalt = randomSaltHex()
+            users[idx] = {
+                ...users[idx],
+                passwordSalt: newSalt,
+                passwordHash: await hashPassword(newPassword, newSalt),
+                updatedAt: nowIso(),
+            }
+            await saveUsers(users)
+
+            await appendAuthAudit('auth_password_recovery_completed', users[idx].username, {
+                email: recoveryEmail,
+                provider: 'supabase',
+            })
+
+            await supabase.auth.signOut()
+
+            if (state.currentUser?.username === users[idx].username) {
+                await invalidateSession({ reason: 'password-recovery', username: users[idx].username, auditAction: 'auth_password_recovery_local_session_reset' })
+            }
+
+            return {
+                username: users[idx].username,
+                email: recoveryEmail,
+            }
+        },
+
+        async sendInviteLink({ email, firstName, lastName, redirectTo }) {
+            const adminUser = await requireAdminSession()
+            const normalizedEmail = assertValidEmail(email)
+            const normalizedFirstName = String(firstName ?? '').trim()
+            const normalizedLastName = String(lastName ?? '').trim()
+            if (!normalizedFirstName || !normalizedLastName) {
+                throw new Error('Nome e cognome invitato sono obbligatori')
+            }
+            if (!isSupabaseConfigured || !supabase) {
+                throw new Error('Inviti email non disponibili: configura Supabase in .env.local')
+            }
+
+            const targetRedirect = redirectTo || getSupabaseRedirectTo('/#/impostazioni')
+            const { error } = await supabase.auth.signInWithOtp({
+                email: normalizedEmail,
+                options: {
+                    shouldCreateUser: true,
+                    emailRedirectTo: targetRedirect,
+                    data: {
+                        firstName: normalizedFirstName,
+                        lastName: normalizedLastName,
+                        invitedBy: adminUser.username,
+                        inviteFlow: 'meditrace-admin',
+                    },
+                },
+            })
+            if (error) throw new Error(error.message)
+
+            await appendAuthAudit('auth_invite_email_sent', adminUser.username, {
+                targetEmail: normalizedEmail,
+                targetName: `${normalizedFirstName} ${normalizedLastName}`,
+                provider: 'supabase',
+            })
+        },
+
+        async listInvitedProfiles() {
+            await requireAdminSession()
+            const profiles = await loadInvitedProfiles()
+            return profiles.sort((a, b) => a.email.localeCompare(b.email))
         },
 
         async reactivateSeededUser(username) {
@@ -621,4 +862,5 @@ export const authTestUtils = {
     getPasswordPolicyErrorMessage,
     computeCredentialPolicyStatus,
     sanitizeUsernameInput,
+    sanitizeEmailInput,
 }

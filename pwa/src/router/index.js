@@ -2,6 +2,11 @@ import { createRouter, createWebHashHistory } from 'vue-router'
 
 const routes = [
     {
+        path: '/auth/reset-password',
+        component: () => import('../views/ResetPasswordView.vue'),
+        meta: { title: 'Reset Password' },
+    },
+    {
         path: '/',
         component: () => import('../views/HomeView.vue'),
         meta: { title: 'Cruscotto' },
