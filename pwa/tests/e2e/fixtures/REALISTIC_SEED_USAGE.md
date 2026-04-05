@@ -119,7 +119,7 @@ export async function ensureTestDataIfDev() {
 ## Differenza vs `loadSeedData()`
 
 | Feature | loadSeedData() | loadRealisticSeedData() |
-|---------|---|---|
+| --- | --- | --- |
 | **Ospiti** | 10 ospiti mini | **60 ospiti realistici** |
 | **Stanze/Letti** | 3 stanze, 6 letti | **20 stanze, 60 letti** |
 | **Farmaci** | 10 farmaci | **30 farmaci** |
