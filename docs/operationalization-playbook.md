@@ -80,23 +80,23 @@ Procedura:
 
 1. Preparare il nuovo file JSON con le quattro collezioni obbligatorie: `rooms`, `beds`, `hosts`, `therapies`.
 2. Verificare campi obbligatori:
-	- `rooms`: `id`, `codice`, `descrizione`
-	- `beds`: `id`, `roomId`, `numero`, `occupato`
-	- `hosts`: `id`, `codiceInterno`, `nome`, `cognome`, `patologie`, `roomId`, `bedId`
-	- `therapies`: `id`, `hostId`, `drugId`, `dataInizio`, `dosaggio`, `frequenza`
+   - `rooms`: `id`, `codice`, `descrizione`
+   - `beds`: `id`, `roomId`, `numero`, `occupato`
+   - `hosts`: `id`, `codiceInterno`, `nome`, `cognome`, `patologie`, `roomId`, `bedId`
+   - `therapies`: `id`, `hostId`, `drugId`, `dataInizio`, `dosaggio`, `frequenza`
 3. Verificare integrita' referenziale nel file sorgente:
-	- ogni `beds[].roomId` deve esistere in `rooms[].id`
-	- ogni `hosts[].roomId` e `hosts[].bedId` deve esistere
-	- ogni `therapies[].hostId` deve esistere in `hosts[].id`
+   - ogni `beds[].roomId` deve esistere in `rooms[].id`
+   - ogni `hosts[].roomId` e `hosts[].bedId` deve esistere
+   - ogni `therapies[].hostId` deve esistere in `hosts[].id`
 4. Sostituire `pwa/src/data/realisticDataset.json` e rieseguire la suite minima:
-	- `npm --prefix pwa run test:unit -- seedDataRealistic.spec.js`
-	- `npm --prefix pwa run test:e2e`
+   - `npm --prefix pwa run test:unit -- seedDataRealistic.spec.js`
+   - `npm --prefix pwa run test:e2e`
 5. Aggiornare la documentazione dataset/fixture se cambiano cardinalita' o regole:
-	- `pwa/tests/e2e/fixtures/README.md`
-	- `pwa/tests/e2e/fixtures/REALISTIC_SEED_USAGE.md`
+   - `pwa/tests/e2e/fixtures/README.md`
+   - `pwa/tests/e2e/fixtures/REALISTIC_SEED_USAGE.md`
 6. Preparare commit separati consigliati:
-	- commit 1: solo dataset (`realisticDataset.json`)
-	- commit 2: mapping/test/docs correlate
+   - commit 1: solo dataset (`realisticDataset.json`)
+   - commit 2: mapping/test/docs correlate
 
 Criterio di uscita:
 
