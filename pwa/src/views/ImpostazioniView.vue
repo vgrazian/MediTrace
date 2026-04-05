@@ -1,6 +1,7 @@
 <script setup>
 import { computed, ref, onMounted } from 'vue'
 import { useAuth } from '../services/auth'
+import { canRole } from '../services/rbac'
 import { fullSync, exportBackupJson, listPendingConflicts, resolveConflict } from '../services/sync'
 import {
   getNotificationStatusSnapshot,
@@ -92,7 +93,10 @@ const seedMessage = ref('')
 const seedStats = getSeedStats()
 
 const passwordPolicyState = computed(() => getPasswordPolicy(pwdNext.value))
-const canManageTestData = computed(() => currentUser.value?.role === 'admin')
+const canManageUsers = computed(() => canRole(currentUser.value?.role, 'users:read'))
+const canManageInvites = computed(() => canRole(currentUser.value?.role, 'invites:send'))
+const canManageProfiles = computed(() => canRole(currentUser.value?.role, 'profiles:read'))
+const canManageTestData = computed(() => canRole(currentUser.value?.role, 'testData:manage'))
 const testDataActionLabel = computed(() => {
   if (seedBusy.value) return seedActionMode.value === 'clear' ? 'Rimozione in corso…' : 'Generazione in corso…'
   return seedActionMode.value === 'clear' ? 'Rimuovi dati di test' : 'Genera dati di test'
@@ -122,7 +126,7 @@ async function refreshPendingConflicts() {
 
 async function refreshUsers() {
   usersMessage.value = ''
-  if (currentUser.value?.role !== 'admin') {
+  if (!canManageUsers.value) {
     users.value = []
     return
   }
@@ -137,7 +141,7 @@ async function refreshUsers() {
 
 async function refreshInvitedProfiles() {
   invitedProfilesMessage.value = ''
-  if (currentUser.value?.role !== 'admin') {
+  if (!canManageProfiles.value) {
     invitedProfiles.value = []
     return
   }
@@ -465,7 +469,7 @@ async function handleDeleteSeeded(username) {
 }
 
 async function handleInviteUser() {
-  if (currentUser.value?.role !== 'admin') return
+  if (!canManageInvites.value) return
   if (!inviteFirstName.value.trim() || !inviteLastName.value.trim() || !inviteEmail.value.trim()) return
 
   inviteBusy.value = true
@@ -556,11 +560,11 @@ async function handleInviteUser() {
       <p><strong>Utenti</strong></p>
       <p class="muted" style="margin-top:.25rem">Gestione utenti consentita solo ad account amministratore. Azioni disponibili per utenti di prova.</p>
 
-      <p v-if="currentUser?.role !== 'admin'" class="muted" style="margin-top:.5rem">
+      <p v-if="!canManageUsers" class="muted" style="margin-top:.5rem">
         Il tuo account non ha privilegi amministratore: puoi visualizzare solo il tuo profilo.
       </p>
 
-      <table v-if="currentUser?.role === 'admin'" class="conflict-table" style="margin-top:.75rem">
+      <table v-if="canManageUsers" class="conflict-table" style="margin-top:.75rem">
         <thead>
           <tr>
             <th>Username</th>
@@ -607,7 +611,7 @@ async function handleInviteUser() {
         </tbody>
       </table>
 
-      <div v-if="currentUser?.role === 'admin'" class="import-form" style="margin-top:.75rem">
+      <div v-if="canManageInvites" class="import-form" style="margin-top:.75rem">
         <p><strong>Invita nuovo utente via email</strong></p>
         <label>
           Nome
@@ -627,7 +631,7 @@ async function handleInviteUser() {
         <p v-if="inviteMessage" class="muted" style="margin-top:.5rem;font-size:.8rem">{{ inviteMessage }}</p>
       </div>
 
-      <div v-if="currentUser?.role === 'admin'" style="margin-top:.85rem">
+      <div v-if="canManageProfiles" style="margin-top:.85rem">
         <p><strong>Profili invitati (Supabase)</strong></p>
         <p class="muted" style="margin-top:.25rem;font-size:.85rem">
           Elenco profili acquisiti dal session recovery/invite flow e salvati localmente.
@@ -662,7 +666,7 @@ async function handleInviteUser() {
         <p v-if="invitedProfilesMessage" class="muted" style="margin-top:.5rem;font-size:.8rem">{{ invitedProfilesMessage }}</p>
       </div>
 
-      <div v-if="currentUser?.role === 'admin'" style="margin-top:.85rem;padding:.75rem;border:1px dashed #d8b154;border-radius:.55rem">
+      <div v-if="canManageTestData" style="margin-top:.85rem;padding:.75rem;border:1px dashed #d8b154;border-radius:.55rem">
         <p><strong>Dati di test (live)</strong></p>
         <p class="muted" style="margin-top:.25rem">
           Usa questo pulsante per importare rapidamente dati di test o per ripulirli.
