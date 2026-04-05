@@ -2,7 +2,16 @@
 import { computed, ref, onMounted } from 'vue'
 import { useAuth } from '../services/auth'
 import { fullSync, exportBackupJson, listPendingConflicts, resolveConflict } from '../services/sync'
-import { getNotificationStatusSnapshot, requestNotificationPermission, sendTestNotification, triggerReminderNotificationsCheck } from '../services/notifications'
+import {
+  getNotificationStatusSnapshot,
+  requestNotificationPermission,
+  sendTestNotification,
+  triggerReminderNotificationsCheck,
+  getPushSubscriptionStatusSnapshot,
+  subscribeToPushNotifications,
+  unsubscribeFromPushNotifications,
+  listUpcomingReminderNotifications24h,
+} from '../services/notifications'
 import { listSupportedImportSources, importCsv } from '../services/csvImport'
 import { getSetting } from '../db'
 import {
@@ -66,6 +75,14 @@ const credentialPolicy = ref(null)
 const authEvents = ref([])
 const authEventFilter = ref('')
 const notificationStatus = ref(getNotificationStatusSnapshot())
+const pushStatus = ref({
+  supported: false,
+  hasVapidKey: false,
+  subscribed: false,
+  endpoint: null,
+  reason: 'api-unsupported',
+})
+const upcomingReminderRows = ref([])
 const notificationMessage = ref('')
 const notificationBusy = ref(false)
 const seedLoaded = ref(false)
@@ -133,6 +150,12 @@ async function refreshInvitedProfiles() {
   }
 }
 
+function formatScheduledAt(value) {
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return '—'
+  return date.toLocaleString()
+}
+
 async function refreshSecurityInfo() {
   sessionInfo.value = await getSessionInfo()
   credentialPolicy.value = await getCredentialPolicyStatus()
@@ -141,6 +164,21 @@ async function refreshSecurityInfo() {
 
 function refreshNotificationStatus() {
   notificationStatus.value = getNotificationStatusSnapshot()
+}
+
+async function refreshPushStatus() {
+  pushStatus.value = await getPushSubscriptionStatusSnapshot()
+}
+
+function pushReasonLabel() {
+  if (pushStatus.value.reason === 'subscribed') return 'Sottoscrizione push attiva su questo device.'
+  if (pushStatus.value.reason === 'subscription-required') return 'Sottoscrizione non ancora attiva.'
+  if (pushStatus.value.reason === 'missing-vapid-public-key') return 'Manca VITE_VAPID_PUBLIC_KEY in configurazione ambiente.'
+  return 'Push API non supportata in questo ambiente.'
+}
+
+async function refreshUpcomingReminderRows() {
+  upcomingReminderRows.value = await listUpcomingReminderNotifications24h()
 }
 
 function notificationReasonLabel() {
@@ -195,6 +233,34 @@ async function runReminderNotificationCheck() {
   }
 }
 
+async function enablePushSubscription() {
+  notificationBusy.value = true
+  notificationMessage.value = ''
+  try {
+    pushStatus.value = await subscribeToPushNotifications()
+    notificationMessage.value = pushStatus.value.subscribed
+      ? 'Sottoscrizione Push API attiva.'
+      : 'Sottoscrizione push non attivata.'
+  } catch (err) {
+    notificationMessage.value = `Errore sottoscrizione push: ${err.message}`
+  } finally {
+    notificationBusy.value = false
+  }
+}
+
+async function disablePushSubscription() {
+  notificationBusy.value = true
+  notificationMessage.value = ''
+  try {
+    pushStatus.value = await unsubscribeFromPushNotifications()
+    notificationMessage.value = 'Sottoscrizione push rimossa da questo dispositivo.'
+  } catch (err) {
+    notificationMessage.value = `Errore disattivazione push: ${err.message}`
+  } finally {
+    notificationBusy.value = false
+  }
+}
+
 function onImportFileChange(event) {
   const file = event.target?.files?.[0] ?? null
   selectedImportFile.value = file
@@ -238,6 +304,8 @@ onMounted(async () => {
   await refreshInvitedProfiles()
   await refreshSecurityInfo()
   refreshNotificationStatus()
+  await refreshPushStatus()
+  await refreshUpcomingReminderRows()
   await refreshSeedStatus()
 })
 
@@ -642,6 +710,54 @@ async function handleInviteUser() {
           Aggiorna stato
         </button>
       </div>
+
+      <p style="margin-top:.95rem"><strong>Web Push API (base)</strong></p>
+      <p class="muted" style="margin-top:.25rem">Supporto Push API: {{ pushStatus.supported ? 'si' : 'no' }}</p>
+      <p class="muted">VAPID public key: {{ pushStatus.hasVapidKey ? 'configurata' : 'mancante' }}</p>
+      <p class="muted">Stato sottoscrizione: {{ pushStatus.subscribed ? 'attiva' : 'non attiva' }}</p>
+      <p class="muted">Dettaglio: {{ pushReasonLabel() }}</p>
+
+      <div style="margin-top:.75rem;display:flex;gap:.5rem;flex-wrap:wrap">
+        <button :disabled="notificationBusy || !pushStatus.supported || !pushStatus.hasVapidKey" @click="enablePushSubscription">
+          Attiva sottoscrizione push
+        </button>
+        <button :disabled="notificationBusy || !pushStatus.subscribed" @click="disablePushSubscription">
+          Disattiva sottoscrizione push
+        </button>
+        <button :disabled="notificationBusy" @click="refreshPushStatus">
+          Aggiorna stato push
+        </button>
+      </div>
+
+      <p style="margin-top:.95rem"><strong>Promemoria prossime 24h (pending)</strong></p>
+      <p class="muted" style="margin-top:.25rem">
+        Questa lista supporta il controllo operativo dei reminder candidati alla notifica nelle prossime 24 ore.
+      </p>
+      <button style="margin-top:.5rem" :disabled="notificationBusy" @click="refreshUpcomingReminderRows">
+        Aggiorna lista 24h
+      </button>
+
+      <table class="conflict-table" style="margin-top:.75rem">
+        <thead>
+          <tr>
+            <th>Orario</th>
+            <th>Ospite</th>
+            <th>Farmaco</th>
+            <th>Stato</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="reminder in upcomingReminderRows" :key="reminder.id">
+            <td>{{ formatScheduledAt(reminder.scheduledAt) }}</td>
+            <td>{{ reminder.hostLabel }}</td>
+            <td>{{ reminder.drugLabel }}</td>
+            <td>{{ reminder.stato }}</td>
+          </tr>
+          <tr v-if="upcomingReminderRows.length === 0">
+            <td colspan="4" class="muted">Nessun promemoria pending nelle prossime 24 ore.</td>
+          </tr>
+        </tbody>
+      </table>
 
       <p v-if="notificationMessage" class="muted" style="margin-top:.5rem;font-size:.8rem">{{ notificationMessage }}</p>
     </div>

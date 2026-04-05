@@ -1,10 +1,12 @@
 import { db, getSetting, setSetting } from '../db'
 
 const NOTIFIED_REMINDERS_KEY = 'notifiedReminders'
+const PUSH_SUBSCRIPTION_KEY = 'pushSubscription'
 const NOTIFICATION_LOOKAHEAD_MINUTES = Number.parseInt(import.meta.env.VITE_REMINDER_LOOKAHEAD_MINUTES || '10', 10)
 const NOTIFICATION_POLL_INTERVAL_MS = Number.parseInt(import.meta.env.VITE_REMINDER_POLL_INTERVAL_MS || '60000', 10)
 const NOTIFICATION_REPEAT_COOLDOWN_MINUTES = Number.parseInt(import.meta.env.VITE_REMINDER_REPEAT_COOLDOWN_MINUTES || '120', 10)
 const NOTIFICATION_RETENTION_HOURS = Number.parseInt(import.meta.env.VITE_REMINDER_RETENTION_HOURS || '24', 10)
+const UPCOMING_WINDOW_HOURS = 24
 
 let loopHandle = null
 let clickListenerInstalled = false
@@ -25,6 +27,13 @@ function isReminderPending(reminder) {
 
 function isBrowserNotificationSupported() {
     return typeof window !== 'undefined' && typeof Notification !== 'undefined'
+}
+
+function isPushApiSupported() {
+    return typeof window !== 'undefined'
+        && typeof navigator !== 'undefined'
+        && 'serviceWorker' in navigator
+        && 'PushManager' in window
 }
 
 function normalizePermission(permission) {
@@ -74,6 +83,163 @@ export async function sendTestNotification() {
             route: '/impostazioni',
         },
     })
+}
+
+export function hasConfiguredVapidPublicKey() {
+    return Boolean(String(import.meta.env.VITE_VAPID_PUBLIC_KEY || '').trim())
+}
+
+function serializePushSubscription(subscription) {
+    if (!subscription) return null
+    if (typeof subscription.toJSON === 'function') return subscription.toJSON()
+    return {
+        endpoint: subscription.endpoint,
+        expirationTime: subscription.expirationTime,
+        keys: subscription.keys ?? null,
+    }
+}
+
+function urlBase64ToUint8Array(base64String) {
+    const normalized = String(base64String || '').replace(/-/g, '+').replace(/_/g, '/')
+    const pad = '='.repeat((4 - (normalized.length % 4)) % 4)
+    const encoded = normalized + pad
+    const raw = atob(encoded)
+    const output = new Uint8Array(raw.length)
+
+    for (let i = 0; i < raw.length; i += 1) {
+        output[i] = raw.charCodeAt(i)
+    }
+
+    return output
+}
+
+async function getServiceWorkerReadyRegistration() {
+    if (!isPushApiSupported()) return null
+    return navigator.serviceWorker.ready
+}
+
+function pushReasonFromStatus({ supported, subscription, hasVapidKey }) {
+    if (!supported) return 'api-unsupported'
+    if (!hasVapidKey) return 'missing-vapid-public-key'
+    if (subscription) return 'subscribed'
+    return 'subscription-required'
+}
+
+export async function getPushSubscriptionStatusSnapshot() {
+    const supported = isPushApiSupported()
+    const hasVapidKey = hasConfiguredVapidPublicKey()
+
+    if (!supported) {
+        return {
+            supported,
+            hasVapidKey,
+            subscribed: false,
+            endpoint: null,
+            reason: pushReasonFromStatus({ supported, hasVapidKey, subscription: null }),
+        }
+    }
+
+    const registration = await getServiceWorkerReadyRegistration()
+    const subscription = registration ? await registration.pushManager.getSubscription() : null
+
+    return {
+        supported,
+        hasVapidKey,
+        subscribed: Boolean(subscription),
+        endpoint: subscription?.endpoint ?? null,
+        reason: pushReasonFromStatus({ supported, hasVapidKey, subscription }),
+    }
+}
+
+export async function subscribeToPushNotifications() {
+    if (!isPushApiSupported()) {
+        return getPushSubscriptionStatusSnapshot()
+    }
+
+    const permissionSnapshot = await requestNotificationPermission()
+    if (!permissionSnapshot.enabled) {
+        throw new Error('Permesso notifiche non concesso')
+    }
+
+    const vapidPublicKey = String(import.meta.env.VITE_VAPID_PUBLIC_KEY || '').trim()
+    if (!vapidPublicKey) {
+        throw new Error('Configura VITE_VAPID_PUBLIC_KEY per abilitare la sottoscrizione push')
+    }
+
+    const registration = await getServiceWorkerReadyRegistration()
+    if (!registration) {
+        throw new Error('Service Worker non disponibile per Push API')
+    }
+
+    let subscription = await registration.pushManager.getSubscription()
+    if (!subscription) {
+        subscription = await registration.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: urlBase64ToUint8Array(vapidPublicKey),
+        })
+    }
+
+    await setSetting(PUSH_SUBSCRIPTION_KEY, serializePushSubscription(subscription))
+    return getPushSubscriptionStatusSnapshot()
+}
+
+export async function unsubscribeFromPushNotifications() {
+    if (!isPushApiSupported()) {
+        return getPushSubscriptionStatusSnapshot()
+    }
+
+    const registration = await getServiceWorkerReadyRegistration()
+    const subscription = registration ? await registration.pushManager.getSubscription() : null
+    if (subscription) {
+        await subscription.unsubscribe()
+    }
+
+    await setSetting(PUSH_SUBSCRIPTION_KEY, null)
+    return getPushSubscriptionStatusSnapshot()
+}
+
+export function computeUpcomingReminders24h({ reminders, hosts, drugs, therapies, now = nowMs() }) {
+    const start = Number(now)
+    const end = start + (UPCOMING_WINDOW_HOURS * 60 * 60 * 1000)
+    const hostsById = new Map((Array.isArray(hosts) ? hosts : []).map(host => [host.id, host]))
+    const therapiesById = new Map((Array.isArray(therapies) ? therapies : []).map(therapy => [therapy.id, therapy]))
+    const drugsById = new Map((Array.isArray(drugs) ? drugs : []).map(drug => [drug.id, drug]))
+
+    return (Array.isArray(reminders) ? reminders : [])
+        .filter(reminder => !reminder?.deletedAt)
+        .filter(isReminderPending)
+        .filter(reminder => {
+            const ts = toMillis(reminder.scheduledAt)
+            return Number.isFinite(ts) && ts >= start && ts <= end
+        })
+        .map(reminder => {
+            const host = hostsById.get(reminder.hostId)
+            const therapy = therapiesById.get(reminder.therapyId)
+            const drug = drugsById.get(reminder.drugId ?? therapy?.drugId)
+            const hostName = host
+                ? [host.cognome, host.nome].filter(Boolean).join(' ').trim() || host.codiceInterno || host.iniziali || host.id
+                : reminder.hostId
+
+            return {
+                id: reminder.id,
+                scheduledAt: reminder.scheduledAt,
+                hostLabel: hostName || '—',
+                drugLabel: drug?.principioAttivo ?? reminder.drugId ?? '—',
+                stato: reminder.stato ?? 'DA_ESEGUIRE',
+            }
+        })
+        .sort((a, b) => toMillis(a.scheduledAt) - toMillis(b.scheduledAt))
+}
+
+export async function listUpcomingReminderNotifications24h() {
+    const [reminders, hosts, drugs, therapies] = await Promise.all([
+        db.reminders.toArray(),
+        db.hosts.toArray(),
+        db.drugs.toArray(),
+        db.therapies.toArray(),
+    ])
+
+    return computeUpcomingReminders24h({ reminders, hosts, drugs, therapies, now: nowMs() })
 }
 
 async function showNotification(title, options) {
@@ -211,9 +377,12 @@ export function stopReminderNotificationsLoop() {
 export const notificationsTestUtils = {
     toMillis,
     isReminderPending,
+    isPushApiSupported,
     normalizePermission,
     normalizeReminderNotificationsState,
     pruneReminderNotificationsMap,
     mergeReminderNotificationState,
     buildReminderRoute,
+    hasConfiguredVapidPublicKey,
+    urlBase64ToUint8Array,
 }
