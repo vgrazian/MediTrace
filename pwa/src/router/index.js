@@ -69,6 +69,26 @@ const router = createRouter({
     routes,
 })
 
+router.onError((error) => {
+    const message = String(error?.message || '')
+    const isChunkLoadError =
+        message.includes('Failed to fetch dynamically imported module')
+        || message.includes('Importing a module script failed')
+        || message.includes('Loading chunk')
+
+    if (!isChunkLoadError) return
+
+    // Do not force reload while offline; keep current app shell usable.
+    if (typeof navigator !== 'undefined' && navigator.onLine === false) return
+
+    // Recover once from stale cached chunks after a new deploy.
+    const reloadKey = 'meditrace:chunk-reload-once'
+    const alreadyReloaded = sessionStorage.getItem(reloadKey) === '1'
+    if (alreadyReloaded) return
+    sessionStorage.setItem(reloadKey, '1')
+    window.location.reload()
+})
+
 router.afterEach((to) => {
     document.title = to.meta.title ? `${to.meta.title} — MediTrace` : 'MediTrace'
 })

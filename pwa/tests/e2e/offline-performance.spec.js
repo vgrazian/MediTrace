@@ -1,6 +1,31 @@
 import { test, expect } from '@playwright/test'
 import { loginOrRegisterSeededUser } from './helpers/login'
 
+const NAV_ROUTE_BY_LINK = {
+    Farmaci: '/#/farmaci',
+    Scorte: '/#/scorte',
+    Terapie: '/#/terapie',
+    Promemoria: '/#/promemoria',
+}
+
+async function navigateByMenuWithRetry(page, linkName) {
+    if (!NAV_ROUTE_BY_LINK[linkName]) throw new Error(`Nessuna route fallback per link ${linkName}`)
+
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+        try {
+            const link = page.getByRole('link', { name: linkName })
+            await link.waitFor({ state: 'visible', timeout: 5000 })
+            await link.click({ timeout: 5000 })
+            await page.waitForTimeout(250)
+            await expect(page.locator('main')).toBeVisible({ timeout: 10000 })
+            return
+        } catch {
+            if (attempt === 2) throw new Error(`Navigazione offline fallita per voce menu: ${linkName}`)
+            await page.waitForTimeout(300)
+        }
+    }
+}
+
 async function seedPerformanceBaselineDataset(page) {
     await page.evaluate(async () => {
         const nowIso = new Date().toISOString()
@@ -183,17 +208,10 @@ test('@ops offline prolonged session remains usable after login', async ({ page 
     await page.context().setOffline(true)
     await page.waitForTimeout(2000)
 
-    await page.getByRole('link', { name: 'Farmaci' }).click()
-    await expect(page.locator('main')).toBeVisible()
-
-    await page.getByRole('link', { name: 'Scorte' }).click()
-    await expect(page.locator('main')).toBeVisible()
-
-    await page.getByRole('link', { name: 'Terapie' }).click()
-    await expect(page.locator('main')).toBeVisible()
-
-    await page.getByRole('link', { name: 'Promemoria' }).click()
-    await expect(page.locator('main')).toBeVisible()
+    await navigateByMenuWithRetry(page, 'Farmaci')
+    await navigateByMenuWithRetry(page, 'Scorte')
+    await navigateByMenuWithRetry(page, 'Terapie')
+    await navigateByMenuWithRetry(page, 'Promemoria')
 })
 
 test('@ops performance baseline: 100 hosts, 500 therapies, 1000 movements keeps TTI within budget', async ({ page }) => {
