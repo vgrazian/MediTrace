@@ -2,12 +2,13 @@
 import { useAuth } from '../services/auth'
 
 const { currentUser } = useAuth()
+const logoSrc = `${import.meta.env.BASE_URL}branding/logo-header.svg`
 </script>
 
 <template>
   <nav class="app-nav">
     <div class="brand" aria-label="MediTrace">
-      <img class="brand-mark" src="/branding/logo-header.svg" alt="Comunità di Sant'Egidio" />
+      <img class="brand-mark" :src="logoSrc" alt="Comunità di Sant'Egidio" />
       <span class="brand-title">MediTrace</span>
     </div>
 
