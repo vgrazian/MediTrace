@@ -512,6 +512,49 @@ function adherenceByHostToCsv(adherenceHostRows) {
     return lines.join('\n')
 }
 
+function suggestedOrderQuantity(row) {
+    const stockCurrent = toNumber(row?.stockCurrent, 0)
+    const reorderThreshold = Math.max(0, toNumber(row?.reorderThreshold, 0))
+    const weeklyConsumption = Math.max(0, toNumber(row?.weeklyConsumption, 0))
+    const targetStock = Math.max(reorderThreshold, weeklyConsumption * 2)
+    return Math.max(targetStock - stockCurrent, 0)
+}
+
+export function buildOrderDraftText(reportOrRows) {
+    const rows = Array.isArray(reportOrRows)
+        ? reportOrRows
+        : (reportOrRows?.rows ?? [])
+
+    const actionableRows = rows
+        .filter(row => (row?.warningPriority ?? 'ok') !== 'ok')
+        .sort((a, b) => {
+            const bySeverity = (SEVERITY_ORDER[a.warningPriority] ?? 99) - (SEVERITY_ORDER[b.warningPriority] ?? 99)
+            if (bySeverity !== 0) return bySeverity
+            return String(a?.principioAttivo ?? '').localeCompare(String(b?.principioAttivo ?? ''))
+        })
+
+    if (actionableRows.length === 0) {
+        return ''
+    }
+
+    const lines = [
+        'Oggetto: ordine farmaci prioritari',
+        '',
+        'Riepilogo farmaci da riordinare:',
+    ]
+
+    for (const row of actionableRows) {
+        const suggestedQty = suggestedOrderQuantity(row)
+        lines.push(
+            `- ${row.principioAttivo || row.drugId || 'Farmaco'} | qta suggerita: ${suggestedQty.toFixed(2)} | priorita': ${row.warningPriority} | note: ${row.warningReason || 'verifica scorta'}`
+        )
+    }
+
+    lines.push('')
+    lines.push('Generato automaticamente da MediTrace.')
+    return lines.join('\n')
+}
+
 export function operationalReportToCsv(reportOrRows) {
     if (Array.isArray(reportOrRows)) {
         return stockSectionToCsv(reportOrRows)
@@ -568,4 +611,5 @@ export const reportingTestUtils = {
     formatHostDisplay,
     buildAdherenceSnapshot,
     escapeCsvValue,
+    suggestedOrderQuantity,
 }

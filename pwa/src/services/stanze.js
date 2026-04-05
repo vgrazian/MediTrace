@@ -90,6 +90,8 @@ export async function deactivateRoom({ roomId, operatorId = null }) {
             ts: now,
         })
     })
+
+    return record
 }
 
 /**
@@ -116,6 +118,8 @@ export async function deactivateBed({ bedId, operatorId = null }) {
             ts: now,
         })
     })
+
+    return record
 }
 
 /**

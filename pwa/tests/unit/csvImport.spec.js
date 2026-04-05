@@ -133,8 +133,13 @@ describe('csv import schemas', () => {
         expect(result.acceptedRows).toBe(1)
         expect(puts.hosts.length).toBe(1)
         expect(enqueueCalls).toEqual([{ entityType: 'hosts', entityId: 'guest-2', operation: 'upsert' }])
-        expect(activityLogRows.length).toBe(1)
-        expect(activityLogRows[0].action).toBe('csv_import_apply')
+
+        // Now we have 2 events: csv_import_start + csv_import_apply
+        expect(activityLogRows.length).toBe(2)
+        expect(activityLogRows[0].action).toBe('csv_import_start')
+        expect(activityLogRows[0].entityType).toBe('csv_import')
+        expect(activityLogRows[1].action).toBe('csv_import_apply')
+        expect(activityLogRows[1].entityType).toBe('hosts')
     })
 
     it('rejects malformed numeric fields', async () => {

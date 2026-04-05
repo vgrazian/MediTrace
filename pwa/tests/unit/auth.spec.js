@@ -417,4 +417,60 @@ describe('auth service', () => {
         await auth.signIn({ username: 'recoverme', password: 'Recovery123!#' })
         expect(auth.currentUser.value?.username).toBe('recoverme')
     })
+
+    it('records core auth audit events for checklist coverage', async () => {
+        const authModule = await import('../../src/services/auth')
+        const { initAuth, useAuth } = authModule
+        const auth = useAuth()
+
+        await initAuth()
+        await auth.register({
+            username: 'auditadmin',
+            firstName: 'Audit',
+            lastName: 'Admin',
+            email: 'audit.admin@example.com',
+            password: 'Password123!',
+            confirmPassword: 'Password123!',
+            githubToken: 'github_pat_any_value',
+        })
+
+        const users = settings.get('authUsers')
+        const adminIndex = users.findIndex(user => user.username === 'auditadmin')
+        users[adminIndex] = {
+            ...users[adminIndex],
+            role: 'admin',
+            updatedAt: new Date().toISOString(),
+        }
+        settings.set('authUsers', users)
+
+        await auth.signOut()
+        await auth.signIn({ username: 'auditadmin', password: 'Password123!' })
+
+        await expect(auth.signIn({ username: 'auditadmin', password: 'wrong-password' })).rejects.toThrow('Password non valida')
+
+        await auth.requestPasswordResetByEmail('audit.admin@example.com', {
+            redirectTo: 'http://localhost:5173/#/auth/reset-password',
+        })
+
+        await auth.sendInviteLink({
+            email: 'invite.target@example.com',
+            firstName: 'Invite',
+            lastName: 'Target',
+            redirectTo: 'http://localhost:5173/#/auth/reset-password',
+        })
+
+        await expect(auth.changePassword({
+            currentPassword: 'Password123!',
+            newPassword: 'NuovaPassword123!',
+            confirmPassword: 'NuovaPassword123!',
+        })).resolves.toBeUndefined()
+
+        const actions = authEvents.map(event => event.action)
+        expect(actions).toContain('auth_signout')
+        expect(actions).toContain('auth_signin_failed')
+        expect(actions).toContain('auth_signin_success')
+        expect(actions).toContain('auth_password_reset_email_requested')
+        expect(actions).toContain('auth_invite_email_sent')
+        expect(actions).toContain('auth_password_changed')
+    })
 })

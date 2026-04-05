@@ -32,6 +32,10 @@ vi.mock('../../src/db', () => ({
     async enqueue(entityType, entityId, operation = 'upsert') {
         enqueueCalls.push({ entityType, entityId, operation })
     },
+    async getSetting(key, fallback = null) {
+        if (key === 'deviceId') return 'device-test'
+        return fallback
+    },
 }))
 
 import {
@@ -139,7 +143,11 @@ describe('ospiti service CRUD', () => {
         expect(record.patologie).toBe('Diabete')
         expect(hosts.get('host-new')?.codiceFiscale).toBe('NRECRL42C50F205X')
         expect(enqueueCalls).toContainEqual({ entityType: 'hosts', entityId: 'host-new', operation: 'upsert' })
-        expect(activityLogRows.some(row => row.action === 'host_created')).toBe(true)
+        const createdAudit = activityLogRows.find(row => row.action === 'host_created')
+        expect(createdAudit).toBeTruthy()
+        expect(createdAudit?.deviceId).toBe('device-test')
+        expect(createdAudit?.operatorId).toBe('op-admin')
+        expect(typeof createdAudit?.ts).toBe('string')
     })
 
     it('updateHost updates anagrafica fields and enqueues upsert', async () => {
@@ -168,7 +176,11 @@ describe('ospiti service CRUD', () => {
         expect(updated.patologie).toBe('Ipertensione, BPCO')
         expect(hosts.get('host-existing')?.roomId).toBe('room-3')
         expect(enqueueCalls).toContainEqual({ entityType: 'hosts', entityId: 'host-existing', operation: 'upsert' })
-        expect(activityLogRows.some(row => row.action === 'host_updated')).toBe(true)
+        const updatedAudit = activityLogRows.find(row => row.action === 'host_updated')
+        expect(updatedAudit).toBeTruthy()
+        expect(updatedAudit?.deviceId).toBe('device-test')
+        expect(updatedAudit?.operatorId).toBe('op-admin')
+        expect(typeof updatedAudit?.ts).toBe('string')
     })
 
     it('deleteHost performs soft-delete and enqueues delete', async () => {
@@ -181,6 +193,10 @@ describe('ospiti service CRUD', () => {
         expect(deleted.deletedAt).toBeTruthy()
         expect(hosts.get('host-existing')?.syncStatus).toBe('pending')
         expect(enqueueCalls).toContainEqual({ entityType: 'hosts', entityId: 'host-existing', operation: 'delete' })
-        expect(activityLogRows.some(row => row.action === 'host_deactivated')).toBe(true)
+        const deletedAudit = activityLogRows.find(row => row.action === 'host_deleted')
+        expect(deletedAudit).toBeTruthy()
+        expect(deletedAudit?.deviceId).toBe('device-test')
+        expect(deletedAudit?.operatorId).toBe('op-admin')
+        expect(typeof deletedAudit?.ts).toBe('string')
     })
 })

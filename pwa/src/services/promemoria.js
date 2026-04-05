@@ -58,9 +58,14 @@ export function buildReminderRows({ reminders, hosts, drugs, therapies, dateFilt
             return {
                 ...r,
                 hostLabel: hostName,
-                stanzaLetto: host ? `${host.stanza || '—'}/${host.letto || '—'}` : '—',
+                stanzaLetto: host ? `${host.roomId || '—'}/${host.bedId || '—'}` : '—',
                 drugLabel: drug?.principioAttivo ?? (r.drugId ?? '—'),
                 stato: r.stato ?? 'DA_ESEGUIRE',
+                dosePerSomministrazione: therapy?.dosePerSomministrazione ?? null,
+                somministrazioniGiornaliere: therapy?.somministrazioniGiornaliere ?? null,
+                consumoMedioSettimanale: therapy?.consumoMedioSettimanale ?? null,
+                dataInizio: therapy?.dataInizio ?? null,
+                dataFine: therapy?.dataFine ?? null,
             }
         })
         .sort((a, b) => new Date(a.scheduledAt) - new Date(b.scheduledAt))

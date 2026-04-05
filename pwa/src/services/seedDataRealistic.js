@@ -40,6 +40,46 @@ function toSafeNumericId(value) {
     return Number.isInteger(parsed) && parsed > 0 ? parsed : null
 }
 
+/**
+ * Transform frequency string to daily dose count.
+ * Supports: "1 volta/die", "2 volte/die", "ogni 8 ore", "ogni 6 ore", "al bisogno"
+ */
+function frequencyToCount(frequenza) {
+    if (!frequenza) return null
+    const freq = String(frequenza).toLowerCase().trim()
+
+    if (freq.includes('1 volta') || freq.includes('1volta')) return 1
+    if (freq.includes('2 volte') || freq.includes('2volte')) return 2
+    if (freq.includes('3 volte') || freq.includes('3volte')) return 3
+    if (freq.includes('4 volte') || freq.includes('4volte')) return 4
+    if (freq.includes('ogni 4 ore')) return 6
+    if (freq.includes('ogni 6 ore')) return 4
+    if (freq.includes('ogni 8 ore')) return 3
+    if (freq.includes('ogni 12 ore')) return 2
+    if (freq.includes('al bisogno')) return null
+
+    return null
+}
+
+/**
+ * Transform dose string to numeric value.
+ * Supports: "1 compressa", "0.5 compressa", "1 fiala", etc.
+ */
+function dosageToNumeric(dosaggio) {
+    if (!dosaggio) return null
+    const dose = String(dosaggio).toLowerCase().trim()
+
+    if (dose.includes('0.5') || dose.includes('mezza')) return 0.5
+    if (dose === '1 compressa' || dose === '1 fiala' || dose === '1 bustina') return 1
+    if (dose === '2 compresse' || dose === '2 fiale') return 2
+    if (dose === '3 compresse') return 3
+
+    const match = dose.match(/[\d.]+/)
+    if (match) return Number(match[0])
+
+    return 1
+}
+
 export function validateRealisticDataset(dataset = realisticDataset) {
     const errors = []
 
@@ -355,6 +395,13 @@ function generateRealisticTherapies(hosts, drugs, batches, now) {
             const associatedBatches = batches.filter(batch => batch.drugId === drug.id)
             const batch = associatedBatches[0] ?? null
 
+            // Transform frequency to numeric count
+            const somministrazioniGiornaliere = frequencyToCount(therapy.frequenza) ?? 1
+            // Transform dosage to numeric value
+            const dosePerSomministrazione = dosageToNumeric(therapy.dosaggio) ?? 1
+            // Calculate weekly consumption
+            const consumoMedioSettimanale = dosePerSomministrazione * somministrazioniGiornaliere * 7
+
             return {
                 id: `__realistic__therapy-${Number(therapy.id || idx + 1)}`,
                 hostId: host.id,
@@ -362,6 +409,10 @@ function generateRealisticTherapies(hosts, drugs, batches, now) {
                 stockBatchId: batch ? batch.id : null,
                 dataInizio: therapy.dataInizio || now.slice(0, 10),
                 dataFine: therapy.dataFine || null,
+                dosePerSomministrazione,
+                unitaDose: 'compressa',
+                somministrazioniGiornaliere,
+                consumoMedioSettimanale,
                 dosaggio: String(therapy.dosaggio || '1 compressa'),
                 frequenza: String(therapy.frequenza || '1 volta/die'),
                 notaTerapia: String(therapy.notaTerapia || `Terapia per ${host.patologie || 'patologia'}`),

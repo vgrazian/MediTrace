@@ -145,6 +145,24 @@ export async function importCsv({ sourceName, csvText, dryRun = true, operatorId
         throw new Error('Sorgente CSV non supportata')
     }
 
+    const deviceId = (await getSetting('deviceId')) ?? 'unknown'
+    const now = new Date().toISOString()
+
+    // Audit: import start
+    await db.activityLog.add({
+        entityType: 'csv_import',
+        entityId: `import-start:${sourceName}@${now}`,
+        action: 'csv_import_start',
+        deviceId,
+        operatorId,
+        ts: now,
+        details: {
+            sourceName,
+            dryRun,
+            table: schema.table,
+        },
+    })
+
     const parsed = Papa.parse(csvText, {
         header: true,
         skipEmptyLines: 'greedy',
@@ -179,6 +197,22 @@ export async function importCsv({ sourceName, csvText, dryRun = true, operatorId
 
         if (validationError) {
             rejects.push({ rowNumber, reason: validationError, row: rawRow })
+
+            // Audit: import conflict (validation error found)
+            await db.activityLog.add({
+                entityType: 'csv_import',
+                entityId: `conflict:${sourceName}:row-${rowNumber}`,
+                action: 'csv_import_conflict',
+                deviceId,
+                operatorId,
+                ts: new Date().toISOString(),
+                details: {
+                    sourceName,
+                    table: schema.table,
+                    rowNumber,
+                    reason: validationError,
+                },
+            })
             continue
         }
 

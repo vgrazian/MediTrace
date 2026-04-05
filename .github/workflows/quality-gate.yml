@@ -37,6 +37,9 @@ jobs:
       - name: Run unit tests
         run: npm run test:unit
 
+      - name: Run audit smoke test
+        run: npx playwright test tests/e2e/audit-smoke.spec.js
+
       - name: Run end-to-end tests
         run: npm run test:e2e
 

@@ -20,7 +20,7 @@ vi.mock('../../src/db', () => ({
     },
 }))
 
-import { buildOperationalReport, operationalReportToCsv, reportingTestUtils } from '../../src/services/reporting'
+import { buildOperationalReport, buildOrderDraftText, operationalReportToCsv, reportingTestUtils } from '../../src/services/reporting'
 
 describe('operational reporting', () => {
     beforeEach(() => {
@@ -165,6 +165,34 @@ describe('operational reporting', () => {
         expect(csv).toContain('# section: adherence_by_host')
         expect(csv).toContain('host_id,codice_interno')
         expect(csv).toContain('drug_id,principio_attivo,week_key,weekly_consumption')
+    })
+
+    it('builds order draft text with non-ok priorities only', () => {
+        const text = buildOrderDraftText([
+            {
+                drugId: 'drug-a',
+                principioAttivo: 'Paracetamolo',
+                stockCurrent: 1,
+                weeklyConsumption: 8,
+                reorderThreshold: 5,
+                warningPriority: 'critica',
+                warningReason: 'scorta esaurita',
+            },
+            {
+                drugId: 'drug-b',
+                principioAttivo: 'Ibuprofene',
+                stockCurrent: 12,
+                weeklyConsumption: 2,
+                reorderThreshold: 4,
+                warningPriority: 'ok',
+                warningReason: 'copertura regolare',
+            },
+        ])
+
+        expect(text).toContain('Oggetto: ordine farmaci prioritari')
+        expect(text).toContain('Paracetamolo')
+        expect(text).toContain("priorita': critica")
+        expect(text).not.toContain('Ibuprofene')
     })
 
     it('handles therapy activity windows and weekly estimation helpers', () => {
