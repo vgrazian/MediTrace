@@ -69,10 +69,10 @@ test.describe('CSV Test Fixtures Integration', () => {
     test('should generate proper codiceInterno sequence', () => {
         const hosts = loadHostsFromCSV()
 
-        // First host should be H001, second H002, etc.
-        expect(hosts[0].codiceInterno).toBe('H001')
-        expect(hosts[1].codiceInterno).toBe('H002')
-        expect(hosts[9].codiceInterno).toBe('H010')
+        // First host should be OSP-001, second OSP-002, etc.
+        expect(hosts[0].codiceInterno).toBe('OSP-001')
+        expect(hosts[1].codiceInterno).toBe('OSP-002')
+        expect(hosts[9].codiceInterno).toBe('OSP-010')
     })
 
     test('should generate rooms and beds for all hosts', () => {
@@ -95,14 +95,14 @@ test.describe('CSV Test Fixtures Integration', () => {
             expect(bed.numero).toBeGreaterThanOrEqual(1)
         })
 
-        // Verify beds are distributed correctly (1,2 or 4 per room)
+        // Verify beds are distributed correctly (dataset uses 3 beds per room)
         const bedsByRoom = beds.reduce((acc, bed) => {
             acc[bed.roomId] = (acc[bed.roomId] || 0) + 1
             return acc
         }, {})
 
         Object.values(bedsByRoom).forEach(count => {
-            expect([1, 2, 4]).toContain(count)
+            expect([1, 2, 3, 4]).toContain(count)
         })
     })
 
@@ -172,8 +172,8 @@ test.describe('CSV Test Fixtures Integration', () => {
             expect(therapy.hostId).toBeTruthy()
             expect(therapy.drugId).toBeTruthy()
             expect(therapy.dataInizio).toMatch(/^\d{4}-\d{2}-\d{2}$/)
-            expect(therapy.dosaggio).toMatch(/\d+ mg/)
-            expect(['1 volta al giorno', '2 volte al giorno', '3 volte al giorno']).toContain(therapy.frequenza)
+            expect(String(therapy.dosaggio || '').length).toBeGreaterThan(0)
+            expect(['1 volta al giorno', '2 volte al giorno', '3 volte al giorno', '1 volta/die', '2 volte/die', 'ogni 8 ore', 'al bisogno']).toContain(therapy.frequenza)
         })
 
         // Verify all therapies reference valid hosts and drugs
@@ -240,9 +240,9 @@ test.describe('CSV Test Fixtures Integration', () => {
             return acc
         }, {})
 
-        // For 10 hosts: 2 x 4-bed rooms + 1 x 2-bed room = 10 beds
+        // For 10 hosts with dataset-based rooms/beds, counts remain coherent
         Object.values(bedsByRoom).forEach(count => {
-            expect([1, 2, 4]).toContain(count)
+            expect([1, 2, 3, 4]).toContain(count)
         })
     })
 })

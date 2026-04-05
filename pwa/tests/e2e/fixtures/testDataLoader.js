@@ -4,6 +4,30 @@ import { fileURLToPath } from 'url'
 import { randomUUID } from 'crypto'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
+const DATASET_PATH = path.resolve(__dirname, '../../../src/data/realisticDataset.json')
+
+function loadRealisticDataset() {
+    const raw = fs.readFileSync(DATASET_PATH, 'utf-8')
+    const parsed = JSON.parse(raw)
+    return {
+        rooms: Array.isArray(parsed.rooms) ? parsed.rooms : [],
+        beds: Array.isArray(parsed.beds) ? parsed.beds : [],
+        hosts: Array.isArray(parsed.hosts) ? parsed.hosts : [],
+        therapies: Array.isArray(parsed.therapies) ? parsed.therapies : [],
+    }
+}
+
+function generateFakeCodiceFiscale(idx) {
+    const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+    const letters = (start) => alphabet.slice(start, start + 6)
+    const year = String((idx % 90) + 10).padStart(2, '0')
+    const month = alphabet[(idx * 3) % alphabet.length]
+    const day = String(((idx * 7) % 28) + 1).padStart(2, '0')
+    const city = alphabet[(idx * 5) % alphabet.length]
+    const num = String(((idx * 37) % 900) + 100)
+    const check = alphabet[(idx * 11) % alphabet.length]
+    return `${letters(idx % 20)}${year}${month}${day}${city}${num}${check}`
+}
 
 /**
  * Parse CSV string into array of objects
@@ -27,27 +51,35 @@ function parseCSV(csvContent) {
  * Maps: persone_test_sanitarie.csv → db.hosts schema
  */
 export function loadHostsFromCSV() {
-    const csvPath = path.join(__dirname, 'persone_test_sanitarie.csv')
-    const csvContent = fs.readFileSync(csvPath, 'utf-8')
-    const rows = parseCSV(csvContent)
+    const dataset = loadRealisticDataset()
+    const rows = dataset.hosts
 
-    return rows.map((row, idx) => ({
-        id: randomUUID(),
-        codiceInterno: `H${String(idx + 1).padStart(3, '0')}`, // H001, H002, etc.
-        iniziali: `${row.nome?.[0] ?? ''}${row.cognome?.[0] ?? ''}`.toUpperCase(),
-        nome: row.nome || '',
-        cognome: row.cognome || '',
-        luogoNascita: row.luogo_nascita || '',
-        dataNascita: row.data_nascita || null,
-        sesso: 'M', // Default, adjust if needed
-        codiceFiscale: row.codice_fiscale || '',
-        patologie: row.patologia || '',
-        attivo: true,
-        roomId: null,
-        bedId: null,
-        updatedAt: new Date().toISOString(),
-        syncStatus: 'pending',
-    }))
+    return rows.map((row, idx) => {
+        const nome = String(row.nome || '').trim()
+        const cognome = String(row.cognome || '').trim()
+        const patologie = Array.isArray(row.patologie)
+            ? row.patologie.filter(Boolean).join(', ')
+            : String(row.patologie || '').trim()
+
+        return {
+            id: randomUUID(),
+            codiceInterno: String(row.codiceInterno || `OSP-${String(idx + 1).padStart(3, '0')}`),
+            iniziali: `${nome?.[0] ?? ''}${cognome?.[0] ?? ''}`.toUpperCase(),
+            nome,
+            cognome,
+            luogoNascita: '',
+            dataNascita: null,
+            sesso: 'M', // Default, adjust if needed
+            codiceFiscale: generateFakeCodiceFiscale(idx),
+            patologie,
+            attivo: true,
+            roomId: null,
+            bedId: null,
+            updatedAt: new Date().toISOString(),
+            syncStatus: 'pending',
+            _templateHostId: Number(row.id || idx + 1),
+        }
+    })
 }
 
 /**
@@ -74,51 +106,34 @@ export function loadDrugsFromCSV() {
  * Distribution: 6 rooms x 4 beds + 3 rooms x 2 beds = 30 beds for 30 hosts
  */
 export function loadRoomsAndBedsFromHosts(hosts = null) {
+    const dataset = loadRealisticDataset()
     const hostCount = hosts ? hosts.length : loadHostsFromCSV().length
+    const selectedBeds = dataset.beds.slice(0, hostCount)
+    const usedRoomTemplateIds = Array.from(new Set(selectedBeds.map(bed => Number(bed.roomId))))
 
-    // Room config: mix of 4-bed and 2-bed rooms to accommodate hostCount
-    const roomConfigs = []
-    let totalBeds = 0
+    const roomIdMap = new Map()
+    const rooms = dataset.rooms
+        .filter(room => usedRoomTemplateIds.includes(Number(room.id)))
+        .map(room => {
+            const id = randomUUID()
+            roomIdMap.set(Number(room.id), id)
+            return {
+                id,
+                codice: String(room.codice || ''),
+                descrizione: String(room.descrizione || ''),
+                updatedAt: new Date().toISOString(),
+                syncStatus: 'pending',
+            }
+        })
 
-    // Add 4-bed rooms
-    const bedsFour = Math.floor(hostCount / 4)
-    for (let i = 0; i < bedsFour; i++) {
-        roomConfigs.push({ bedsCount: 4, codice: `R${String(i + 1).padStart(2, '0')}` })
-        totalBeds += 4
-    }
-
-    // Add 2-bed rooms for remainder
-    const remaining = hostCount - totalBeds
-    const bedsTwo = Math.ceil(remaining / 2)
-    for (let i = 0; i < bedsTwo; i++) {
-        roomConfigs.push({ bedsCount: 2, codice: `R${String(bedsFour + i + 1).padStart(2, '0')}` })
-    }
-
-    // Generate room entities
-    const rooms = roomConfigs.map((config, idx) => ({
+    const beds = selectedBeds.map(bed => ({
         id: randomUUID(),
-        codice: config.codice,
-        descrizione: config.bedsCount === 4 ? 'Stanza 4 letti' : 'Stanza 2 letti',
+        roomId: roomIdMap.get(Number(bed.roomId)),
+        numero: Number(bed.numero || 1),
+        occupato: Boolean(bed.occupato),
         updatedAt: new Date().toISOString(),
         syncStatus: 'pending',
     }))
-
-    // Generate bed entities linked to rooms
-    const beds = []
-    let bedCounter = 1
-    roomConfigs.forEach((config, roomIdx) => {
-        for (let i = 0; i < config.bedsCount; i++) {
-            beds.push({
-                id: randomUUID(),
-                roomId: rooms[roomIdx].id,
-                numero: i + 1,
-                occupato: false,
-                updatedAt: new Date().toISOString(),
-                syncStatus: 'pending',
-            })
-            bedCounter++
-        }
-    })
 
     return { rooms, beds }
 }
@@ -172,77 +187,38 @@ export function loadStockBatchesFromDrugs(drugs = null) {
  * Each host gets 1-3 therapies based on their pathologies
  */
 export function loadTherapiesFromHostsAndDrugs(hosts = null, drugs = null, batches = null) {
+    const dataset = loadRealisticDataset()
     const hostList = hosts || loadHostsFromCSV()
     const drugList = drugs || loadDrugsFromCSV()
     const batchList = batches || loadStockBatchesFromDrugs(drugList)
 
-    const pathologyDrugMap = {
-        'Insufficienza cardiaca': [0, 1, 14, 15], // Aspirin-like, beta-blockers
-        'Demenza senile': [0, 1, 2], // Donepezil, Rivastigmina, Memantina
-        'Sclerosi multipla': [3, 4, 5], // Interferone, Ocrelizumab, Glatiramer
-        'Parkinson': [6, 7, 8], // Levodopa, Duodopa, Pramipexolo
-        'SLA': [24, 25], // Riluzolo, Edaravone
-        'Alzheimer': [0, 1, 2], // Donepezil, Rivastigmina, Memantina
-    }
+    return dataset.therapies
+        .filter(templateTherapy => Number(templateTherapy.hostId) <= hostList.length)
+        .map(templateTherapy => {
+            const host = hostList[Number(templateTherapy.hostId) - 1]
+            if (!host || drugList.length === 0) return null
 
-    const therapies = []
-    let therapyCounter = 0
-
-    hostList.forEach((host) => {
-        // Determine therapy count based on pathology severity
-        let therapyCount = 1
-        if (host.patologie && host.patologie.length > 10) {
-            therapyCount = 2 + Math.floor(Math.random() * 2) // 2-3 therapies
-        } else if (host.patologie) {
-            therapyCount = 1 + Math.floor(Math.random() * 2) // 1-2 therapies
-        }
-
-        // Find matching drugs for this host's pathology
-        const matchingDrugs = []
-        Object.entries(pathologyDrugMap).forEach(([pathology, drugIndices]) => {
-            if (host.patologie && host.patologie.includes(pathology)) {
-                matchingDrugs.push(...drugIndices)
-            }
-        })
-
-        // Fallback: use random drugs if no pathology match
-        if (matchingDrugs.length === 0) {
-            for (let i = 0; i < therapyCount; i++) {
-                matchingDrugs.push(Math.floor(Math.random() * drugList.length))
-            }
-        }
-
-        // Create therapies
-        for (let i = 0; i < therapyCount; i++) {
-            const drugIdx = matchingDrugs[i % matchingDrugs.length]
-            const drug = drugList[drugIdx]
+            const drugIdx = ((Number(templateTherapy.drugId) || 1) - 1) % drugList.length
+            const safeDrugIdx = drugIdx < 0 ? 0 : drugIdx
+            const drug = drugList[safeDrugIdx]
             const associatedBatches = batchList.filter(b => b.drugId === drug.id)
-            const batch = associatedBatches.length > 0
-                ? associatedBatches[Math.floor(Math.random() * associatedBatches.length)]
-                : null
+            const batch = associatedBatches[0] ?? null
 
-            const startDate = new Date()
-            startDate.setDate(startDate.getDate() - Math.floor(Math.random() * 30)) // Started 0-30 days ago
-
-            therapies.push({
+            return {
                 id: randomUUID(),
                 hostId: host.id,
                 drugId: drug.id,
                 stockBatchId: batch ? batch.id : null,
-                dataInizio: startDate.toISOString().split('T')[0],
-                dataFine: null,
-                dosaggio: `${(500 + Math.random() * 500).toFixed(0)} mg`,
-                frequenza: ['1 volta al giorno', '2 volte al giorno', '3 volte al giorno'][Math.floor(Math.random() * 3)],
-                notaTerapia: `Terapia per ${host.patologie || 'patologia'}`,
+                dataInizio: templateTherapy.dataInizio || new Date().toISOString().split('T')[0],
+                dataFine: templateTherapy.dataFine || null,
+                dosaggio: String(templateTherapy.dosaggio || '1 compressa'),
+                frequenza: String(templateTherapy.frequenza || '1 volta/die'),
+                notaTerapia: String(templateTherapy.notaTerapia || `Terapia per ${host.patologie || 'patologia'}`),
                 updatedAt: new Date().toISOString(),
                 syncStatus: 'pending',
-            })
-
-            therapyCounter++
-        }
-    })
-
-    return therapies
+            }
+        })
+        .filter(Boolean)
 }
 
 /**
