@@ -3,6 +3,7 @@ import { computed, onMounted, ref } from 'vue'
 import { db } from '../db'
 import { useAuth } from '../services/auth'
 import { softDeleteMovement, upsertMovement } from '../services/movimenti'
+import { confirmDeleteMovement } from '../services/confirmations'
 
 const { currentUser } = useAuth()
 
@@ -214,7 +215,10 @@ function resetForm() {
 }
 
 async function deleteMovement(movement) {
-  const confirmed = window.confirm('Confermi eliminazione movimento?')
+  const batch = stockBatches.value.find(b => b.id === movement.stockBatchId)
+  const movementLabel = `${movement.tipoMovimento || movement.type} - ${batchLabel(batch)} (${formatDateTime(movement.dataMovimento)})`
+  
+  const confirmed = await confirmDeleteMovement(movementLabel)
   if (!confirmed) return
 
   message.value = ''

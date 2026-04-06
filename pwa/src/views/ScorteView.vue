@@ -2,6 +2,7 @@
 import { computed, onMounted, ref } from 'vue'
 import { db, enqueue, getSetting } from '../db'
 import { buildOperationalReport, buildOrderDraftText, operationalReportToCsv } from '../services/reporting'
+import { confirmDeleteDrug, confirmDeleteBatch } from '../services/confirmations'
 import { useAuth } from '../services/auth'
 
 const { currentUser } = useAuth()
@@ -177,7 +178,12 @@ async function saveDrugEdit() {
 }
 
 async function deleteDrug(drugId) {
-  if (!window.confirm('Confermi eliminazione farmaco?')) return
+  const drug = drugs.value.find(d => d.id === drugId)
+  const drugName = drug?.principioAttivo || drug?.nomeFarmaco || drugId
+  
+  const confirmed = await confirmDeleteDrug(drugName)
+  if (!confirmed) return
+  
   actionMessage.value = ''
   actionError.value = ''
 
@@ -261,7 +267,12 @@ async function saveBatchEdit() {
 }
 
 async function deleteBatch(batchId) {
-  if (!window.confirm('Confermi eliminazione confezione?')) return
+  const batch = stockBatches.value.find(b => b.id === batchId)
+  const batchName = batchLabel(batch)
+  
+  const confirmed = await confirmDeleteBatch(batchName)
+  if (!confirmed) return
+  
   actionMessage.value = ''
   actionError.value = ''
 

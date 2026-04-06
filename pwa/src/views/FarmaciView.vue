@@ -3,6 +3,7 @@ import { computed, onMounted, ref } from 'vue'
 import { db, getSetting } from '../db'
 import { useAuth } from '../services/auth'
 import { upsertDrug, deleteDrug, upsertBatch, deactivateBatch } from '../services/farmaci'
+import { confirmDeleteDrug, confirmDeleteBatch } from '../services/confirmations'
 
 const { currentUser } = useAuth()
 
@@ -168,7 +169,9 @@ async function createBatch() {
 }
 
 async function deactivateBatchUI(batch) {
-  const confirmed = window.confirm('Confermi disattivazione confezione?')
+  const drugName = drugLabel(batch.drugId)
+  const batchName = `${batch.nomeCommerciale} (${drugName})`
+  const confirmed = await confirmDeleteBatch(batchName)
   if (!confirmed) return
 
   message.value = ''
@@ -233,7 +236,8 @@ function resetBatchForm() {
 }
 
 async function deleteDrugRecord(drug) {
-  const confirmed = window.confirm('Confermi eliminazione farmaco?')
+  const drugName = drug.nomeFarmaco || drug.principioAttivo || drug.id
+  const confirmed = await confirmDeleteDrug(drugName)
   if (!confirmed) return
 
   message.value = ''
