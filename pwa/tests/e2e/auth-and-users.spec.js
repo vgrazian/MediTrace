@@ -62,7 +62,7 @@ test('seeded account login, sync, csv import, password change and users section 
     await expect(page.locator('strong', { hasText: 'Utenti' })).toBeVisible()
 
     await page.getByRole('button', { name: 'Sincronizza ora' }).click()
-    await expect(page.getByText(/bootstrapped/i)).toBeVisible()
+    await expect(page.getByText(/sincronizzazione inizializzata con successo/i)).toBeVisible()
 
     await page.getByLabel('Sorgente').selectOption('01_CatalogoFarmaci.csv')
     await page.locator('input[type="file"]').setInputFiles({

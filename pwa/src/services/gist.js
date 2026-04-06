@@ -13,6 +13,7 @@
  * sync.js change is minimal — only downloadFile gains a required fileName arg.
  */
 import { getSetting, setSetting } from '../db'
+import { NetworkError, createNetworkError } from './errorHandling'
 
 const GITHUB_API = 'https://api.github.com'
 const GIST_DESCRIPTION = 'MediTrace — dati personali (non modificare manualmente)'
@@ -39,7 +40,9 @@ async function createGist(token, files) {
         headers: ghHeaders(token),
         body: JSON.stringify({ description: GIST_DESCRIPTION, public: false, files }),
     })
-    if (!res.ok) throw new Error(`Gist create failed: ${res.status}`)
+    if (!res.ok) {
+        throw await createNetworkError(res, 'creazione gist')
+    }
     return res.json()
 }
 
@@ -48,7 +51,9 @@ async function getGist(token, gistId) {
         headers: ghHeaders(token),
     })
     if (res.status === 404) return null
-    if (!res.ok) throw new Error(`Gist get failed: ${res.status}`)
+    if (!res.ok) {
+        throw await createNetworkError(res, 'lettura gist')
+    }
     return res.json()
 }
 
@@ -58,7 +63,9 @@ async function patchGist(token, gistId, files) {
         headers: ghHeaders(token),
         body: JSON.stringify({ files }),
     })
-    if (!res.ok) throw new Error(`Gist patch failed: ${res.status}`)
+    if (!res.ok) {
+        throw await createNetworkError(res, 'aggiornamento gist')
+    }
     return res.json()
 }
 
@@ -76,7 +83,9 @@ async function findExistingGist(token) {
         const res = await fetch(`${GITHUB_API}/gists?per_page=100&page=${page}`, {
             headers: ghHeaders(token),
         })
-        if (!res.ok) throw new Error(`Gist list failed: ${res.status}`)
+        if (!res.ok) {
+            throw await createNetworkError(res, 'elenco gist')
+        }
         const gists = await res.json()
         if (gists.length === 0) return null
         const found = gists.find(g => g.description === GIST_DESCRIPTION)
@@ -106,13 +115,29 @@ export async function listAppFiles(token) {
  */
 export async function downloadFile(token, gistId, fileName) {
     const gist = await getGist(token, gistId)
-    if (!gist) throw new Error(`Gist ${gistId} not found`)
+    if (!gist) {
+        throw new NetworkError(`Gist ${gistId} non trovato`, 404, {
+            suggestedActions: [
+                'Verifica che il token GitHub sia valido',
+                'Controlla che il gist non sia stato eliminato'
+            ]
+        })
+    }
     const file = gist.files[fileName]
-    if (!file) throw new Error(`File ${fileName} not found in gist ${gistId}`)
+    if (!file) {
+        throw new NetworkError(`File ${fileName} non trovato nel gist`, 404, {
+            suggestedActions: [
+                'Il file potrebbe essere stato eliminato',
+                'Prova a eseguire un reset della sincronizzazione'
+            ]
+        })
+    }
     // GitHub truncates large files — fall back to raw_url
     if (file.truncated) {
         const res = await fetch(file.raw_url)
-        if (!res.ok) throw new Error(`Gist raw download failed: ${res.status}`)
+        if (!res.ok) {
+            throw await createNetworkError(res, 'download file raw')
+        }
         return res.json()
     }
     return JSON.parse(file.content)
