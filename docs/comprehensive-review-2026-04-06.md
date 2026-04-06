@@ -1419,7 +1419,7 @@ Each improvement includes concrete examples and actionable recommendations. Impl
 
 ---
 
-#### 🔄 PR #49: Form Validation Feedback (Issue 4.2) - PLANNED
+#### 🔄 PR #50: Form Validation Feedback (Issue 4.2) - PLANNED
 **Status:** Not started
 **Scope:**
 - Real-time validation with inline error messages
@@ -1430,7 +1430,7 @@ Each improvement includes concrete examples and actionable recommendations. Impl
 
 ### Phase 3: Accessibility (P1)
 
-#### 🔄 PR #50: ARIA Labels and Keyboard Navigation (Issue 6.1) - PLANNED
+#### 🔄 PR #51: ARIA Labels and Keyboard Navigation (Issue 6.1) - PLANNED
 **Status:** Not started
 **Scope:**
 - Add ARIA labels to all interactive elements

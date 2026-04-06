@@ -3,6 +3,7 @@ import { onMounted, ref, computed } from 'vue'
 import { useAuth } from '../services/auth'
 import { buildHostRows, createHost, deleteHost, formatHostDisplay, updateHost } from '../services/ospiti'
 import { getRoomsWithBeds } from '../services/stanze'
+import { confirmDeleteHost } from '../services/confirmations'
 import { db } from '../db'
 
 const { currentUser } = useAuth()
@@ -126,7 +127,12 @@ async function handleSave() {
 }
 
 async function handleDeactivate(hostId) {
-  if (!confirm(`Eliminare l'ospite "${hostId}"?`)) return
+    const host = allHosts.value.find(h => h.id === hostId)
+    const hostName = formatHostDisplay(host)
+    
+    const confirmed = await confirmDeleteHost(hostName)
+    if (!confirmed) return
+    
     message.value = ''
     errorMessage.value = ''
     try {

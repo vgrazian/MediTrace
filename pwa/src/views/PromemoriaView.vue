@@ -4,6 +4,7 @@ import { useRoute } from 'vue-router'
 import { db, enqueue, getSetting } from '../db'
 import { useAuth } from '../services/auth'
 import { buildReminderRows, markReminder, reminderStateBadge, REMINDER_OUTCOMES } from '../services/promemoria'
+import { confirmDeleteReminder } from '../services/confirmations'
 
 const route = useRoute()
 const { currentUser } = useAuth()
@@ -159,7 +160,14 @@ async function saveReminderEdit() {
 }
 
 async function deleteReminder(reminderId) {
-  if (!window.confirm('Confermi eliminazione promemoria?')) return
+  const reminder = allReminders.value.find(r => r.id === reminderId)
+  const host = hosts.value.find(h => h.id === reminder?.hostId)
+  const drug = drugs.value.find(d => d.id === reminder?.drugId)
+  const reminderLabel = `${host?.iniziali || host?.codiceInterno || 'Ospite'} - ${drug?.principioAttivo || 'Farmaco'} (${formatSchedule(reminder?.scheduledAt)})`
+  
+  const confirmed = await confirmDeleteReminder(reminderLabel)
+  if (!confirmed) return
+  
   message.value = ''
   errorMessage.value = ''
 
