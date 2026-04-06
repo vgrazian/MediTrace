@@ -1410,21 +1410,62 @@ Each improvement includes concrete examples and actionable recommendations. Impl
 
 ### Phase 2: User Safety & Validation (P0)
 
-#### 🔄 PR #48: Destructive Action Confirmations (Issue 4.1) - PLANNED
-**Status:** Not started
-**Scope:**
-- Add confirmation dialogs for delete operations
-- Implement undo functionality for critical actions
-- Add "Are you sure?" prompts with clear consequences
+#### ✅ PR #49: Destructive Action Confirmations (Issue 4.1)
+**Status:** MERGED to main on 2026-04-06 20:18:49 UTC
+**Changes:**
+- Created `confirmations.js` service with 9 specialized confirmation functions
+- Updated 6 views: OspitiView, ScorteView, PromemoriaView, MovimentiView, ImpostazioniView, FarmaciView
+- Added context-specific messages with consequences listed
+- 14 unit tests with 100% coverage
+
+**Files Modified:**
+- `pwa/src/services/confirmations.js` (new)
+- `pwa/tests/unit/confirmations.spec.js` (new)
+- 6 view files updated
+
+**Impact:**
+- ✅ Prevents accidental data loss
+- ✅ Improves user confidence
+- ✅ Clear communication of action consequences
 
 ---
 
-#### 🔄 PR #50: Form Validation Feedback (Issue 4.2) - PLANNED
-**Status:** Not started
-**Scope:**
-- Real-time validation with inline error messages
-- Clear validation rules display
-- Prevent form submission with invalid data
+#### 🔄 PR #50: Form Validation Feedback (Issue 4.2) - IN PROGRESS
+**Status:** Draft PR Created - Foundation Complete (60%)
+**PR:** https://github.com/vgrazian/MediTrace/pull/50
+**Branch:** feat/form-validation-feedback
+**Estimated Remaining:** 6-8 hours
+
+**Completed (Part 1 - Foundation):**
+- ✅ Created `formValidation.js` service (254 lines, 11 validation rules)
+- ✅ Implemented `useFormValidation()` composable with reactive state
+- ✅ Created `ValidatedInput.vue` reusable component (165 lines)
+- ✅ Added 43 comprehensive unit tests (94.52% coverage)
+- ✅ Created detailed documentation and implementation guide
+
+**Validation Rules:**
+1. required, 2. minLength, 3. maxLength, 4. email, 5. numeric
+6. positiveNumber, 7. integer, 8. date, 9. futureDate, 10. pattern, 11. custom
+
+**Pending (Part 2 - View Integration):**
+- [ ] Update FarmaciView.vue
+- [ ] Update OspitiView.vue
+- [ ] Update TerapieView.vue
+- [ ] Update PromemoriaView.vue
+- [ ] Update MovimentiView.vue
+- [ ] Update ImpostazioniView.vue
+- [ ] Create E2E test suite
+
+**Files Created:**
+- `pwa/src/services/formValidation.js` (new)
+- `pwa/src/components/ValidatedInput.vue` (new)
+- `pwa/tests/unit/formValidation.spec.js` (new)
+- `pwa/src/services/README-formValidation.md` (new)
+- `pwa/docs/PR50-IMPLEMENTATION-GUIDE.md` (new)
+
+**Accessibility:**
+- ✅ ARIA attributes (aria-invalid, aria-describedby, aria-required)
+- ✅ Screen reader support, keyboard navigation, visual error indicators
 
 ---
 
@@ -1441,14 +1482,28 @@ Each improvement includes concrete examples and actionable recommendations. Impl
 
 ### Summary
 
-**Completed:** 2/47 issues (4.3%)
-**In Progress:** 0/47 issues
-**Planned:** 3/47 issues (6.4%)
-**Remaining:** 42/47 issues (89.3%)
+**Completed:** 3/47 issues (6.4%)
+- ✅ PR #46: Centralized Error Handling (Issue 1.1)
+- ✅ PR #47: Sync Failure Notifications (Issue 1.2)
+- ✅ PR #49: Destructive Action Confirmations (Issue 4.1)
+
+**In Progress:** 1/47 issues (2.1%)
+- 🔄 PR #50: Form Validation Feedback (Issue 4.2) - 60% complete
+
+**Planned:** 1/47 issues (2.1%)
+- 📋 PR #51: ARIA Labels and Keyboard Navigation (Issue 6.1)
+
+**Remaining:** 42/47 issues (89.4%)
 
 **Next Steps:**
-1. Implement destructive action confirmations (PR #48)
-2. Add form validation feedback (PR #49)
-3. Improve accessibility with ARIA labels (PR #50)
+1. Complete PR #50 view updates and E2E tests (6-8 hours)
+2. Implement ARIA labels and keyboard navigation (PR #51)
+3. Continue with remaining P1 and P2 issues
 
-All changes must be accompanied by comprehensive tests and must pass the existing quality gates before merging to main.
+**Progress Metrics:**
+- Total PRs merged: 3
+- Total PRs in progress: 1 (draft)
+- Test coverage maintained: >90% unit, >80% E2E
+- All CI/CD checks passing
+
+All changes are accompanied by comprehensive tests and must pass existing quality gates before merging to main.
