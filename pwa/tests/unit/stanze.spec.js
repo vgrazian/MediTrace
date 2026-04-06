@@ -123,14 +123,14 @@ describe('createBed', () => {
             operatorId: 'op-nurse',
         })
 
-        expect(result.id).toBe('room-1-L1')
+        expect(result.id.startsWith('bed_')).toBe(true)
         expect(result.roomId).toBe('room-1')
         expect(result.numero).toBe(1)
         expect(result.syncStatus).toBe('pending')
 
         const createdAudit = activityLogRows.find(row => row.action === 'bed_created')
         expect(createdAudit?.entityType).toBe('beds')
-        expect(createdAudit?.entityId).toBe('room-1-L1')
+        expect(createdAudit?.entityId).toBe(result.id)
         expect(createdAudit?.action).toBe('bed_created')
         expect(createdAudit?.operatorId).toBe('op-nurse')
         expect(createdAudit?.deviceId).toBe('unknown')
@@ -138,8 +138,8 @@ describe('createBed', () => {
     })
 
     it('persists bed in database', async () => {
-        await createBed({ roomId: 'room-1', numero: 2, operatorId: 'op-nurse' })
-        const stored = dbBeds.get('room-1-L2')
+        const created = await createBed({ roomId: 'room-1', numero: 2, operatorId: 'op-nurse' })
+        const stored = dbBeds.get(created.id)
         expect(stored.numero).toBe(2)
     })
 })

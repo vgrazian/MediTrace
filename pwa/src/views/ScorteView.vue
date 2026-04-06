@@ -37,7 +37,8 @@ const hasBatches = computed(() => stockBatches.value.length > 0)
 
 function drugLabel(drugId) {
   const drug = drugs.value.find(d => d.id === drugId)
-  return drug?.principioAttivo || drugId || '—'
+  if (!drug) return 'Farmaco non disponibile'
+  return drug.nomeFarmaco || drug.principioAttivo || 'Farmaco senza nome'
 }
 
 function batchLabel(batch) {
@@ -566,7 +567,7 @@ onMounted(() => {
             Farmaco
             <select v-model="batchForm.drugId" :disabled="!editingBatchId || savingBatch">
               <option value="">Seleziona farmaco</option>
-              <option v-for="drug in drugs" :key="drug.id" :value="drug.id">{{ drug.principioAttivo || drug.id }}</option>
+              <option v-for="drug in drugs" :key="drug.id" :value="drug.id">{{ drugLabel(drug.id) }}</option>
             </select>
           </label>
           <label>

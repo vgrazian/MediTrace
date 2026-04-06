@@ -218,13 +218,13 @@ for (const host of hosts.slice(0, 3)) {
 
 I tuoi CSV contengono:
 
-**persone_test_sanitarie.csv**
+### persone_test_sanitarie.csv
 
 - 30 ospiti con nomi realistici italiani
 - Dati demografici completi (data nascita, luogo, CF)
 - Patologie mediche differenziate
 
-**farmaci_test_sanitari.csv**
+### farmaci_test_sanitari.csv
 
 - 30 farmaci con marche farmaceutiche reali
 - Principi attivi pertinenti alle patologie degli ospiti

@@ -1,4 +1,5 @@
 import { db, enqueue, getSetting } from '../db'
+import { generateEntityId } from './ids'
 
 /**
  * Create a new room (stanza).
@@ -6,10 +7,12 @@ import { db, enqueue, getSetting } from '../db'
 export async function createRoom({ id, codice, note = '', operatorId = null }) {
     const now = new Date().toISOString()
     const deviceId = await getSetting('deviceId', 'unknown')
+    const roomId = String(id || '').trim() || generateEntityId('room')
+    const roomCode = String(codice || '').trim() || roomId
 
     const record = {
-        id,
-        codice: codice || id,
+        id: roomId,
+        codice: roomCode,
         note: note || '',
         updatedAt: now,
         deletedAt: null,
@@ -36,14 +39,19 @@ export async function createRoom({ id, codice, note = '', operatorId = null }) {
  * Create a new bed (letto) in a room.
  */
 export async function createBed({ roomId, numero, note = '', operatorId = null }) {
-    const id = `${roomId}-L${numero}`
+    const safeRoomId = String(roomId || '').trim()
+    if (!safeRoomId) throw new Error('Room ID obbligatorio')
+    const numericBed = Number(numero)
+    if (!Number.isFinite(numericBed) || numericBed <= 0) throw new Error('Numero letto non valido')
+
+    const id = generateEntityId('bed')
     const now = new Date().toISOString()
     const deviceId = await getSetting('deviceId', 'unknown')
 
     const record = {
         id,
-        roomId,
-        numero: Number(numero),
+        roomId: safeRoomId,
+        numero: numericBed,
         note: note || '',
         updatedAt: now,
         deletedAt: null,

@@ -40,6 +40,7 @@ export default defineConfig({
             VITE_DEV_SEED_PASSWORD: 'Prova123!',
             VITE_DEV_SEED_GITHUB_TOKEN: 'github_pat_test_seed_token',
             VITE_BASE_URL: '/',
+            NO_HMR: '1',
         },
     },
 })

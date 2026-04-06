@@ -101,6 +101,18 @@ describe('upsertDrug', () => {
         expect(updatedAudit?.operatorId).toBe('op-nurse')
         expect(typeof updatedAudit?.ts).toBe('string')
     })
+
+    it('auto-generates drug ID when not provided', async () => {
+        const result = await upsertDrug({
+            existing: null,
+            nomeFarmaco: 'Ketoprofene',
+            principioAttivo: 'Ketoprofen',
+            operatorId: 'op-admin',
+        })
+
+        expect(result.id.startsWith('drug_')).toBe(true)
+        expect(dbDrugs.get(result.id)?.nomeFarmaco).toBe('Ketoprofene')
+    })
 })
 
 // ── deleteDrug ────────────────────────────────────────────────────────────────
@@ -197,6 +209,18 @@ describe('upsertBatch', () => {
         expect(updatedAudit?.action).toBe('stock_batch_updated')
         expect(updatedAudit?.operatorId).toBe('op-nurse')
         expect(typeof updatedAudit?.ts).toBe('string')
+    })
+
+    it('auto-generates batch ID when not provided', async () => {
+        const result = await upsertBatch({
+            existing: null,
+            drugId: 'drug-1',
+            nomeCommerciale: 'Test batch',
+            operatorId: 'op-admin',
+        })
+
+        expect(result.id.startsWith('batch_')).toBe(true)
+        expect(dbBatches.get(result.id)?.drugId).toBe('drug-1')
     })
 })
 

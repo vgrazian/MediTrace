@@ -8,12 +8,13 @@
  *   - deactivateBatch()    soft-delete stock batch record
  */
 import { db, enqueue, getSetting } from '../db'
+import { generateEntityId } from './ids'
 
 /**
  * Create or update a drug (farmaco) record with audit trail.
  *
  * @param {object} params
- * @param {string} params.drugId         — UUID or generated ID
+ * @param {string} [params.drugId]       — ID esterno (opzionale, auto-generato se assente)
  * @param {object} params.existing       — existing drug record (null for create)
  * @param {string} params.nomeFarmaco    — drug name
  * @param {string} params.principioAttivo — active ingredient
@@ -32,9 +33,10 @@ export async function upsertDrug({
     operatorId = null,
 }) {
     const now = new Date().toISOString()
+    const persistedDrugId = String(drugId || existing?.id || '').trim() || generateEntityId('drug')
     const record = {
         ...(existing || {}),
-        id: drugId,
+        id: persistedDrugId,
         nomeFarmaco: nomeFarmaco.trim(),
         principioAttivo: principioAttivo.trim(),
         classeTerapeutica: classeTerapeutica.trim() || '',
@@ -102,7 +104,7 @@ export async function deleteDrug({ drugId, existing, operatorId = null }) {
  * Create or update a stock batch (confezione) record with audit trail.
  *
  * @param {object} params
- * @param {string} params.batchId             — UUID or generated ID
+ * @param {string} [params.batchId]           — ID esterno (opzionale, auto-generato se assente)
  * @param {object} params.existing            — existing batch record (null for create)
  * @param {string} params.drugId              — parent drug ID
  * @param {string} params.nomeCommerciale     — commercial name / batch description
@@ -125,9 +127,10 @@ export async function upsertBatch({
     operatorId = null,
 }) {
     const now = new Date().toISOString()
+    const persistedBatchId = String(batchId || existing?.id || '').trim() || generateEntityId('batch')
     const record = {
         ...(existing || {}),
-        id: batchId,
+        id: persistedBatchId,
         drugId,
         nomeCommerciale: nomeCommerciale.trim(),
         dosaggio: dosaggio.trim() || '',

@@ -14,7 +14,6 @@ const roomsData = ref([])
 const showInactive = ref(false)
 
 const roomForm = ref({
-  id: '',
   codice: '',
   note: '',
 })
@@ -27,7 +26,7 @@ const bedForm = ref({
 
 const activeRooms = computed(() => roomsData.value.filter(r => !showInactive.value ? !r.deletedAt : true))
 
-const canCreateRoom = computed(() => roomForm.value.id.trim() || roomForm.value.codice.trim())
+const canCreateRoom = computed(() => roomForm.value.codice.trim())
 
 const canCreateBed = computed(() => bedForm.value.roomId && Number(bedForm.value.numero) > 0)
 
@@ -37,6 +36,17 @@ function formatHostLabel(host) {
   const displayName = fullName || host.iniziali || host.codiceInterno || host.id
   const visibleId = host.codiceInterno || host.id
   return `[${visibleId}] - ${displayName}`
+}
+
+function roomLabel(room) {
+  const code = String(room?.codice || '').trim()
+  return code || 'Stanza senza codice'
+}
+
+function bedLabel(bed) {
+  const number = Number(bed?.numero)
+  if (Number.isFinite(number) && number > 0) return `Letto ${number}`
+  return 'Letto'
 }
 
 async function loadData() {
@@ -56,18 +66,14 @@ async function handleCreateRoom() {
   errorMessage.value = ''
   saving.value = true
   try {
-    const id = (roomForm.value.id || roomForm.value.codice).trim()
-    const codice = roomForm.value.codice.trim() || id
-
-    await createRoom({
-      id,
-      codice,
+    const created = await createRoom({
+      codice: roomForm.value.codice.trim(),
       note: roomForm.value.note,
       operatorId: currentUser.value?.login ?? null,
     })
 
-    message.value = `Stanza "${id}" creata.`
-    roomForm.value = { id: '', codice: '', note: '' }
+    message.value = `Stanza "${created.id}" creata.`
+    roomForm.value = { codice: '', note: '' }
     await loadData()
   } catch (err) {
     errorMessage.value = `Errore: ${err.message}`
@@ -141,16 +147,14 @@ onMounted(() => void loadData())
       <table class="conflict-table" style="margin-top:.75rem">
         <thead>
           <tr>
-            <th>ID</th>
-            <th>Codice</th>
+            <th>Stanza</th>
             <th>Letti</th>
             <th>Azioni</th>
           </tr>
         </thead>
         <tbody>
           <tr v-for="room in activeRooms" :key="room.id">
-            <td>{{ room.id }}</td>
-            <td>{{ room.codice || '—' }}</td>
+            <td>{{ roomLabel(room) }}</td>
             <td>{{ room.beds.length }}</td>
             <td>
               <button
@@ -163,7 +167,7 @@ onMounted(() => void loadData())
             </td>
           </tr>
           <tr v-if="activeRooms.length === 0 && !loading">
-            <td colspan="4" class="muted">Nessuna stanza disponibile.</td>
+            <td colspan="3" class="muted">Nessuna stanza disponibile.</td>
           </tr>
         </tbody>
       </table>
@@ -177,10 +181,6 @@ onMounted(() => void loadData())
         <div style="margin-top:.75rem">
           <p><strong>Aggiungi stanza</strong></p>
           <div class="import-form" style="margin-top:.65rem">
-            <label>
-              ID stanza <span class="muted">(es. A, B, C)</span>
-              <input v-model="roomForm.id" type="text" placeholder="A" />
-            </label>
             <label>
               Codice
               <input v-model="roomForm.codice" type="text" placeholder="Piano 1 - Lato A" />
@@ -203,7 +203,7 @@ onMounted(() => void loadData())
               <select v-model="bedForm.roomId" :disabled="!roomsData.length || saving">
                 <option value="">Seleziona stanza</option>
                 <option v-for="room in roomsData.filter(r => !r.deletedAt)" :key="room.id" :value="room.id">
-                  {{ room.id }} ({{ room.codice }})
+                  {{ roomLabel(room) }}
                 </option>
               </select>
             </label>
@@ -232,14 +232,13 @@ onMounted(() => void loadData())
       <div v-else style="margin-top:.75rem">
         <div v-for="room in activeRooms" :key="room.id" style="margin-bottom:1.5rem;padding:1rem;border:1px solid #e0e0e0;border-radius:.4rem">
           <p style="margin-bottom:.5rem">
-            <strong>{{ room.id }} — {{ room.codice }}</strong>
+            <strong>{{ roomLabel(room) }}</strong>
             <span v-if="room.note" class="muted"> · {{ room.note }}</span>
           </p>
           <table class="conflict-table" style="font-size:.9rem;margin-top:.5rem">
             <thead>
               <tr>
                 <th>Letto</th>
-                <th>ID</th>
                 <th>Ospite</th>
                 <th>Note</th>
                 <th>Azione</th>
@@ -247,8 +246,7 @@ onMounted(() => void loadData())
             </thead>
             <tbody>
               <tr v-for="bed in room.beds" :key="bed.id">
-                <td>{{ bed.numero }}</td>
-                <td>{{ bed.id }}</td>
+                <td>{{ bedLabel(bed) }}</td>
                 <td>{{ formatHostLabel(bed.host) }}</td>
                 <td>{{ bed.note || '—' }}</td>
                 <td>
@@ -262,7 +260,7 @@ onMounted(() => void loadData())
                 </td>
               </tr>
               <tr v-if="room.beds.length === 0">
-                <td colspan="5" class="muted">Nessun letto.</td>
+                <td colspan="4" class="muted">Nessun letto.</td>
               </tr>
             </tbody>
           </table>

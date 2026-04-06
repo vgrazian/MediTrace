@@ -144,3 +144,136 @@ Rollback:
 - Build + smoke bootstrap: giornaliero (schedulato)
 - Smoke multi-device: ad ogni rilascio e dopo cambi al motore sync
 - Rotazione segreti tecnici: almeno trimestrale o immediata in caso di incidente
+
+## Fase 6: Analisi Usabilita' ed Ergonomia Operativa
+
+Obiettivo: individuare miglioramenti ergonomici per operatori non professionali, volontari e utenti senior, riducendo errori e tempi di esecuzione sui casi d'uso piu' frequenti.
+
+### 1. Definizione gruppi utente prioritari
+
+- Volontario: bassa confidenza digitale, necessita' di guida passo-passo.
+- Operatore senior: velocita' di interazione ridotta, possibili limiti visivi o motori.
+- Coordinatore/Admin: supervisione flussi, eccezioni e controllo allarmi.
+
+### 2. Selezione casi d'uso piu' frequenti (6-8)
+
+- Inizio turno e apertura dashboard.
+- Ricerca ospite e controllo terapia/promemoria.
+- Registrazione esito somministrazione.
+- Aggiornamento scorte e gestione allarmi sotto soglia.
+- Sincronizzazione dati in condizioni online/offline.
+- Recupero errore comune (dato errato, undo, retry).
+
+### 3. Sessioni di osservazione task-based
+
+- Campione minimo consigliato: 5 utenti per gruppo (totale 15 sessioni).
+- Metodo: think-aloud durante task reali su dispositivo reale.
+- Dati da raccogliere per ogni task: tempo completamento, numero errori, richieste di aiuto, esitazioni/blocchi osservati.
+
+### 4. Prioritizzazione con indice di rischio
+
+Valutare ogni task su scala 1-5 su tre dimensioni:
+
+- Frequenza: quante volte viene eseguito
+- Criticita': impatto su paziente/processo in caso di errore
+- Difficolta': attrito osservato durante l'esecuzione
+
+Formula di priorita':
+
+`Priority = Frequency * Criticality * Difficulty`
+
+Interpretazione consigliata:
+
+- >= 60: intervento ergonomico immediato
+- 30-59: intervento pianificato nel prossimo ciclo
+- < 30: monitoraggio e ottimizzazione opportunistica
+
+### 5. Traduzione risultati in opportunita' ergonomiche
+
+Per utenti senior e non professionali, priorizzare:
+
+- target touch piu' grandi e contrasto elevato
+- meno decisioni per schermata
+- flussi guidati step-by-step con conferme esplicite
+- form tolleranti all'errore (validazione inline, undo, autosave)
+- safe defaults e azioni consigliate contestuali
+
+### 6. Output visuali standard (Mermaid)
+
+#### 6.1 Mappa casi d'uso frequenti
+
+```mermaid
+flowchart LR
+   V[Volontario] --> U1([Apri Dashboard])
+   V --> U2([Ricerca Ospite])
+   V --> U3([Controlla Terapia e Promemoria])
+   V --> U4([Registra Somministrazione])
+   V --> U7([Sync Dati])
+   V --> U8([Recupero Errore])
+
+   S[Operatore Senior] --> U1
+   S --> U2
+   S --> U3
+   S --> U4
+   S --> U5([Aggiorna Scorte])
+   S --> U7
+   S --> U8
+
+   C[Coordinatore/Admin] --> U1
+   C --> U5
+   C --> U6([Gestisci Allarmi Scorte])
+   C --> U7
+
+   classDef high fill:#ffe8e8,stroke:#b42318,stroke-width:2px;
+   classDef medium fill:#fff3d6,stroke:#b58107,stroke-width:1.5px;
+   class U3,U4,U7 high;
+   class U2,U5,U6,U8 medium;
+```
+
+#### 6.2 Flusso giornaliero principale con error path
+
+```mermaid
+flowchart TD
+   A([Inizio Turno]) --> B([Apri Dashboard])
+   B --> C{Allarmi o Promemoria Critici?}
+   C -->|Si| D([Prioritizza Ospiti])
+   C -->|No| E([Seleziona Ospite])
+   D --> E
+   E --> F([Verifica Terapia])
+   F --> G([Registra Esito])
+   G --> H{Errore Input?}
+   H -->|Si| I([Validazione Inline + Undo])
+   I --> G
+   H -->|No| J([Conferma Salvataggio])
+   J --> K([Aggiorna Scorte se necessario])
+   K --> L([Sync quando online])
+   L --> M([Fine Turno])
+
+   classDef risk fill:#ffe8e8,stroke:#b42318,stroke-width:2px;
+   class H,I,L risk;
+```
+
+#### 6.3 Roadmap miglioramenti ergonomici basata su priorita'
+
+```mermaid
+flowchart LR
+   P1[Priorita alta: Registrazione somministrazione] --> A1[Azione: Wizard 3 step + conferma finale]
+   P2[Priorita alta: Sync online/offline] --> A2[Azione: Stato sync sempre visibile + retry guidato]
+   P3[Priorita media: Ricerca ospite] --> A3[Azione: Ricerca semplificata con scorciatoie recenti]
+   P4[Priorita media: Aggiornamento scorte] --> A4[Azione: Form ridotto + preset quantita]
+
+   A1 --> R1[Impatto atteso: meno errori critici]
+   A2 --> R2[Impatto atteso: meno blocchi operativi]
+   A3 --> R3[Impatto atteso: task piu' rapido]
+   A4 --> R4[Impatto atteso: meno inserimenti manuali]
+```
+
+Criterio di uscita fase:
+
+- backlog miglioramenti ordinato per score di priorita'
+- almeno 3 interventi ad alta priorita' pianificati nel ciclo successivo
+- baseline metriche usabilita' definita (tempo medio task, errori/task, aiuto richiesto)
+
+Template operativo consigliato:
+
+- `docs/usability-test-sheet-template.md`

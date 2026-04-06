@@ -115,6 +115,26 @@ describe('terapie service audit', () => {
         expect(typeof updatedAudit?.ts).toBe('string')
     })
 
+    it('auto-generates therapy ID when not provided', async () => {
+        const record = await upsertTherapy({
+            existing: null,
+            form: {
+                hostId: 'host-1',
+                drugId: 'drug-1',
+                dosePerSomministrazione: '1',
+                somministrazioniGiornaliere: '1',
+                consumoMedioSettimanale: '7',
+                dataInizio: '2026-04-01',
+                dataFine: '',
+                note: '',
+            },
+            operatorId: 'op-admin',
+        })
+
+        expect(record.id.startsWith('therapy_')).toBe(true)
+        expect(therapies.get(record.id)?.hostId).toBe('host-1')
+    })
+
     it('deactivates therapy and writes deactivation audit', async () => {
         const therapy = {
             id: 'therapy-2',

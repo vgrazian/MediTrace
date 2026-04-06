@@ -23,7 +23,6 @@ test('scorte view supports edit/delete for drug and batch', async ({ page }) => 
 
     await page.locator('summary', { hasText: 'Gestisci Farmaci' }).click()
 
-    await page.getByLabel('ID farmaco (opzionale)').fill('drug-scorte-e2e')
     await page.getByLabel('Nome farmaco').fill('Brufen Test Scorte')
     await page.getByLabel('Principio attivo').fill('Ibuprofene Test Scorte')
     await page.getByLabel('Classe terapeutica').fill('Antinfiammatori')
@@ -31,7 +30,7 @@ test('scorte view supports edit/delete for drug and batch', async ({ page }) => 
     await page.getByRole('button', { name: 'Salva farmaco' }).click()
     await expect(page.getByRole('cell', { name: 'Brufen Test Scorte' }).first()).toBeVisible()
 
-    await page.locator('select').first().selectOption('drug-scorte-e2e')
+    await page.locator('select').first().selectOption({ label: 'Brufen Test Scorte (Ibuprofene Test Scorte)' })
     await page.getByLabel('Nome commerciale').fill('Brufen Test Scorte')
     await page.getByLabel('Dosaggio').fill('400mg')
     await page.getByLabel("Quantita' attuale").fill('15')
@@ -57,7 +56,8 @@ test('scorte view supports edit/delete for drug and batch', async ({ page }) => 
     await scorteForm.getByRole('button', { name: 'Salva modifica farmaco' }).click()
 
     await expect(page.getByText('Farmaco aggiornato.')).toBeVisible()
-    await expect(batchCard.getByRole('cell', { name: 'إيبوبروفين محدث - Brufen Test Scorte' })).toBeVisible()
+    // batchLabel = drugLabel(drugId) + nomeCommerciale; drugLabel now prefers nomeFarmaco
+    await expect(batchCard.getByRole('cell', { name: 'Brufen Test Scorte - Brufen Test Scorte' })).toBeVisible()
 
     // Update batch in Scorte
     const batchRow = page.locator('tr', { hasText: 'Brufen Test Scorte' }).first()
@@ -66,13 +66,13 @@ test('scorte view supports edit/delete for drug and batch', async ({ page }) => 
     await scorteForm.getByRole('button', { name: 'Salva modifica', exact: true }).click()
 
     await expect(page.getByText('Confezione aggiornata.')).toBeVisible()
-    await expect(batchCard.getByRole('cell', { name: 'إيبوبروفين محدث - بروفين محدث' })).toBeVisible()
+    await expect(batchCard.getByRole('cell', { name: 'Brufen Test Scorte - بروفين محدث' })).toBeVisible()
 
     // Delete batch
     page.once('dialog', dialog => dialog.accept())
     await batchCard.locator('tr', { hasText: 'بروفين محدث' }).first().getByRole('button', { name: 'Elimina' }).click()
     await expect(page.getByText('Confezione eliminata.')).toBeVisible()
-    await expect(batchCard.getByRole('cell', { name: 'إيبوبروفين محدث - بروفين محدث' })).toHaveCount(0)
+    await expect(batchCard.getByRole('cell', { name: 'Brufen Test Scorte - بروفين محدث' })).toHaveCount(0)
 
     // Delete drug
     page.once('dialog', dialog => dialog.accept())

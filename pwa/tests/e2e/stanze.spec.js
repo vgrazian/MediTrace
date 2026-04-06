@@ -28,7 +28,6 @@ test('stanze view supports creating a room', async ({ page }) => {
     await page.waitForTimeout(500)
 
     // Create a new room
-    await page.getByLabel('ID stanza').fill('TEST_ROOM_E2E')
     await page.getByLabel('Codice').fill('E2E Test Room')
     const noteInputs = page.getByLabel('Note')
     await noteInputs.first().fill('Created via E2E test')
@@ -40,7 +39,6 @@ test('stanze view supports creating a room', async ({ page }) => {
     await expect(page.getByText(/Stanza.*creata/i)).toBeVisible({ timeout: 5000 })
 
     // Verify the new room appears in the list
-    await expect(page.getByRole('cell', { name: 'TEST_ROOM_E2E' })).toBeVisible({ timeout: 5000 })
     await expect(page.getByRole('cell', { name: 'E2E Test Room' })).toBeVisible()
 })
 
@@ -69,7 +67,6 @@ test('stanze view supports creating beds in a room', async ({ page }) => {
     await page.waitForTimeout(500)
 
     // First, create a test room
-    await page.getByLabel('ID stanza').fill('TEST_ROOM_BEDS')
     await page.getByLabel('Codice').fill('Beds Test')
     const noteInputs = page.getByLabel('Note')
     await noteInputs.first().fill('For bed testing')
@@ -81,11 +78,14 @@ test('stanze view supports creating beds in a room', async ({ page }) => {
     // Now create a bed in the room
     const roomSelect = page.locator('select').first()
     await expect(roomSelect).toBeEnabled({ timeout: 5000 })
-    await roomSelect.selectOption('TEST_ROOM_BEDS')
+    const bedsRoomOption = roomSelect.locator('option', { hasText: 'Beds Test' }).first()
+    const bedsRoomId = await bedsRoomOption.getAttribute('value')
+    if (!bedsRoomId) throw new Error('Unable to select room for bed creation')
+    await roomSelect.selectOption(bedsRoomId)
     await page.getByLabel('Numero letto').fill('1')
     const bedsNoteInputs = page.getByLabel('Note')
     await bedsNoteInputs.last().fill('Test bed 1')
-    
+
     const saveBedButton = page.getByRole('button', { name: /Salva letto/ })
     await expect(saveBedButton).toBeEnabled({ timeout: 5000 })
     await saveBedButton.click()
@@ -119,18 +119,18 @@ test('stanze view deactivates rooms correctly', async ({ page }) => {
     await page.waitForTimeout(500)
 
     // Create a test room
-    await page.getByLabel('ID stanza').fill('ROOM_TO_DEACTIVATE')
     await page.getByLabel('Codice').fill('Deactivate Test')
     const noteInputs = page.getByLabel('Note')
     await noteInputs.first().fill('This room will be deactivated')
     await page.getByRole('button', { name: /Salva stanza/ }).click()
 
     await expect(page.getByText(/Stanza.*creata/i)).toBeVisible({ timeout: 5000 })
-    await expect(page.getByRole('cell', { name: 'ROOM_TO_DEACTIVATE' })).toBeVisible({ timeout: 5000 })
+    await expect(page.getByRole('cell', { name: 'Deactivate Test' })).toBeVisible({ timeout: 5000 })
 
     // Test deactivation
     page.once('dialog', dialog => dialog.accept())
-    const disactivateButton = page.getByRole('button', { name: 'Disattiva' }).first()
+    const rowToDeactivate = page.locator('tbody tr', { has: page.getByRole('cell', { name: 'Deactivate Test' }) }).first()
+    const disactivateButton = rowToDeactivate.getByRole('button', { name: 'Disattiva' })
     await disactivateButton.click()
 
     // Verify success message
@@ -138,5 +138,5 @@ test('stanze view deactivates rooms correctly', async ({ page }) => {
 
     // Verify deactivated room is no longer visible (filter off by default)
     await page.waitForTimeout(300)
-    await expect(page.getByRole('cell', { name: 'ROOM_TO_DEACTIVATE' })).not.toBeVisible({ timeout: 2000 })
+    await expect(page.getByRole('cell', { name: 'Deactivate Test' })).not.toBeVisible({ timeout: 2000 })
 })

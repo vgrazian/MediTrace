@@ -6,6 +6,12 @@ export default defineConfig({
     // Set VITE_BASE_URL=/medi-trace/ in CI for GitHub Pages; default to / for local dev
     base: process.env.VITE_BASE_URL ?? '/',
 
+    server: {
+        // Disable HMR when running E2E tests to prevent the Vite HMR WebSocket from
+        // triggering a page reload when network connectivity is simulated as offline.
+        hmr: process.env.NO_HMR !== '1',
+    },
+
     plugins: [
         vue(),
         VitePWA({
