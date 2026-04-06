@@ -274,11 +274,16 @@ describe('errorHandling service', () => {
             const error = new AppError('Persistent failure')
             const operation = vi.fn().mockRejectedValue(error)
 
-            const promise = retryWithBackoff(operation, { maxRetries: 2 })
+            // Start the retry operation and immediately catch any rejection
+            const promise = retryWithBackoff(operation, { maxRetries: 2 }).catch(err => err)
 
+            // Fast-forward through all timers
             await vi.runAllTimersAsync()
 
-            await expect(promise).rejects.toThrow('Persistent failure')
+            // Wait for promise to settle and check the error
+            const result = await promise
+            expect(result).toBeInstanceOf(AppError)
+            expect(result.message).toBe('Persistent failure')
             expect(operation).toHaveBeenCalledTimes(3) // Initial + 2 retries
         })
 
