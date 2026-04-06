@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { fullSync } from '../../src/services/sync'
+import { SyncError } from '../../src/services/errorHandling'
 
 // ── Mock db and gist service ───────────────────────────────────────────────────
 
@@ -99,10 +100,18 @@ describe('fullSync', () => {
         resetState()
     })
 
-    it('skips sync when token is missing', async () => {
-        const result = await fullSync(null)
-        expect(result.skipped).toBe(true)
-        expect(result.reason).toBe('no-token')
+    it('throws SyncError when token is missing', async () => {
+        await expect(fullSync(null)).rejects.toThrow(SyncError)
+        await expect(fullSync(null)).rejects.toThrow('Token GitHub mancante')
+
+        try {
+            await fullSync(null)
+        } catch (error) {
+            expect(error).toBeInstanceOf(SyncError)
+            expect(error.code).toBe('TOKEN_MISSING')
+            expect(error.suggestedActions).toContain('Vai in Impostazioni e configura il token GitHub')
+        }
+
         expect(activityLogRows.length).toBe(0)
     })
 
