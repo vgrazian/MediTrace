@@ -1,4 +1,5 @@
 import { db, enqueue, getSetting } from '../db'
+import { generateEntityId } from './ids'
 
 export async function upsertMovement({
     existing,
@@ -9,10 +10,11 @@ export async function upsertMovement({
     operatorId = null,
 }) {
     const now = new Date().toISOString()
+    const persistedMovementId = String(movementId || existing?.id || '').trim() || generateEntityId('movement')
 
     const record = {
         ...(existing || {}),
-        id: movementId,
+        id: persistedMovementId,
         stockBatchId: form.stockBatchId,
         drugId: selectedBatch.drugId || null,
         hostId: form.hostId || null,

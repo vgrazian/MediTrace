@@ -24,7 +24,6 @@ test('ospiti view supports create, edit, and delete with extended anagrafica fie
     await expect(details).toBeVisible({ timeout: 5000 })
     await details.locator('summary').click()
 
-    await page.getByLabel('ID').fill('E2E-OSP-001')
     await page.getByLabel('Codice interno').fill('OSP-E2E-001')
     await page.getByLabel('Nome', { exact: true }).fill('Carla')
     await page.getByLabel('Cognome', { exact: true }).fill('Bianchi')
@@ -36,10 +35,10 @@ test('ospiti view supports create, edit, and delete with extended anagrafica fie
     await page.getByLabel('Note').fill('Creato da test E2E')
     await page.getByRole('button', { name: 'Salva ospite' }).click()
 
-    await expect(page.getByText(/Ospite "E2E-OSP-001" creato\./i)).toBeVisible({ timeout: 5000 })
+    await expect(page.getByText(/Ospite ".+" creato\./i)).toBeVisible({ timeout: 5000 })
 
     const createdRow = page.locator('tbody tr', {
-        has: page.getByRole('cell', { name: 'E2E-OSP-001' }),
+        has: page.getByRole('cell', { name: 'OSP-E2E-001' }),
     }).first()
     await expect(createdRow).toBeVisible({ timeout: 5000 })
     await expect(createdRow.getByRole('cell', { name: '[OSP-E2E-001] - Bianchi Carla' })).toBeVisible()
@@ -49,16 +48,16 @@ test('ospiti view supports create, edit, and delete with extended anagrafica fie
     await page.getByLabel('Patologie').fill('Ipertensione, diabete')
     await page.getByRole('button', { name: 'Salva modifica' }).click()
 
-    await expect(page.getByText(/Ospite "E2E-OSP-001" aggiornato\./i)).toBeVisible({ timeout: 5000 })
+    await expect(page.getByText(/Ospite ".+" aggiornato\./i)).toBeVisible({ timeout: 5000 })
 
     const updatedRow = page.locator('tbody tr', {
-        has: page.getByRole('cell', { name: 'E2E-OSP-001' }),
+        has: page.getByRole('cell', { name: 'OSP-E2E-001' }),
     }).first()
     await expect(updatedRow.getByRole('cell', { name: '[OSP-E2E-001] - Bianchi Carlotta' })).toBeVisible()
 
     page.once('dialog', dialog => dialog.accept())
     await updatedRow.getByRole('button', { name: 'Elimina' }).click()
 
-    await expect(page.getByText(/Ospite "E2E-OSP-001" eliminato\./i)).toBeVisible({ timeout: 5000 })
-    await expect(page.getByRole('cell', { name: 'E2E-OSP-001' })).not.toBeVisible({ timeout: 5000 })
+    await expect(page.getByText(/Ospite ".+" eliminato\./i)).toBeVisible({ timeout: 5000 })
+    await expect(page.getByRole('cell', { name: 'OSP-E2E-001' })).not.toBeVisible({ timeout: 5000 })
 })

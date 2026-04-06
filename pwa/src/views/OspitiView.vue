@@ -19,7 +19,6 @@ const showAll = ref(false)
 const editingHostId = ref(null)
 
 const form = ref({
-    id: '',
     codiceInterno: '',
     iniziali: '',
   nome: '',
@@ -40,8 +39,8 @@ const rows = computed(() => buildHostRows({
     showAll: showAll.value,
 }))
 
-const canCreate = computed(() => form.value.id.trim() && ((form.value.nome || '').trim() || (form.value.cognome || '').trim() || form.value.codiceInterno.trim() || form.value.iniziali.trim()))
-const canSave = computed(() => (editingHostId.value ? true : form.value.id.trim()) && ((form.value.nome || '').trim() || (form.value.cognome || '').trim() || form.value.codiceInterno.trim() || form.value.iniziali.trim()))
+const canCreate = computed(() => ((form.value.nome || '').trim() || (form.value.cognome || '').trim() || form.value.codiceInterno.trim() || form.value.iniziali.trim()))
+const canSave = computed(() => ((form.value.nome || '').trim() || (form.value.cognome || '').trim() || form.value.codiceInterno.trim() || form.value.iniziali.trim()))
 
 const availableBeds = computed(() => {
     const room = roomsData.value.find(r => r.id === form.value.roomId)
@@ -98,8 +97,7 @@ async function handleSave() {
           })
           message.value = `Ospite "${editingHostId.value}" aggiornato.`
         } else {
-          await createHost({
-            id: form.value.id,
+          const created = await createHost({
             codiceInterno: form.value.codiceInterno,
             iniziali: form.value.iniziali,
             nome: form.value.nome,
@@ -116,7 +114,7 @@ async function handleSave() {
             note: form.value.note,
             operatorId: currentUser.value?.login ?? null,
           })
-          message.value = `Ospite "${form.value.id}" creato.`
+          message.value = `Ospite "${created.id}" creato.`
         }
         resetForm()
         await loadData()
@@ -143,7 +141,6 @@ async function handleDeactivate(hostId) {
 function startEdit(host) {
   editingHostId.value = host.id
   form.value = {
-    id: host.id,
     codiceInterno: host.codiceInterno || '',
     iniziali: host.iniziali || '',
     nome: host.nome || '',
@@ -162,7 +159,6 @@ function startEdit(host) {
 function resetForm() {
   editingHostId.value = null
     form.value = {
-      id: '',
       codiceInterno: '',
       iniziali: '',
       nome: '',
@@ -195,7 +191,6 @@ onMounted(() => void loadData())
       <table class="conflict-table" style="margin-top:.75rem">
         <thead>
           <tr>
-            <th>ID</th>
             <th>Ospite</th>
             <th>Codice</th>
             <th>Iniziali</th>
@@ -208,7 +203,6 @@ onMounted(() => void loadData())
         </thead>
         <tbody>
           <tr v-for="host in rows" :key="host.id">
-            <td>{{ host.id }}</td>
             <td>{{ formatHostDisplay(host) }}</td>
             <td>{{ host.codiceInterno || '—' }}</td>
             <td>{{ host.iniziali || '—' }}</td>
@@ -232,7 +226,7 @@ onMounted(() => void loadData())
             </td>
           </tr>
           <tr v-if="rows.length === 0 && !loading">
-            <td colspan="9" class="muted">Nessun ospite disponibile.</td>
+            <td colspan="8" class="muted">Nessun ospite disponibile.</td>
           </tr>
         </tbody>
       </table>
@@ -246,10 +240,6 @@ onMounted(() => void loadData())
         <div style="margin-top:.75rem">
           <p><strong>{{ editingHostId ? 'Modifica ospite' : 'Aggiungi nuovo ospite' }}</strong></p>
           <div class="import-form" style="margin-top:.65rem">
-            <label>
-              ID <span class="muted">(es. OSP-01)</span>
-              <input v-model="form.id" type="text" placeholder="OSP-01" :disabled="Boolean(editingHostId)" />
-            </label>
             <label>
               Codice interno
               <input v-model="form.codiceInterno" type="text" placeholder="Codice operativo" />
