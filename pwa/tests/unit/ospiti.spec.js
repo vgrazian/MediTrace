@@ -150,6 +150,20 @@ describe('ospiti service CRUD', () => {
         expect(typeof createdAudit?.ts).toBe('string')
     })
 
+    it('createHost auto-generates ID when missing', async () => {
+        const record = await createHost({
+            codiceInterno: 'OSP-012',
+            iniziali: 'A.B.',
+            nome: 'Anna',
+            cognome: 'Blu',
+            operatorId: 'op-admin',
+        })
+
+        expect(record.id.startsWith('host_')).toBe(true)
+        expect(hosts.get(record.id)?.nome).toBe('Anna')
+        expect(enqueueCalls).toContainEqual({ entityType: 'hosts', entityId: record.id, operation: 'upsert' })
+    })
+
     it('updateHost updates anagrafica fields and enqueues upsert', async () => {
         const updated = await updateHost({
             hostId: 'host-existing',

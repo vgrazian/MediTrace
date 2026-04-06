@@ -7,6 +7,7 @@
  *   - deactivateHost()    disattiva un ospite (soft-delete + audit log)
  */
 import { db, enqueue, getSetting } from '../db'
+import { generateEntityId } from './ids'
 
 export function formatHostDisplay(host) {
     if (!host) return '—'
@@ -51,7 +52,7 @@ export function buildHostRows({ hosts, therapies, showAll = false }) {
  * Crea un nuovo ospite nel database locale.
  *
  * @param {object} params
- * @param {string} params.id               — ID univoco ospite
+ * @param {string} [params.id]             — ID univoco ospite (opzionale, auto-generato se assente)
  * @param {string} params.codiceInterno    — codice operativo (es. "OSP-01")
  * @param {string} [params.iniziali]       — iniziali (es. "M.R.")
  * @param {string} [params.roomId]         — stanza (ID Room)
@@ -80,16 +81,17 @@ export async function createHost({
     note,
     operatorId,
 }) {
-    if (!id?.trim()) throw new Error('ID obbligatorio')
     if (!codiceInterno?.trim() && !iniziali?.trim()) throw new Error('Codice interno o iniziali obbligatori')
 
-    const existing = await db.hosts.get(id.trim())
-    if (existing && !existing.deletedAt) throw new Error(`Ospite con ID "${id.trim()}" esiste già`)
+    const hostId = id?.trim() || generateEntityId('host')
+
+    const existing = await db.hosts.get(hostId)
+    if (existing && !existing.deletedAt) throw new Error(`Ospite con ID "${hostId}" esiste già`)
 
     const now = new Date().toISOString()
     const deviceId = await getSetting('deviceId', 'unknown')
     const record = {
-        id: id.trim(),
+        id: hostId,
         codiceInterno: codiceInterno?.trim() ?? '',
         iniziali: iniziali?.trim() ?? '',
         nome: nome?.trim() ?? '',

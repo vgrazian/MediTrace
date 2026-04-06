@@ -51,7 +51,8 @@ function formatDateTime(value) {
 
 function drugLabel(drugId) {
   const item = drugs.value.find((drug) => drug.id === drugId)
-  return item?.principioAttivo ?? drugId ?? '—'
+  if (!item) return 'Farmaco non disponibile'
+  return item.nomeFarmaco || item.principioAttivo || 'Farmaco senza nome'
 }
 
 function batchLabel(batch) {
@@ -65,11 +66,20 @@ function batchLabel(batch) {
 function hostLabel(hostId) {
   if (!hostId) return '—'
   const host = hosts.value.find((item) => item.id === hostId)
-  if (!host) return hostId
+  if (!host) return 'Ospite non disponibile'
   const fullName = [host.cognome, host.nome].filter(Boolean).join(' ').trim()
   const namePart = fullName || host.iniziali || host.codiceInterno || hostId
   const visibleId = host.codiceInterno || host.id
   return `[${visibleId}] - ${namePart}`
+}
+
+function therapyLabel(therapyId) {
+  const therapy = therapies.value.find((item) => item.id === therapyId)
+  if (!therapy) return 'Terapia non disponibile'
+  const host = hostLabel(therapy.hostId)
+  const drug = drugLabel(therapy.drugId)
+  const start = therapy.dataInizio ? formatDateTime(therapy.dataInizio) : 'data n/d'
+  return `${host} · ${drug} · ${start}`
 }
 
 async function loadData() {
@@ -135,13 +145,11 @@ async function saveMovement() {
     ? new Date(form.value.dataMovimento).toISOString()
     : new Date().toISOString()
 
-  const movementId = editingMovementId.value || crypto.randomUUID()
   const existing = editingMovementId.value ? movements.value.find(m => m.id === editingMovementId.value) : null
   saving.value = true
   try {
-    await upsertMovement({
+    const saved = await upsertMovement({
       existing,
-      movementId,
       form: {
         ...form.value,
         quantita: quantity,
@@ -162,7 +170,7 @@ async function saveMovement() {
     }
     editingMovementId.value = null
 
-    message.value = existing ? 'Movimento aggiornato.' : 'Movimento registrato.'
+    message.value = existing ? 'Movimento aggiornato.' : `Movimento registrato (ID: ${saved.id}).`
     await loadData()
   } catch (err) {
     errorMessage.value = `Errore registrazione movimento: ${err.message}`
@@ -331,7 +339,7 @@ onMounted(() => {
               <select v-model="form.therapyId" :disabled="saving || !therapies.length">
                 <option value="">Nessuna</option>
                 <option v-for="therapy in therapies" :key="therapy.id" :value="therapy.id">
-                  {{ therapy.id }}
+                  {{ therapyLabel(therapy.id) }}
                 </option>
               </select>
             </label>

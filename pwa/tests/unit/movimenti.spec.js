@@ -124,6 +124,29 @@ describe('movimenti service audit', () => {
         expect(typeof updatedAudit?.ts).toBe('string')
     })
 
+    it('auto-generates movement ID when not provided', async () => {
+        const record = await upsertMovement({
+            existing: null,
+            form: {
+                stockBatchId: 'batch-1',
+                tipoMovimento: 'scarico',
+                quantita: 2,
+                hostId: '',
+                therapyId: '',
+                note: '',
+            },
+            selectedBatch: {
+                id: 'batch-1',
+                drugId: 'drug-1',
+            },
+            movementDate: '2026-04-05T13:00:00.000Z',
+            operatorId: 'op-admin',
+        })
+
+        expect(record.id.startsWith('movement_')).toBe(true)
+        expect(movements.get(record.id)?.quantita).toBe(2)
+    })
+
     it('soft deletes movement and writes delete audit', async () => {
         const movement = {
             id: 'mov-2',

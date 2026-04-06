@@ -55,7 +55,7 @@ test('terapie view supports create and deactivate flow', async ({ page }) => {
     await page.getByLabel('Consumo medio settimanale').fill('14')
     await page.getByRole('button', { name: 'Salva terapia' }).click()
 
-    await expect(page.getByText('Terapia salvata.')).toBeVisible()
+    await expect(page.getByText(/Terapia salvata/i)).toBeVisible()
     await expect(page.getByRole('cell', { name: 'OSP-01' })).toBeVisible()
     await expect(page.getByRole('cell', { name: 'Paracetamolo' })).toBeVisible()
 

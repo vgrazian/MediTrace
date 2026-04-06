@@ -18,7 +18,6 @@ const editingDrugId = ref(null)
 const editingBatchId = ref(null)
 
 const drugForm = ref({
-  id: '',
   nomeFarmaco: '',
   principioAttivo: '',
   classeTerapeutica: '',
@@ -35,14 +34,6 @@ const batchForm = ref({
 })
 
 const canCreateBatch = computed(() => drugs.value.length > 0)
-
-function toIdFromName(name) {
-  return String(name || '')
-    .trim()
-    .toLowerCase()
-    .replaceAll(/[^a-z0-9]+/g, '-')
-    .replaceAll(/(^-|-$)/g, '')
-}
 
 function drugLabel(drugId) {
   const item = drugs.value.find(drug => drug.id === drugId)
@@ -96,17 +87,11 @@ async function createDrug() {
     return
   }
 
-  const id = (editingDrugId.value || drugForm.value.id || toIdFromName(nomeFarmaco) || crypto.randomUUID()).trim()
-
   savingDrug.value = true
   try {
-    const existing = await db.drugs.get(id)
-    if (!editingDrugId.value && existing && !existing.deletedAt) {
-      throw new Error('ID farmaco già esistente')
-    }
+    const existing = editingDrugId.value ? await db.drugs.get(editingDrugId.value) : null
 
-    await upsertDrug({
-      drugId: id,
+    const saved = await upsertDrug({
       existing: existing && !existing.deletedAt ? existing : null,
       nomeFarmaco,
       principioAttivo,
@@ -116,14 +101,13 @@ async function createDrug() {
     })
 
     drugForm.value = {
-      id: '',
       nomeFarmaco: '',
       principioAttivo: '',
       classeTerapeutica: '',
       scortaMinima: '',
     }
     editingDrugId.value = null
-    message.value = existing && !existing.deletedAt ? 'Farmaco aggiornato.' : 'Farmaco salvato.'
+    message.value = existing && !existing.deletedAt ? 'Farmaco aggiornato.' : `Farmaco salvato (ID: ${saved.id}).`
     await loadData()
   } catch (err) {
     errorMessage.value = `Errore salvataggio farmaco: ${err.message}`
@@ -207,7 +191,6 @@ async function deactivateBatchUI(batch) {
 function startEditDrug(drug) {
   editingDrugId.value = drug.id
   drugForm.value = {
-    id: drug.id,
     nomeFarmaco: drug.nomeFarmaco || '',
     principioAttivo: drug.principioAttivo || '',
     classeTerapeutica: drug.classeTerapeutica || '',
@@ -230,7 +213,6 @@ function startEditBatch(batch) {
 function resetDrugForm() {
   editingDrugId.value = null
   drugForm.value = {
-    id: '',
     nomeFarmaco: '',
     principioAttivo: '',
     classeTerapeutica: '',
@@ -288,7 +270,6 @@ onMounted(() => {
       <table class="conflict-table" style="margin-top:.75rem">
         <thead>
           <tr>
-            <th>ID</th>
             <th>Nome farmaco</th>
             <th>Principio attivo</th>
             <th>Classe</th>
@@ -298,7 +279,6 @@ onMounted(() => {
         </thead>
         <tbody>
           <tr v-for="drug in drugs" :key="drug.id">
-            <td>{{ drug.id }}</td>
             <td>{{ drug.nomeFarmaco || '—' }}</td>
             <td>{{ drug.principioAttivo }}</td>
             <td>{{ drug.classeTerapeutica || '—' }}</td>
@@ -309,7 +289,7 @@ onMounted(() => {
             </td>
           </tr>
           <tr v-if="drugs.length === 0 && !loading">
-            <td colspan="6" class="muted">Nessun farmaco disponibile.</td>
+            <td colspan="5" class="muted">Nessun farmaco disponibile.</td>
           </tr>
         </tbody>
       </table>
@@ -360,11 +340,6 @@ onMounted(() => {
         <div style="margin-top:.75rem">
           <p><strong>{{ editingDrugId ? 'Modifica farmaco' : 'Aggiungi nuovo farmaco' }}</strong></p>
           <div class="import-form" style="margin-top:.65rem">
-            <label>
-              ID farmaco (opzionale)
-              <input v-model="drugForm.id" type="text" placeholder="es. paracetamolo" :disabled="Boolean(editingDrugId)" />
-            </label>
-
             <label>
               Nome farmaco
               <input v-model="drugForm.nomeFarmaco" type="text" placeholder="Tachipirina" />

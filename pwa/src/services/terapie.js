@@ -1,4 +1,5 @@
 import { db, enqueue, getSetting } from '../db'
+import { generateEntityId } from './ids'
 
 export async function upsertTherapy({
     existing,
@@ -7,9 +8,10 @@ export async function upsertTherapy({
     operatorId = null,
 }) {
     const now = new Date().toISOString()
+    const persistedTherapyId = String(therapyId || existing?.id || '').trim() || generateEntityId('therapy')
     const record = {
         ...(existing || {}),
-        id: therapyId,
+        id: persistedTherapyId,
         hostId: form.hostId,
         drugId: form.drugId,
         dosePerSomministrazione: Number(form.dosePerSomministrazione || 0),

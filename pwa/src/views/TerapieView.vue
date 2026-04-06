@@ -47,7 +47,7 @@ function hostLabel(hostId) {
 function drugLabel(drugId) {
   const drug = drugs.value.find(item => item.id === drugId)
   if (!drug) return drugId
-  return drug.principioAttivo || drugId
+  return drug.nomeFarmaco || drug.principioAttivo || 'Farmaco senza nome'
 }
 
 async function loadData() {
@@ -90,11 +90,9 @@ async function saveTherapy() {
 
   saving.value = true
   try {
-    const therapyId = editingTherapyId.value || crypto.randomUUID()
     const existing = editingTherapyId.value ? therapies.value.find(t => t.id === editingTherapyId.value) : null
-    await upsertTherapy({
+    const saved = await upsertTherapy({
       existing,
-      therapyId,
       form: form.value,
       operatorId: currentUser.value?.login ?? null,
     })
@@ -110,7 +108,7 @@ async function saveTherapy() {
       note: '',
     }
     editingTherapyId.value = null
-    message.value = existing ? 'Terapia aggiornata.' : 'Terapia salvata.'
+    message.value = existing ? 'Terapia aggiornata.' : `Terapia salvata (ID: ${saved.id}).`
     await loadData()
   } catch (err) {
     errorMessage.value = `Errore salvataggio: ${err.message}`
@@ -248,7 +246,7 @@ onMounted(() => {
               <select v-model="form.drugId" :disabled="saving || !drugs.length">
                 <option value="">Seleziona farmaco</option>
                 <option v-for="drug in drugs" :key="drug.id" :value="drug.id">
-                  {{ drug.principioAttivo || drug.id }}
+                  {{ drugLabel(drug.id) }}
                 </option>
               </select>
             </label>
