@@ -4,8 +4,52 @@ import { db, getSetting } from '../db'
 import { useAuth } from '../services/auth'
 import { upsertDrug, deleteDrug, upsertBatch, deactivateBatch } from '../services/farmaci'
 import { confirmDeleteDrug, confirmDeleteBatch } from '../services/confirmations'
+import { useFormValidation } from '../services/formValidation'
+import ValidatedInput from '../components/ValidatedInput.vue'
 
 const { currentUser } = useAuth()
+
+// Validation for drug form
+const {
+  errors: drugErrors,
+  validateField: validateDrugField,
+  validateForm: validateDrugForm,
+  clearErrors: clearDrugErrors,
+  hasErrors: hasDrugErrors
+} = useFormValidation({
+  nomeFarmaco: { required: true, minLength: 2, maxLength: 100 },
+  principioAttivo: { required: true, minLength: 2, maxLength: 100 },
+  classeTerapeutica: { maxLength: 50 },
+  scortaMinima: { numeric: true, positiveNumber: true, integer: true }
+}, {
+  nomeFarmaco: 'Nome farmaco',
+  principioAttivo: 'Principio attivo',
+  classeTerapeutica: 'Classe terapeutica',
+  scortaMinima: 'Scorta minima'
+})
+
+// Validation for batch form
+const {
+  errors: batchErrors,
+  validateField: validateBatchField,
+  validateForm: validateBatchForm,
+  clearErrors: clearBatchErrors,
+  hasErrors: hasBatchErrors
+} = useFormValidation({
+  drugId: { required: true },
+  nomeCommerciale: { required: true, minLength: 2, maxLength: 100 },
+  dosaggio: { maxLength: 50 },
+  quantitaAttuale: { numeric: true, positiveNumber: true, integer: true },
+  sogliaRiordino: { numeric: true, positiveNumber: true, integer: true },
+  scadenza: { date: true }
+}, {
+  drugId: 'Farmaco',
+  nomeCommerciale: 'Nome commerciale',
+  dosaggio: 'Dosaggio',
+  quantitaAttuale: 'Quantità attuale',
+  sogliaRiordino: 'Soglia riordino',
+  scadenza: 'Scadenza'
+})
 
 const loading = ref(false)
 const savingDrug = ref(false)
@@ -81,12 +125,14 @@ async function createDrug() {
   message.value = ''
   errorMessage.value = ''
 
-  const nomeFarmaco = drugForm.value.nomeFarmaco.trim()
-  const principioAttivo = drugForm.value.principioAttivo.trim()
-  if (!nomeFarmaco || !principioAttivo) {
-    errorMessage.value = 'Inserisci nome farmaco e principio attivo.'
+  // Validate form
+  if (!validateDrugForm(drugForm.value)) {
+    errorMessage.value = 'Correggi gli errori nel form prima di salvare.'
     return
   }
+
+  const nomeFarmaco = drugForm.value.nomeFarmaco.trim()
+  const principioAttivo = drugForm.value.principioAttivo.trim()
 
   savingDrug.value = true
   try {
@@ -107,6 +153,7 @@ async function createDrug() {
       classeTerapeutica: '',
       scortaMinima: '',
     }
+    clearDrugErrors()
     editingDrugId.value = null
     message.value = existing && !existing.deletedAt ? 'Farmaco aggiornato.' : `Farmaco salvato (ID: ${saved.id}).`
     await loadData()
@@ -121,17 +168,13 @@ async function createBatch() {
   message.value = ''
   errorMessage.value = ''
 
-  if (!batchForm.value.drugId) {
-    errorMessage.value = 'Seleziona un farmaco per la confezione.'
+  // Validate form
+  if (!validateBatchForm(batchForm.value)) {
+    errorMessage.value = 'Correggi gli errori nel form prima di salvare.'
     return
   }
 
   const name = batchForm.value.nomeCommerciale.trim()
-  if (!name) {
-    errorMessage.value = 'Inserisci nome commerciale della confezione.'
-    return
-  }
-
   const id = editingBatchId.value || crypto.randomUUID()
 
   savingBatch.value = true
@@ -158,6 +201,7 @@ async function createBatch() {
       sogliaRiordino: '',
       scadenza: '',
     }
+    clearBatchErrors()
     editingBatchId.value = null
     message.value = existing ? 'Confezione aggiornata.' : 'Confezione salvata.'
     await loadData()
@@ -221,6 +265,7 @@ function resetDrugForm() {
     classeTerapeutica: '',
     scortaMinima: '',
   }
+  clearDrugErrors()
 }
 
 function resetBatchForm() {
@@ -233,6 +278,7 @@ function resetBatchForm() {
     sogliaRiordino: '',
     scadenza: '',
   }
+  clearBatchErrors()
 }
 
 async function deleteDrugRecord(drug) {
@@ -344,27 +390,46 @@ onMounted(() => {
         <div style="margin-top:.75rem">
           <p><strong>{{ editingDrugId ? 'Modifica farmaco' : 'Aggiungi nuovo farmaco' }}</strong></p>
           <div class="import-form" style="margin-top:.65rem">
-            <label>
-              Nome farmaco
-              <input v-model="drugForm.nomeFarmaco" type="text" placeholder="Tachipirina" />
-            </label>
+            <ValidatedInput
+              v-model="drugForm.nomeFarmaco"
+              field-name="nomeFarmaco"
+              label="Nome farmaco"
+              :error="drugErrors.nomeFarmaco"
+              :required="true"
+              placeholder="Tachipirina"
+              @validate="(field, value) => validateDrugField(field, value)"
+            />
 
-            <label>
-              Principio attivo
-              <input v-model="drugForm.principioAttivo" type="text" placeholder="Paracetamolo" />
-            </label>
+            <ValidatedInput
+              v-model="drugForm.principioAttivo"
+              field-name="principioAttivo"
+              label="Principio attivo"
+              :error="drugErrors.principioAttivo"
+              :required="true"
+              placeholder="Paracetamolo"
+              @validate="(field, value) => validateDrugField(field, value)"
+            />
 
-            <label>
-              Classe terapeutica
-              <input v-model="drugForm.classeTerapeutica" type="text" placeholder="Analgesici" />
-            </label>
+            <ValidatedInput
+              v-model="drugForm.classeTerapeutica"
+              field-name="classeTerapeutica"
+              label="Classe terapeutica"
+              :error="drugErrors.classeTerapeutica"
+              placeholder="Analgesici"
+              @validate="(field, value) => validateDrugField(field, value)"
+            />
 
-            <label>
-              Scorta minima
-              <input v-model="drugForm.scortaMinima" type="number" min="0" step="1" />
-            </label>
+            <ValidatedInput
+              v-model="drugForm.scortaMinima"
+              field-name="scortaMinima"
+              label="Scorta minima"
+              type="number"
+              :error="drugErrors.scortaMinima"
+              placeholder="0"
+              @validate="(field, value) => validateDrugField(field, value)"
+            />
 
-            <button :disabled="savingDrug" @click="createDrug">
+            <button :disabled="savingDrug || hasDrugErrors" @click="createDrug">
               {{ savingDrug ? 'Salvataggio...' : (editingDrugId ? 'Salva modifica' : 'Salva farmaco') }}
             </button>
             <button type="button" :disabled="savingDrug" @click="resetDrugForm">Annulla</button>
@@ -375,39 +440,71 @@ onMounted(() => {
           <p><strong>{{ editingBatchId ? 'Modifica confezione di magazzino' : 'Aggiungi confezione di magazzino' }}</strong></p>
           <div class="import-form" style="margin-top:.65rem">
             <label>
-              Farmaco
-              <select v-model="batchForm.drugId" :disabled="!canCreateBatch || savingBatch">
+              Farmaco *
+              <select
+                v-model="batchForm.drugId"
+                :disabled="!canCreateBatch || savingBatch"
+                @blur="validateBatchField('drugId', batchForm.drugId)"
+                :aria-invalid="!!batchErrors.drugId"
+                :aria-describedby="batchErrors.drugId ? 'drugId-error' : undefined"
+              >
                 <option value="">Seleziona farmaco</option>
                 <option v-for="drug in drugs" :key="drug.id" :value="drug.id">{{ drugLabel(drug.id) }}</option>
               </select>
+              <span v-if="batchErrors.drugId" id="drugId-error" class="error-message" role="alert">
+                {{ batchErrors.drugId }}
+              </span>
             </label>
 
-            <label>
-              Nome commerciale
-              <input v-model="batchForm.nomeCommerciale" type="text" placeholder="Tachipirina" />
-            </label>
+            <ValidatedInput
+              v-model="batchForm.nomeCommerciale"
+              field-name="nomeCommerciale"
+              label="Nome commerciale"
+              :error="batchErrors.nomeCommerciale"
+              :required="true"
+              placeholder="Tachipirina"
+              @validate="(field, value) => validateBatchField(field, value)"
+            />
 
-            <label>
-              Dosaggio
-              <input v-model="batchForm.dosaggio" type="text" placeholder="500 mg" />
-            </label>
+            <ValidatedInput
+              v-model="batchForm.dosaggio"
+              field-name="dosaggio"
+              label="Dosaggio"
+              :error="batchErrors.dosaggio"
+              placeholder="500 mg"
+              @validate="(field, value) => validateBatchField(field, value)"
+            />
 
-            <label>
-              Quantita' attuale
-              <input v-model="batchForm.quantitaAttuale" type="number" min="0" step="1" />
-            </label>
+            <ValidatedInput
+              v-model="batchForm.quantitaAttuale"
+              field-name="quantitaAttuale"
+              label="Quantità attuale"
+              type="number"
+              :error="batchErrors.quantitaAttuale"
+              placeholder="0"
+              @validate="(field, value) => validateBatchField(field, value)"
+            />
 
-            <label>
-              Soglia riordino
-              <input v-model="batchForm.sogliaRiordino" type="number" min="0" step="1" />
-            </label>
+            <ValidatedInput
+              v-model="batchForm.sogliaRiordino"
+              field-name="sogliaRiordino"
+              label="Soglia riordino"
+              type="number"
+              :error="batchErrors.sogliaRiordino"
+              placeholder="0"
+              @validate="(field, value) => validateBatchField(field, value)"
+            />
 
-            <label>
-              Scadenza
-              <input v-model="batchForm.scadenza" type="date" />
-            </label>
+            <ValidatedInput
+              v-model="batchForm.scadenza"
+              field-name="scadenza"
+              label="Scadenza"
+              type="date"
+              :error="batchErrors.scadenza"
+              @validate="(field, value) => validateBatchField(field, value)"
+            />
 
-            <button :disabled="savingBatch || !canCreateBatch" @click="createBatch">
+            <button :disabled="savingBatch || !canCreateBatch || hasBatchErrors" @click="createBatch">
               {{ savingBatch ? 'Salvataggio...' : (editingBatchId ? 'Salva modifica' : 'Salva confezione') }}
             </button>
             <button type="button" :disabled="savingBatch" @click="resetBatchForm">Annulla</button>
