@@ -139,6 +139,9 @@ npm --prefix pwa run test:unit
 # E2E con Playwright (Chromium + WebKit)
 npm --prefix pwa run test:e2e
 
+# Scenario operativo giornaliero (E2E user journey)
+npm --prefix pwa run -s test:e2e -- tests/e2e/daily-operations-scenario.spec.js
+
 # Suite completa (unit + E2E + palette check + build pre-verify)
 npm --prefix pwa run test
 ```
