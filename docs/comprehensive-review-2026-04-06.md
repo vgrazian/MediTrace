@@ -1477,8 +1477,8 @@ Each improvement includes concrete examples and actionable recommendations. Impl
 - `pwa/src/components/ValidatedInput.vue` (new)
 - `pwa/tests/unit/formValidation.spec.js` (new)
 - `pwa/src/services/README-formValidation.md` (new)
-- `pwa/docs/PR50-IMPLEMENTATION-GUIDE.md` (new)
-- `pwa/docs/PR50-STATUS.md` (new)
+- `docs/archive/PR50-IMPLEMENTATION-GUIDE.md` (new)
+- `docs/archive/PR50-STATUS.md` (new)
 - `CHANGELOG.md` (new)
 - `progress.md` (new)
 

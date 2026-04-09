@@ -165,8 +165,8 @@ Conducted comprehensive ergonomic review of MediTrace PWA project and implemente
 - `pwa/src/components/ValidatedInput.vue`
 - `pwa/tests/unit/formValidation.spec.js`
 - `pwa/src/services/README-formValidation.md`
-- `pwa/docs/PR50-IMPLEMENTATION-GUIDE.md`
-- `pwa/docs/PR50-STATUS.md`
+- `docs/archive/PR50-IMPLEMENTATION-GUIDE.md`
+- `docs/archive/PR50-STATUS.md`
 
 **Files Modified**:
 - `pwa/src/views/FarmaciView.vue` (updated with validation system)
@@ -258,7 +258,7 @@ Conducted comprehensive ergonomic review of MediTrace PWA project and implemente
    - Prepare PR for review and merge
 
 ### Short Term (Week 2)
-2. **PR #51: ARIA Labels and Keyboard Navigation** (Issue 6.1 - P1 High)
+1. **PR #51: ARIA Labels and Keyboard Navigation** (Issue 6.1 - P1 High)
    - Add comprehensive ARIA labels to all interactive elements
    - Implement keyboard shortcuts for common actions
    - Add focus management for modals and dialogs
@@ -266,7 +266,7 @@ Conducted comprehensive ergonomic review of MediTrace PWA project and implemente
    - E2E tests for keyboard navigation
 
 ### Medium Term (Week 3-4)
-3. Continue with remaining P1 and P2 issues:
+1. Continue with remaining P1 and P2 issues:
    - Issue 1.3: Network Error Recovery Guidance
    - Issue 1.4: Missing Loading States
    - Issue 2.1: Inconsistent Parameter Ordering
@@ -287,7 +287,7 @@ Conducted comprehensive ergonomic review of MediTrace PWA project and implemente
 6. `pwa/src/components/ValidatedInput.vue` (PR #50)
 7. `pwa/tests/unit/formValidation.spec.js` (PR #50)
 8. `pwa/src/services/README-formValidation.md` (PR #50)
-9. `pwa/docs/PR50-IMPLEMENTATION-GUIDE.md` (PR #50)
+9. `docs/archive/PR50-IMPLEMENTATION-GUIDE.md` (PR #50)
 10. `docs/SESSION-SUMMARY-2026-04-06.md` (this file)
 
 ### Files Modified
@@ -309,7 +309,7 @@ Conducted comprehensive ergonomic review of MediTrace PWA project and implemente
 
 ### 1. Validation Strategy
 **Decision**: Create reusable `ValidatedInput` component with composable validation service  
-**Rationale**: 
+**Rationale**:
 - Reduces code duplication across 6 views
 - Consistent validation behavior
 - Easier to maintain and extend
@@ -395,7 +395,6 @@ Conducted comprehensive ergonomic review of MediTrace PWA project and implemente
 ---
 
 ## Conclusion
-
 
 ---
 

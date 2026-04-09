@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.0] - 2026-04-09
+### Changed
+- Standardized CRUD UX labels to `Aggiungi`, `Modifica`, `Elimina` across [`OspitiView.vue`](pwa/src/views/OspitiView.vue), [`StanzeView.vue`](pwa/src/views/StanzeView.vue), [`FarmaciView.vue`](pwa/src/views/FarmaciView.vue), [`ScorteView.vue`](pwa/src/views/ScorteView.vue), and [`TerapieView.vue`](pwa/src/views/TerapieView.vue).
+- Added dedicated edit flows for rooms and beds in [`stanze.js`](pwa/src/services/stanze.js) and [`StanzeView.vue`](pwa/src/views/StanzeView.vue) to complete row-level `Modifica` + `Elimina` consistency.
+- Updated related E2E specs in [`pwa/tests/e2e/farmaci.spec.js`](pwa/tests/e2e/farmaci.spec.js), [`pwa/tests/e2e/scorte.spec.js`](pwa/tests/e2e/scorte.spec.js), [`pwa/tests/e2e/stanze.spec.js`](pwa/tests/e2e/stanze.spec.js), and [`pwa/tests/e2e/terapie.spec.js`](pwa/tests/e2e/terapie.spec.js).
+
+### Documentation
+- Archived completed PR review/status documents under [`docs/archive/`](docs/archive) and removed stale copies from active documentation folders.
+
 ## [0.3.0] - 2026-04-09
 ### Added
 - Added reusable selection support in [`useSelection.js`](pwa/src/composables/useSelection.js) for selection-driven CRUD tables.
@@ -30,5 +39,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated [`pwa/tests/e2e/terapie.spec.js`](pwa/tests/e2e/terapie.spec.js) to provide a required start date before saving a therapy.
 - Updated [`pwa/tests/e2e/promemoria.spec.js`](pwa/tests/e2e/promemoria.spec.js) for validation-aware reminder editing coverage.
 - Updated [`pwa/tests/e2e/movimenti.spec.js`](pwa/tests/e2e/movimenti.spec.js) for validation-aware movement registration coverage.
-- Updated [`pwa/docs/PR50-STATUS.md`](pwa/docs/PR50-STATUS.md) and [`docs/SESSION-SUMMARY-2026-04-06.md`](docs/SESSION-SUMMARY-2026-04-06.md) to mark PR50 implementation complete and align final scope.
+- Updated [`docs/archive/PR50-STATUS.md`](docs/archive/PR50-STATUS.md) and [`docs/SESSION-SUMMARY-2026-04-06.md`](docs/SESSION-SUMMARY-2026-04-06.md) to mark PR50 implementation complete and align final scope.
 - Verified targeted validation tests, targeted E2E flows, and production build after the PR50 changes.

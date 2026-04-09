@@ -145,7 +145,7 @@ Before marking PR as ready:
 - **Component**: `pwa/src/components/ValidatedInput.vue`
 - **Tests**: `pwa/tests/unit/formValidation.spec.js`
 - **Documentation**: `pwa/src/services/README-formValidation.md`
-- **Implementation Guide**: `pwa/docs/PR50-IMPLEMENTATION-GUIDE.md`
+- **Implementation Guide**: `docs/archive/PR50-IMPLEMENTATION-GUIDE.md`
 - **Completed Example**: `pwa/src/views/FarmaciView.vue`
 
 ## 💡 Tips
@@ -164,7 +164,7 @@ None currently. Targeted tests are passing and the build is successful.
 
 For questions or issues:
 - Review `pwa/src/services/README-formValidation.md`
-- Check `pwa/docs/PR50-IMPLEMENTATION-GUIDE.md`
+- Check `docs/archive/PR50-IMPLEMENTATION-GUIDE.md`
 - Examine `pwa/src/views/FarmaciView.vue` as working example
 - Run tests: `npm run test:unit -- formValidation.spec.js`
 

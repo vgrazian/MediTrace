@@ -55,6 +55,7 @@ Dispositivo A                     GitHub Gist (privato)
 
 ```text
 docs/                            Documentazione tecnica e decisioni
+  archive/                       Checklist PR completate e documenti storici archiviati
   architecture.md                Architettura e scelte tecnologiche
   domain-model.md                Modello dati ed entità
   requisiti-tecnici.md           Specifiche funzionali e non-funzionali

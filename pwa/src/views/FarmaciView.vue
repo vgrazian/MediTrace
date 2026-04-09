@@ -61,6 +61,7 @@ const drugs = ref([])
 const batches = ref([])
 const editingDrugId = ref(null)
 const editingBatchId = ref(null)
+const isFormOpen = ref(false)
 
 const drugForm = ref({
   nomeFarmaco: '',
@@ -228,11 +229,21 @@ async function deactivateBatchUI(batch) {
       operatorId: currentUser.value?.login ?? null,
     })
 
-    message.value = 'Confezione disattivata.'
+    message.value = 'Confezione eliminata.'
     await loadData()
   } catch (err) {
-    errorMessage.value = `Errore disattivazione confezione: ${err.message}`
+    errorMessage.value = `Errore eliminazione confezione: ${err.message}`
   }
+}
+
+function openAddDrugForm() {
+  resetDrugForm()
+  isFormOpen.value = true
+}
+
+function openAddBatchForm() {
+  resetBatchForm()
+  isFormOpen.value = true
 }
 
 function startEditDrug(drug) {
@@ -315,6 +326,9 @@ onMounted(() => {
 
     <div class="card">
       <p><strong>Farmaci registrati</strong></p>
+      <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.75rem">
+        <button @click="openAddDrugForm">Aggiungi</button>
+      </div>
       <p v-if="loading" class="muted" style="margin-top:.5rem">Caricamento...</p>
 
       <table class="conflict-table" style="margin-top:.75rem">
@@ -347,6 +361,9 @@ onMounted(() => {
 
     <div class="card">
       <p><strong>Confezioni attive</strong></p>
+      <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.75rem">
+        <button @click="openAddBatchForm">Aggiungi</button>
+      </div>
 
       <table class="conflict-table" style="margin-top:.75rem">
         <thead>
@@ -370,7 +387,7 @@ onMounted(() => {
             <td>{{ formatDate(batch.scadenza) }}</td>
             <td>
               <button style="margin-right:.35rem" @click="startEditBatch(batch)">Modifica</button>
-              <button style="background:#c0392b" @click="deactivateBatchUI(batch)">Disattiva</button>
+              <button style="background:#c0392b" @click="deactivateBatchUI(batch)">Elimina</button>
             </td>
           </tr>
           <tr v-if="batches.length === 0 && !loading">
@@ -384,7 +401,7 @@ onMounted(() => {
     </div>
 
     <div class="card">
-      <details>
+      <details :open="isFormOpen" @toggle="isFormOpen = $event.target.open">
         <summary><strong>Gestisci Farmaci</strong></summary>
 
         <div style="margin-top:.75rem">

@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test'
 import { loginOrRegisterSeededUser } from './helpers/login'
 
-test('terapie view supports create and deactivate flow', async ({ page }) => {
+test('terapie view supports create and delete flow', async ({ page }) => {
     await page.route('https://api.github.com/user', async route => {
         await route.fulfill({
             status: 200,
@@ -61,8 +61,8 @@ test('terapie view supports create and deactivate flow', async ({ page }) => {
     await expect(page.getByRole('cell', { name: 'Paracetamolo' })).toBeVisible()
 
     page.once('dialog', dialog => dialog.accept())
-    await page.getByRole('button', { name: 'Disattiva' }).first().click()
+    await page.getByRole('button', { name: 'Elimina' }).first().click()
 
-    await expect(page.getByText('Terapia disattivata.')).toBeVisible()
+    await expect(page.getByText('Terapia eliminata.')).toBeVisible()
     await expect(page.getByText('Nessuna terapia attiva disponibile.')).toBeVisible()
 })

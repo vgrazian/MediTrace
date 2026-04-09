@@ -1,7 +1,7 @@
 <script setup>
 import { onMounted, ref, computed } from 'vue'
 import { useAuth } from '../services/auth'
-import { createRoom, createBed, deactivateRoom, deactivateBed, getRoomsWithBeds } from '../services/stanze'
+import { createRoom, createBed, updateRoom, updateBed, deactivateRoom, deactivateBed, getRoomsWithBeds } from '../services/stanze'
 
 const { currentUser } = useAuth()
 
@@ -12,8 +12,15 @@ const errorMessage = ref('')
 
 const roomsData = ref([])
 const showInactive = ref(false)
+const isFormOpen = ref(false)
 
 const roomForm = ref({
+  codice: '',
+  note: '',
+})
+
+const roomEditForm = ref({
+  id: '',
   codice: '',
   note: '',
 })
@@ -24,11 +31,22 @@ const bedForm = ref({
   note: '',
 })
 
+const bedEditForm = ref({
+  id: '',
+  roomId: '',
+  numero: '',
+  note: '',
+})
+
 const activeRooms = computed(() => roomsData.value.filter(r => !showInactive.value ? !r.deletedAt : true))
 
 const canCreateRoom = computed(() => roomForm.value.codice.trim())
 
 const canCreateBed = computed(() => bedForm.value.roomId && Number(bedForm.value.numero) > 0)
+
+const canSaveRoomEdit = computed(() => roomEditForm.value.id && roomEditForm.value.codice.trim())
+
+const canSaveBedEdit = computed(() => bedEditForm.value.id && bedEditForm.value.roomId && Number(bedEditForm.value.numero) > 0)
 
 function formatHostLabel(host) {
   if (!host) return '—'
@@ -104,13 +122,60 @@ async function handleCreateBed() {
   }
 }
 
+async function handleSaveRoomEdit() {
+  if (!canSaveRoomEdit.value) return
+  message.value = ''
+  errorMessage.value = ''
+  saving.value = true
+  try {
+    await updateRoom({
+      roomId: roomEditForm.value.id,
+      codice: roomEditForm.value.codice.trim(),
+      note: roomEditForm.value.note,
+      operatorId: currentUser.value?.login ?? null,
+    })
+
+    message.value = 'Stanza modificata.'
+    cancelRoomEdit()
+    await loadData()
+  } catch (err) {
+    errorMessage.value = `Errore: ${err.message}`
+  } finally {
+    saving.value = false
+  }
+}
+
+async function handleSaveBedEdit() {
+  if (!canSaveBedEdit.value) return
+  message.value = ''
+  errorMessage.value = ''
+  saving.value = true
+  try {
+    await updateBed({
+      bedId: bedEditForm.value.id,
+      roomId: bedEditForm.value.roomId,
+      numero: bedEditForm.value.numero,
+      note: bedEditForm.value.note,
+      operatorId: currentUser.value?.login ?? null,
+    })
+
+    message.value = 'Letto modificato.'
+    cancelBedEdit()
+    await loadData()
+  } catch (err) {
+    errorMessage.value = `Errore: ${err.message}`
+  } finally {
+    saving.value = false
+  }
+}
+
 async function handleDeactivateRoom(roomId) {
-  if (!confirm(`Disattivare la stanza "${roomId}"?`)) return
+  if (!confirm(`Eliminare la stanza "${roomId}"?`)) return
   message.value = ''
   errorMessage.value = ''
   try {
     await deactivateRoom({ roomId, operatorId: currentUser.value?.login ?? null })
-    message.value = `Stanza disattivata.`
+    message.value = 'Stanza eliminata.'
     await loadData()
   } catch (err) {
     errorMessage.value = `Errore: ${err.message}`
@@ -118,15 +183,68 @@ async function handleDeactivateRoom(roomId) {
 }
 
 async function handleDeactivateBed(bedId) {
-  if (!confirm(`Disattivare il letto "${bedId}"?`)) return
+  if (!confirm(`Eliminare il letto "${bedId}"?`)) return
   message.value = ''
   errorMessage.value = ''
   try {
     await deactivateBed({ bedId, operatorId: currentUser.value?.login ?? null })
-    message.value = `Letto disattivato.`
+    message.value = 'Letto eliminato.'
     await loadData()
   } catch (err) {
     errorMessage.value = `Errore: ${err.message}`
+  }
+}
+
+function openAddRoomForm() {
+  roomForm.value = {
+    codice: '',
+    note: '',
+  }
+  isFormOpen.value = true
+}
+
+function openAddBedForm() {
+  bedForm.value = {
+    roomId: '',
+    numero: '',
+    note: '',
+  }
+  isFormOpen.value = true
+}
+
+function startEditRoom(room) {
+  roomEditForm.value = {
+    id: room.id,
+    codice: room.codice || '',
+    note: room.note || '',
+  }
+  isFormOpen.value = true
+}
+
+function startEditBed(bed) {
+  bedEditForm.value = {
+    id: bed.id,
+    roomId: bed.roomId || '',
+    numero: String(bed.numero || ''),
+    note: bed.note || '',
+  }
+  isFormOpen.value = true
+}
+
+function cancelRoomEdit() {
+  roomEditForm.value = {
+    id: '',
+    codice: '',
+    note: '',
+  }
+}
+
+function cancelBedEdit() {
+  bedEditForm.value = {
+    id: '',
+    roomId: '',
+    numero: '',
+    note: '',
   }
 }
 
@@ -144,6 +262,11 @@ onMounted(() => void loadData())
         Mostra anche disattivate
       </label>
 
+      <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.75rem">
+        <button @click="openAddRoomForm">Aggiungi</button>
+        <button @click="openAddBedForm">Aggiungi letto</button>
+      </div>
+
       <table class="conflict-table" style="margin-top:.75rem">
         <thead>
           <tr>
@@ -159,10 +282,17 @@ onMounted(() => void loadData())
             <td>
               <button
                 v-if="!room.deletedAt"
+                style="padding:.2rem .55rem;font-size:.8rem;margin-right:.35rem"
+                @click="startEditRoom(room)"
+              >
+                Modifica
+              </button>
+              <button
+                v-if="!room.deletedAt"
                 style="padding:.2rem .55rem;font-size:.8rem;background:#c0392b"
                 @click="handleDeactivateRoom(room.id)"
               >
-                Disattiva
+                Elimina
               </button>
             </td>
           </tr>
@@ -175,7 +305,7 @@ onMounted(() => void loadData())
     </div>
 
     <div class="card">
-      <details>
+      <details :open="isFormOpen" @toggle="isFormOpen = $event.target.open">
         <summary><strong>Gestione Stanze e Letti</strong></summary>
 
         <div style="margin-top:.75rem">
@@ -223,6 +353,59 @@ onMounted(() => void loadData())
             Prima crea almeno una stanza.
           </p>
         </div>
+
+        <div style="margin-top:1rem">
+          <p><strong>Modifica stanza</strong></p>
+          <div class="import-form" style="margin-top:.65rem">
+            <label>
+              Stanza da modificare
+              <input :value="roomEditForm.id || 'Nessuna stanza selezionata'" type="text" readonly />
+            </label>
+            <label>
+              ID stanza (modifica)
+              <input v-model="roomEditForm.codice" type="text" :disabled="!roomEditForm.id || saving" placeholder="Piano 1 - Lato A" />
+            </label>
+            <label>
+              Dettagli stanza (modifica)
+              <input v-model="roomEditForm.note" type="text" :disabled="!roomEditForm.id || saving" placeholder="Note opzionali" />
+            </label>
+            <button :disabled="saving || !canSaveRoomEdit" @click="handleSaveRoomEdit">
+              {{ saving ? 'Salvataggio...' : 'Salva modifica stanza' }}
+            </button>
+            <button type="button" :disabled="saving" @click="cancelRoomEdit">Annulla modifica stanza</button>
+          </div>
+        </div>
+
+        <div style="margin-top:1rem">
+          <p><strong>Modifica letto</strong></p>
+          <div class="import-form" style="margin-top:.65rem">
+            <label>
+              Letto da modificare
+              <input :value="bedEditForm.id || 'Nessun letto selezionato'" type="text" readonly />
+            </label>
+            <label>
+              Stanza (modifica letto)
+              <select v-model="bedEditForm.roomId" :disabled="!bedEditForm.id || !roomsData.length || saving">
+                <option value="">Seleziona stanza</option>
+                <option v-for="room in roomsData.filter(r => !r.deletedAt)" :key="room.id" :value="room.id">
+                  {{ roomLabel(room) }}
+                </option>
+              </select>
+            </label>
+            <label>
+              N. letto (modifica)
+              <input v-model="bedEditForm.numero" type="number" min="1" step="1" :disabled="!bedEditForm.id || saving" placeholder="1" />
+            </label>
+            <label>
+              Dettagli letto (modifica)
+              <input v-model="bedEditForm.note" type="text" :disabled="!bedEditForm.id || saving" placeholder="Note opzionali" />
+            </label>
+            <button :disabled="saving || !canSaveBedEdit" @click="handleSaveBedEdit">
+              {{ saving ? 'Salvataggio...' : 'Salva modifica letto' }}
+            </button>
+            <button type="button" :disabled="saving" @click="cancelBedEdit">Annulla modifica letto</button>
+          </div>
+        </div>
       </details>
     </div>
 
@@ -252,10 +435,17 @@ onMounted(() => void loadData())
                 <td>
                   <button
                     v-if="!bed.deletedAt"
+                    style="padding:.2rem .35rem;font-size:.75rem;margin-right:.35rem"
+                    @click="startEditBed(bed)"
+                  >
+                    Modifica
+                  </button>
+                  <button
+                    v-if="!bed.deletedAt"
                     style="padding:.2rem .35rem;font-size:.75rem;background:#c0392b"
                     @click="handleDeactivateBed(bed.id)"
                   >
-                    Disattiva
+                    Elimina
                   </button>
                 </td>
               </tr>

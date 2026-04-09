@@ -94,7 +94,7 @@ test('stanze view supports creating beds in a room', async ({ page }) => {
     await expect(page.getByText(/Letto.*creato/i)).toBeVisible({ timeout: 5000 })
 })
 
-test('stanze view deactivates rooms correctly', async ({ page }) => {
+test('stanze view deletes rooms correctly', async ({ page }) => {
     await page.route('https://api.github.com/user', async route => {
         await route.fulfill({
             status: 200,
@@ -127,16 +127,16 @@ test('stanze view deactivates rooms correctly', async ({ page }) => {
     await expect(page.getByText(/Stanza.*creata/i)).toBeVisible({ timeout: 5000 })
     await expect(page.getByRole('cell', { name: 'Deactivate Test' })).toBeVisible({ timeout: 5000 })
 
-    // Test deactivation
+    // Test delete
     page.once('dialog', dialog => dialog.accept())
     const rowToDeactivate = page.locator('tbody tr', { has: page.getByRole('cell', { name: 'Deactivate Test' }) }).first()
-    const disactivateButton = rowToDeactivate.getByRole('button', { name: 'Disattiva' })
+    const disactivateButton = rowToDeactivate.getByRole('button', { name: 'Elimina' })
     await disactivateButton.click()
 
     // Verify success message
-    await expect(page.getByText(/Stanza disattivata/i)).toBeVisible({ timeout: 5000 })
+    await expect(page.getByText(/Stanza eliminata/i)).toBeVisible({ timeout: 5000 })
 
-    // Verify deactivated room is no longer visible (filter off by default)
+    // Verify deleted room is no longer visible (filter off by default)
     await page.waitForTimeout(300)
     await expect(page.getByRole('cell', { name: 'Deactivate Test' })).not.toBeVisible({ timeout: 2000 })
 })

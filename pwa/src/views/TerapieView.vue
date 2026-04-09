@@ -40,6 +40,7 @@ const loading = ref(false)
 const saving = ref(false)
 const message = ref('')
 const errorMessage = ref('')
+const isFormOpen = ref(false)
 
 const form = ref({
   hostId: '',
@@ -161,6 +162,12 @@ function startEditTherapy(therapy) {
     dataFine: toDateInput(therapy.dataFine),
     note: therapy.note || '',
   }
+  isFormOpen.value = true
+}
+
+function openAddForm() {
+  resetForm()
+  isFormOpen.value = true
 }
 
 function resetForm() {
@@ -178,8 +185,8 @@ function resetForm() {
   clearErrors()
 }
 
-async function deactivateTherapy(therapy) {
-  const confirmed = window.confirm('Confermi disattivazione terapia?')
+async function deleteTherapy(therapy) {
+  const confirmed = window.confirm('Confermi eliminazione terapia?')
   if (!confirmed) return
 
   message.value = ''
@@ -190,11 +197,11 @@ async function deactivateTherapy(therapy) {
       operatorId: currentUser.value?.login ?? null,
     })
 
-    message.value = 'Terapia disattivata.'
+    message.value = 'Terapia eliminata.'
     if (editingTherapyId.value === therapy.id) resetForm()
     await loadData()
   } catch (err) {
-    errorMessage.value = `Errore disattivazione: ${err.message}`
+    errorMessage.value = `Errore eliminazione: ${err.message}`
   }
 }
 
@@ -209,7 +216,11 @@ onMounted(() => {
 
     <div class="card">
       <p><strong>Elenco terapie attive</strong></p>
-      <p class="muted" style="margin-top:.25rem">Terapie non disattivate presenti nel dataset locale.</p>
+      <p class="muted" style="margin-top:.25rem">Terapie non eliminate presenti nel dataset locale.</p>
+
+      <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.75rem">
+        <button @click="openAddForm">Aggiungi</button>
+      </div>
 
       <p v-if="loading" class="muted" style="margin-top:.5rem">Caricamento...</p>
 
@@ -237,7 +248,7 @@ onMounted(() => {
             <td>{{ formatDate(therapy.dataFine) }}</td>
             <td>
               <button style="margin-right:.35rem" @click="startEditTherapy(therapy)">Modifica</button>
-              <button style="background:#c0392b" @click="deactivateTherapy(therapy)">Disattiva</button>
+              <button style="background:#c0392b" @click="deleteTherapy(therapy)">Elimina</button>
             </td>
           </tr>
           <tr v-if="therapies.length === 0 && !loading">
@@ -250,7 +261,7 @@ onMounted(() => {
     </div>
 
     <div class="card">
-      <details>
+      <details :open="isFormOpen" @toggle="isFormOpen = $event.target.open">
         <summary><strong>Gestione Terapie</strong></summary>
 
         <div style="margin-top:.75rem">
