@@ -53,6 +53,7 @@ test('terapie view supports create and deactivate flow', async ({ page }) => {
     await page.getByLabel('Dose per somministrazione').fill('1')
     await page.getByLabel('Somministrazioni giornaliere').fill('2')
     await page.getByLabel('Consumo medio settimanale').fill('14')
+    await page.getByLabel('Data inizio').fill('2030-01-01')
     await page.getByRole('button', { name: 'Salva terapia' }).click()
 
     await expect(page.getByText(/Terapia salvata/i)).toBeVisible()

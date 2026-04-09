@@ -1431,30 +1431,46 @@ Each improvement includes concrete examples and actionable recommendations. Impl
 ---
 
 #### 🔄 PR #50: Form Validation Feedback (Issue 4.2) - IN PROGRESS
-**Status:** Draft PR Created - Foundation Complete (60%)
+**Status:** Draft PR Updated - Foundation Complete + 3 Views (85%)
 **PR:** https://github.com/vgrazian/MediTrace/pull/50
 **Branch:** feat/form-validation-feedback
-**Estimated Remaining:** 6-8 hours
+**Estimated Remaining:** 2-4 hours
+**Last Updated:** 2026-04-09 15:37 CET
 
 **Completed (Part 1 - Foundation):**
-- ✅ Created `formValidation.js` service (254 lines, 11 validation rules)
-- ✅ Implemented `useFormValidation()` composable with reactive state
-- ✅ Created `ValidatedInput.vue` reusable component (165 lines)
-- ✅ Added 43 comprehensive unit tests (94.52% coverage)
-- ✅ Created detailed documentation and implementation guide
+- COMPLETED: Created `formValidation.js` service (254 lines, 11 validation rules)
+- COMPLETED: Implemented `useFormValidation()` composable with reactive state
+- COMPLETED: Created `ValidatedInput.vue` reusable component (165 lines)
+- COMPLETED: Added 43 comprehensive unit tests (94.52% coverage)
+- COMPLETED: Created detailed documentation and implementation guide
+- COMPLETED: Build verified successful after latest changes (1.12s)
+
+**Completed (Part 2 - View Integration):**
+- COMPLETED: **FarmaciView.vue**
+  - Drug form: 4 fields validated (nomeFarmaco, principioAttivo, classeTerapeutica, scortaMinima)
+  - Batch form: 6 fields validated (drugId, nomeCommerciale, dosaggio, quantitaAttuale, sogliaRiordino, scadenza)
+  - Submit buttons disabled when errors present
+  - Full ARIA support with aria-invalid, aria-describedby, aria-required
+  - Error clearing on form reset
+  - Inline validation on blur
+- COMPLETED: **OspitiView.vue**
+  - Added reusable validation integration with `ValidatedInput`
+  - Added validation for nome, cognome, dataNascita, codiceFiscale, roomId
+  - Added required room selection and submit gating on validation errors
+- COMPLETED: **TerapieView.vue**
+  - Added reusable validation integration with `ValidatedInput`
+  - Added validation for hostId, drugId, dosePerSomministrazione, somministrazioniGiornaliere, dataInizio, dataFine, note
+  - Added submit gating on validation errors
 
 **Validation Rules:**
 1. required, 2. minLength, 3. maxLength, 4. email, 5. numeric
 6. positiveNumber, 7. integer, 8. date, 9. futureDate, 10. pattern, 11. custom
 
-**Pending (Part 2 - View Integration):**
-- [ ] Update FarmaciView.vue
-- [ ] Update OspitiView.vue
-- [ ] Update TerapieView.vue
+**Remaining Scope Under Review:**
 - [ ] Update PromemoriaView.vue
 - [ ] Update MovimentiView.vue
-- [ ] Update ImpostazioniView.vue
-- [ ] Create E2E test suite
+- [ ] Confirm whether ImpostazioniView.vue still has in-scope validation work
+- [ ] Decide whether a dedicated E2E validation suite is required beyond targeted test updates
 
 **Files Created:**
 - `pwa/src/services/formValidation.js` (new)
@@ -1462,10 +1478,22 @@ Each improvement includes concrete examples and actionable recommendations. Impl
 - `pwa/tests/unit/formValidation.spec.js` (new)
 - `pwa/src/services/README-formValidation.md` (new)
 - `pwa/docs/PR50-IMPLEMENTATION-GUIDE.md` (new)
+- `pwa/docs/PR50-STATUS.md` (new)
+- `CHANGELOG.md` (new)
+- `progress.md` (new)
+
+**Files Modified:**
+- `pwa/src/views/FarmaciView.vue` (updated with validation system)
+- `pwa/src/views/OspitiView.vue` (updated with validation system)
+- `pwa/src/views/TerapieView.vue` (updated with validation system)
+- `pwa/tests/e2e/ospiti.spec.js` (updated for required room selection)
+- `pwa/tests/e2e/terapie.spec.js` (updated for required start date)
+- `pwa/package.json` (version updated to 0.2.0)
 
 **Accessibility:**
-- ✅ ARIA attributes (aria-invalid, aria-describedby, aria-required)
-- ✅ Screen reader support, keyboard navigation, visual error indicators
+- COMPLETED: ARIA attributes (aria-invalid, aria-describedby, aria-required)
+- COMPLETED: Screen reader support and visual error indicators
+- COMPLETED: Error messages announced to screen readers with role="alert"
 
 ---
 
@@ -1488,7 +1516,7 @@ Each improvement includes concrete examples and actionable recommendations. Impl
 - ✅ PR #49: Destructive Action Confirmations (Issue 4.1)
 
 **In Progress:** 1/47 issues (2.1%)
-- 🔄 PR #50: Form Validation Feedback (Issue 4.2) - 60% complete
+- 🔄 PR #50: Form Validation Feedback (Issue 4.2) - 85% complete
 
 **Planned:** 1/47 issues (2.1%)
 - 📋 PR #51: ARIA Labels and Keyboard Navigation (Issue 6.1)
@@ -1496,7 +1524,7 @@ Each improvement includes concrete examples and actionable recommendations. Impl
 **Remaining:** 42/47 issues (89.4%)
 
 **Next Steps:**
-1. Complete PR #50 view updates and E2E tests (6-8 hours)
+1. Reconcile final PR #50 scope for remaining views and tests
 2. Implement ARIA labels and keyboard navigation (PR #51)
 3. Continue with remaining P1 and P2 issues
 
@@ -1506,4 +1534,211 @@ Each improvement includes concrete examples and actionable recommendations. Impl
 - Test coverage maintained: >90% unit, >80% E2E
 - All CI/CD checks passing
 
+
+---
+
+## NEW REQUIREMENT: Issue 4.7 - Simplified CRUD Operations
+
+### 🔴 Issue 4.7: Complex Daily Operations Workflow (P0 Critical)
+
+**Category:** User Experience & Interface Ergonomics  
+**Priority:** P0 (Critical)  
+**Effort:** Medium (8-12 hours)  
+**Impact:** High - Significantly improves daily workflow efficiency  
+**Added:** 2026-04-07
+
+**Problem:**
+Current CRUD operations require multiple steps and are not intuitive for daily use:
+- No clear "Add" button visible on each panel
+- Edit operations require navigating through forms
+- Delete operations don't support multiple selections
+- No visual indication of selected items
+- Workflow is cumbersome for bulk operations
+
+**Current Pattern (Problematic):**
+```vue
+<!-- Current: Hidden or unclear action buttons -->
+<div class="actions">
+  <button @click="showForm = true">Nuovo</button>
+</div>
+
+<!-- Current: No selection mechanism -->
+<div v-for="item in items" :key="item.id">
+  <span>{{ item.name }}</span>
+  <button @click="deleteItem(item.id)">Elimina</button>
+</div>
+```
+
+**Proposed Solution:**
+
+1. **Add Simple Action Buttons on Each Panel:**
+   - Clear "Aggiungi" (Add) button always visible
+   - "Modifica" (Edit) button enabled when ONE item selected
+   - "Elimina" (Delete) button enabled when items selected (supports multiple)
+
+2. **Checkbox Selection System:**
+   - Checkbox on each row for selection
+   - "Select All" checkbox in table header
+   - Visual indication of selected items (highlighted row)
+   - Selection count display
+
+3. **Improved Button States:**
+   - Disabled state when no selection
+   - Tooltip explaining why button is disabled
+   - Clear visual feedback on hover
+
+**Implementation Plan:**
+
+1. **Create Selection Composable** (1 hour)
+   - `useSelection.js` composable for reusable selection logic
+   - File: `pwa/src/composables/useSelection.js`
+
+2. **Update All Views** (5-6 hours)
+   - FarmaciView.vue
+   - OspitiView.vue
+   - TerapieView.vue
+   - PromemoriaView.vue
+   - MovimentiView.vue
+   - ScorteView.vue
+   - StanzeView.vue
+
+3. **Update Confirmation Service** (1 hour)
+   - Add `confirmDeleteMultiple()` function
+   - Handle singular vs plural messages
+
+4. **Add CSS Styles** (30 min)
+
+---
+
+## NEW SECURITY ISSUE: Issue 9.1 - Registration Security
+
+### 🔴 Issue 9.1: Insecure Registration Flow (P0 Critical Security)
+
+**Category:** Security & Authentication  
+**Priority:** P0 (Critical Security Issue)  
+**Effort:** Medium (6-8 hours)  
+**Impact:** Critical - Prevents unauthorized access and data breaches  
+**Added:** 2026-04-07
+
+**Problem:**
+Current registration flow has critical security vulnerabilities:
+- ❌ No email verification required
+- ❌ No admin notification on new registrations
+- ❌ Immediate session creation without identity confirmation
+- ❌ Possible registration with fake emails
+- ❌ No audit trail for registration approvals
+
+**Current Insecure Flow:**
+```javascript
+async register({ username, password, githubToken, email }) {
+    const newUser = await buildAuthUser({ username, password, githubToken, email })
+    users.push(newUser)
+    await saveUsers(users)
+    
+    applySession(newUser)  // ⚠️ IMMEDIATE LOGIN - NO VERIFICATION
+    await writeSession(newUser)
+    // ⚠️ NO ADMIN NOTIFICATION
+}
+```
+
+**Security Risks:**
+1. **Email Spoofing** - Users can register with any email without verification
+2. **Unauthorized Access** - No admin control over who accesses healthcare data
+3. **GDPR Non-Compliance** - No verified consent for data processing
+4. **Audit Trail Gaps** - Admin unaware of new user registrations
+5. **Spam/Bot Registrations** - No protection against automated registrations
+
+**Proposed Secure Flow:**
+```
+User Registration Request
+         ↓
+Email Verification Link Sent
+         ↓
+User Clicks Verification Link
+         ↓
+Email Verified → Admin Notified
+         ↓
+User Status: ACTIVE (or PENDING_APPROVAL if approval required)
+         ↓
+User Can Login
+```
+
+**Implementation:**
+
+1. **Email Verification System** (3 hours)
+   - Add user status: `pending_verification`, `pending_approval`, `active`, `rejected`
+   - Generate verification token on registration
+   - Send verification email via Supabase
+   - Create `/verify-email?token=xxx` route
+   - Block login until email verified
+
+2. **Admin Notification System** (2 hours)
+   - Email notification to all admins on new registration
+   - Email notification when user verifies email
+   - In-app badge showing pending verifications count
+   - Admin panel to view/manage pending users
+
+3. **Optional Admin Approval** (1 hour)
+   - Configurable approval requirement
+   - Admin can approve/reject users
+   - Email notification to user on approval/rejection
+
+4. **Updated Login Flow** (30 min)
+   - Check user status before allowing login
+   - Show appropriate error messages
+   - Resend verification option
+
+**Benefits:**
+- ✅ Verified email ownership
+- ✅ Admin awareness and control
+- ✅ Complete audit trail
+- ✅ GDPR compliance
+- ✅ Spam/bot prevention
+- ✅ Healthcare data protection
+
+**Files to Modify:**
+- `pwa/src/services/auth.js` - Add verification logic
+- `pwa/src/views/ImpostazioniView.vue` - Admin panel for pending users
+- `pwa/src/router/index.js` - Add verification route
+- `pwa/tests/unit/auth.spec.js` - Add verification tests
+- `pwa/tests/e2e/auth-and-users.spec.js` - Add E2E tests
+
+**Configuration Required:**
+```bash
+VITE_REQUIRE_EMAIL_VERIFICATION=true
+VITE_REQUIRE_ADMIN_APPROVAL=false  # Optional
+VITE_VERIFICATION_TOKEN_EXPIRY_HOURS=24
+```
+
+**Estimated Effort:** 6-8 hours  
+**Priority:** P0 (Critical - Must fix before production)  
+**PR:** #53 (to be created)
+
+**Related Documentation:** `docs/ISSUE-9.1-REGISTRATION-SECURITY.md` (717 lines)
+
+---
+
+**Last Updated:** 2026-04-07 09:45 CET
+   - Selection highlight styles
+   - Button states
+
+5. **Create E2E Tests** (2-3 hours)
+   - Test selection mechanism
+   - Test bulk delete
+   - Test keyboard navigation
+
+**Benefits:**
+- ✅ Faster daily operations (fewer clicks)
+- ✅ Bulk delete support (major time saver)
+- ✅ Clear visual feedback
+- ✅ Intuitive workflow
+- ✅ Better accessibility
+
+**Estimated Effort:** 8-12 hours  
+**Priority:** P0 (Critical for daily usability)  
+**PR:** #52 (to be created)
+
+---
+
+**Last Updated:** 2026-04-07 09:30 CET
 All changes are accompanied by comprehensive tests and must pass existing quality gates before merging to main.

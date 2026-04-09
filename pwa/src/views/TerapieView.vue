@@ -3,8 +3,34 @@ import { computed, onMounted, ref } from 'vue'
 import { db } from '../db'
 import { useAuth } from '../services/auth'
 import { deactivateTherapyRecord, upsertTherapy } from '../services/terapie'
+import { useFormValidation } from '../services/formValidation'
+import ValidatedInput from '../components/ValidatedInput.vue'
 
 const { currentUser } = useAuth()
+
+const {
+  errors,
+  validateField,
+  validateForm,
+  clearErrors,
+  hasErrors,
+} = useFormValidation({
+  hostId: { required: true },
+  drugId: { required: true },
+  dosePerSomministrazione: { required: true },
+  somministrazioniGiornaliere: { required: true },
+  dataInizio: { required: true, date: true },
+  dataFine: { date: true, futureDate: true },
+  note: { maxLength: 500 },
+}, {
+  hostId: 'Ospite',
+  drugId: 'Farmaco',
+  dosePerSomministrazione: 'Dose per somministrazione',
+  somministrazioniGiornaliere: 'Somministrazioni giornaliere',
+  dataInizio: 'Data inizio',
+  dataFine: 'Data fine',
+  note: 'Note',
+})
 
 const hosts = ref([])
 const drugs = ref([])
@@ -83,8 +109,8 @@ async function saveTherapy() {
   message.value = ''
   errorMessage.value = ''
 
-  if (!form.value.hostId || !form.value.drugId) {
-    errorMessage.value = 'Seleziona ospite e farmaco.'
+  if (!validateForm(form.value)) {
+    errorMessage.value = 'Correggi gli errori nel form prima di salvare.'
     return
   }
 
@@ -149,6 +175,7 @@ function resetForm() {
     dataFine: '',
     note: '',
   }
+  clearErrors()
 }
 
 async function deactivateTherapy(therapy) {
@@ -233,55 +260,96 @@ onMounted(() => {
           <div class="import-form" style="margin-top:.65rem">
             <label>
               Ospite
-              <select v-model="form.hostId" :disabled="saving || !hosts.length">
+              <select
+                v-model="form.hostId"
+                :disabled="saving || !hosts.length"
+                @blur="validateField('hostId', form.hostId)"
+                :aria-invalid="!!errors.hostId"
+                :aria-describedby="errors.hostId ? 'hostId-error' : undefined"
+              >
                 <option value="">Seleziona ospite</option>
                 <option v-for="host in hosts" :key="host.id" :value="host.id">
                   {{ hostLabel(host.id) }}
                 </option>
               </select>
+              <span v-if="errors.hostId" id="hostId-error" class="error-message" role="alert">
+                {{ errors.hostId }}
+              </span>
             </label>
 
             <label>
               Farmaco
-              <select v-model="form.drugId" :disabled="saving || !drugs.length">
+              <select
+                v-model="form.drugId"
+                :disabled="saving || !drugs.length"
+                @blur="validateField('drugId', form.drugId)"
+                :aria-invalid="!!errors.drugId"
+                :aria-describedby="errors.drugId ? 'drugId-error' : undefined"
+              >
                 <option value="">Seleziona farmaco</option>
                 <option v-for="drug in drugs" :key="drug.id" :value="drug.id">
                   {{ drugLabel(drug.id) }}
                 </option>
               </select>
+              <span v-if="errors.drugId" id="drugId-error" class="error-message" role="alert">
+                {{ errors.drugId }}
+              </span>
             </label>
 
-            <label>
-              Dose per somministrazione
-              <input v-model="form.dosePerSomministrazione" type="number" min="0" step="0.01" />
-            </label>
+            <ValidatedInput
+              v-model="form.dosePerSomministrazione"
+              field-name="dosePerSomministrazione"
+              label="Dose per somministrazione"
+              type="number"
+              :error="errors.dosePerSomministrazione"
+              :required="true"
+              @validate="validateField"
+            />
 
-            <label>
-              Somministrazioni giornaliere
-              <input v-model="form.somministrazioniGiornaliere" type="number" min="0" step="1" />
-            </label>
+            <ValidatedInput
+              v-model="form.somministrazioniGiornaliere"
+              field-name="somministrazioniGiornaliere"
+              label="Somministrazioni giornaliere"
+              type="number"
+              :error="errors.somministrazioniGiornaliere"
+              :required="true"
+              @validate="validateField"
+            />
 
             <label>
               Consumo medio settimanale
               <input v-model="form.consumoMedioSettimanale" type="number" min="0" step="0.01" />
             </label>
 
-            <label>
-              Data inizio
-              <input v-model="form.dataInizio" type="date" />
-            </label>
+            <ValidatedInput
+              v-model="form.dataInizio"
+              field-name="dataInizio"
+              label="Data inizio"
+              type="date"
+              :error="errors.dataInizio"
+              :required="true"
+              @validate="validateField"
+            />
 
-            <label>
-              Data fine (opzionale)
-              <input v-model="form.dataFine" type="date" />
-            </label>
+            <ValidatedInput
+              v-model="form.dataFine"
+              field-name="dataFine"
+              label="Data fine (opzionale)"
+              type="date"
+              :error="errors.dataFine"
+              @validate="validateField"
+            />
 
-            <label>
-              Note
-              <input v-model="form.note" type="text" placeholder="Indicazioni operative" />
-            </label>
+            <ValidatedInput
+              v-model="form.note"
+              field-name="note"
+              label="Note"
+              :error="errors.note"
+              placeholder="Indicazioni operative"
+              @validate="validateField"
+            />
 
-            <button :disabled="saving || !canCreate" @click="saveTherapy">
+            <button :disabled="saving || !canCreate || hasErrors" @click="saveTherapy">
               {{ saving ? 'Salvataggio...' : (editingTherapyId ? 'Salva modifica' : 'Salva terapia') }}
             </button>
             <button type="button" :disabled="saving" @click="resetForm">Annulla</button>
