@@ -56,6 +56,7 @@ export function formatUserError(context, error) {
 [`sync.js:45`](pwa/src/services/sync.js:45) - `fullSync()` returns `{ skipped: true }` without user notification when token is missing. Users may believe data is syncing when it's not.
 
 **Current Code:**
+
 ```javascript
 export async function fullSync(token) {
     if (!token) return { skipped: true, reason: 'no-token' }
@@ -64,6 +65,7 @@ export async function fullSync(token) {
 ```
 
 **Recommendation:**
+
 ```javascript
 export async function fullSync(token) {
     if (!token) {
@@ -93,6 +95,7 @@ if (!res.ok) throw new Error(`Gist create failed: ${res.status}`)
 ```
 
 **Recommendation:**
+
 ```javascript
 if (!res.ok) {
     const error = new NetworkError(`Impossibile creare Gist (${res.status})`)
@@ -334,6 +337,7 @@ export async function upsertDrug({
 - [`auth.js:47`](pwa/src/services/auth.js:47): `ts: now`
 
 **Recommendation:**
+
 ```javascript
 // Clear naming
 export const database = new Dexie('meditrace')
@@ -389,6 +393,7 @@ const LAST_WRITE_WINS_TABLES = ['hosts', 'drugs', 'stockBatches', 'therapies']
 ```
 
 **Recommendation:**
+
 ```javascript
 // db/constants.js
 export const TableNames = {
@@ -472,6 +477,7 @@ if (!nomeFarmaco || !principioAttivo) {
 - No field-level feedback
 
 **Recommendation:**
+
 ```vue
 <template>
   <div class="form-field" :class="{ 'has-error': errors.drugName }">
@@ -516,6 +522,7 @@ No keyboard shortcuts for common actions:
 - No arrow key navigation in lists
 
 **Recommendation:**
+
 ```vue
 <script setup>
 import { onMounted, onUnmounted } from 'vue'
@@ -553,6 +560,7 @@ Multiple date formatting approaches:
 - Some places show ISO strings directly
 
 **Recommendation:**
+
 ```javascript
 // services/formatting.js
 export const DateFormat = {
@@ -598,6 +606,7 @@ Empty lists show no guidance:
 ```
 
 **Recommendation:**
+
 ```vue
 <div v-if="drugs.length === 0" class="empty-state">
   <img src="/icons/empty-drugs.svg" alt="" />
@@ -626,6 +635,7 @@ Empty lists show no guidance:
 ```
 
 **Recommendation:**
+
 ```css
 .app-nav button {
     padding: .5rem 1rem;
@@ -669,6 +679,7 @@ async function loadData() {
 ```
 
 **Recommendation:**
+
 ```javascript
 // composables/useDataLoader.js
 export function useDataLoader(loaderFn) {
@@ -767,6 +778,7 @@ function isTherapyActive(therapy, now = new Date()) {
 ```
 
 **Recommendation:**
+
 ```javascript
 function isTherapyActive(therapy, now = new Date()) {
     // Early returns for clear failure cases
@@ -807,6 +819,7 @@ const AUTH_SESSION_TTL_MS = AUTH_SESSION_TTL_MINUTES * 60 * 1000
 ```
 
 **Recommendation:**
+
 ```javascript
 // constants/time.js
 export const TimeConstants = {
@@ -843,6 +856,7 @@ Forms lack proper ARIA attributes:
 ```
 
 **Recommendation:**
+
 ```vue
 <div class="form-field">
     <label for="drug-name">Nome farmaco</label>
@@ -880,6 +894,7 @@ Forms lack proper ARIA attributes:
 ```
 
 **Recommendation:**
+
 ```css
 :root {
     /* Ensure 4.5:1 contrast ratio for normal text */
@@ -909,6 +924,7 @@ Forms lack proper ARIA attributes:
 Custom focus styles may be missing or inconsistent.
 
 **Recommendation:**
+
 ```css
 /* Global focus indicator */
 *:focus-visible {
@@ -956,6 +972,7 @@ Generic `<div>` elements used instead of semantic HTML:
 ```
 
 **Recommendation:**
+
 ```vue
 <article class="card">
     <header class="card-header">
@@ -1003,6 +1020,7 @@ const rows = computed(() => buildHostRows({
 ```
 
 **Recommendation:**
+
 ```javascript
 import { computed, shallowRef } from 'vue'
 
@@ -1047,6 +1065,7 @@ All records rendered at once:
 ```
 
 **Recommendation:**
+
 ```vue
 <script setup>
 import { ref, computed } from 'vue'
@@ -1104,6 +1123,7 @@ const mapped = sorted.map(h => ({ ...h, label: formatLabel(h) }))
 ```
 
 **Recommendation:**
+
 ```javascript
 // Single pass
 const processed = hosts
@@ -1129,6 +1149,7 @@ Current coverage: 66% statements, 53% branches - below industry standard (80%+)
 
 **Recommendation:**
 1. Add tests for edge cases:
+
 ```javascript
 describe('isTherapyActive', () => {
     it('returns false for null therapy', () => {
@@ -1156,8 +1177,8 @@ describe('isTherapyActive', () => {
 })
 ```
 
-2. Add integration tests for critical flows
-3. Add visual regression tests for UI components
+1. Add integration tests for critical flows
+2. Add visual regression tests for UI components
 
 ---
 
@@ -1177,6 +1198,7 @@ export async function createHost(...) {
 ```
 
 **Recommendation:**
+
 ```javascript
 // services/storage.js - Abstract storage layer
 export class StorageAdapter {
@@ -1226,6 +1248,7 @@ const props = defineProps({
 ```
 
 **Recommendation:**
+
 ```vue
 <script setup>
 /**
@@ -1277,24 +1300,24 @@ const emit = defineEmits(['edit', 'delete'])
 5. Issue 6.1: ARIA labels
 
 ### Phase 2: High-Impact Improvements (Week 2-3)
-6. Issue 2.1: Standardize API signatures
-7. Issue 3.1: Language consistency
-8. Issue 4.3: Keyboard navigation
-9. Issue 4.4: Date formatting
-10. Issue 6.2: Color contrast
+1. Issue 2.1: Standardize API signatures
+2. Issue 3.1: Language consistency
+3. Issue 4.3: Keyboard navigation
+4. Issue 4.4: Date formatting
+5. Issue 6.2: Color contrast
 
 ### Phase 3: Quality of Life (Week 4-5)
-11. Issue 2.3: Simplify function signatures
-12. Issue 3.3: Naming conventions
-13. Issue 4.5: Empty states
-14. Issue 5.1: Data loading composable
-15. Issue 7.1: Performance optimization
+1. Issue 2.3: Simplify function signatures
+2. Issue 3.3: Naming conventions
+3. Issue 4.5: Empty states
+4. Issue 5.1: Data loading composable
+5. Issue 7.1: Performance optimization
 
 ### Phase 4: Polish & Documentation (Week 6)
-16. Issue 5.4: Magic numbers
-17. Issue 7.2: Pagination
-18. Issue 8.1: Test coverage
-19. Issue 8.3: Component documentation
+1. Issue 5.4: Magic numbers
+2. Issue 7.2: Pagination
+3. Issue 8.1: Test coverage
+4. Issue 8.3: Component documentation
 
 ---
 
@@ -1534,7 +1557,6 @@ Each improvement includes concrete examples and actionable recommendations. Impl
 - Test coverage maintained: >90% unit, >80% E2E
 - All CI/CD checks passing
 
-
 ---
 
 ## NEW REQUIREMENT: Issue 4.7 - Simplified CRUD Operations
@@ -1556,6 +1578,7 @@ Current CRUD operations require multiple steps and are not intuitive for daily u
 - Workflow is cumbersome for bulk operations
 
 **Current Pattern (Problematic):**
+
 ```vue
 <!-- Current: Hidden or unclear action buttons -->
 <div class="actions">
@@ -1607,6 +1630,28 @@ Current CRUD operations require multiple steps and are not intuitive for daily u
    - Handle singular vs plural messages
 
 4. **Add CSS Styles** (30 min)
+    - Selection highlight styles
+    - Button states
+
+5. **Create E2E Tests** (2-3 hours)
+    - Test selection mechanism
+    - Test bulk delete
+    - Test keyboard navigation
+
+**Benefits:**
+- ✅ Faster daily operations (fewer clicks)
+- ✅ Bulk delete support (major time saver)
+- ✅ Clear visual feedback
+- ✅ Intuitive workflow
+- ✅ Better accessibility
+
+**Estimated Effort:** 8-12 hours  
+**Priority:** P0 (Critical for daily usability)  
+**PR:** #52 (to be created)
+
+---
+
+**Last Updated:** 2026-04-07 09:30 CET
 
 ---
 
@@ -1629,6 +1674,7 @@ Current registration flow has critical security vulnerabilities:
 - ❌ No audit trail for registration approvals
 
 **Current Insecure Flow:**
+
 ```javascript
 async register({ username, password, githubToken, email }) {
     const newUser = await buildAuthUser({ username, password, githubToken, email })
@@ -1649,6 +1695,7 @@ async register({ username, password, githubToken, email }) {
 5. **Spam/Bot Registrations** - No protection against automated registrations
 
 **Proposed Secure Flow:**
+
 ```
 User Registration Request
          ↓
@@ -1704,6 +1751,7 @@ User Can Login
 - `pwa/tests/e2e/auth-and-users.spec.js` - Add E2E tests
 
 **Configuration Required:**
+
 ```bash
 VITE_REQUIRE_EMAIL_VERIFICATION=true
 VITE_REQUIRE_ADMIN_APPROVAL=false  # Optional
@@ -1719,26 +1767,4 @@ VITE_VERIFICATION_TOKEN_EXPIRY_HOURS=24
 ---
 
 **Last Updated:** 2026-04-07 09:45 CET
-   - Selection highlight styles
-   - Button states
-
-5. **Create E2E Tests** (2-3 hours)
-   - Test selection mechanism
-   - Test bulk delete
-   - Test keyboard navigation
-
-**Benefits:**
-- ✅ Faster daily operations (fewer clicks)
-- ✅ Bulk delete support (major time saver)
-- ✅ Clear visual feedback
-- ✅ Intuitive workflow
-- ✅ Better accessibility
-
-**Estimated Effort:** 8-12 hours  
-**Priority:** P0 (Critical for daily usability)  
-**PR:** #52 (to be created)
-
----
-
-**Last Updated:** 2026-04-07 09:30 CET
 All changes are accompanied by comprehensive tests and must pass existing quality gates before merging to main.
