@@ -1,241 +1,203 @@
 <template>
-  <div class="audit-log-container">
-    <h1>Audit Log — Ispezione Attività</h1>
-
-    <!-- Filter Controls -->
-    <div class="filter-section">
-      <div class="filter-group">
-        <label>Filtra per Operatore:</label>
-        <input
-          v-model="filterOperator"
-          type="text"
-          placeholder="es. op-1, admin"
-          @input="applyFilters"
-        />
-      </div>
-
-      <div class="filter-group">
-        <label>Filtra per Azione:</label>
-        <select v-model="filterAction" @change="applyFilters">
-          <option value="">— Tutte le azioni —</option>
-          <option v-for="action of actionStats" :key="action" :value="action">
-            {{ action }}
-          </option>
-        </select>
-      </div>
-
-      <div class="filter-group">
-        <label>Filtra per Entità:</label>
-        <select v-model="filterEntity" @change="applyFilters">
-          <option value="">— Tutte le entità —</option>
-          <option v-for="entity of entityStats" :key="entity" :value="entity">
-            {{ entity }}
-          </option>
-        </select>
-      </div>
-
-      <div class="filter-group">
-        <label>Intervallo Date:</label>
-        <input
-          v-model="filterDateStart"
-          type="date"
-          @change="applyFilters"
-        />
-        <span>→</span>
-        <input
-          v-model="filterDateEnd"
-          type="date"
-          @change="applyFilters"
-        />
-      </div>
-
-      <button @click="clearFilters" class="btn-secondary">Cancella Filtri</button>
-      <button @click="exportEvents" class="btn-secondary">Esporta JSON</button>
-    </div>
-
-    <!-- Statistics -->
-    <div class="stats-section">
-      <div class="stat-card">
-        <strong>{{ totalEvents }}</strong>
-        <span>Totale Eventi</span>
-      </div>
-      <div class="stat-card">
-        <strong>{{ filteredEvents.length }}</strong>
-        <span>Risultati Filtrati</span>
+  <div class="view audit-log-view">
+    <div class="card">
+      <div class="audit-header">
+        <div>
+          <h2>Registro Operazioni (Audit)</h2>
+          <p class="muted" style="margin-top:.3rem">
+            Pannello in sola lettura per verificare chi ha eseguito una specifica operazione.
+          </p>
+        </div>
+        <span class="readonly-pill">Sola lettura</span>
       </div>
     </div>
 
-    <!-- Events Table -->
-    <div class="events-table-wrapper">
-      <table class="events-table">
-        <thead>
-          <tr>
-            <th>Timestamp</th>
-            <th>Azione</th>
-            <th>Entità</th>
-            <th>ID</th>
-            <th>Operatore</th>
-            <th>Device</th>
-            <th>Dettagli</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-if="filteredEvents.length === 0">
-            <td colspan="7" style="text-align: center; padding: 20px;">
-              Nessun evento trovato
-            </td>
-          </tr>
-          <tr v-for="event of paginatedEvents" :key="event.id || event.ts">
-            <td class="ts">{{ formatTimestamp(event.ts) }}</td>
-            <td class="action">{{ event.action }}</td>
-            <td class="entity">{{ event.entityType }}</td>
-            <td class="id">
-              <code>{{ shortenId(event.entityId) }}</code>
-            </td>
-            <td class="operator">{{ event.operatorId || '—' }}</td>
-            <td class="device">{{ event.deviceId || '—' }}</td>
-            <td class="details">
-              <button @click="toggleDetails(event)" class="btn-details">
-                {{ expandedIndex === event.ts ? '▼' : '▶' }}
-              </button>
-            </td>
-          </tr>
-          <tr v-if="expandedEvent" :key="`detail-${expandedEvent.ts}`" class="detail-row">
-            <td colspan="7">
-              <pre>{{ JSON.stringify(expandedEvent, null, 2) }}</pre>
-            </td>
-          </tr>
-        </tbody>
-      </table>
+    <div class="card">
+      <p><strong>Filtri</strong></p>
+      <div class="audit-filters" style="margin-top:.75rem">
+        <label>
+          Operatore
+          <input
+            v-model="filters.operator"
+            type="text"
+            placeholder="es. admin, op-1"
+            @input="applyFilters"
+          />
+        </label>
+
+        <label>
+          Ospite
+          <input
+            v-model="filters.host"
+            type="text"
+            placeholder="ID o cognome"
+            @input="applyFilters"
+          />
+        </label>
+
+        <label>
+          Farmaco
+          <input
+            v-model="filters.drug"
+            type="text"
+            placeholder="Nome o principio attivo"
+            @input="applyFilters"
+          />
+        </label>
+
+        <label>
+          Terapia
+          <input
+            v-model="filters.therapy"
+            type="text"
+            placeholder="ID terapia"
+            @input="applyFilters"
+          />
+        </label>
+
+        <label>
+          Azione
+          <select v-model="filters.action" @change="applyFilters">
+            <option value="">Tutte le azioni</option>
+            <option v-for="action in actionStats" :key="action" :value="action">{{ action }}</option>
+          </select>
+        </label>
+
+        <label>
+          Entita
+          <select v-model="filters.entity" @change="applyFilters">
+            <option value="">Tutte le entita</option>
+            <option v-for="entity in entityStats" :key="entity" :value="entity">{{ entity }}</option>
+          </select>
+        </label>
+
+        <label>
+          Periodo da
+          <input v-model="filters.fromDate" type="date" @change="applyFilters" />
+        </label>
+
+        <label>
+          Periodo a
+          <input v-model="filters.toDate" type="date" @change="applyFilters" />
+        </label>
+      </div>
+
+      <div class="audit-filter-actions" style="margin-top:.75rem">
+        <button @click="clearFilters">Azzera filtri</button>
+        <button @click="exportEvents">Esporta JSON</button>
+      </div>
     </div>
 
-    <!-- Pagination -->
-    <div v-if="totalPages > 1" class="pagination-section">
-      <button
-        v-for="page of Array(totalPages).fill(0).map((_, i) => i + 1)"
-        :key="page"
-        @click="currentPage = page"
-        :class="{ active: currentPage === page }"
-        class="btn-page"
-      >
-        {{ page }}
-      </button>
+    <div class="card">
+      <div class="audit-stats">
+        <p><strong>Eventi totali:</strong> {{ totalEvents }}</p>
+        <p><strong>Risultati filtrati:</strong> {{ filteredEvents.length }}</p>
+      </div>
+
+      <div class="events-table-wrapper" role="region" aria-label="Tabella registro operazioni">
+        <table class="conflict-table events-table" aria-label="Registro operazioni">
+          <thead>
+            <tr>
+              <th>Data/Ora</th>
+              <th>Operatore</th>
+              <th>Azione</th>
+              <th>Entita</th>
+              <th>Ospite</th>
+              <th>Farmaco</th>
+              <th>Terapia</th>
+              <th>Dettagli</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-if="paginatedEvents.length === 0">
+              <td colspan="8" class="muted" style="text-align:center">Nessun evento trovato.</td>
+            </tr>
+
+            <template v-for="event in paginatedEvents" :key="event.id || event.ts">
+              <tr>
+                <td class="audit-ts">{{ formatTimestamp(event.ts) }}</td>
+                <td>{{ event.operatorId || '—' }}</td>
+                <td>{{ event.action || '—' }}</td>
+                <td>{{ event.entityType || '—' }}</td>
+                <td>{{ event.hostLabel || event.hostId || '—' }}</td>
+                <td>{{ event.drugLabel || event.drugId || '—' }}</td>
+                <td>{{ event.therapyLabel || event.therapyId || '—' }}</td>
+                <td>
+                  <button @click="toggleDetails(event)">
+                    {{ expandedRowKey === rowKey(event) ? 'Nascondi' : 'Mostra' }}
+                  </button>
+                </td>
+              </tr>
+              <tr v-if="expandedRowKey === rowKey(event)">
+                <td colspan="8">
+                  <pre class="audit-json">{{ JSON.stringify(event, null, 2) }}</pre>
+                </td>
+              </tr>
+            </template>
+          </tbody>
+        </table>
+      </div>
+
+      <div v-if="totalPages > 1" class="audit-pagination" style="margin-top:.75rem">
+        <button :disabled="currentPage <= 1" @click="currentPage -= 1">Precedente</button>
+        <span>Pagina {{ currentPage }} / {{ totalPages }}</span>
+        <button :disabled="currentPage >= totalPages" @click="currentPage += 1">Successiva</button>
+      </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import {
-  queryByOperator,
-  queryByAction,
-  queryByEntity,
-  queryByDateRange,
-  queryRecent,
+  buildAuditReferences,
+  countAllEvents,
+  enrichAuditEvents,
+  exportAuditJson,
+  filterAuditEvents,
   getActionStats,
   getEntityStats,
-  getOperatorStats,
-  exportAuditJson,
-  countAllEvents,
+  queryRecent,
 } from '../services/auditLog'
 
-const filterOperator = ref('')
-const filterAction = ref('')
-const filterEntity = ref('')
-const filterDateStart = ref('')
-const filterDateEnd = ref('')
-
-const filteredEvents = ref([])
+const totalEvents = ref(0)
 const allEvents = ref([])
+const filteredEvents = ref([])
 const actionStats = ref([])
 const entityStats = ref([])
-const totalEvents = ref(0)
 const currentPage = ref(1)
 const pageSize = ref(20)
-const expandedIndex = ref(null)
+const expandedRowKey = ref('')
 
-const totalPages = computed(() =>
-  Math.ceil(filteredEvents.value.length / pageSize.value)
-)
+const filters = ref({
+  operator: '',
+  host: '',
+  drug: '',
+  therapy: '',
+  action: '',
+  entity: '',
+  fromDate: '',
+  toDate: '',
+})
+
+const totalPages = computed(() => {
+  const pages = Math.ceil(filteredEvents.value.length / pageSize.value)
+  return pages > 0 ? pages : 1
+})
 
 const paginatedEvents = computed(() => {
   const start = (currentPage.value - 1) * pageSize.value
   return filteredEvents.value.slice(start, start + pageSize.value)
 })
 
-const expandedEvent = computed(() => {
-  if (!expandedIndex.value) return null
-  return filteredEvents.value.find(e => e.ts === expandedIndex.value)
-})
-
-onMounted(async () => {
-  await loadStats()
-  await loadRecent()
-})
-
-async function loadStats() {
-  const [actions, entities, operStats, total] = await Promise.all([
-    getActionStats(),
-    getEntityStats(),
-    getOperatorStats(),
-    countAllEvents(),
-  ])
-  actionStats.value = Object.keys(actions).sort()
-  entityStats.value = Object.keys(entities).sort()
-  totalEvents.value = total
-}
-
-async function loadRecent() {
-  allEvents.value = await queryRecent(1000)
-  filteredEvents.value = allEvents.value
-}
-
-async function applyFilters() {
-  let results = allEvents.value
-
-  if (filterOperator.value) {
-    results = results.filter(e => e.operatorId === filterOperator.value)
-  }
-
-  if (filterAction.value) {
-    results = results.filter(e => e.action === filterAction.value)
-  }
-
-  if (filterEntity.value) {
-    results = results.filter(e => e.entityType === filterEntity.value)
-  }
-
-  if (filterDateStart.value && filterDateEnd.value) {
-    const start = new Date(filterDateStart.value)
-    const end = new Date(filterDateEnd.value)
-    end.setHours(23, 59, 59, 999)
-    results = results.filter(e => {
-      const ts = new Date(e.ts)
-      return ts >= start && ts <= end
-    })
-  }
-
-  filteredEvents.value = results
-  currentPage.value = 1
-}
-
-function clearFilters() {
-  filterOperator.value = ''
-  filterAction.value = ''
-  filterEntity.value = ''
-  filterDateStart.value = ''
-  filterDateEnd.value = ''
-  filteredEvents.value = allEvents.value
-  currentPage.value = 1
-  expandedIndex.value = null
-}
-
-function toggleDetails(event) {
-  expandedIndex.value = expandedIndex.value === event.ts ? null : event.ts
+function rowKey(event) {
+  return String(event?.id ?? event?.ts ?? '')
 }
 
 function formatTimestamp(ts) {
+  if (!ts) return '—'
   const date = new Date(ts)
+  if (Number.isNaN(date.getTime())) return String(ts)
   return date.toLocaleString('it-IT', {
     day: '2-digit',
     month: '2-digit',
@@ -246,235 +208,164 @@ function formatTimestamp(ts) {
   })
 }
 
-function shortenId(id) {
-  if (!id) return '—'
-  return id.length > 20 ? id.substring(0, 17) + '...' : id
+function toggleDetails(event) {
+  const key = rowKey(event)
+  expandedRowKey.value = expandedRowKey.value === key ? '' : key
+}
+
+async function loadData() {
+  const [actions, entities, total, events, refs] = await Promise.all([
+    getActionStats(),
+    getEntityStats(),
+    countAllEvents(),
+    queryRecent(2000),
+    buildAuditReferences(),
+  ])
+
+  actionStats.value = Object.keys(actions).sort()
+  entityStats.value = Object.keys(entities).sort()
+  totalEvents.value = total
+
+  const enriched = enrichAuditEvents(events, refs)
+  allEvents.value = enriched
+  filteredEvents.value = enriched
+}
+
+function applyFilters() {
+  filteredEvents.value = filterAuditEvents(allEvents.value, filters.value)
+  currentPage.value = 1
+  expandedRowKey.value = ''
+}
+
+function clearFilters() {
+  filters.value = {
+    operator: '',
+    host: '',
+    drug: '',
+    therapy: '',
+    action: '',
+    entity: '',
+    fromDate: '',
+    toDate: '',
+  }
+  filteredEvents.value = allEvents.value
+  currentPage.value = 1
+  expandedRowKey.value = ''
 }
 
 async function exportEvents() {
   const json = await exportAuditJson()
   const blob = new Blob([json], { type: 'application/json' })
   const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url
-  a.download = `audit-log-${new Date().toISOString()}.json`
-  a.click()
+  const anchor = document.createElement('a')
+  anchor.href = url
+  anchor.download = `audit-log-${new Date().toISOString()}.json`
+  anchor.click()
   URL.revokeObjectURL(url)
 }
+
+onMounted(async () => {
+  await loadData()
+})
 </script>
 
 <style scoped>
-.audit-log-container {
-  padding: 20px;
-  max-width: 1400px;
-  margin: 0 auto;
-}
-
-h1 {
-  margin-bottom: 20px;
-  font-size: 24px;
-  color: #333;
-}
-
-.filter-section {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 15px;
-  margin-bottom: 30px;
-  padding: 20px;
-  background: #f5f5f5;
-  border-radius: 8px;
-}
-
-.filter-group {
+.audit-header {
   display: flex;
-  flex-direction: column;
-  gap: 5px;
-}
-
-.filter-group label {
-  font-weight: 600;
-  color: #555;
-  font-size: 14px;
-}
-
-.filter-group input,
-.filter-group select {
-  padding: 8px 12px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  font-size: 14px;
-}
-
-.filter-group input:focus,
-.filter-group select:focus {
-  outline: none;
-  border-color: #4a90e2;
-  box-shadow: 0 0 4px rgba(74, 144, 226, 0.2);
-}
-
-.btn-secondary {
-  padding: 8px 16px;
-  background: #6c757d;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 14px;
-  font-weight: 600;
-}
-
-.btn-secondary:hover {
-  background: #5a6268;
-}
-
-.stats-section {
-  display: flex;
-  gap: 15px;
-  margin-bottom: 30px;
+  align-items: center;
+  justify-content: space-between;
+  gap: .9rem;
   flex-wrap: wrap;
 }
 
-.stat-card {
-  display: flex;
-  flex-direction: column;
+.readonly-pill {
+  display: inline-flex;
   align-items: center;
-  padding: 15px 25px;
-  background: #e3f2fd;
-  border-radius: 8px;
-  min-width: 150px;
+  justify-content: center;
+  border: 1px solid #9bb5d4;
+  background: #edf3fb;
+  color: #1f3a66;
+  border-radius: 999px;
+  padding: .28rem .75rem;
+  font-size: .78rem;
+  font-weight: 700;
+  letter-spacing: .03em;
+  text-transform: uppercase;
 }
 
-.stat-card strong {
-  font-size: 24px;
-  color: #1976d2;
+.audit-filters {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: .65rem;
 }
 
-.stat-card span {
-  font-size: 12px;
-  color: #666;
-  margin-top: 5px;
+.audit-filters label {
+  display: grid;
+  gap: .3rem;
+  font-size: .85rem;
+  color: #334155;
+}
+
+.audit-filters input,
+.audit-filters select {
+  border: 1px solid var(--line);
+  border-radius: .38rem;
+  padding: .45rem .55rem;
+  font-size: .85rem;
+  background: #fff;
+}
+
+.audit-filter-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .55rem;
+}
+
+.audit-stats {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-bottom: .7rem;
 }
 
 .events-table-wrapper {
-  overflow-x: auto;
-  margin-bottom: 30px;
-  border: 1px solid #ddd;
-  border-radius: 8px;
+  border: 1px solid var(--line);
+  border-radius: .6rem;
+  overflow: auto;
+  max-height: clamp(270px, 56vh, 680px);
 }
 
 .events-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 14px;
+  margin-top: 0;
+  min-width: 980px;
 }
 
-.events-table thead {
-  background: #f0f0f0;
-  border-bottom: 2px solid #ddd;
+.audit-ts {
+  white-space: nowrap;
 }
 
-.events-table th {
-  padding: 12px;
-  text-align: left;
-  font-weight: 600;
-  color: #333;
+.audit-json {
+  margin: 0;
+  white-space: pre-wrap;
+  max-height: 200px;
+  overflow: auto;
+  background: #f7fbff;
+  border: 1px solid #d9e7f7;
+  border-radius: .4rem;
+  padding: .55rem;
+  font-size: .78rem;
 }
 
-.events-table tbody tr {
-  border-bottom: 1px solid #eee;
-}
-
-.events-table tbody tr:hover {
-  background: #fafafa;
-}
-
-.events-table td {
-  padding: 12px;
-}
-
-.ts {
-  font-family: 'Monaco', 'Courier New', monospace;
-  font-size: 12px;
-  color: #666;
-}
-
-.action {
-  font-weight: 600;
-  color: #d9534f;
-}
-
-.entity {
-  color: #0275d8;
-  font-weight: 500;
-}
-
-.id {
-  font-family: 'Monaco', 'Courier New', monospace;
-  font-size: 11px;
-  color: #888;
-}
-
-.operator {
-  color: #5cb85c;
-  font-weight: 500;
-}
-
-.device {
-  color: #999;
-  font-size: 12px;
-}
-
-.btn-details {
-  padding: 4px 8px;
-  background: #007bff;
-  color: white;
-  border: none;
-  border-radius: 3px;
-  cursor: pointer;
-  font-size: 12px;
-}
-
-.btn-details:hover {
-  background: #0056b3;
-}
-
-.detail-row {
-  background: #f9f9f9;
-}
-
-.detail-row pre {
-  padding: 15px;
-  background: #f4f4f4;
-  overflow-x: auto;
-  border-radius: 4px;
-  font-size: 12px;
-  line-height: 1.4;
-}
-
-.pagination-section {
+.audit-pagination {
   display: flex;
-  justify-content: center;
-  gap: 5px;
-  flex-wrap: wrap;
+  align-items: center;
+  gap: .6rem;
+  justify-content: flex-end;
 }
 
-.btn-page {
-  padding: 8px 12px;
-  border: 1px solid #ddd;
-  background: white;
-  cursor: pointer;
-  border-radius: 4px;
-  font-size: 14px;
-}
-
-.btn-page.active {
-  background: #4a90e2;
-  color: white;
-  border-color: #4a90e2;
-}
-
-.btn-page:hover {
-  border-color: #4a90e2;
+@media (max-width: 700px) {
+  .events-table-wrapper {
+    max-height: clamp(240px, 52vh, 500px);
+  }
 }
 </style>

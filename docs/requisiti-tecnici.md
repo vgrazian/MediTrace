@@ -85,6 +85,19 @@ La sezione Gestione ospiti deve offrire tre azioni:
 - Il testo deve includere almeno: farmaco, quantità da ordinare, priorità e note operative.
 - Questo requisito è approvato ma **fuori dallo sviluppo corrente**: implementazione rimandata a una milestone successiva.
 
+### 1.10 Pannello audit operativo (sola lettura)
+
+- Deve essere disponibile in app un pannello dedicato al **registro operazioni** in modalita' **sola lettura** (nessuna modifica dei record audit).
+- Ogni evento deve mostrare almeno: timestamp, operatore, azione, entita' e riferimento record.
+- Il pannello deve includere filtri per:
+  - **Operatore**
+  - **Ospite**
+  - **Farmaco**
+  - **Terapia**
+  - **Periodo** (data inizio/fine)
+- L'elenco eventi deve essere visualizzato in una finestra **scrollabile** che si adatta a desktop/tablet/smartphone.
+- Deve essere possibile esportare il log in JSON per uso amministrativo.
+
 ---
 
 ## 2. Requisiti Non Funzionali
