@@ -3,9 +3,10 @@ import { computed, onMounted, ref } from 'vue'
 import { db, getSetting } from '../db'
 import { useAuth } from '../services/auth'
 import { upsertDrug, deleteDrug, upsertBatch, deactivateBatch } from '../services/farmaci'
-import { confirmDeleteDrug, confirmDeleteBatch } from '../services/confirmations'
+import { confirmDeleteDrug, confirmDeleteBatch, confirmDeleteMultiple } from '../services/confirmations'
 import { useFormValidation } from '../services/formValidation'
 import ValidatedInput from '../components/ValidatedInput.vue'
+import { useSelection } from '../composables/useSelection'
 
 const { currentUser } = useAuth()
 
@@ -81,6 +82,28 @@ const batchForm = ref({
 })
 
 const canCreateBatch = computed(() => drugs.value.length > 0)
+
+const {
+  allSelected: allDrugsSelected,
+  someSelected: someDrugsSelected,
+  selectedCount: selectedDrugsCount,
+  toggleSelection: toggleDrugSelection,
+  toggleSelectAll: toggleAllDrugs,
+  clearSelection: clearDrugSelection,
+  isSelected: isDrugSelected,
+  getSelectedItems: getSelectedDrugs,
+} = useSelection(drugs)
+
+const {
+  allSelected: allBatchesSelected,
+  someSelected: someBatchesSelected,
+  selectedCount: selectedBatchesCount,
+  toggleSelection: toggleBatchSelection,
+  toggleSelectAll: toggleAllBatches,
+  clearSelection: clearBatchSelection,
+  isSelected: isBatchSelected,
+  getSelectedItems: getSelectedBatches,
+} = useSelection(batches)
 
 function drugLabel(drugId) {
   const item = drugs.value.find(drug => drug.id === drugId)
@@ -252,6 +275,7 @@ function openAddBatchForm() {
 function startEditDrug(drug) {
   editingDrugId.value = drug.id
   panelMode.value = 'edit-drug'
+  isFormOpen.value = true
   drugForm.value = {
     nomeFarmaco: drug.nomeFarmaco || '',
     principioAttivo: drug.principioAttivo || '',
@@ -263,6 +287,7 @@ function startEditDrug(drug) {
 function startEditBatch(batch) {
   editingBatchId.value = batch.id
   panelMode.value = 'edit-batch'
+  isFormOpen.value = true
   batchForm.value = {
     drugId: batch.drugId || '',
     nomeCommerciale: batch.nomeCommerciale || '',
@@ -320,6 +345,92 @@ async function deleteDrugRecord(drug) {
   }
 }
 
+function openEditDrugForm() {
+  if (selectedDrugsCount.value !== 1) return
+  const selectedDrug = getSelectedDrugs()[0]
+  if (!selectedDrug) return
+  startEditDrug(selectedDrug)
+}
+
+function openEditBatchForm() {
+  if (selectedBatchesCount.value !== 1) return
+  const selectedBatch = getSelectedBatches()[0]
+  if (!selectedBatch) return
+  startEditBatch(selectedBatch)
+}
+
+async function deleteSelectedDrugs() {
+  if (selectedDrugsCount.value === 0) return
+
+  const selectedDrugs = getSelectedDrugs()
+  const confirmed = await confirmDeleteMultiple(
+    selectedDrugsCount.value,
+    selectedDrugsCount.value === 1 ? 'farmaco' : 'farmaci',
+  )
+  if (!confirmed) return
+
+  message.value = ''
+  errorMessage.value = ''
+
+  try {
+    for (const drug of selectedDrugs) {
+      await deleteDrug({
+        drugId: drug.id,
+        existing: drug,
+        operatorId: currentUser.value?.login ?? null,
+      })
+    }
+
+    if (editingDrugId.value && selectedDrugs.some(drug => drug.id === editingDrugId.value)) {
+      resetDrugForm()
+    }
+
+    clearDrugSelection()
+    message.value = selectedDrugs.length === 1
+      ? 'Farmaco eliminato.'
+      : `${selectedDrugs.length} farmaci eliminati.`
+    await loadData()
+  } catch (err) {
+    errorMessage.value = `Errore eliminazione farmaco: ${err.message}`
+  }
+}
+
+async function deleteSelectedBatches() {
+  if (selectedBatchesCount.value === 0) return
+
+  const selectedBatches = getSelectedBatches()
+  const confirmed = await confirmDeleteMultiple(
+    selectedBatchesCount.value,
+    selectedBatchesCount.value === 1 ? 'confezione' : 'confezioni',
+  )
+  if (!confirmed) return
+
+  message.value = ''
+  errorMessage.value = ''
+
+  try {
+    for (const batch of selectedBatches) {
+      await deactivateBatch({
+        batchId: batch.id,
+        existing: batch,
+        operatorId: currentUser.value?.login ?? null,
+      })
+    }
+
+    if (editingBatchId.value && selectedBatches.some(batch => batch.id === editingBatchId.value)) {
+      resetBatchForm()
+    }
+
+    clearBatchSelection()
+    message.value = selectedBatches.length === 1
+      ? 'Confezione eliminata.'
+      : `${selectedBatches.length} confezioni eliminate.`
+    await loadData()
+  } catch (err) {
+    errorMessage.value = `Errore eliminazione confezione: ${err.message}`
+  }
+}
+
 onMounted(() => {
   void loadData()
 })
@@ -333,12 +444,33 @@ onMounted(() => {
       <p><strong>Farmaci registrati</strong></p>
       <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.75rem">
         <button @click="openAddDrugForm">Aggiungi</button>
+        <button :disabled="selectedDrugsCount !== 1" @click="openEditDrugForm">Modifica</button>
+        <button
+          :disabled="selectedDrugsCount === 0"
+          style="background:#c0392b"
+          @click="deleteSelectedDrugs"
+        >
+          Elimina{{ selectedDrugsCount > 0 ? ` (${selectedDrugsCount})` : '' }}
+        </button>
       </div>
+      <p v-if="selectedDrugsCount > 0" class="muted" style="margin-top:.55rem">
+        {{ selectedDrugsCount }} farmac{{ selectedDrugsCount > 1 ? 'i' : 'o' }} selezionat{{ selectedDrugsCount > 1 ? 'i' : 'o' }}.
+        <button type="button" style="margin-left:.4rem" @click="clearDrugSelection">Deseleziona tutto</button>
+      </p>
       <p v-if="loading" class="muted" style="margin-top:.5rem">Caricamento...</p>
 
       <table class="conflict-table" style="margin-top:.75rem">
         <thead>
           <tr>
+            <th style="width:2.5rem">
+              <input
+                type="checkbox"
+                :checked="allDrugsSelected"
+                :indeterminate.prop="someDrugsSelected"
+                aria-label="Seleziona tutti i farmaci"
+                @change="toggleAllDrugs"
+              />
+            </th>
             <th>Nome farmaco</th>
             <th>Principio attivo</th>
             <th>Classe</th>
@@ -347,7 +479,19 @@ onMounted(() => {
           </tr>
         </thead>
         <tbody>
-          <tr v-for="drug in drugs" :key="drug.id">
+          <tr
+            v-for="drug in drugs"
+            :key="drug.id"
+            :style="isDrugSelected(drug.id) ? 'background:rgba(52, 152, 219, 0.12)' : undefined"
+          >
+            <td>
+              <input
+                type="checkbox"
+                :checked="isDrugSelected(drug.id)"
+                :aria-label="`Seleziona farmaco ${drug.nomeFarmaco || drug.principioAttivo || drug.id}`"
+                @change="toggleDrugSelection(drug.id)"
+              />
+            </td>
             <td>{{ drug.nomeFarmaco || '—' }}</td>
             <td>{{ drug.principioAttivo }}</td>
             <td>{{ drug.classeTerapeutica || '—' }}</td>
@@ -358,7 +502,7 @@ onMounted(() => {
             </td>
           </tr>
           <tr v-if="drugs.length === 0 && !loading">
-            <td colspan="5" class="muted">Nessun farmaco disponibile.</td>
+            <td colspan="6" class="muted">Nessun farmaco disponibile.</td>
           </tr>
         </tbody>
       </table>
@@ -368,11 +512,32 @@ onMounted(() => {
       <p><strong>Confezioni attive</strong></p>
       <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.75rem">
         <button @click="openAddBatchForm">Aggiungi</button>
+        <button :disabled="selectedBatchesCount !== 1" @click="openEditBatchForm">Modifica</button>
+        <button
+          :disabled="selectedBatchesCount === 0"
+          style="background:#c0392b"
+          @click="deleteSelectedBatches"
+        >
+          Elimina{{ selectedBatchesCount > 0 ? ` (${selectedBatchesCount})` : '' }}
+        </button>
       </div>
+      <p v-if="selectedBatchesCount > 0" class="muted" style="margin-top:.55rem">
+        {{ selectedBatchesCount }} confezion{{ selectedBatchesCount > 1 ? 'i' : 'e' }} selezionat{{ selectedBatchesCount > 1 ? 'i' : 'a' }}.
+        <button type="button" style="margin-left:.4rem" @click="clearBatchSelection">Deseleziona tutto</button>
+      </p>
 
       <table class="conflict-table" style="margin-top:.75rem">
         <thead>
           <tr>
+            <th style="width:2.5rem">
+              <input
+                type="checkbox"
+                :checked="allBatchesSelected"
+                :indeterminate.prop="someBatchesSelected"
+                aria-label="Seleziona tutte le confezioni"
+                @change="toggleAllBatches"
+              />
+            </th>
             <th>Farmaco</th>
             <th>Nome commerciale</th>
             <th>Dosaggio</th>
@@ -383,7 +548,19 @@ onMounted(() => {
           </tr>
         </thead>
         <tbody>
-          <tr v-for="batch in batches" :key="batch.id">
+          <tr
+            v-for="batch in batches"
+            :key="batch.id"
+            :style="isBatchSelected(batch.id) ? 'background:rgba(52, 152, 219, 0.12)' : undefined"
+          >
+            <td>
+              <input
+                type="checkbox"
+                :checked="isBatchSelected(batch.id)"
+                :aria-label="`Seleziona confezione ${batch.nomeCommerciale}`"
+                @change="toggleBatchSelection(batch.id)"
+              />
+            </td>
             <td>{{ drugLabel(batch.drugId) }}</td>
             <td>{{ batch.nomeCommerciale }}</td>
             <td>{{ batch.dosaggio || '—' }}</td>
@@ -396,7 +573,7 @@ onMounted(() => {
             </td>
           </tr>
           <tr v-if="batches.length === 0 && !loading">
-            <td colspan="7" class="muted">Nessuna confezione attiva disponibile.</td>
+            <td colspan="8" class="muted">Nessuna confezione attiva disponibile.</td>
           </tr>
         </tbody>
       </table>
