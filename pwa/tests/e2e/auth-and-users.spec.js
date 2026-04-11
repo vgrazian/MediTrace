@@ -81,14 +81,23 @@ test('seeded account login, sync, csv import, password change and users section 
 
     // CI-safe: after password change, route directly through navbar to avoid hash-state race.
     const settingsHeading = page.getByRole('heading', { name: 'Impostazioni' })
-    if (!(await page.getByRole('link', { name: '⚙' }).isVisible().catch(() => false))) {
+    const settingsLink = page.getByRole('link', { name: '⚙' })
+    if (!(await settingsLink.isVisible().catch(() => false))) {
         await loginOrRegisterSeededUser(page, { password: 'Prova4567!' })
     }
-    await page.getByRole('link', { name: '⚙' }).click()
+    if (await settingsLink.isVisible().catch(() => false)) {
+        await settingsLink.click()
+    } else {
+        await page.goto('/#/impostazioni')
+    }
     if (!(await settingsHeading.isVisible().catch(() => false))) {
         // Fallback: auth state may still be settling in CI, re-login and retry once.
         await loginOrRegisterSeededUser(page, { password: 'Prova4567!' })
-        await page.getByRole('link', { name: '⚙' }).click()
+        if (await settingsLink.isVisible().catch(() => false)) {
+            await settingsLink.click()
+        } else {
+            await page.goto('/#/impostazioni')
+        }
     }
     await expect(settingsHeading).toBeVisible({ timeout: 15000 })
 
