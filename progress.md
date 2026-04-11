@@ -25,7 +25,7 @@ PR #53 has been merged to main. New feature work is in progress on `feat/simplif
    - PR #52 merged to main (profile update nome/cognome/telefono/email + password flow)
    - post-merge quality gate and deploy pipelines verified successful
 10. CI workflow syntax maintenance released:
-   - PR #53 merged to main (`chore(ci): normalize workflow secrets access syntax`)
+- PR #53 merged to main (`chore(ci): normalize workflow secrets access syntax`)
 
 ## Immediate Next Steps
 1. Finalize FarmaciView slice 2 implementation (multi-select farmaci + confezioni).
