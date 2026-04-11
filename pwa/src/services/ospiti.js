@@ -8,6 +8,14 @@
  */
 import { db, enqueue, getSetting } from '../db'
 import { generateEntityId } from './ids'
+import { AppError, ErrorCategory, ErrorSeverity } from './errorHandling'
+
+function isActiveTherapy(therapy) {
+    if (!therapy || therapy.deletedAt) return false
+    if (therapy.attiva === false) return false
+    if (therapy.dataFine) return false
+    return true
+}
 
 export function formatHostDisplay(host) {
     if (!host) return '—'
@@ -140,6 +148,23 @@ export async function createHost({
 export async function deactivateHost({ hostId, operatorId }) {
     const host = await db.hosts.get(hostId)
     if (!host || host.deletedAt) throw new Error(`Ospite "${hostId}" non trovato`)
+
+    const allTherapies = await (db.therapies?.toArray?.() ?? Promise.resolve([]))
+    const activeTherapies = allTherapies
+        .filter(therapy => therapy.hostId === hostId)
+        .filter(isActiveTherapy)
+    if (activeTherapies.length > 0) {
+        throw new AppError(
+            'Impossibile eliminare l\'ospite: sono presenti terapie attive. Disattivare o chiudere prima le terapie collegate.',
+            {
+                category: ErrorCategory.CONFLICT,
+                severity: ErrorSeverity.HIGH,
+                code: 'HOST_HAS_ACTIVE_THERAPIES',
+                recoverable: true,
+                technicalDetails: { hostId, therapyIds: activeTherapies.map(therapy => therapy.id) },
+            },
+        )
+    }
 
     const now = new Date().toISOString()
     const deviceId = await getSetting('deviceId', 'unknown')

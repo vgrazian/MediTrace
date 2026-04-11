@@ -202,4 +202,29 @@ export async function confirmDeactivateRoom(roomName) {
     })
 }
 
+/**
+ * Confirm deletion of multiple selected items.
+ *
+ * This helper supports the PR52 selection-based CRUD workflow by providing a
+ * single, consistent confirmation message for bulk destructive actions.
+ *
+ * @param {number} count
+ * Number of selected items that will be deleted.
+ * @param {string} [itemType='elementi']
+ * Human-readable plural or singular label for the selected item type.
+ * @returns {Promise<boolean>}
+ * True when the user confirms the bulk deletion.
+ */
+export async function confirmDeleteMultiple(count, itemType = 'elementi') {
+    const message = count === 1
+        ? `Sei sicuro di voler eliminare questo ${itemType}?`
+        : `Sei sicuro di voler eliminare ${count} ${itemType}?`
+
+    const details = count > 1
+        ? `Questa azione eliminerà ${count} ${itemType} e non può essere annullata.`
+        : 'Questa azione non può essere annullata.'
+
+    return globalThis.confirm(`${message}\n\n${details}`)
+}
+
 // Made with Bob

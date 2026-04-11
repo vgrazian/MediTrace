@@ -56,6 +56,7 @@ export function formatUserError(context, error) {
 [`sync.js:45`](pwa/src/services/sync.js:45) - `fullSync()` returns `{ skipped: true }` without user notification when token is missing. Users may believe data is syncing when it's not.
 
 **Current Code:**
+
 ```javascript
 export async function fullSync(token) {
     if (!token) return { skipped: true, reason: 'no-token' }
@@ -64,6 +65,7 @@ export async function fullSync(token) {
 ```
 
 **Recommendation:**
+
 ```javascript
 export async function fullSync(token) {
     if (!token) {
@@ -93,6 +95,7 @@ if (!res.ok) throw new Error(`Gist create failed: ${res.status}`)
 ```
 
 **Recommendation:**
+
 ```javascript
 if (!res.ok) {
     const error = new NetworkError(`Impossibile creare Gist (${res.status})`)
@@ -334,6 +337,7 @@ export async function upsertDrug({
 - [`auth.js:47`](pwa/src/services/auth.js:47): `ts: now`
 
 **Recommendation:**
+
 ```javascript
 // Clear naming
 export const database = new Dexie('meditrace')
@@ -389,6 +393,7 @@ const LAST_WRITE_WINS_TABLES = ['hosts', 'drugs', 'stockBatches', 'therapies']
 ```
 
 **Recommendation:**
+
 ```javascript
 // db/constants.js
 export const TableNames = {
@@ -472,6 +477,7 @@ if (!nomeFarmaco || !principioAttivo) {
 - No field-level feedback
 
 **Recommendation:**
+
 ```vue
 <template>
   <div class="form-field" :class="{ 'has-error': errors.drugName }">
@@ -516,6 +522,7 @@ No keyboard shortcuts for common actions:
 - No arrow key navigation in lists
 
 **Recommendation:**
+
 ```vue
 <script setup>
 import { onMounted, onUnmounted } from 'vue'
@@ -553,6 +560,7 @@ Multiple date formatting approaches:
 - Some places show ISO strings directly
 
 **Recommendation:**
+
 ```javascript
 // services/formatting.js
 export const DateFormat = {
@@ -598,6 +606,7 @@ Empty lists show no guidance:
 ```
 
 **Recommendation:**
+
 ```vue
 <div v-if="drugs.length === 0" class="empty-state">
   <img src="/icons/empty-drugs.svg" alt="" />
@@ -626,6 +635,7 @@ Empty lists show no guidance:
 ```
 
 **Recommendation:**
+
 ```css
 .app-nav button {
     padding: .5rem 1rem;
@@ -669,6 +679,7 @@ async function loadData() {
 ```
 
 **Recommendation:**
+
 ```javascript
 // composables/useDataLoader.js
 export function useDataLoader(loaderFn) {
@@ -767,6 +778,7 @@ function isTherapyActive(therapy, now = new Date()) {
 ```
 
 **Recommendation:**
+
 ```javascript
 function isTherapyActive(therapy, now = new Date()) {
     // Early returns for clear failure cases
@@ -807,6 +819,7 @@ const AUTH_SESSION_TTL_MS = AUTH_SESSION_TTL_MINUTES * 60 * 1000
 ```
 
 **Recommendation:**
+
 ```javascript
 // constants/time.js
 export const TimeConstants = {
@@ -843,6 +856,7 @@ Forms lack proper ARIA attributes:
 ```
 
 **Recommendation:**
+
 ```vue
 <div class="form-field">
     <label for="drug-name">Nome farmaco</label>
@@ -880,6 +894,7 @@ Forms lack proper ARIA attributes:
 ```
 
 **Recommendation:**
+
 ```css
 :root {
     /* Ensure 4.5:1 contrast ratio for normal text */
@@ -909,6 +924,7 @@ Forms lack proper ARIA attributes:
 Custom focus styles may be missing or inconsistent.
 
 **Recommendation:**
+
 ```css
 /* Global focus indicator */
 *:focus-visible {
@@ -956,6 +972,7 @@ Generic `<div>` elements used instead of semantic HTML:
 ```
 
 **Recommendation:**
+
 ```vue
 <article class="card">
     <header class="card-header">
@@ -1003,6 +1020,7 @@ const rows = computed(() => buildHostRows({
 ```
 
 **Recommendation:**
+
 ```javascript
 import { computed, shallowRef } from 'vue'
 
@@ -1047,6 +1065,7 @@ All records rendered at once:
 ```
 
 **Recommendation:**
+
 ```vue
 <script setup>
 import { ref, computed } from 'vue'
@@ -1104,6 +1123,7 @@ const mapped = sorted.map(h => ({ ...h, label: formatLabel(h) }))
 ```
 
 **Recommendation:**
+
 ```javascript
 // Single pass
 const processed = hosts
@@ -1129,6 +1149,7 @@ Current coverage: 66% statements, 53% branches - below industry standard (80%+)
 
 **Recommendation:**
 1. Add tests for edge cases:
+
 ```javascript
 describe('isTherapyActive', () => {
     it('returns false for null therapy', () => {
@@ -1156,8 +1177,8 @@ describe('isTherapyActive', () => {
 })
 ```
 
-2. Add integration tests for critical flows
-3. Add visual regression tests for UI components
+1. Add integration tests for critical flows
+2. Add visual regression tests for UI components
 
 ---
 
@@ -1177,6 +1198,7 @@ export async function createHost(...) {
 ```
 
 **Recommendation:**
+
 ```javascript
 // services/storage.js - Abstract storage layer
 export class StorageAdapter {
@@ -1226,6 +1248,7 @@ const props = defineProps({
 ```
 
 **Recommendation:**
+
 ```vue
 <script setup>
 /**
@@ -1277,24 +1300,24 @@ const emit = defineEmits(['edit', 'delete'])
 5. Issue 6.1: ARIA labels
 
 ### Phase 2: High-Impact Improvements (Week 2-3)
-6. Issue 2.1: Standardize API signatures
-7. Issue 3.1: Language consistency
-8. Issue 4.3: Keyboard navigation
-9. Issue 4.4: Date formatting
-10. Issue 6.2: Color contrast
+1. Issue 2.1: Standardize API signatures
+2. Issue 3.1: Language consistency
+3. Issue 4.3: Keyboard navigation
+4. Issue 4.4: Date formatting
+5. Issue 6.2: Color contrast
 
 ### Phase 3: Quality of Life (Week 4-5)
-11. Issue 2.3: Simplify function signatures
-12. Issue 3.3: Naming conventions
-13. Issue 4.5: Empty states
-14. Issue 5.1: Data loading composable
-15. Issue 7.1: Performance optimization
+1. Issue 2.3: Simplify function signatures
+2. Issue 3.3: Naming conventions
+3. Issue 4.5: Empty states
+4. Issue 5.1: Data loading composable
+5. Issue 7.1: Performance optimization
 
 ### Phase 4: Polish & Documentation (Week 6)
-16. Issue 5.4: Magic numbers
-17. Issue 7.2: Pagination
-18. Issue 8.1: Test coverage
-19. Issue 8.3: Component documentation
+1. Issue 5.4: Magic numbers
+2. Issue 7.2: Pagination
+3. Issue 8.1: Test coverage
+4. Issue 8.3: Component documentation
 
 ---
 
@@ -1410,21 +1433,90 @@ Each improvement includes concrete examples and actionable recommendations. Impl
 
 ### Phase 2: User Safety & Validation (P0)
 
-#### 🔄 PR #48: Destructive Action Confirmations (Issue 4.1) - PLANNED
-**Status:** Not started
-**Scope:**
-- Add confirmation dialogs for delete operations
-- Implement undo functionality for critical actions
-- Add "Are you sure?" prompts with clear consequences
+#### ✅ PR #49: Destructive Action Confirmations (Issue 4.1)
+**Status:** MERGED to main on 2026-04-06 20:18:49 UTC
+**Changes:**
+- Created `confirmations.js` service with 9 specialized confirmation functions
+- Updated 6 views: OspitiView, ScorteView, PromemoriaView, MovimentiView, ImpostazioniView, FarmaciView
+- Added context-specific messages with consequences listed
+- 14 unit tests with 100% coverage
+
+**Files Modified:**
+- `pwa/src/services/confirmations.js` (new)
+- `pwa/tests/unit/confirmations.spec.js` (new)
+- 6 view files updated
+
+**Impact:**
+- ✅ Prevents accidental data loss
+- ✅ Improves user confidence
+- ✅ Clear communication of action consequences
 
 ---
 
-#### 🔄 PR #50: Form Validation Feedback (Issue 4.2) - PLANNED
-**Status:** Not started
-**Scope:**
-- Real-time validation with inline error messages
-- Clear validation rules display
-- Prevent form submission with invalid data
+#### 🔄 PR #50: Form Validation Feedback (Issue 4.2) - IN PROGRESS
+**Status:** Draft PR Updated - Foundation Complete + 3 Views (85%)
+**PR:** https://github.com/vgrazian/MediTrace/pull/50
+**Branch:** feat/form-validation-feedback
+**Estimated Remaining:** 2-4 hours
+**Last Updated:** 2026-04-09 15:37 CET
+
+**Completed (Part 1 - Foundation):**
+- COMPLETED: Created `formValidation.js` service (254 lines, 11 validation rules)
+- COMPLETED: Implemented `useFormValidation()` composable with reactive state
+- COMPLETED: Created `ValidatedInput.vue` reusable component (165 lines)
+- COMPLETED: Added 43 comprehensive unit tests (94.52% coverage)
+- COMPLETED: Created detailed documentation and implementation guide
+- COMPLETED: Build verified successful after latest changes (1.12s)
+
+**Completed (Part 2 - View Integration):**
+- COMPLETED: **FarmaciView.vue**
+  - Drug form: 4 fields validated (nomeFarmaco, principioAttivo, classeTerapeutica, scortaMinima)
+  - Batch form: 6 fields validated (drugId, nomeCommerciale, dosaggio, quantitaAttuale, sogliaRiordino, scadenza)
+  - Submit buttons disabled when errors present
+  - Full ARIA support with aria-invalid, aria-describedby, aria-required
+  - Error clearing on form reset
+  - Inline validation on blur
+- COMPLETED: **OspitiView.vue**
+  - Added reusable validation integration with `ValidatedInput`
+  - Added validation for nome, cognome, dataNascita, codiceFiscale, roomId
+  - Added required room selection and submit gating on validation errors
+- COMPLETED: **TerapieView.vue**
+  - Added reusable validation integration with `ValidatedInput`
+  - Added validation for hostId, drugId, dosePerSomministrazione, somministrazioniGiornaliere, dataInizio, dataFine, note
+  - Added submit gating on validation errors
+
+**Validation Rules:**
+1. required, 2. minLength, 3. maxLength, 4. email, 5. numeric
+2. positiveNumber, 7. integer, 8. date, 9. futureDate, 10. pattern, 11. custom
+
+**Remaining Scope Under Review:**
+- [ ] Update PromemoriaView.vue
+- [ ] Update MovimentiView.vue
+- [ ] Confirm whether ImpostazioniView.vue still has in-scope validation work
+- [ ] Decide whether a dedicated E2E validation suite is required beyond targeted test updates
+
+**Files Created:**
+- `pwa/src/services/formValidation.js` (new)
+- `pwa/src/components/ValidatedInput.vue` (new)
+- `pwa/tests/unit/formValidation.spec.js` (new)
+- `pwa/src/services/README-formValidation.md` (new)
+- `docs/archive/PR50-IMPLEMENTATION-GUIDE.md` (new)
+- `docs/archive/PR50-STATUS.md` (new)
+- `CHANGELOG.md` (new)
+- `progress.md` (new)
+
+**Files Modified:**
+- `pwa/src/views/FarmaciView.vue` (updated with validation system)
+- `pwa/src/views/OspitiView.vue` (updated with validation system)
+- `pwa/src/views/TerapieView.vue` (updated with validation system)
+- `pwa/tests/e2e/ospiti.spec.js` (updated for required room selection)
+- `pwa/tests/e2e/terapie.spec.js` (updated for required start date)
+- `pwa/package.json` (version updated to 0.2.0)
+
+**Accessibility:**
+- COMPLETED: ARIA attributes (aria-invalid, aria-describedby, aria-required)
+- COMPLETED: Screen reader support and visual error indicators
+- COMPLETED: Error messages announced to screen readers with role="alert"
 
 ---
 
@@ -1441,14 +1533,238 @@ Each improvement includes concrete examples and actionable recommendations. Impl
 
 ### Summary
 
-**Completed:** 2/47 issues (4.3%)
-**In Progress:** 0/47 issues
-**Planned:** 3/47 issues (6.4%)
-**Remaining:** 42/47 issues (89.3%)
+**Completed:** 3/47 issues (6.4%)
+- ✅ PR #46: Centralized Error Handling (Issue 1.1)
+- ✅ PR #47: Sync Failure Notifications (Issue 1.2)
+- ✅ PR #49: Destructive Action Confirmations (Issue 4.1)
+
+**In Progress:** 1/47 issues (2.1%)
+- 🔄 PR #50: Form Validation Feedback (Issue 4.2) - 85% complete
+
+**Planned:** 1/47 issues (2.1%)
+- 📋 PR #51: ARIA Labels and Keyboard Navigation (Issue 6.1)
+
+**Remaining:** 42/47 issues (89.4%)
 
 **Next Steps:**
-1. Implement destructive action confirmations (PR #48)
-2. Add form validation feedback (PR #49)
-3. Improve accessibility with ARIA labels (PR #50)
+1. Reconcile final PR #50 scope for remaining views and tests
+2. Implement ARIA labels and keyboard navigation (PR #51)
+3. Continue with remaining P1 and P2 issues
 
-All changes must be accompanied by comprehensive tests and must pass the existing quality gates before merging to main.
+**Progress Metrics:**
+- Total PRs merged: 3
+- Total PRs in progress: 1 (draft)
+- Test coverage maintained: >90% unit, >80% E2E
+- All CI/CD checks passing
+
+---
+
+## NEW REQUIREMENT: Issue 4.7 - Simplified CRUD Operations
+
+### 🔴 Issue 4.7: Complex Daily Operations Workflow (P0 Critical)
+
+**Category:** User Experience & Interface Ergonomics  
+**Priority:** P0 (Critical)  
+**Effort:** Medium (8-12 hours)  
+**Impact:** High - Significantly improves daily workflow efficiency  
+**Added:** 2026-04-07
+
+**Problem:**
+Current CRUD operations require multiple steps and are not intuitive for daily use:
+- No clear "Add" button visible on each panel
+- Edit operations require navigating through forms
+- Delete operations don't support multiple selections
+- No visual indication of selected items
+- Workflow is cumbersome for bulk operations
+
+**Current Pattern (Problematic):**
+
+```vue
+<!-- Current: Hidden or unclear action buttons -->
+<div class="actions">
+  <button @click="showForm = true">Nuovo</button>
+</div>
+
+<!-- Current: No selection mechanism -->
+<div v-for="item in items" :key="item.id">
+  <span>{{ item.name }}</span>
+  <button @click="deleteItem(item.id)">Elimina</button>
+</div>
+```
+
+**Proposed Solution:**
+
+1. **Add Simple Action Buttons on Each Panel:**
+   - Clear "Aggiungi" (Add) button always visible
+   - "Modifica" (Edit) button enabled when ONE item selected
+   - "Elimina" (Delete) button enabled when items selected (supports multiple)
+
+2. **Checkbox Selection System:**
+   - Checkbox on each row for selection
+   - "Select All" checkbox in table header
+   - Visual indication of selected items (highlighted row)
+   - Selection count display
+
+3. **Improved Button States:**
+   - Disabled state when no selection
+   - Tooltip explaining why button is disabled
+   - Clear visual feedback on hover
+
+**Implementation Plan:**
+
+1. **Create Selection Composable** (1 hour)
+   - `useSelection.js` composable for reusable selection logic
+   - File: `pwa/src/composables/useSelection.js`
+
+2. **Update All Views** (5-6 hours)
+   - FarmaciView.vue
+   - OspitiView.vue
+   - TerapieView.vue
+   - PromemoriaView.vue
+   - MovimentiView.vue
+   - ScorteView.vue
+   - StanzeView.vue
+
+3. **Update Confirmation Service** (1 hour)
+   - Add `confirmDeleteMultiple()` function
+   - Handle singular vs plural messages
+
+4. **Add CSS Styles** (30 min)
+    - Selection highlight styles
+    - Button states
+
+5. **Create E2E Tests** (2-3 hours)
+    - Test selection mechanism
+    - Test bulk delete
+    - Test keyboard navigation
+
+**Benefits:**
+- ✅ Faster daily operations (fewer clicks)
+- ✅ Bulk delete support (major time saver)
+- ✅ Clear visual feedback
+- ✅ Intuitive workflow
+- ✅ Better accessibility
+
+**Estimated Effort:** 8-12 hours  
+**Priority:** P0 (Critical for daily usability)  
+**PR:** #52 (to be created)
+
+---
+
+**Last Updated:** 2026-04-07 09:30 CET
+
+---
+
+## NEW SECURITY ISSUE: Issue 9.1 - Registration Security
+
+### 🔴 Issue 9.1: Insecure Registration Flow (P0 Critical Security)
+
+**Category:** Security & Authentication  
+**Priority:** P0 (Critical Security Issue)  
+**Effort:** Medium (6-8 hours)  
+**Impact:** Critical - Prevents unauthorized access and data breaches  
+**Added:** 2026-04-07
+
+**Problem:**
+Current registration flow has critical security vulnerabilities:
+- ❌ No email verification required
+- ❌ No admin notification on new registrations
+- ❌ Immediate session creation without identity confirmation
+- ❌ Possible registration with fake emails
+- ❌ No audit trail for registration approvals
+
+**Current Insecure Flow:**
+
+```javascript
+async register({ username, password, githubToken, email }) {
+    const newUser = await buildAuthUser({ username, password, githubToken, email })
+    users.push(newUser)
+    await saveUsers(users)
+    
+    applySession(newUser)  // ⚠️ IMMEDIATE LOGIN - NO VERIFICATION
+    await writeSession(newUser)
+    // ⚠️ NO ADMIN NOTIFICATION
+}
+```
+
+**Security Risks:**
+1. **Email Spoofing** - Users can register with any email without verification
+2. **Unauthorized Access** - No admin control over who accesses healthcare data
+3. **GDPR Non-Compliance** - No verified consent for data processing
+4. **Audit Trail Gaps** - Admin unaware of new user registrations
+5. **Spam/Bot Registrations** - No protection against automated registrations
+
+**Proposed Secure Flow:**
+
+```
+User Registration Request
+         ↓
+Email Verification Link Sent
+         ↓
+User Clicks Verification Link
+         ↓
+Email Verified → Admin Notified
+         ↓
+User Status: ACTIVE (or PENDING_APPROVAL if approval required)
+         ↓
+User Can Login
+```
+
+**Implementation:**
+
+1. **Email Verification System** (3 hours)
+   - Add user status: `pending_verification`, `pending_approval`, `active`, `rejected`
+   - Generate verification token on registration
+   - Send verification email via Supabase
+   - Create `/verify-email?token=xxx` route
+   - Block login until email verified
+
+2. **Admin Notification System** (2 hours)
+   - Email notification to all admins on new registration
+   - Email notification when user verifies email
+   - In-app badge showing pending verifications count
+   - Admin panel to view/manage pending users
+
+3. **Optional Admin Approval** (1 hour)
+   - Configurable approval requirement
+   - Admin can approve/reject users
+   - Email notification to user on approval/rejection
+
+4. **Updated Login Flow** (30 min)
+   - Check user status before allowing login
+   - Show appropriate error messages
+   - Resend verification option
+
+**Benefits:**
+- ✅ Verified email ownership
+- ✅ Admin awareness and control
+- ✅ Complete audit trail
+- ✅ GDPR compliance
+- ✅ Spam/bot prevention
+- ✅ Healthcare data protection
+
+**Files to Modify:**
+- `pwa/src/services/auth.js` - Add verification logic
+- `pwa/src/views/ImpostazioniView.vue` - Admin panel for pending users
+- `pwa/src/router/index.js` - Add verification route
+- `pwa/tests/unit/auth.spec.js` - Add verification tests
+- `pwa/tests/e2e/auth-and-users.spec.js` - Add E2E tests
+
+**Configuration Required:**
+
+```bash
+VITE_REQUIRE_EMAIL_VERIFICATION=true
+VITE_REQUIRE_ADMIN_APPROVAL=false  # Optional
+VITE_VERIFICATION_TOKEN_EXPIRY_HOURS=24
+```
+
+**Estimated Effort:** 6-8 hours  
+**Priority:** P0 (Critical - Must fix before production)  
+**PR:** #53 (to be created)
+
+**Related Documentation:** `docs/ISSUE-9.1-REGISTRATION-SECURITY.md` (717 lines)
+
+---
+
+**Last Updated:** 2026-04-07 09:45 CET
+All changes are accompanied by comprehensive tests and must pass existing quality gates before merging to main.

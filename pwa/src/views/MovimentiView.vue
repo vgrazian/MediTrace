@@ -4,6 +4,8 @@ import { db } from '../db'
 import { useAuth } from '../services/auth'
 import { softDeleteMovement, upsertMovement } from '../services/movimenti'
 import { confirmDeleteMovement } from '../services/confirmations'
+import { useFormValidation } from '../services/formValidation'
+import ValidatedInput from '../components/ValidatedInput.vue'
 
 const { currentUser } = useAuth()
 
@@ -27,6 +29,24 @@ const form = ref({
   hostId: '',
   therapyId: '',
   note: '',
+})
+
+const {
+  errors,
+  validateField,
+  validateForm,
+  clearErrors,
+  hasErrors,
+} = useFormValidation({
+  stockBatchId: { required: true },
+  tipoMovimento: { required: true },
+  quantita: { required: true, numeric: true, positiveNumber: true },
+  note: { maxLength: 500 },
+}, {
+  stockBatchId: 'Confezione',
+  tipoMovimento: 'Tipo movimento',
+  quantita: 'Quantita',
+  note: 'Note',
 })
 
 const canCreateMovement = computed(() => {
@@ -125,8 +145,8 @@ async function saveMovement() {
   message.value = ''
   errorMessage.value = ''
 
-  if (!form.value.stockBatchId) {
-    errorMessage.value = 'Seleziona una confezione.'
+  if (!validateForm(form.value)) {
+    errorMessage.value = 'Correggi gli errori nel form prima di salvare.'
     return
   }
 
@@ -212,6 +232,7 @@ function resetForm() {
     therapyId: '',
     note: '',
   }
+  clearErrors()
 }
 
 async function deleteMovement(movement) {
@@ -300,28 +321,52 @@ onMounted(() => {
           <div class="import-form" style="margin-top:.65rem">
             <label>
               Confezione
-              <select v-model="form.stockBatchId" :disabled="saving || !stockBatches.length">
+              <select
+                v-model="form.stockBatchId"
+                :disabled="saving || !stockBatches.length"
+                :aria-invalid="!!errors.stockBatchId"
+                :aria-describedby="errors.stockBatchId ? 'stockBatchId-error' : undefined"
+                @blur="validateField('stockBatchId', form.stockBatchId)"
+              >
                 <option value="">Seleziona confezione</option>
                 <option v-for="batch in stockBatches" :key="batch.id" :value="batch.id">
                   {{ batchLabel(batch) }}
                 </option>
               </select>
+              <span v-if="errors.stockBatchId" id="stockBatchId-error" class="error-message" role="alert">
+                {{ errors.stockBatchId }}
+              </span>
             </label>
 
             <label>
               Tipo movimento
-              <select v-model="form.tipoMovimento" :disabled="saving">
+              <select
+                v-model="form.tipoMovimento"
+                :disabled="saving"
+                :aria-invalid="!!errors.tipoMovimento"
+                :aria-describedby="errors.tipoMovimento ? 'tipoMovimento-error' : undefined"
+                @blur="validateField('tipoMovimento', form.tipoMovimento)"
+              >
                 <option value="carico">Carico</option>
                 <option value="scarico">Scarico</option>
                 <option value="somministrazione">Somministrazione</option>
                 <option value="correzione">Correzione</option>
               </select>
+              <span v-if="errors.tipoMovimento" id="tipoMovimento-error" class="error-message" role="alert">
+                {{ errors.tipoMovimento }}
+              </span>
             </label>
 
-            <label>
-              Quantita
-              <input v-model="form.quantita" type="number" min="0" step="0.01" :disabled="saving" />
-            </label>
+            <ValidatedInput
+              v-model="form.quantita"
+              field-name="quantita"
+              label="Quantita"
+              type="number"
+              :error="errors.quantita"
+              :required="true"
+              :disabled="saving"
+              @validate="(field, value) => validateField(field, value)"
+            />
 
             <label>
               Data e ora
@@ -348,12 +393,18 @@ onMounted(() => {
               </select>
             </label>
 
-            <label>
-              Note
-              <input v-model="form.note" type="text" placeholder="Dettaglio operativo" :disabled="saving" />
-            </label>
+            <ValidatedInput
+              v-model="form.note"
+              field-name="note"
+              label="Note"
+              type="text"
+              placeholder="Dettaglio operativo"
+              :error="errors.note"
+              :disabled="saving"
+              @validate="(field, value) => validateField(field, value)"
+            />
 
-            <button :disabled="saving || !canCreateMovement" @click="saveMovement">
+            <button :disabled="saving || !canCreateMovement || hasErrors" @click="saveMovement">
               {{ saving ? 'Registrazione...' : (editingMovementId ? 'Salva modifica' : 'Registra movimento') }}
             </button>
             <button type="button" :disabled="saving" @click="resetForm">Annulla</button>

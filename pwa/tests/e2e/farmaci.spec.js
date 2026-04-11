@@ -34,7 +34,7 @@ test('farmaci view supports creating and deactivating stock batch', async ({ pag
     await page.locator('select').first().selectOption('Tachipirina Test (Paracetamolo Test)')
     await page.getByLabel('Nome commerciale').fill('Tachipirina Test')
     await page.getByLabel('Dosaggio').fill('500mg')
-    await page.getByLabel("Quantita' attuale").fill('12')
+    await page.getByLabel(/Quantit.* attuale/).fill('12')
     await page.getByLabel('Soglia riordino').fill('4')
     await page.getByRole('button', { name: 'Salva confezione' }).click()
 
@@ -42,8 +42,9 @@ test('farmaci view supports creating and deactivating stock batch', async ({ pag
     await expect(page.locator('tbody tr', { hasText: 'Tachipirina Test' }).first()).toBeVisible()
 
     page.once('dialog', dialog => dialog.accept())
-    await page.getByRole('button', { name: 'Disattiva' }).first().click()
+    const batchRow = page.locator('tbody tr', { hasText: 'Tachipirina Test' }).nth(1)
+    await batchRow.getByRole('button', { name: 'Elimina' }).click()
 
-    await expect(page.getByText('Confezione disattivata.')).toBeVisible()
+    await expect(page.getByText('Confezione eliminata.')).toBeVisible()
     await expect(page.getByText('Nessuna confezione attiva disponibile.')).toBeVisible()
 })

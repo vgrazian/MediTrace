@@ -8,7 +8,8 @@ import {
     confirmDeleteMovement,
     confirmDeleteUser,
     confirmDeactivateTherapy,
-    confirmDeactivateRoom
+    confirmDeactivateRoom,
+    confirmDeleteMultiple
 } from '../../src/services/confirmations'
 
 describe('confirmations service', () => {
@@ -225,6 +226,32 @@ describe('confirmations service', () => {
         })
     })
 
+    describe('confirmDeleteMultiple', () => {
+        it('shows singular wording for one selected item', async () => {
+            confirmSpy.mockReturnValue(true)
+
+            const result = await confirmDeleteMultiple(1, 'farmaco')
+
+            expect(confirmSpy).toHaveBeenCalled()
+            expect(result).toBe(true)
+            const callArg = confirmSpy.mock.calls[0][0]
+            expect(callArg).toContain('eliminare questo farmaco')
+            expect(callArg).toContain('non può essere annullata')
+        })
+
+        it('shows plural wording for multiple selected items', async () => {
+            confirmSpy.mockReturnValue(true)
+
+            const result = await confirmDeleteMultiple(3, 'farmaci')
+
+            expect(confirmSpy).toHaveBeenCalled()
+            expect(result).toBe(true)
+            const callArg = confirmSpy.mock.calls[0][0]
+            expect(callArg).toContain('eliminare 3 farmaci')
+            expect(callArg).toContain('eliminerà 3 farmaci')
+        })
+    })
+
     describe('user cancellation', () => {
         it('returns false for all confirmation types when user cancels', async () => {
             confirmSpy.mockReturnValue(false)
@@ -237,6 +264,7 @@ describe('confirmations service', () => {
             expect(await confirmDeleteUser('Test')).toBe(false)
             expect(await confirmDeactivateTherapy('Test')).toBe(false)
             expect(await confirmDeactivateRoom('Test')).toBe(false)
+            expect(await confirmDeleteMultiple(2, 'elementi')).toBe(false)
         })
     })
 })

@@ -48,9 +48,13 @@ test('movimenti view supports registering a carico and a scarico', async ({ page
 
     await page.locator('summary', { hasText: 'Gestione Movimenti' }).click()
 
-    // Register a CARICO
+    // Validation should block invalid quantity after required fields are present
     const batchSelect = page.locator('select').filter({ has: page.getByRole('option', { name: 'Seleziona confezione' }) })
     await batchSelect.selectOption({ label: 'Ibuprofene E2E - Moment E2E' })
+    await page.getByLabel('Quantita').fill('0')
+    await expect(page.getByRole('button', { name: 'Registra movimento' })).toBeDisabled()
+
+    // Register a CARICO
     await page.getByLabel('Tipo movimento').selectOption('carico')
     await page.getByLabel('Quantita').fill('20')
     await page.getByRole('button', { name: 'Registra movimento' }).click()

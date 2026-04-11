@@ -14,7 +14,7 @@ MediTrace è un'applicazione **offline-first** per la gestione farmacologica in 
 | **Promemoria** | Agenda somministrazioni con esito (eseguito/saltato), filtri per data e ospite |
 | **Stanze & Letti** | Gestione unità fisiche e assegnazione letti agli ospiti |
 | **Sync** | Caricamento e scaricamento dati da Gist GitHub privato |
-| **Audit Log** | Cronologia operazioni con timestamp, operatore e tipo evento |
+| **Audit Log** | Registro operazioni in sola lettura con filtri per operatore, ospite, farmaco, terapia e periodo |
 | **Import CSV** | Bulk import da file CSV strutturati secondo i template inclusi |
 | **Home / KPI** | Cruscotto scorte critiche, terapie attive, promemoria in scadenza |
 
@@ -55,6 +55,7 @@ Dispositivo A                     GitHub Gist (privato)
 
 ```text
 docs/                            Documentazione tecnica e decisioni
+  archive/                       Checklist PR completate e documenti storici archiviati
   architecture.md                Architettura e scelte tecnologiche
   domain-model.md                Modello dati ed entità
   requisiti-tecnici.md           Specifiche funzionali e non-funzionali
@@ -137,6 +138,9 @@ npm --prefix pwa run test:unit
 
 # E2E con Playwright (Chromium + WebKit)
 npm --prefix pwa run test:e2e
+
+# Scenario operativo giornaliero (E2E user journey)
+npm --prefix pwa run -s test:e2e -- tests/e2e/daily-operations-scenario.spec.js
 
 # Suite completa (unit + E2E + palette check + build pre-verify)
 npm --prefix pwa run test
