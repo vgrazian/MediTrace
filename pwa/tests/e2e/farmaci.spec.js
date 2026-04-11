@@ -29,7 +29,12 @@ test('farmaci view supports creating and deactivating stock batch', async ({ pag
     await page.getByRole('button', { name: 'Salva farmaco' }).click()
 
     // Avoid flaky toast assertion on CI: verify persisted row directly.
-    await expect(page.getByRole('cell', { name: 'Tachipirina Test' })).toBeVisible()
+    await expect(page.getByRole('cell', { name: 'Tachipirina Test', exact: true })).toBeVisible()
+
+    await page.getByLabel('Seleziona farmaco Tachipirina Test').check()
+    await page.getByRole('button', { name: 'Modifica' }).first().click()
+    await expect(page.getByRole('button', { name: 'Salva modifica' })).toBeVisible()
+    await page.getByRole('button', { name: 'Annulla' }).first().click()
 
     await page.locator('select').first().selectOption('Tachipirina Test (Paracetamolo Test)')
     await page.getByLabel('Nome commerciale').fill('Tachipirina Test')
@@ -42,8 +47,9 @@ test('farmaci view supports creating and deactivating stock batch', async ({ pag
     await expect(page.locator('tbody tr', { hasText: 'Tachipirina Test' }).first()).toBeVisible()
 
     page.once('dialog', dialog => dialog.accept())
-    const batchRow = page.locator('tbody tr', { hasText: 'Tachipirina Test' }).nth(1)
-    await batchRow.getByRole('button', { name: 'Elimina' }).click()
+    await page.getByLabel('Seleziona confezione Tachipirina Test').check()
+    const batchCard = page.locator('.card', { hasText: 'Confezioni attive' })
+    await batchCard.getByRole('button', { name: 'Elimina (1)' }).click()
 
     await expect(page.getByText('Confezione eliminata.')).toBeVisible()
     await expect(page.getByText('Nessuna confezione attiva disponibile.')).toBeVisible()
