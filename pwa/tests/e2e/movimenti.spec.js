@@ -59,7 +59,7 @@ test('movimenti view supports registering a carico and a scarico', async ({ page
     await page.getByLabel('Quantita').fill('20')
     await page.getByRole('button', { name: 'Registra movimento' }).click()
 
-    await expect(page.getByText(/Movimento registrato/i)).toBeVisible()
+    await expect(page.getByText(/^Movimento registrato \(ID:/i)).toBeVisible()
 
     // The new record should appear in the history table
     await expect(page.getByRole('cell', { name: 'carico' })).toBeVisible()
