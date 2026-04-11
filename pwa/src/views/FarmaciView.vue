@@ -62,6 +62,7 @@ const batches = ref([])
 const editingDrugId = ref(null)
 const editingBatchId = ref(null)
 const isFormOpen = ref(false)
+const panelMode = ref('list')
 
 const drugForm = ref({
   nomeFarmaco: '',
@@ -238,16 +239,19 @@ async function deactivateBatchUI(batch) {
 
 function openAddDrugForm() {
   resetDrugForm()
+  panelMode.value = 'create-drug'
   isFormOpen.value = true
 }
 
 function openAddBatchForm() {
   resetBatchForm()
+  panelMode.value = 'create-batch'
   isFormOpen.value = true
 }
 
 function startEditDrug(drug) {
   editingDrugId.value = drug.id
+  panelMode.value = 'edit-drug'
   drugForm.value = {
     nomeFarmaco: drug.nomeFarmaco || '',
     principioAttivo: drug.principioAttivo || '',
@@ -258,6 +262,7 @@ function startEditDrug(drug) {
 
 function startEditBatch(batch) {
   editingBatchId.value = batch.id
+  panelMode.value = 'edit-batch'
   batchForm.value = {
     drugId: batch.drugId || '',
     nomeCommerciale: batch.nomeCommerciale || '',
@@ -401,10 +406,22 @@ onMounted(() => {
     </div>
 
     <div class="card">
-      <details :open="isFormOpen" @toggle="isFormOpen = $event.target.open">
+      <details class="deep-panel" :open="isFormOpen" @toggle="isFormOpen = $event.target.open">
         <summary><strong>Gestisci Farmaci</strong></summary>
 
         <div style="margin-top:.75rem">
+          <div class="panel-breadcrumb">
+            <button type="button" class="panel-breadcrumb-link" @click="isFormOpen = false">Farmaci</button>
+            <span class="panel-breadcrumb-current">/</span>
+            <span class="panel-breadcrumb-current">
+              {{ panelMode.includes('batch') ? 'Confezioni' : 'Farmaco' }}
+            </span>
+            <span class="panel-breadcrumb-current">/</span>
+            <span class="panel-breadcrumb-current">
+              {{ panelMode.startsWith('edit') ? 'Modifica' : 'Aggiungi' }}
+            </span>
+            <button type="button" class="panel-close-btn" @click="isFormOpen = false">Chiudi</button>
+          </div>
           <p><strong>{{ editingDrugId ? 'Modifica farmaco' : 'Aggiungi nuovo farmaco' }}</strong></p>
           <div class="import-form" style="margin-top:.65rem">
             <ValidatedInput

@@ -41,6 +41,7 @@ const saving = ref(false)
 const message = ref('')
 const errorMessage = ref('')
 const isFormOpen = ref(false)
+const panelMode = ref('list')
 
 const form = ref({
   hostId: '',
@@ -146,6 +147,7 @@ async function saveTherapy() {
 
 function startEditTherapy(therapy) {
   editingTherapyId.value = therapy.id
+  panelMode.value = 'edit'
   const toDateInput = (value) => {
     if (!value) return ''
     const d = new Date(value)
@@ -167,11 +169,13 @@ function startEditTherapy(therapy) {
 
 function openAddForm() {
   resetForm()
+  panelMode.value = 'create'
   isFormOpen.value = true
 }
 
 function resetForm() {
   editingTherapyId.value = null
+  panelMode.value = 'list'
   form.value = {
     hostId: '',
     drugId: '',
@@ -261,10 +265,16 @@ onMounted(() => {
     </div>
 
     <div class="card">
-      <details :open="isFormOpen" @toggle="isFormOpen = $event.target.open">
+      <details class="deep-panel" :open="isFormOpen" @toggle="isFormOpen = $event.target.open">
         <summary><strong>Gestione Terapie</strong></summary>
 
         <div style="margin-top:.75rem">
+          <div class="panel-breadcrumb">
+            <button type="button" class="panel-breadcrumb-link" @click="isFormOpen = false">Terapie</button>
+            <span class="panel-breadcrumb-current">/</span>
+            <span class="panel-breadcrumb-current">{{ panelMode === 'edit' ? 'Modifica' : 'Aggiungi' }}</span>
+            <button type="button" class="panel-close-btn" @click="isFormOpen = false">Chiudi</button>
+          </div>
           <p><strong>{{ editingTherapyId ? 'Modifica terapia' : 'Aggiungi nuova terapia' }}</strong></p>
           <p class="muted" style="margin-top:.25rem">Compila i campi minimi per registrare una terapia attiva per ospite.</p>
 

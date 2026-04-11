@@ -13,6 +13,7 @@ const errorMessage = ref('')
 const roomsData = ref([])
 const showInactive = ref(false)
 const isFormOpen = ref(false)
+const panelMode = ref('list')
 
 const roomForm = ref({
   codice: '',
@@ -200,6 +201,7 @@ function openAddRoomForm() {
     codice: '',
     note: '',
   }
+  panelMode.value = 'create-room'
   isFormOpen.value = true
 }
 
@@ -209,6 +211,7 @@ function openAddBedForm() {
     numero: '',
     note: '',
   }
+  panelMode.value = 'create-bed'
   isFormOpen.value = true
 }
 
@@ -218,6 +221,7 @@ function startEditRoom(room) {
     codice: room.codice || '',
     note: room.note || '',
   }
+  panelMode.value = 'edit-room'
   isFormOpen.value = true
 }
 
@@ -228,6 +232,7 @@ function startEditBed(bed) {
     numero: String(bed.numero || ''),
     note: bed.note || '',
   }
+  panelMode.value = 'edit-bed'
   isFormOpen.value = true
 }
 
@@ -305,10 +310,22 @@ onMounted(() => void loadData())
     </div>
 
     <div class="card">
-      <details :open="isFormOpen" @toggle="isFormOpen = $event.target.open">
+      <details class="deep-panel" :open="isFormOpen" @toggle="isFormOpen = $event.target.open">
         <summary><strong>Gestione Stanze e Letti</strong></summary>
 
         <div style="margin-top:.75rem">
+          <div class="panel-breadcrumb">
+            <button type="button" class="panel-breadcrumb-link" @click="isFormOpen = false">Stanze</button>
+            <span class="panel-breadcrumb-current">/</span>
+            <span class="panel-breadcrumb-current">
+              {{ panelMode.includes('bed') ? 'Letti' : 'Stanze' }}
+            </span>
+            <span class="panel-breadcrumb-current">/</span>
+            <span class="panel-breadcrumb-current">
+              {{ panelMode.startsWith('edit') ? 'Modifica' : 'Aggiungi' }}
+            </span>
+            <button type="button" class="panel-close-btn" @click="isFormOpen = false">Chiudi</button>
+          </div>
           <p><strong>Aggiungi stanza</strong></p>
           <div class="import-form" style="margin-top:.65rem">
             <label>

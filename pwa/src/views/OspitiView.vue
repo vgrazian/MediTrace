@@ -44,6 +44,7 @@ const roomsData = ref([])
 const showAll = ref(false)
 const editingHostId = ref(null)
 const isFormOpen = ref(false)
+const panelMode = ref('list')
 
 const form = ref({
     codiceInterno: '',
@@ -199,6 +200,7 @@ async function handleDeactivate(hostId) {
 
 function openAddForm() {
   resetForm()
+  panelMode.value = 'create'
   isFormOpen.value = true
 }
 
@@ -247,6 +249,7 @@ async function deleteSelectedHosts() {
 
 function startEdit(host) {
   editingHostId.value = host.id
+  panelMode.value = 'edit'
   form.value = {
     codiceInterno: host.codiceInterno || '',
     iniziali: host.iniziali || '',
@@ -266,6 +269,7 @@ function startEdit(host) {
 
 function resetForm() {
   editingHostId.value = null
+  panelMode.value = 'list'
     form.value = {
       codiceInterno: '',
       iniziali: '',
@@ -381,10 +385,16 @@ onMounted(() => void loadData())
     </div>
 
     <div class="card">
-      <details :open="isFormOpen" @toggle="isFormOpen = $event.target.open">
+      <details class="deep-panel" :open="isFormOpen" @toggle="isFormOpen = $event.target.open">
         <summary><strong>Gestione Ospiti</strong></summary>
 
         <div style="margin-top:.75rem">
+          <div class="panel-breadcrumb">
+            <button type="button" class="panel-breadcrumb-link" @click="isFormOpen = false">Ospiti</button>
+            <span class="panel-breadcrumb-current">/</span>
+            <span class="panel-breadcrumb-current">{{ panelMode === 'edit' ? 'Modifica' : 'Aggiungi' }}</span>
+            <button type="button" class="panel-close-btn" @click="isFormOpen = false">Chiudi</button>
+          </div>
           <p><strong>{{ editingHostId ? 'Modifica ospite' : 'Aggiungi nuovo ospite' }}</strong></p>
           <div class="import-form" style="margin-top:.65rem">
             <label>
