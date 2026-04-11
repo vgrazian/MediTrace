@@ -5,6 +5,7 @@ import { createRoom, deactivateRoom, createBed, deactivateBed } from '../../src/
 
 const dbRooms = new Map()
 const dbBeds = new Map()
+const dbHosts = new Map()
 const activityLogRows = []
 const enqueueCalls = []
 
@@ -13,10 +14,15 @@ vi.mock('../../src/db', () => ({
         rooms: {
             async get(id) { return dbRooms.get(id) ?? undefined },
             async put(row) { dbRooms.set(row.id, row) },
+            async toArray() { return Array.from(dbRooms.values()) },
         },
         beds: {
             async get(id) { return dbBeds.get(id) ?? undefined },
             async put(row) { dbBeds.set(row.id, row) },
+            async toArray() { return Array.from(dbBeds.values()) },
+        },
+        hosts: {
+            async toArray() { return Array.from(dbHosts.values()) },
         },
         syncQueue: { async add() { } },
         activityLog: { async add(row) { activityLogRows.push(row) } },
@@ -36,6 +42,7 @@ vi.mock('../../src/db', () => ({
 function resetState() {
     dbRooms.clear()
     dbBeds.clear()
+    dbHosts.clear()
     activityLogRows.length = 0
     enqueueCalls.length = 0
 }
@@ -106,6 +113,37 @@ describe('deactivateRoom', () => {
         expect(deactivatedAudit?.deviceId).toBe('unknown')
         expect(typeof deactivatedAudit?.ts).toBe('string')
     })
+
+    it('blocks deactivation when room still has active beds', async () => {
+        dbBeds.set('bed-1', {
+            id: 'bed-1',
+            roomId: 'room-1',
+            numero: 1,
+            deletedAt: null,
+        })
+
+        await expect(deactivateRoom({ roomId: 'room-1', operatorId: 'op-admin' })).rejects.toMatchObject({
+            code: 'ROOM_HAS_ACTIVE_BEDS',
+            category: 'conflict',
+        })
+        expect(activityLogRows).toHaveLength(0)
+    })
+
+    it('blocks deactivation when active hosts are assigned to room', async () => {
+        dbHosts.set('host-1', {
+            id: 'host-1',
+            roomId: 'room-1',
+            bedId: null,
+            attivo: true,
+            deletedAt: null,
+        })
+
+        await expect(deactivateRoom({ roomId: 'room-1', operatorId: 'op-admin' })).rejects.toMatchObject({
+            code: 'ROOM_ASSIGNED_TO_ACTIVE_HOSTS',
+            category: 'conflict',
+        })
+        expect(activityLogRows).toHaveLength(0)
+    })
 })
 
 // ── createBed ──────────────────────────────────────────────────────────────────
@@ -170,5 +208,38 @@ describe('deactivateBed', () => {
         expect(deactivatedAudit?.operatorId).toBe('op-nurse')
         expect(deactivatedAudit?.deviceId).toBe('unknown')
         expect(typeof deactivatedAudit?.ts).toBe('string')
+    })
+
+    it('blocks deactivation when bed is assigned to active host', async () => {
+        dbHosts.set('host-1', {
+            id: 'host-1',
+            roomId: 'room-1',
+            bedId: 'room-1-L1',
+            letto: '1',
+            attivo: true,
+            deletedAt: null,
+        })
+
+        await expect(deactivateBed({ bedId: 'room-1-L1', operatorId: 'op-nurse' })).rejects.toMatchObject({
+            code: 'BED_ASSIGNED_TO_ACTIVE_HOSTS',
+            category: 'conflict',
+        })
+        expect(activityLogRows).toHaveLength(0)
+    })
+
+    it('allows deactivation when only inactive hosts reference the bed', async () => {
+        dbHosts.set('host-inactive', {
+            id: 'host-inactive',
+            roomId: 'room-1',
+            bedId: 'room-1-L1',
+            letto: '1',
+            attivo: false,
+            deletedAt: null,
+        })
+
+        const result = await deactivateBed({ bedId: 'room-1-L1', operatorId: 'op-nurse' })
+
+        expect(result.deletedAt).toBeTruthy()
+        expect(activityLogRows.find(row => row.action === 'bed_deactivated')).toBeTruthy()
     })
 })

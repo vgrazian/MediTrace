@@ -1,5 +1,21 @@
 import { db, enqueue, getSetting } from '../db'
 import { generateEntityId } from './ids'
+import { AppError, ErrorCategory, ErrorSeverity } from './errorHandling'
+
+function isActiveHost(host) {
+    if (!host || host.deletedAt) return false
+    return host.attivo !== false
+}
+
+function buildConstraintError(message, code, technicalDetails = {}) {
+    return new AppError(message, {
+        category: ErrorCategory.CONFLICT,
+        severity: ErrorSeverity.HIGH,
+        code,
+        recoverable: true,
+        technicalDetails,
+    })
+}
 
 /**
  * Create a new room (stanza).
@@ -158,7 +174,32 @@ export async function deactivateRoom({ roomId, operatorId = null }) {
     const deviceId = await getSetting('deviceId', 'unknown')
 
     const room = await db.rooms.get(roomId)
-    if (!room) throw new Error(`Room ${roomId} not found`)
+    if (!room || room.deletedAt) throw new Error(`Room ${roomId} not found`)
+
+    const [allBeds, allHosts] = await Promise.all([
+        db.beds.toArray(),
+        db.hosts?.toArray?.() ?? Promise.resolve([]),
+    ])
+
+    const activeBedsInRoom = allBeds.filter(bed => bed.roomId === roomId && !bed.deletedAt)
+    if (activeBedsInRoom.length > 0) {
+        throw buildConstraintError(
+            'Impossibile eliminare la stanza: sono presenti letti attivi associati. Eliminare prima i letti della stanza.',
+            'ROOM_HAS_ACTIVE_BEDS',
+            { roomId, bedIds: activeBedsInRoom.map(bed => bed.id) },
+        )
+    }
+
+    const assignedHosts = allHosts
+        .filter(isActiveHost)
+        .filter(host => host.roomId === roomId)
+    if (assignedHosts.length > 0) {
+        throw buildConstraintError(
+            'Impossibile eliminare la stanza: sono presenti ospiti assegnati. Spostare prima gli ospiti in un altra stanza.',
+            'ROOM_ASSIGNED_TO_ACTIVE_HOSTS',
+            { roomId, hostIds: assignedHosts.map(host => host.id) },
+        )
+    }
 
     const record = { ...room, deletedAt: now, updatedAt: now, syncStatus: 'pending' }
 
@@ -186,7 +227,22 @@ export async function deactivateBed({ bedId, operatorId = null }) {
     const deviceId = await getSetting('deviceId', 'unknown')
 
     const bed = await db.beds.get(bedId)
-    if (!bed) throw new Error(`Bed ${bedId} not found`)
+    if (!bed || bed.deletedAt) throw new Error(`Bed ${bedId} not found`)
+
+    const allHosts = await (db.hosts?.toArray?.() ?? Promise.resolve([]))
+    const assignedHosts = allHosts
+        .filter(isActiveHost)
+        .filter(host => {
+            if (host.bedId === bedId) return true
+            return host.roomId === bed.roomId && String(host.letto || '') === String(bed.numero || '')
+        })
+    if (assignedHosts.length > 0) {
+        throw buildConstraintError(
+            'Impossibile eliminare il letto: e assegnato a ospiti attivi. Spostare prima gli ospiti su un altro letto.',
+            'BED_ASSIGNED_TO_ACTIVE_HOSTS',
+            { bedId, hostIds: assignedHosts.map(host => host.id) },
+        )
+    }
 
     const record = { ...bed, deletedAt: now, updatedAt: now, syncStatus: 'pending' }
 

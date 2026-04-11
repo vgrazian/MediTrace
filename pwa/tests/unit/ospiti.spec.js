@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const hosts = new Map()
+const therapies = new Map()
 const enqueueCalls = []
 const activityLogRows = []
 
@@ -12,6 +13,11 @@ vi.mock('../../src/db', () => ({
             },
             async put(row) {
                 hosts.set(String(row.id), row)
+            },
+        },
+        therapies: {
+            async toArray() {
+                return Array.from(therapies.values())
             },
         },
         syncQueue: {
@@ -48,6 +54,7 @@ import {
 
 function resetStore() {
     hosts.clear()
+    therapies.clear()
     enqueueCalls.length = 0
     activityLogRows.length = 0
 }
@@ -212,5 +219,44 @@ describe('ospiti service CRUD', () => {
         expect(deletedAudit?.deviceId).toBe('device-test')
         expect(deletedAudit?.operatorId).toBe('op-admin')
         expect(typeof deletedAudit?.ts).toBe('string')
+    })
+
+    it('deleteHost blocks when host has active therapies', async () => {
+        therapies.set('therapy-active', {
+            id: 'therapy-active',
+            hostId: 'host-existing',
+            dataFine: null,
+            deletedAt: null,
+            attiva: true,
+        })
+
+        await expect(deleteHost({
+            hostId: 'host-existing',
+            operatorId: 'op-admin',
+        })).rejects.toMatchObject({
+            code: 'HOST_HAS_ACTIVE_THERAPIES',
+            category: 'conflict',
+        })
+
+        expect(hosts.get('host-existing')?.deletedAt).toBeNull()
+        expect(activityLogRows).toHaveLength(0)
+    })
+
+    it('deleteHost allows deletion when therapies are historical', async () => {
+        therapies.set('therapy-ended', {
+            id: 'therapy-ended',
+            hostId: 'host-existing',
+            dataFine: '2026-03-01',
+            deletedAt: null,
+            attiva: false,
+        })
+
+        const deleted = await deleteHost({
+            hostId: 'host-existing',
+            operatorId: 'op-admin',
+        })
+
+        expect(deleted.deletedAt).toBeTruthy()
+        expect(activityLogRows.find(row => row.action === 'host_deleted')).toBeTruthy()
     })
 })

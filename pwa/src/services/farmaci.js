@@ -9,6 +9,24 @@
  */
 import { db, enqueue, getSetting } from '../db'
 import { generateEntityId } from './ids'
+import { AppError, ErrorCategory, ErrorSeverity } from './errorHandling'
+
+function isActiveTherapy(therapy) {
+    if (!therapy || therapy.deletedAt) return false
+    if (therapy.attiva === false) return false
+    if (therapy.dataFine) return false
+    return true
+}
+
+function buildConstraintError(message, code, technicalDetails = {}) {
+    return new AppError(message, {
+        category: ErrorCategory.CONFLICT,
+        severity: ErrorSeverity.HIGH,
+        code,
+        recoverable: true,
+        technicalDetails,
+    })
+}
 
 /**
  * Create or update a drug (farmaco) record with audit trail.
@@ -74,6 +92,31 @@ export async function upsertDrug({
  * @returns {object} updated (deleted) drug record
  */
 export async function deleteDrug({ drugId, existing, operatorId = null }) {
+    const [allTherapies, allBatches] = await Promise.all([
+        db.therapies?.toArray?.() ?? Promise.resolve([]),
+        db.stockBatches?.toArray?.() ?? Promise.resolve([]),
+    ])
+
+    const activeTherapyRefs = allTherapies
+        .filter(therapy => therapy.drugId === drugId)
+        .filter(isActiveTherapy)
+    if (activeTherapyRefs.length > 0) {
+        throw buildConstraintError(
+            'Impossibile eliminare il farmaco: e presente in terapie attive. Sostituire o disattivare prima le terapie collegate.',
+            'DRUG_IN_USE_BY_ACTIVE_THERAPY',
+            { drugId, therapyIds: activeTherapyRefs.map(therapy => therapy.id) },
+        )
+    }
+
+    const activeBatchRefs = allBatches.filter(batch => batch.drugId === drugId && !batch.deletedAt)
+    if (activeBatchRefs.length > 0) {
+        throw buildConstraintError(
+            'Impossibile eliminare il farmaco: sono presenti confezioni attive collegate. Eliminare prima le confezioni associate.',
+            'DRUG_IN_USE_BY_ACTIVE_BATCH',
+            { drugId, batchIds: activeBatchRefs.map(batch => batch.id) },
+        )
+    }
+
     const now = new Date().toISOString()
     const record = {
         ...existing,
@@ -170,6 +213,18 @@ export async function upsertBatch({
  * @returns {object} updated (deactivated) batch record
  */
 export async function deactivateBatch({ batchId, existing, operatorId = null }) {
+    const allTherapies = await (db.therapies?.toArray?.() ?? Promise.resolve([]))
+    const activeTherapyRefs = allTherapies
+        .filter(therapy => (therapy.stockBatchId === batchId || therapy.stockBatchIdPreferito === batchId))
+        .filter(isActiveTherapy)
+    if (activeTherapyRefs.length > 0) {
+        throw buildConstraintError(
+            'Impossibile eliminare la confezione: e impostata in terapie attive. Selezionare prima una confezione alternativa.',
+            'BATCH_IN_USE_BY_ACTIVE_THERAPY',
+            { batchId, therapyIds: activeTherapyRefs.map(therapy => therapy.id) },
+        )
+    }
+
     const now = new Date().toISOString()
     const record = {
         ...existing,
