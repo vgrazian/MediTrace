@@ -53,7 +53,7 @@ test.beforeEach(async ({ page }) => {
     })
 })
 
-test('seeded account login, sync, csv import, password change and users section are exercisable automatically', async ({ page }) => {
+test('seeded account login, sync, profile update, password change and users section are exercisable automatically', async ({ page }) => {
     await page.goto('/')
     await loginOrRegisterSeededUser(page)
 
@@ -72,6 +72,15 @@ test('seeded account login, sync, csv import, password change and users section 
     })
     await page.getByRole('button', { name: 'Avvia import CSV' }).click()
     await expect(page.getByText('Accettate: 1')).toBeVisible()
+
+    await page.getByLabel('Nome profilo', { exact: true }).fill('Mario')
+    await page.getByLabel('Cognome profilo', { exact: true }).fill('Rossi')
+    await page.getByLabel('Telefono profilo', { exact: true }).fill('+39 333 1234567')
+    await page.getByLabel('Email profilo', { exact: true }).fill('mario.rossi+seed@example.com')
+    await page.getByRole('button', { name: 'Aggiorna profilo' }).click()
+    await expect(page.getByText('Profilo aggiornato con successo.')).toBeVisible()
+    await expect(page.getByText('Telefono: +39 333 1234567')).toBeVisible()
+    await expect(page.getByText('Email: mario.rossi+seed@example.com')).toBeVisible()
 
     await page.getByLabel('Password corrente').fill('Prova123!')
     await page.getByLabel('Nuova password', { exact: true }).fill('Prova4567!')

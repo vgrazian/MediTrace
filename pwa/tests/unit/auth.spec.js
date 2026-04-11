@@ -498,4 +498,69 @@ describe('auth service', () => {
         expect(auth.currentUser.value?.role).toBe('admin')
         expect(auth.currentUser.value?.email).toBe('meditace0@gmail.com')
     })
+
+    it('updates current user profile data (name, phone, email)', async () => {
+        const authModule = await import('../../src/services/auth')
+        const { initAuth, useAuth } = authModule
+        const auth = useAuth()
+
+        await initAuth()
+        await auth.register({
+            username: 'profileuser',
+            firstName: 'Nome',
+            lastName: 'Vecchio',
+            email: 'profile.user@example.com',
+            password: 'Password123!',
+            confirmPassword: 'Password123!',
+            githubToken: 'github_pat_any_value',
+        })
+
+        const updated = await auth.updateCurrentProfile({
+            firstName: 'Mario',
+            lastName: 'Rossi',
+            phone: '+39 333 1234567',
+            email: 'mario.rossi@example.com',
+        })
+
+        expect(updated.firstName).toBe('Mario')
+        expect(updated.lastName).toBe('Rossi')
+        expect(updated.phone).toBe('+39 333 1234567')
+        expect(updated.email).toBe('mario.rossi@example.com')
+        expect(auth.currentUser.value?.email).toBe('mario.rossi@example.com')
+        expect(authEvents.some(event => event.action === 'auth_profile_updated')).toBe(true)
+    })
+
+    it('rejects profile update when email already belongs to another active user', async () => {
+        const authModule = await import('../../src/services/auth')
+        const { initAuth, useAuth } = authModule
+        const auth = useAuth()
+
+        await initAuth()
+        await auth.register({
+            username: 'firstuser',
+            firstName: 'First',
+            lastName: 'User',
+            email: 'first.user@example.com',
+            password: 'Password123!',
+            confirmPassword: 'Password123!',
+            githubToken: 'github_pat_any_value',
+        })
+        await auth.signOut()
+        await auth.register({
+            username: 'seconduser',
+            firstName: 'Second',
+            lastName: 'User',
+            email: 'second.user@example.com',
+            password: 'Password123!',
+            confirmPassword: 'Password123!',
+            githubToken: 'github_pat_any_value',
+        })
+
+        await expect(auth.updateCurrentProfile({
+            firstName: 'Second',
+            lastName: 'User',
+            phone: '',
+            email: 'first.user@example.com',
+        })).rejects.toThrow('Email gia esistente')
+    })
 })
