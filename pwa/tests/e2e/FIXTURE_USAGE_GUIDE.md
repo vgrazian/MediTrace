@@ -28,6 +28,27 @@ test('my test with realistic data', async ({ page }) => {
 
 ## Esempi Completi
 
+### Esempio 0: Scenario giornaliero completo (user journey)
+
+Per coprire un flusso realistico di operatore durante una giornata, usa il test dedicato:
+
+- File: `pwa/tests/e2e/daily-operations-scenario.spec.js`
+- Comando:
+
+```bash
+npm --prefix pwa run -s test:e2e -- tests/e2e/daily-operations-scenario.spec.js
+```
+
+Questo scenario verifica in sequenza:
+
+1. Login operatore
+2. Modifica terapie per almeno 2 ospiti
+3. Esecuzione promemoria/terapie per almeno 4 ospiti
+4. Verifica stato scorte a fine giornata
+5. Preparazione testo ordine farmaci
+
+Nota: lo scenario usa un bootstrap dati deterministico per ridurre flakiness e mantenere il focus sulle azioni operative utente.
+
 ### Esempio 1: Test di ricerca ospiti
 
 ```javascript
@@ -218,13 +239,13 @@ for (const host of hosts.slice(0, 3)) {
 
 I tuoi CSV contengono:
 
-**persone_test_sanitarie.csv**
+### persone_test_sanitarie.csv
 
 - 30 ospiti con nomi realistici italiani
 - Dati demografici completi (data nascita, luogo, CF)
 - Patologie mediche differenziate
 
-**farmaci_test_sanitari.csv**
+### farmaci_test_sanitari.csv
 
 - 30 farmaci con marche farmaceutiche reali
 - Principi attivi pertinenti alle patologie degli ospiti

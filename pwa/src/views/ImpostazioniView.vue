@@ -3,6 +3,8 @@ import { computed, ref, onMounted } from 'vue'
 import { useAuth } from '../services/auth'
 import { canRole } from '../services/rbac'
 import { fullSync, exportBackupJson, listPendingConflicts, resolveConflict } from '../services/sync'
+import { formatUserError } from '../services/errorHandling'
+import { confirmDeleteUser } from '../services/confirmations'
 import {
   getNotificationStatusSnapshot,
   requestNotificationPermission,
@@ -366,9 +368,34 @@ async function runSync() {
     datasetVersion.value = await getSetting('datasetVersion')
     gistId.value = await getSetting('gistId')
     await refreshPendingConflicts()
-    syncMessage.value = JSON.stringify(result)
+    
+    // Format success message based on result
+    if (result.bootstrapped) {
+      syncMessage.value = 'Sincronizzazione inizializzata con successo'
+    } else if (result.downloaded) {
+      syncMessage.value = `Dati scaricati (versione ${result.datasetVersion})`
+      if (result.conflicts && result.conflicts.length > 0) {
+        syncMessage.value += ` - ${result.conflicts.length} conflitti rilevati`
+      }
+    } else if (result.uploaded) {
+      syncMessage.value = `Dati caricati (versione ${result.datasetVersion})`
+    } else if (result.upToDate) {
+      syncMessage.value = 'Dati già sincronizzati'
+    } else if (result.blocked) {
+      syncMessage.value = `Sincronizzazione bloccata: ${result.conflicts} conflitti da risolvere`
+    } else {
+      syncMessage.value = JSON.stringify(result)
+    }
   } catch (err) {
-    syncMessage.value = `Errore: ${err.message}`
+    const formatted = formatUserError('sincronizzazione', err)
+    syncMessage.value = `${formatted.title}: ${formatted.message}`
+    
+    // Add suggested actions if available
+    if (formatted.actions && formatted.actions.length > 0) {
+      syncMessage.value += '\n\nAzioni suggerite:\n' + formatted.actions.map(a => `• ${a}`).join('\n')
+    }
+    
+    console.error('[ImpostazioniView] Sync error:', formatted)
   }
 }
 
@@ -452,7 +479,7 @@ async function handleReactivateSeeded(username) {
 }
 
 async function handleDeleteSeeded(username) {
-  const confirmed = window.confirm(`Confermi eliminazione definitiva dell'utente di prova "${username}"?`)
+  const confirmed = await confirmDeleteUser(username)
   if (!confirmed) return
 
   usersBusy.value = true
@@ -815,7 +842,7 @@ async function handleInviteUser() {
     <div class="card">
       <p><strong>Sincronizzazione manuale</strong></p>
       <button style="margin-top:.75rem" @click="runSync">Sincronizza ora</button>
-      <p v-if="syncMessage" class="muted" style="margin-top:.5rem;font-size:.8rem">{{ syncMessage }}</p>
+      <p v-if="syncMessage" class="muted" style="margin-top:.5rem;font-size:.8rem;white-space:pre-line">{{ syncMessage }}</p>
     </div>
 
     <div class="card">

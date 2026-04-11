@@ -62,7 +62,7 @@ test('seeded account login, sync, csv import, password change and users section 
     await expect(page.locator('strong', { hasText: 'Utenti' })).toBeVisible()
 
     await page.getByRole('button', { name: 'Sincronizza ora' }).click()
-    await expect(page.getByText(/bootstrapped/i)).toBeVisible()
+    await expect(page.getByText(/sincronizzazione inizializzata con successo/i)).toBeVisible()
 
     await page.getByLabel('Sorgente').selectOption('01_CatalogoFarmaci.csv')
     await page.locator('input[type="file"]').setInputFiles({
@@ -79,13 +79,16 @@ test('seeded account login, sync, csv import, password change and users section 
     await page.getByRole('button', { name: 'Aggiorna password' }).click()
     await loginOrRegisterSeededUser(page, { password: 'Prova4567!' })
 
-    // CI-safe: avoid flakiness on immediate navbar re-render after password change.
-    await page.goto('/#/impostazioni')
+    // CI-safe: after password change, route directly through navbar to avoid hash-state race.
     const settingsHeading = page.getByRole('heading', { name: 'Impostazioni' })
-    if (!(await settingsHeading.isVisible().catch(() => false))) {
-        // Fallback: auth state may still be settling in CI, re-login and retry.
+    if (!(await page.getByRole('link', { name: '⚙' }).isVisible().catch(() => false))) {
         await loginOrRegisterSeededUser(page, { password: 'Prova4567!' })
-        await page.goto('/#/impostazioni')
+    }
+    await page.getByRole('link', { name: '⚙' }).click()
+    if (!(await settingsHeading.isVisible().catch(() => false))) {
+        // Fallback: auth state may still be settling in CI, re-login and retry once.
+        await loginOrRegisterSeededUser(page, { password: 'Prova4567!' })
+        await page.getByRole('link', { name: '⚙' }).click()
     }
     await expect(settingsHeading).toBeVisible({ timeout: 15000 })
 

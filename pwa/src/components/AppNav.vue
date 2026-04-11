@@ -20,6 +20,7 @@ const logoSrc = `${import.meta.env.BASE_URL}branding/logo-header.svg`
     <RouterLink to="/movimenti">Movimenti</RouterLink>
     <RouterLink to="/terapie">Terapie</RouterLink>
     <RouterLink to="/promemoria">Promemoria</RouterLink>
+    <RouterLink to="/audit">Audit</RouterLink>
     <RouterLink to="/informazioni">Informazioni</RouterLink>
 
     <div class="user-area">

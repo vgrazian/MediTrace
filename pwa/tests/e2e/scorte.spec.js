@@ -33,7 +33,7 @@ test('scorte view supports edit/delete for drug and batch', async ({ page }) => 
     await page.locator('select').first().selectOption({ label: 'Brufen Test Scorte (Ibuprofene Test Scorte)' })
     await page.getByLabel('Nome commerciale').fill('Brufen Test Scorte')
     await page.getByLabel('Dosaggio').fill('400mg')
-    await page.getByLabel("Quantita' attuale").fill('15')
+    await page.getByLabel(/Quantit.* attuale/).fill('15')
     await page.getByLabel('Soglia riordino').fill('5')
     await page.getByRole('button', { name: 'Salva confezione' }).click()
     await expect(page.getByText('Confezione salvata.')).toBeVisible()

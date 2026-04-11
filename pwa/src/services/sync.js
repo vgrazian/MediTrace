@@ -12,6 +12,7 @@
  */
 import { db, getSetting, setSetting, getSyncState, setSyncState } from '../db'
 import { listAppFiles, downloadFile, uploadFile, bootstrapDriveFiles, FILE_NAMES } from './gist'
+import { SyncError, handleAsync } from './errorHandling'
 
 const LAST_WRITE_WINS_TABLES = ['hosts', 'drugs', 'stockBatches', 'therapies']
 const APPEND_ONLY_TABLES = ['movements', 'reminders']
@@ -43,7 +44,15 @@ const PENDING_CONFLICTS_KEY = 'pendingConflicts'
  * Returns a result object describing what happened.
  */
 export async function fullSync(token) {
-    if (!token) return { skipped: true, reason: 'no-token' }
+    if (!token) {
+        throw new SyncError('TOKEN_MISSING', 'Token GitHub mancante', {
+            suggestedActions: [
+                'Vai in Impostazioni e configura il token GitHub',
+                'Assicurati di aver copiato correttamente il token',
+                'Verifica che il token abbia i permessi necessari (gist)'
+            ]
+        })
+    }
 
     const deviceId = (await getSetting('deviceId')) ?? 'unknown'
     const files = await listAppFiles(token)

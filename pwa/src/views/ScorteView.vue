@@ -2,6 +2,7 @@
 import { computed, onMounted, ref } from 'vue'
 import { db, enqueue, getSetting } from '../db'
 import { buildOperationalReport, buildOrderDraftText, operationalReportToCsv } from '../services/reporting'
+import { confirmDeleteDrug, confirmDeleteBatch } from '../services/confirmations'
 import { useAuth } from '../services/auth'
 
 const { currentUser } = useAuth()
@@ -15,6 +16,7 @@ const actionMessage = ref('')
 const actionError = ref('')
 const savingBatch = ref(false)
 const editingBatchId = ref('')
+const creatingBatch = ref(false)
 const savingDrug = ref(false)
 const editingDrugId = ref('')
 const stockBatches = ref([])
@@ -34,6 +36,11 @@ const batchForm = ref({
 })
 
 const hasBatches = computed(() => stockBatches.value.length > 0)
+const canEditBatchForm = computed(() => Boolean(editingBatchId.value || creatingBatch.value))
+const canSaveBatch = computed(() => {
+  if (!canEditBatchForm.value) return false
+  return Boolean(batchForm.value.drugId && String(batchForm.value.nomeCommerciale || '').trim())
+})
 
 function drugLabel(drugId) {
   const drug = drugs.value.find(d => d.id === drugId)
@@ -86,6 +93,7 @@ async function refreshReport() {
 
 function startEditBatch(batch) {
   editingBatchId.value = batch.id
+  creatingBatch.value = false
   batchForm.value = {
     drugId: batch.drugId || '',
     nomeCommerciale: batch.nomeCommerciale || '',
@@ -100,6 +108,7 @@ function startEditBatch(batch) {
 
 function resetBatchForm() {
   editingBatchId.value = ''
+  creatingBatch.value = false
   batchForm.value = {
     drugId: '',
     nomeCommerciale: '',
@@ -108,6 +117,11 @@ function resetBatchForm() {
     sogliaRiordino: '',
     scadenza: '',
   }
+}
+
+function openAddBatchForm() {
+  resetBatchForm()
+  creatingBatch.value = true
 }
 
 function startEditDrug(drugId) {
@@ -177,7 +191,12 @@ async function saveDrugEdit() {
 }
 
 async function deleteDrug(drugId) {
-  if (!window.confirm('Confermi eliminazione farmaco?')) return
+  const drug = drugs.value.find(d => d.id === drugId)
+  const drugName = drug?.principioAttivo || drug?.nomeFarmaco || drugId
+  
+  const confirmed = await confirmDeleteDrug(drugName)
+  if (!confirmed) return
+  
   actionMessage.value = ''
   actionError.value = ''
 
@@ -213,44 +232,76 @@ async function deleteDrug(drugId) {
   }
 }
 
-async function saveBatchEdit() {
-  if (!editingBatchId.value) return
+async function saveBatch() {
+  if (!canSaveBatch.value) return
   actionMessage.value = ''
   actionError.value = ''
   savingBatch.value = true
 
   try {
-    const existing = await db.stockBatches.get(editingBatchId.value)
-    if (!existing || existing.deletedAt) throw new Error('Confezione non trovata')
-
     const now = new Date().toISOString()
-    const updated = {
-      ...existing,
-      drugId: batchForm.value.drugId || existing.drugId,
-      nomeCommerciale: batchForm.value.nomeCommerciale?.trim() || existing.nomeCommerciale,
-      dosaggio: batchForm.value.dosaggio?.trim() || '',
-      quantitaAttuale: Number(batchForm.value.quantitaAttuale || 0),
-      sogliaRiordino: Number(batchForm.value.sogliaRiordino || 0),
-      scadenza: batchForm.value.scadenza || null,
-      updatedAt: now,
-      syncStatus: 'pending',
+    const deviceId = await getSetting('deviceId', 'unknown')
+    if (editingBatchId.value) {
+      const existing = await db.stockBatches.get(editingBatchId.value)
+      if (!existing || existing.deletedAt) throw new Error('Confezione non trovata')
+
+      const updated = {
+        ...existing,
+        drugId: batchForm.value.drugId || existing.drugId,
+        nomeCommerciale: batchForm.value.nomeCommerciale?.trim() || existing.nomeCommerciale,
+        dosaggio: batchForm.value.dosaggio?.trim() || '',
+        quantitaAttuale: Number(batchForm.value.quantitaAttuale || 0),
+        sogliaRiordino: Number(batchForm.value.sogliaRiordino || 0),
+        scadenza: batchForm.value.scadenza || null,
+        updatedAt: now,
+        syncStatus: 'pending',
+      }
+
+      await db.transaction('rw', db.stockBatches, db.syncQueue, db.activityLog, async () => {
+        await db.stockBatches.put(updated)
+        await enqueue('stockBatches', updated.id, 'upsert')
+        await db.activityLog.add({
+          entityType: 'stockBatches',
+          entityId: updated.id,
+          action: 'stock_batch_updated',
+          deviceId,
+          operatorId: currentUser.value?.login ?? null,
+          ts: now,
+        })
+      })
+
+      actionMessage.value = 'Confezione aggiornata.'
+    } else {
+      const batchId = crypto.randomUUID()
+      const created = {
+        id: batchId,
+        drugId: batchForm.value.drugId,
+        nomeCommerciale: batchForm.value.nomeCommerciale.trim(),
+        dosaggio: batchForm.value.dosaggio?.trim() || '',
+        quantitaAttuale: Number(batchForm.value.quantitaAttuale || 0),
+        sogliaRiordino: Number(batchForm.value.sogliaRiordino || 0),
+        scadenza: batchForm.value.scadenza || null,
+        updatedAt: now,
+        deletedAt: null,
+        syncStatus: 'pending',
+      }
+
+      await db.transaction('rw', db.stockBatches, db.syncQueue, db.activityLog, async () => {
+        await db.stockBatches.put(created)
+        await enqueue('stockBatches', created.id, 'upsert')
+        await db.activityLog.add({
+          entityType: 'stockBatches',
+          entityId: created.id,
+          action: 'stock_batch_created',
+          deviceId,
+          operatorId: currentUser.value?.login ?? null,
+          ts: now,
+        })
+      })
+
+      actionMessage.value = 'Confezione aggiunta.'
     }
 
-    const deviceId = await getSetting('deviceId', 'unknown')
-    await db.transaction('rw', db.stockBatches, db.syncQueue, db.activityLog, async () => {
-      await db.stockBatches.put(updated)
-      await enqueue('stockBatches', updated.id, 'upsert')
-      await db.activityLog.add({
-        entityType: 'stockBatches',
-        entityId: updated.id,
-        action: 'stock_batch_updated',
-        deviceId,
-        operatorId: currentUser.value?.login ?? null,
-        ts: now,
-      })
-    })
-
-    actionMessage.value = 'Confezione aggiornata.'
     resetBatchForm()
     await refreshReport()
   } catch (err) {
@@ -261,7 +312,12 @@ async function saveBatchEdit() {
 }
 
 async function deleteBatch(batchId) {
-  if (!window.confirm('Confermi eliminazione confezione?')) return
+  const batch = stockBatches.value.find(b => b.id === batchId)
+  const batchName = batchLabel(batch)
+  
+  const confirmed = await confirmDeleteBatch(batchName)
+  if (!confirmed) return
+  
   actionMessage.value = ''
   actionError.value = ''
 
@@ -513,6 +569,10 @@ onMounted(() => {
         Modifica o rimuovi confezioni direttamente da Scorte.
       </p>
 
+      <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.75rem">
+        <button @click="openAddBatchForm">Aggiungi</button>
+      </div>
+
       <table class="conflict-table" style="margin-top:.75rem">
         <thead>
           <tr>
@@ -565,34 +625,34 @@ onMounted(() => {
         <div class="import-form" style="margin-top:.65rem">
           <label>
             Farmaco
-            <select v-model="batchForm.drugId" :disabled="!editingBatchId || savingBatch">
+            <select v-model="batchForm.drugId" :disabled="!canEditBatchForm || savingBatch">
               <option value="">Seleziona farmaco</option>
               <option v-for="drug in drugs" :key="drug.id" :value="drug.id">{{ drugLabel(drug.id) }}</option>
             </select>
           </label>
           <label>
             Nome commerciale
-            <input v-model="batchForm.nomeCommerciale" type="text" :disabled="!editingBatchId || savingBatch" />
+            <input v-model="batchForm.nomeCommerciale" type="text" :disabled="!canEditBatchForm || savingBatch" />
           </label>
           <label>
             Dosaggio
-            <input v-model="batchForm.dosaggio" type="text" :disabled="!editingBatchId || savingBatch" />
+            <input v-model="batchForm.dosaggio" type="text" :disabled="!canEditBatchForm || savingBatch" />
           </label>
           <label>
             Quantita' attuale
-            <input v-model="batchForm.quantitaAttuale" type="number" min="0" step="1" :disabled="!editingBatchId || savingBatch" />
+            <input v-model="batchForm.quantitaAttuale" type="number" min="0" step="1" :disabled="!canEditBatchForm || savingBatch" />
           </label>
           <label>
             Soglia riordino
-            <input v-model="batchForm.sogliaRiordino" type="number" min="0" step="1" :disabled="!editingBatchId || savingBatch" />
+            <input v-model="batchForm.sogliaRiordino" type="number" min="0" step="1" :disabled="!canEditBatchForm || savingBatch" />
           </label>
           <label>
             Scadenza
-            <input v-model="batchForm.scadenza" type="date" :disabled="!editingBatchId || savingBatch" />
+            <input v-model="batchForm.scadenza" type="date" :disabled="!canEditBatchForm || savingBatch" />
           </label>
 
-          <button :disabled="!editingBatchId || savingBatch" @click="saveBatchEdit">
-            {{ savingBatch ? 'Salvataggio...' : 'Salva modifica' }}
+          <button :disabled="!canSaveBatch || savingBatch" @click="saveBatch">
+            {{ savingBatch ? 'Salvataggio...' : (editingBatchId ? 'Salva modifica' : 'Aggiungi confezione') }}
           </button>
           <button type="button" :disabled="savingBatch" @click="resetBatchForm">Annulla</button>
         </div>

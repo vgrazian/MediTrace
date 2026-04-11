@@ -3,9 +3,35 @@ import { onMounted, ref, computed } from 'vue'
 import { useAuth } from '../services/auth'
 import { buildHostRows, createHost, deleteHost, formatHostDisplay, updateHost } from '../services/ospiti'
 import { getRoomsWithBeds } from '../services/stanze'
+import { confirmDeleteHost, confirmDeleteMultiple } from '../services/confirmations'
+import { useFormValidation } from '../services/formValidation'
+import ValidatedInput from '../components/ValidatedInput.vue'
+import { useSelection } from '../composables/useSelection'
 import { db } from '../db'
 
 const { currentUser } = useAuth()
+
+const {
+  errors,
+  validateField,
+  validateForm,
+  clearErrors,
+  hasErrors,
+} = useFormValidation({
+  nome: { required: true, minLength: 2, maxLength: 50 },
+  cognome: { required: true, minLength: 2, maxLength: 50 },
+  dataNascita: { date: true },
+  codiceFiscale: {
+    pattern: '^[A-Z]{6}[0-9]{2}[A-Z][0-9]{2}[A-Z][0-9]{3}[A-Z]$',
+  },
+  roomId: { required: true },
+}, {
+  nome: 'Nome',
+  cognome: 'Cognome',
+  dataNascita: 'Data di nascita',
+  codiceFiscale: 'Codice fiscale',
+  roomId: 'Stanza',
+})
 
 const loading = ref(false)
 const saving = ref(false)
@@ -17,6 +43,8 @@ const therapies = ref([])
 const roomsData = ref([])
 const showAll = ref(false)
 const editingHostId = ref(null)
+const isFormOpen = ref(false)
+const panelMode = ref('list')
 
 const form = ref({
     codiceInterno: '',
@@ -47,6 +75,18 @@ const availableBeds = computed(() => {
     return room?.beds ?? []
 })
 
+const {
+  selectedItems,
+  allSelected,
+  someSelected,
+  selectedCount,
+  toggleSelection,
+  toggleSelectAll,
+  clearSelection,
+  isSelected,
+  getSelectedItems,
+} = useSelection(rows)
+
 async function loadData() {
     loading.value = true
     errorMessage.value = ''
@@ -69,6 +109,17 @@ async function loadData() {
 async function handleSave() {
     message.value = ''
     errorMessage.value = ''
+
+    const formData = {
+      ...form.value,
+      roomId: roomsData.value.length ? form.value.roomId : 'room-not-required',
+    }
+
+    if (!validateForm(formData)) {
+      errorMessage.value = 'Correggi gli errori nel form prima di salvare.'
+      return
+    }
+
     saving.value = true
     try {
         const roomId = form.value.roomId || null
@@ -126,11 +177,20 @@ async function handleSave() {
 }
 
 async function handleDeactivate(hostId) {
-  if (!confirm(`Eliminare l'ospite "${hostId}"?`)) return
+    const host = allHosts.value.find(h => h.id === hostId)
+    const hostName = formatHostDisplay(host)
+    
+    const confirmed = await confirmDeleteHost(hostName)
+    if (!confirmed) return
+    
     message.value = ''
     errorMessage.value = ''
     try {
         await deleteHost({ hostId, operatorId: currentUser.value?.login ?? null })
+        if (editingHostId.value === hostId) {
+          resetForm()
+        }
+        clearSelection()
         message.value = `Ospite "${hostId}" eliminato.`
         await loadData()
     } catch (err) {
@@ -138,8 +198,58 @@ async function handleDeactivate(hostId) {
     }
 }
 
+function openAddForm() {
+  resetForm()
+  panelMode.value = 'create'
+  isFormOpen.value = true
+}
+
+function openEditForm() {
+  if (selectedCount.value !== 1) return
+  const selectedHost = getSelectedItems()[0]
+  if (!selectedHost) return
+  startEdit(selectedHost)
+  isFormOpen.value = true
+}
+
+async function deleteSelectedHosts() {
+  if (selectedCount.value === 0) return
+
+  const selectedHosts = getSelectedItems()
+  const confirmed = await confirmDeleteMultiple(
+    selectedCount.value,
+    selectedCount.value === 1 ? 'ospite' : 'ospiti',
+  )
+  if (!confirmed) return
+
+  message.value = ''
+  errorMessage.value = ''
+
+  try {
+    for (const host of selectedHosts) {
+      await deleteHost({
+        hostId: host.id,
+        operatorId: currentUser.value?.login ?? null,
+      })
+    }
+
+    if (editingHostId.value && selectedHosts.some(host => host.id === editingHostId.value)) {
+      resetForm()
+    }
+
+    clearSelection()
+    message.value = selectedHosts.length === 1
+      ? `Ospite "${selectedHosts[0].id}" eliminato.`
+      : `${selectedHosts.length} ospiti eliminati.`
+    await loadData()
+  } catch (err) {
+    errorMessage.value = `Errore: ${err.message}`
+  }
+}
+
 function startEdit(host) {
   editingHostId.value = host.id
+  panelMode.value = 'edit'
   form.value = {
     codiceInterno: host.codiceInterno || '',
     iniziali: host.iniziali || '',
@@ -154,10 +264,12 @@ function startEdit(host) {
     bedId: host.bedId || '',
     note: host.note || '',
   }
+  isFormOpen.value = true
 }
 
 function resetForm() {
   editingHostId.value = null
+  panelMode.value = 'list'
     form.value = {
       codiceInterno: '',
       iniziali: '',
@@ -172,6 +284,7 @@ function resetForm() {
       bedId: '',
       note: '',
     }
+  clearErrors()
 }
 
 onMounted(() => void loadData())
@@ -188,9 +301,35 @@ onMounted(() => void loadData())
         Mostra anche disattivati
       </label>
 
+      <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.75rem">
+        <button @click="openAddForm">Aggiungi</button>
+        <button :disabled="selectedCount !== 1" @click="openEditForm">Modifica</button>
+        <button
+          :disabled="selectedCount === 0"
+          style="background:#c0392b"
+          @click="deleteSelectedHosts"
+        >
+          Elimina{{ selectedCount > 0 ? ` (${selectedCount})` : '' }}
+        </button>
+      </div>
+
+      <p v-if="selectedCount > 0" class="muted" style="margin-top:.55rem">
+        {{ selectedCount }} ospite{{ selectedCount > 1 ? 'i' : '' }} selezionat{{ selectedCount > 1 ? 'i' : 'o' }}.
+        <button type="button" style="margin-left:.4rem" @click="clearSelection">Deseleziona tutto</button>
+      </p>
+
       <table class="conflict-table" style="margin-top:.75rem">
         <thead>
           <tr>
+            <th style="width:2.5rem">
+              <input
+                type="checkbox"
+                :checked="allSelected"
+                :indeterminate.prop="someSelected"
+                aria-label="Seleziona tutti gli ospiti"
+                @change="toggleSelectAll"
+              />
+            </th>
             <th>Ospite</th>
             <th>Codice</th>
             <th>Iniziali</th>
@@ -202,7 +341,19 @@ onMounted(() => void loadData())
           </tr>
         </thead>
         <tbody>
-          <tr v-for="host in rows" :key="host.id">
+          <tr
+            v-for="host in rows"
+            :key="host.id"
+            :style="isSelected(host.id) ? 'background:rgba(52, 152, 219, 0.12)' : undefined"
+          >
+            <td>
+              <input
+                type="checkbox"
+                :checked="isSelected(host.id)"
+                :aria-label="`Seleziona ${formatHostDisplay(host)}`"
+                @change="toggleSelection(host.id)"
+              />
+            </td>
             <td>{{ formatHostDisplay(host) }}</td>
             <td>{{ host.codiceInterno || '—' }}</td>
             <td>{{ host.iniziali || '—' }}</td>
@@ -226,7 +377,7 @@ onMounted(() => void loadData())
             </td>
           </tr>
           <tr v-if="rows.length === 0 && !loading">
-            <td colspan="8" class="muted">Nessun ospite disponibile.</td>
+            <td colspan="9" class="muted">Nessun ospite disponibile.</td>
           </tr>
         </tbody>
       </table>
@@ -234,10 +385,16 @@ onMounted(() => void loadData())
     </div>
 
     <div class="card">
-      <details>
+      <details class="deep-panel" :open="isFormOpen" @toggle="isFormOpen = $event.target.open">
         <summary><strong>Gestione Ospiti</strong></summary>
 
         <div style="margin-top:.75rem">
+          <div class="panel-breadcrumb">
+            <button type="button" class="panel-breadcrumb-link" @click="isFormOpen = false">Ospiti</button>
+            <span class="panel-breadcrumb-current">/</span>
+            <span class="panel-breadcrumb-current">{{ panelMode === 'edit' ? 'Modifica' : 'Aggiungi' }}</span>
+            <button type="button" class="panel-close-btn" @click="isFormOpen = false">Chiudi</button>
+          </div>
           <p><strong>{{ editingHostId ? 'Modifica ospite' : 'Aggiungi nuovo ospite' }}</strong></p>
           <div class="import-form" style="margin-top:.65rem">
             <label>
@@ -248,22 +405,36 @@ onMounted(() => void loadData())
               Iniziali
               <input v-model="form.iniziali" type="text" placeholder="M.R." />
             </label>
-            <label>
-              Nome
-              <input v-model="form.nome" type="text" placeholder="Mario" />
-            </label>
-            <label>
-              Cognome
-              <input v-model="form.cognome" type="text" placeholder="Rossi" />
-            </label>
+            <ValidatedInput
+              v-model="form.nome"
+              field-name="nome"
+              label="Nome"
+              :error="errors.nome"
+              :required="true"
+              placeholder="Mario"
+              @validate="validateField"
+            />
+            <ValidatedInput
+              v-model="form.cognome"
+              field-name="cognome"
+              label="Cognome"
+              :error="errors.cognome"
+              :required="true"
+              placeholder="Rossi"
+              @validate="validateField"
+            />
             <label>
               Luogo di nascita
               <input v-model="form.luogoNascita" type="text" placeholder="Roma" />
             </label>
-            <label>
-              Data di nascita
-              <input v-model="form.dataNascita" type="date" />
-            </label>
+            <ValidatedInput
+              v-model="form.dataNascita"
+              field-name="dataNascita"
+              label="Data di nascita"
+              type="date"
+              :error="errors.dataNascita"
+              @validate="validateField"
+            />
             <label>
               Sesso
               <select v-model="form.sesso">
@@ -273,22 +444,35 @@ onMounted(() => void loadData())
                 <option value="Altro">Altro</option>
               </select>
             </label>
-            <label>
-              Codice fiscale
-              <input v-model="form.codiceFiscale" type="text" maxlength="16" placeholder="RSSMRA80A01H501U" />
-            </label>
+            <ValidatedInput
+              v-model="form.codiceFiscale"
+              field-name="codiceFiscale"
+              label="Codice fiscale"
+              :error="errors.codiceFiscale"
+              placeholder="RSSMRA80A01H501U"
+              @validate="(field, value) => validateField(field, String(value || '').toUpperCase())"
+            />
             <label>
               Patologie
               <input v-model="form.patologie" type="text" placeholder="Patologie o note cliniche" />
             </label>
             <label>
               Stanza
-              <select v-model="form.roomId" :disabled="!roomsData.length || saving">
-                <option value="">Seleziona stanza (opzionale)</option>
+              <select
+                v-model="form.roomId"
+                :disabled="!roomsData.length || saving"
+                @blur="validateField('roomId', roomsData.length ? form.roomId : 'room-not-required')"
+                :aria-invalid="!!errors.roomId"
+                :aria-describedby="errors.roomId ? 'roomId-error' : undefined"
+              >
+                <option value="">Seleziona stanza</option>
                 <option v-for="room in roomsData.filter(r => !r.deletedAt)" :key="room.id" :value="room.id">
                   {{ room.codice }}
                 </option>
               </select>
+              <span v-if="errors.roomId" id="roomId-error" class="error-message" role="alert">
+                {{ errors.roomId }}
+              </span>
             </label>
             <label>
               Letto
@@ -303,7 +487,7 @@ onMounted(() => void loadData())
               Note
               <input v-model="form.note" type="text" placeholder="Note opzionali" />
             </label>
-            <button :disabled="saving || !canSave" @click="handleSave">
+            <button :disabled="saving || !canSave || hasErrors" @click="handleSave">
               {{ saving ? 'Salvataggio...' : (editingHostId ? 'Salva modifica' : 'Salva ospite') }}
             </button>
             <button type="button" :disabled="saving" @click="resetForm">

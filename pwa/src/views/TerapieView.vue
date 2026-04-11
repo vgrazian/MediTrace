@@ -3,8 +3,34 @@ import { computed, onMounted, ref } from 'vue'
 import { db } from '../db'
 import { useAuth } from '../services/auth'
 import { deactivateTherapyRecord, upsertTherapy } from '../services/terapie'
+import { useFormValidation } from '../services/formValidation'
+import ValidatedInput from '../components/ValidatedInput.vue'
 
 const { currentUser } = useAuth()
+
+const {
+  errors,
+  validateField,
+  validateForm,
+  clearErrors,
+  hasErrors,
+} = useFormValidation({
+  hostId: { required: true },
+  drugId: { required: true },
+  dosePerSomministrazione: { required: true },
+  somministrazioniGiornaliere: { required: true },
+  dataInizio: { required: true, date: true },
+  dataFine: { date: true, futureDate: true },
+  note: { maxLength: 500 },
+}, {
+  hostId: 'Ospite',
+  drugId: 'Farmaco',
+  dosePerSomministrazione: 'Dose per somministrazione',
+  somministrazioniGiornaliere: 'Somministrazioni giornaliere',
+  dataInizio: 'Data inizio',
+  dataFine: 'Data fine',
+  note: 'Note',
+})
 
 const hosts = ref([])
 const drugs = ref([])
@@ -14,6 +40,8 @@ const loading = ref(false)
 const saving = ref(false)
 const message = ref('')
 const errorMessage = ref('')
+const isFormOpen = ref(false)
+const panelMode = ref('list')
 
 const form = ref({
   hostId: '',
@@ -83,8 +111,8 @@ async function saveTherapy() {
   message.value = ''
   errorMessage.value = ''
 
-  if (!form.value.hostId || !form.value.drugId) {
-    errorMessage.value = 'Seleziona ospite e farmaco.'
+  if (!validateForm(form.value)) {
+    errorMessage.value = 'Correggi gli errori nel form prima di salvare.'
     return
   }
 
@@ -119,6 +147,7 @@ async function saveTherapy() {
 
 function startEditTherapy(therapy) {
   editingTherapyId.value = therapy.id
+  panelMode.value = 'edit'
   const toDateInput = (value) => {
     if (!value) return ''
     const d = new Date(value)
@@ -135,10 +164,18 @@ function startEditTherapy(therapy) {
     dataFine: toDateInput(therapy.dataFine),
     note: therapy.note || '',
   }
+  isFormOpen.value = true
+}
+
+function openAddForm() {
+  resetForm()
+  panelMode.value = 'create'
+  isFormOpen.value = true
 }
 
 function resetForm() {
   editingTherapyId.value = null
+  panelMode.value = 'list'
   form.value = {
     hostId: '',
     drugId: '',
@@ -149,10 +186,11 @@ function resetForm() {
     dataFine: '',
     note: '',
   }
+  clearErrors()
 }
 
-async function deactivateTherapy(therapy) {
-  const confirmed = window.confirm('Confermi disattivazione terapia?')
+async function deleteTherapy(therapy) {
+  const confirmed = window.confirm('Confermi eliminazione terapia?')
   if (!confirmed) return
 
   message.value = ''
@@ -163,11 +201,11 @@ async function deactivateTherapy(therapy) {
       operatorId: currentUser.value?.login ?? null,
     })
 
-    message.value = 'Terapia disattivata.'
+    message.value = 'Terapia eliminata.'
     if (editingTherapyId.value === therapy.id) resetForm()
     await loadData()
   } catch (err) {
-    errorMessage.value = `Errore disattivazione: ${err.message}`
+    errorMessage.value = `Errore eliminazione: ${err.message}`
   }
 }
 
@@ -182,7 +220,11 @@ onMounted(() => {
 
     <div class="card">
       <p><strong>Elenco terapie attive</strong></p>
-      <p class="muted" style="margin-top:.25rem">Terapie non disattivate presenti nel dataset locale.</p>
+      <p class="muted" style="margin-top:.25rem">Terapie non eliminate presenti nel dataset locale.</p>
+
+      <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.75rem">
+        <button @click="openAddForm">Aggiungi</button>
+      </div>
 
       <p v-if="loading" class="muted" style="margin-top:.5rem">Caricamento...</p>
 
@@ -210,7 +252,7 @@ onMounted(() => {
             <td>{{ formatDate(therapy.dataFine) }}</td>
             <td>
               <button style="margin-right:.35rem" @click="startEditTherapy(therapy)">Modifica</button>
-              <button style="background:#c0392b" @click="deactivateTherapy(therapy)">Disattiva</button>
+              <button style="background:#c0392b" @click="deleteTherapy(therapy)">Elimina</button>
             </td>
           </tr>
           <tr v-if="therapies.length === 0 && !loading">
@@ -223,65 +265,112 @@ onMounted(() => {
     </div>
 
     <div class="card">
-      <details>
+      <details class="deep-panel" :open="isFormOpen" @toggle="isFormOpen = $event.target.open">
         <summary><strong>Gestione Terapie</strong></summary>
 
         <div style="margin-top:.75rem">
+          <div class="panel-breadcrumb">
+            <button type="button" class="panel-breadcrumb-link" @click="isFormOpen = false">Terapie</button>
+            <span class="panel-breadcrumb-current">/</span>
+            <span class="panel-breadcrumb-current">{{ panelMode === 'edit' ? 'Modifica' : 'Aggiungi' }}</span>
+            <button type="button" class="panel-close-btn" @click="isFormOpen = false">Chiudi</button>
+          </div>
           <p><strong>{{ editingTherapyId ? 'Modifica terapia' : 'Aggiungi nuova terapia' }}</strong></p>
           <p class="muted" style="margin-top:.25rem">Compila i campi minimi per registrare una terapia attiva per ospite.</p>
 
           <div class="import-form" style="margin-top:.65rem">
             <label>
               Ospite
-              <select v-model="form.hostId" :disabled="saving || !hosts.length">
+              <select
+                v-model="form.hostId"
+                :disabled="saving || !hosts.length"
+                @blur="validateField('hostId', form.hostId)"
+                :aria-invalid="!!errors.hostId"
+                :aria-describedby="errors.hostId ? 'hostId-error' : undefined"
+              >
                 <option value="">Seleziona ospite</option>
                 <option v-for="host in hosts" :key="host.id" :value="host.id">
                   {{ hostLabel(host.id) }}
                 </option>
               </select>
+              <span v-if="errors.hostId" id="hostId-error" class="error-message" role="alert">
+                {{ errors.hostId }}
+              </span>
             </label>
 
             <label>
               Farmaco
-              <select v-model="form.drugId" :disabled="saving || !drugs.length">
+              <select
+                v-model="form.drugId"
+                :disabled="saving || !drugs.length"
+                @blur="validateField('drugId', form.drugId)"
+                :aria-invalid="!!errors.drugId"
+                :aria-describedby="errors.drugId ? 'drugId-error' : undefined"
+              >
                 <option value="">Seleziona farmaco</option>
                 <option v-for="drug in drugs" :key="drug.id" :value="drug.id">
                   {{ drugLabel(drug.id) }}
                 </option>
               </select>
+              <span v-if="errors.drugId" id="drugId-error" class="error-message" role="alert">
+                {{ errors.drugId }}
+              </span>
             </label>
 
-            <label>
-              Dose per somministrazione
-              <input v-model="form.dosePerSomministrazione" type="number" min="0" step="0.01" />
-            </label>
+            <ValidatedInput
+              v-model="form.dosePerSomministrazione"
+              field-name="dosePerSomministrazione"
+              label="Dose per somministrazione"
+              type="number"
+              :error="errors.dosePerSomministrazione"
+              :required="true"
+              @validate="validateField"
+            />
 
-            <label>
-              Somministrazioni giornaliere
-              <input v-model="form.somministrazioniGiornaliere" type="number" min="0" step="1" />
-            </label>
+            <ValidatedInput
+              v-model="form.somministrazioniGiornaliere"
+              field-name="somministrazioniGiornaliere"
+              label="Somministrazioni giornaliere"
+              type="number"
+              :error="errors.somministrazioniGiornaliere"
+              :required="true"
+              @validate="validateField"
+            />
 
             <label>
               Consumo medio settimanale
               <input v-model="form.consumoMedioSettimanale" type="number" min="0" step="0.01" />
             </label>
 
-            <label>
-              Data inizio
-              <input v-model="form.dataInizio" type="date" />
-            </label>
+            <ValidatedInput
+              v-model="form.dataInizio"
+              field-name="dataInizio"
+              label="Data inizio"
+              type="date"
+              :error="errors.dataInizio"
+              :required="true"
+              @validate="validateField"
+            />
 
-            <label>
-              Data fine (opzionale)
-              <input v-model="form.dataFine" type="date" />
-            </label>
+            <ValidatedInput
+              v-model="form.dataFine"
+              field-name="dataFine"
+              label="Data fine (opzionale)"
+              type="date"
+              :error="errors.dataFine"
+              @validate="validateField"
+            />
 
-            <label>
-              Note
-              <input v-model="form.note" type="text" placeholder="Indicazioni operative" />
-            </label>
+            <ValidatedInput
+              v-model="form.note"
+              field-name="note"
+              label="Note"
+              :error="errors.note"
+              placeholder="Indicazioni operative"
+              @validate="validateField"
+            />
 
-            <button :disabled="saving || !canCreate" @click="saveTherapy">
+            <button :disabled="saving || !canCreate || hasErrors" @click="saveTherapy">
               {{ saving ? 'Salvataggio...' : (editingTherapyId ? 'Salva modifica' : 'Salva terapia') }}
             </button>
             <button type="button" :disabled="saving" @click="resetForm">Annulla</button>

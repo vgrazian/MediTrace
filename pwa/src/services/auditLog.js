@@ -156,3 +156,149 @@ export async function clearAllAuditEvents() {
 export async function countAllEvents() {
     return await db.activityLog.count()
 }
+
+function normalize(value) {
+    return String(value || '').trim().toLowerCase()
+}
+
+function hasMatch(value, query) {
+    if (!query) return true
+    return normalize(value).includes(normalize(query))
+}
+
+/**
+ * Build reference maps for audit enrichment and filtering labels.
+ *
+ * @returns {Promise<object>} maps for hosts/drugs/therapies/movements/reminders
+ */
+export async function buildAuditReferences() {
+    const [hosts, drugs, therapies, movements, reminders] = await Promise.all([
+        db.hosts?.toArray?.() ?? Promise.resolve([]),
+        db.drugs?.toArray?.() ?? Promise.resolve([]),
+        db.therapies?.toArray?.() ?? Promise.resolve([]),
+        db.movements?.toArray?.() ?? Promise.resolve([]),
+        db.reminders?.toArray?.() ?? Promise.resolve([]),
+    ])
+
+    return {
+        hostById: new Map(hosts.map(host => [host.id, host])),
+        drugById: new Map(drugs.map(drug => [drug.id, drug])),
+        therapyById: new Map(therapies.map(therapy => [therapy.id, therapy])),
+        movementById: new Map(movements.map(movement => [movement.id, movement])),
+        reminderById: new Map(reminders.map(reminder => [reminder.id, reminder])),
+    }
+}
+
+function labelHost(host) {
+    if (!host) return ''
+    const fullName = [host.cognome, host.nome].filter(Boolean).join(' ').trim()
+    const code = host.codiceInterno || host.id
+    return `[${code}] ${fullName || host.iniziali || host.id}`
+}
+
+function labelDrug(drug) {
+    if (!drug) return ''
+    return String(drug.nomeFarmaco || drug.principioAttivo || drug.id || '').trim()
+}
+
+/**
+ * Enrich raw audit events with host/drug/therapy references and labels.
+ *
+ * @param {Array} events
+ * @param {object} refs
+ * @returns {Array}
+ */
+export function enrichAuditEvents(events = [], refs = null) {
+    if (!refs) return events
+
+    return events.map(event => {
+        const enriched = { ...event, hostId: null, drugId: null, therapyId: null }
+
+        if (event.entityType === 'hosts') enriched.hostId = event.entityId
+        if (event.entityType === 'drugs') enriched.drugId = event.entityId
+        if (event.entityType === 'therapies') enriched.therapyId = event.entityId
+
+        if (event.entityType === 'movements') {
+            const movement = refs.movementById.get(event.entityId)
+            if (movement) {
+                enriched.hostId = movement.hostId || enriched.hostId
+                enriched.therapyId = movement.therapyId || enriched.therapyId
+                enriched.drugId = movement.drugId || enriched.drugId
+            }
+        }
+
+        if (event.entityType === 'reminders') {
+            const reminder = refs.reminderById.get(event.entityId)
+            if (reminder) {
+                enriched.hostId = reminder.hostId || enriched.hostId
+                enriched.therapyId = reminder.therapyId || enriched.therapyId
+                enriched.drugId = reminder.drugId || enriched.drugId
+            }
+        }
+
+        if (enriched.therapyId) {
+            const therapy = refs.therapyById.get(enriched.therapyId)
+            if (therapy) {
+                enriched.hostId = enriched.hostId || therapy.hostId || null
+                enriched.drugId = enriched.drugId || therapy.drugId || null
+            }
+        }
+
+        const host = enriched.hostId ? refs.hostById.get(enriched.hostId) : null
+        const drug = enriched.drugId ? refs.drugById.get(enriched.drugId) : null
+
+        enriched.hostLabel = labelHost(host)
+        enriched.drugLabel = labelDrug(drug)
+        enriched.therapyLabel = enriched.therapyId || ''
+
+        return enriched
+    })
+}
+
+/**
+ * Apply UI-level filters to already loaded/enriched events.
+ *
+ * @param {Array} events
+ * @param {object} filters
+ * @returns {Array}
+ */
+export function filterAuditEvents(events = [], filters = {}) {
+    const operator = filters.operator || ''
+    const host = filters.host || ''
+    const drug = filters.drug || ''
+    const therapy = filters.therapy || ''
+    const action = filters.action || ''
+    const entity = filters.entity || ''
+    const fromDate = filters.fromDate ? new Date(filters.fromDate) : null
+    const toDate = filters.toDate ? new Date(filters.toDate) : null
+    if (toDate) toDate.setHours(23, 59, 59, 999)
+
+    return events.filter(event => {
+        if (!hasMatch(event.operatorId, operator)) return false
+        if (!hasMatch(event.action, action)) return false
+        if (!hasMatch(event.entityType, entity)) return false
+
+        if (host) {
+            const hostMatch = hasMatch(event.hostId, host) || hasMatch(event.hostLabel, host)
+            if (!hostMatch) return false
+        }
+
+        if (drug) {
+            const drugMatch = hasMatch(event.drugId, drug) || hasMatch(event.drugLabel, drug)
+            if (!drugMatch) return false
+        }
+
+        if (therapy) {
+            const therapyMatch = hasMatch(event.therapyId, therapy) || hasMatch(event.therapyLabel, therapy)
+            if (!therapyMatch) return false
+        }
+
+        if (fromDate || toDate) {
+            const ts = new Date(event.ts)
+            if (fromDate && ts < fromDate) return false
+            if (toDate && ts > toDate) return false
+        }
+
+        return true
+    })
+}
