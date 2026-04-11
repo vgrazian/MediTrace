@@ -57,11 +57,16 @@ test('terapie view supports create and delete flow', async ({ page }) => {
     await page.getByRole('button', { name: 'Salva terapia' }).click()
 
     await expect(page.getByText(/Terapia salvata/i)).toBeVisible()
-    await expect(page.getByRole('cell', { name: 'OSP-01' })).toBeVisible()
-    await expect(page.getByRole('cell', { name: 'Paracetamolo' })).toBeVisible()
+    await expect(page.getByRole('cell', { name: '[OSP-01] - OSP-01', exact: true })).toBeVisible()
+    await expect(page.getByRole('cell', { name: 'Paracetamolo', exact: true })).toBeVisible()
+
+    await page.getByLabel(/Seleziona terapia/i).check()
+    await page.getByRole('button', { name: /^Modifica$/ }).first().click()
+    await expect(page.getByRole('button', { name: 'Salva modifica' })).toBeVisible()
+    await page.getByRole('button', { name: 'Annulla' }).first().click()
 
     page.once('dialog', dialog => dialog.accept())
-    await page.getByRole('button', { name: 'Elimina' }).first().click()
+    await page.getByRole('button', { name: 'Elimina (1)' }).first().click()
 
     await expect(page.getByText('Terapia eliminata.')).toBeVisible()
     await expect(page.getByText('Nessuna terapia attiva disponibile.')).toBeVisible()
