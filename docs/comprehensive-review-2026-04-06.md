@@ -1487,7 +1487,7 @@ Each improvement includes concrete examples and actionable recommendations. Impl
 
 **Validation Rules:**
 1. required, 2. minLength, 3. maxLength, 4. email, 5. numeric
-6. positiveNumber, 7. integer, 8. date, 9. futureDate, 10. pattern, 11. custom
+2. positiveNumber, 7. integer, 8. date, 9. futureDate, 10. pattern, 11. custom
 
 **Remaining Scope Under Review:**
 - [ ] Update PromemoriaView.vue
