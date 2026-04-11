@@ -4,6 +4,9 @@ import { useRoute } from 'vue-router'
 import { db, enqueue, getSetting } from '../db'
 import { useAuth } from '../services/auth'
 import { buildReminderRows, markReminder, reminderStateBadge, REMINDER_OUTCOMES } from '../services/promemoria'
+import { confirmDeleteReminder } from '../services/confirmations'
+import { useFormValidation } from '../services/formValidation'
+import ValidatedInput from '../components/ValidatedInput.vue'
 
 const route = useRoute()
 const { currentUser } = useAuth()
@@ -29,6 +32,20 @@ const form = ref({
 })
 
 const highlightedReminderId = computed(() => String(route.query.highlight || ''))
+
+const {
+  errors,
+  validateField,
+  validateForm,
+  clearErrors,
+  hasErrors,
+} = useFormValidation({
+  scheduledAt: { required: true, date: true, futureDate: true },
+  note: { maxLength: 500 },
+}, {
+  scheduledAt: 'Orario promemoria',
+  note: 'Note',
+})
 
 const rows = computed(() => buildReminderRows({
   reminders: allReminders.value,
@@ -112,12 +129,17 @@ function resetForm() {
     stato: 'DA_ESEGUIRE',
     note: '',
   }
+  clearErrors()
 }
 
 async function saveReminderEdit() {
   if (!editingReminderId.value) return
   message.value = ''
   errorMessage.value = ''
+  if (!validateForm(form.value)) {
+    errorMessage.value = 'Correggi gli errori nel form prima di salvare.'
+    return
+  }
   savingEdit.value = true
 
   try {
@@ -159,7 +181,14 @@ async function saveReminderEdit() {
 }
 
 async function deleteReminder(reminderId) {
-  if (!window.confirm('Confermi eliminazione promemoria?')) return
+  const reminder = allReminders.value.find(r => r.id === reminderId)
+  const host = hosts.value.find(h => h.id === reminder?.hostId)
+  const drug = drugs.value.find(d => d.id === reminder?.drugId)
+  const reminderLabel = `${host?.iniziali || host?.codiceInterno || 'Ospite'} - ${drug?.principioAttivo || 'Farmaco'} (${formatSchedule(reminder?.scheduledAt)})`
+  
+  const confirmed = await confirmDeleteReminder(reminderLabel)
+  if (!confirmed) return
+  
   message.value = ''
   errorMessage.value = ''
 
@@ -316,10 +345,16 @@ watch(() => route.fullPath, () => void loadData())
         <div style="margin-top:.75rem">
           <p><strong>{{ editingReminderId ? `Modifica promemoria ${editingReminderId}` : 'Seleziona un promemoria da modificare' }}</strong></p>
           <div class="import-form" style="margin-top:.65rem">
-            <label>
-              Orario promemoria
-              <input v-model="form.scheduledAt" type="datetime-local" :disabled="!editingReminderId || savingEdit" />
-            </label>
+            <ValidatedInput
+              v-model="form.scheduledAt"
+              field-name="scheduledAt"
+              label="Orario promemoria"
+              type="datetime-local"
+              :error="errors.scheduledAt"
+              :required="true"
+              :disabled="!editingReminderId || savingEdit"
+              @validate="(field, value) => validateField(field, value)"
+            />
             <label>
               Stato
               <select v-model="form.stato" :disabled="!editingReminderId || savingEdit">
@@ -329,11 +364,17 @@ watch(() => route.fullPath, () => void loadData())
                 <option value="POSTICIPATO">Posticipato</option>
               </select>
             </label>
-            <label>
-              Note
-              <input v-model="form.note" type="text" placeholder="Note operative" :disabled="!editingReminderId || savingEdit" />
-            </label>
-            <button :disabled="!editingReminderId || savingEdit" @click="saveReminderEdit">
+            <ValidatedInput
+              v-model="form.note"
+              field-name="note"
+              label="Note"
+              type="text"
+              placeholder="Note operative"
+              :error="errors.note"
+              :disabled="!editingReminderId || savingEdit"
+              @validate="(field, value) => validateField(field, value)"
+            />
+            <button :disabled="!editingReminderId || savingEdit || hasErrors" @click="saveReminderEdit">
               {{ savingEdit ? 'Salvataggio...' : 'Salva modifica' }}
             </button>
             <button type="button" :disabled="savingEdit" @click="resetForm">Annulla</button>

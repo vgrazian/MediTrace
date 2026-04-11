@@ -78,6 +78,7 @@ describe('auth service', () => {
     beforeEach(() => {
         settings.clear()
         authEvents.length = 0
+        vi.unstubAllEnvs()
         setupGithubUserFetchMock()
         supabaseAuth.resetPasswordForEmail.mockReset()
         supabaseAuth.signInWithOtp.mockReset()
@@ -472,5 +473,29 @@ describe('auth service', () => {
         expect(actions).toContain('auth_password_reset_email_requested')
         expect(actions).toContain('auth_invite_email_sent')
         expect(actions).toContain('auth_password_changed')
+    })
+
+    it('bootstraps emergency admin account when enabled via env', async () => {
+        vi.resetModules()
+        vi.stubEnv('VITE_EMERGENCY_ADMIN_ENABLED', '1')
+        vi.stubEnv('VITE_EMERGENCY_ADMIN_USERNAME', 'admin_emergenza')
+        vi.stubEnv('VITE_EMERGENCY_ADMIN_PASSWORD', 'MediTraceAdmin!2026')
+        vi.stubEnv('VITE_EMERGENCY_ADMIN_EMAIL', 'meditace0@gmail.com')
+        vi.stubEnv('VITE_EMERGENCY_ADMIN_FIRST_NAME', 'Admin')
+        vi.stubEnv('VITE_EMERGENCY_ADMIN_LAST_NAME', 'Emergenza')
+        vi.stubEnv('VITE_EMERGENCY_ADMIN_GITHUB_TOKEN', '')
+
+        const authModule = await import('../../src/services/auth')
+        const { initAuth, useAuth } = authModule
+        const auth = useAuth()
+
+        await initAuth()
+
+        expect(auth.hasUsers.value).toBe(true)
+
+        await auth.signIn({ username: 'admin_emergenza', password: 'MediTraceAdmin!2026' })
+        expect(auth.currentUser.value?.username).toBe('admin_emergenza')
+        expect(auth.currentUser.value?.role).toBe('admin')
+        expect(auth.currentUser.value?.email).toBe('meditace0@gmail.com')
     })
 })

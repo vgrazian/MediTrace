@@ -5,6 +5,7 @@ import { upsertDrug, deleteDrug, upsertBatch, deactivateBatch } from '../../src/
 
 const dbDrugs = new Map()
 const dbBatches = new Map()
+const dbTherapies = new Map()
 const activityLogRows = []
 const enqueueCalls = []
 
@@ -17,6 +18,10 @@ vi.mock('../../src/db', () => ({
         stockBatches: {
             async get(id) { return dbBatches.get(id) ?? undefined },
             async put(row) { dbBatches.set(row.id, row) },
+            async toArray() { return Array.from(dbBatches.values()) },
+        },
+        therapies: {
+            async toArray() { return Array.from(dbTherapies.values()) },
         },
         syncQueue: { async add() { } },
         activityLog: { async add(row) { activityLogRows.push(row) } },
@@ -38,6 +43,7 @@ const NOW = new Date('2026-04-04T14:00:00.000Z')
 function resetState() {
     dbDrugs.clear()
     dbBatches.clear()
+    dbTherapies.clear()
     activityLogRows.length = 0
     enqueueCalls.length = 0
 }
@@ -148,6 +154,68 @@ describe('deleteDrug', () => {
         expect(deletedAudit?.deviceId).toBe('unknown')
         expect(typeof deletedAudit?.ts).toBe('string')
     })
+
+    it('blocks deletion when drug is used by active therapies', async () => {
+        dbTherapies.set('therapy-1', {
+            id: 'therapy-1',
+            drugId: 'drug-1',
+            deletedAt: null,
+            dataFine: null,
+            attiva: true,
+        })
+
+        await expect(deleteDrug({
+            drugId: 'drug-1',
+            existing: dbDrugs.get('drug-1'),
+            operatorId: 'op-admin',
+        })).rejects.toMatchObject({
+            code: 'DRUG_IN_USE_BY_ACTIVE_THERAPY',
+            category: 'conflict',
+        })
+        expect(activityLogRows).toHaveLength(0)
+    })
+
+    it('blocks deletion when drug has active batches', async () => {
+        dbBatches.set('batch-10', {
+            id: 'batch-10',
+            drugId: 'drug-1',
+            deletedAt: null,
+        })
+
+        await expect(deleteDrug({
+            drugId: 'drug-1',
+            existing: dbDrugs.get('drug-1'),
+            operatorId: 'op-admin',
+        })).rejects.toMatchObject({
+            code: 'DRUG_IN_USE_BY_ACTIVE_BATCH',
+            category: 'conflict',
+        })
+        expect(activityLogRows).toHaveLength(0)
+    })
+
+    it('allows deletion when linked therapies are closed and batches already deleted', async () => {
+        dbTherapies.set('therapy-closed', {
+            id: 'therapy-closed',
+            drugId: 'drug-1',
+            deletedAt: null,
+            dataFine: '2026-03-01',
+            attiva: false,
+        })
+        dbBatches.set('batch-deleted', {
+            id: 'batch-deleted',
+            drugId: 'drug-1',
+            deletedAt: '2026-03-01T00:00:00.000Z',
+        })
+
+        const result = await deleteDrug({
+            drugId: 'drug-1',
+            existing: dbDrugs.get('drug-1'),
+            operatorId: 'op-admin',
+        })
+
+        expect(result.deletedAt).toBeTruthy()
+        expect(activityLogRows.find(row => row.action === 'drug_deleted')).toBeTruthy()
+    })
 })
 
 // ── upsertBatch ───────────────────────────────────────────────────────────────
@@ -256,5 +324,46 @@ describe('deactivateBatch', () => {
         expect(deactivatedAudit?.operatorId).toBe('op-admin')
         expect(deactivatedAudit?.deviceId).toBe('unknown')
         expect(typeof deactivatedAudit?.ts).toBe('string')
+    })
+
+    it('blocks deactivation when batch is referenced by active therapy', async () => {
+        dbTherapies.set('therapy-using-batch', {
+            id: 'therapy-using-batch',
+            drugId: 'drug-1',
+            stockBatchId: 'batch-1',
+            deletedAt: null,
+            dataFine: null,
+            attiva: true,
+        })
+
+        await expect(deactivateBatch({
+            batchId: 'batch-1',
+            existing: dbBatches.get('batch-1'),
+            operatorId: 'op-admin',
+        })).rejects.toMatchObject({
+            code: 'BATCH_IN_USE_BY_ACTIVE_THERAPY',
+            category: 'conflict',
+        })
+        expect(activityLogRows).toHaveLength(0)
+    })
+
+    it('allows deactivation when therapy reference is historical', async () => {
+        dbTherapies.set('therapy-ended', {
+            id: 'therapy-ended',
+            drugId: 'drug-1',
+            stockBatchId: 'batch-1',
+            deletedAt: null,
+            dataFine: '2026-03-01',
+            attiva: false,
+        })
+
+        const result = await deactivateBatch({
+            batchId: 'batch-1',
+            existing: dbBatches.get('batch-1'),
+            operatorId: 'op-admin',
+        })
+
+        expect(result.deletedAt).toBeTruthy()
+        expect(activityLogRows.find(row => row.action === 'stock_batch_deactivated')).toBeTruthy()
     })
 })

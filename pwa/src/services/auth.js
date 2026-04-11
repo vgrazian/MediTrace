@@ -18,6 +18,13 @@ const DEV_SEED_ACCOUNT_ENABLED = import.meta.env.DEV && import.meta.env.VITE_DEV
 const DEV_SEED_USERNAME = normalizeUsername(import.meta.env.VITE_DEV_SEED_USERNAME || 'test')
 const DEV_SEED_PASSWORD = String(import.meta.env.VITE_DEV_SEED_PASSWORD || '')
 const DEV_SEED_GITHUB_TOKEN = String(import.meta.env.VITE_DEV_SEED_GITHUB_TOKEN || '').trim()
+const EMERGENCY_ADMIN_ENABLED = String(import.meta.env.VITE_EMERGENCY_ADMIN_ENABLED || '') === '1'
+const EMERGENCY_ADMIN_USERNAME = normalizeUsername(import.meta.env.VITE_EMERGENCY_ADMIN_USERNAME || '')
+const EMERGENCY_ADMIN_PASSWORD = String(import.meta.env.VITE_EMERGENCY_ADMIN_PASSWORD || '')
+const EMERGENCY_ADMIN_EMAIL = normalizeEmail(import.meta.env.VITE_EMERGENCY_ADMIN_EMAIL || '')
+const EMERGENCY_ADMIN_FIRST_NAME = String(import.meta.env.VITE_EMERGENCY_ADMIN_FIRST_NAME || 'Admin').trim()
+const EMERGENCY_ADMIN_LAST_NAME = String(import.meta.env.VITE_EMERGENCY_ADMIN_LAST_NAME || 'Emergenza').trim()
+const EMERGENCY_ADMIN_GITHUB_TOKEN = String(import.meta.env.VITE_EMERGENCY_ADMIN_GITHUB_TOKEN || '').trim()
 
 // Module-level singleton state
 const state = reactive({
@@ -454,6 +461,35 @@ async function buildAuthUser({ username, password, githubToken, firstName, lastN
     }
 }
 
+async function buildLocalAuthUser({ username, password, firstName, lastName, email, role = 'operator' }) {
+    const passwordSalt = randomSaltHex()
+    const passwordHash = await hashPassword(password, passwordSalt)
+    const now = new Date().toISOString()
+    const normalizedUsername = normalizeUsername(username)
+    const normalizedFirstName = String(firstName ?? '').trim()
+    const normalizedLastName = String(lastName ?? '').trim()
+    const fullName = [normalizedFirstName, normalizedLastName].filter(Boolean).join(' ').trim()
+
+    return {
+        id: crypto.randomUUID(),
+        username: normalizedUsername,
+        passwordSalt,
+        passwordHash,
+        githubToken: '',
+        githubLogin: normalizedUsername,
+        displayName: fullName || normalizedUsername,
+        firstName: normalizedFirstName,
+        lastName: normalizedLastName,
+        email: normalizeEmail(email),
+        avatarUrl: '',
+        role: normalizeRole(role),
+        createdAt: now,
+        updatedAt: now,
+        disabled: false,
+        isSeeded: false,
+    }
+}
+
 async function ensureDevSeedAccount(users) {
     if (!DEV_SEED_ACCOUNT_ENABLED) return users
     if (users.some(u => !u.disabled)) return users
@@ -477,12 +513,84 @@ async function ensureDevSeedAccount(users) {
     }
 }
 
+async function ensureEmergencyAdminAccount(users) {
+    if (!EMERGENCY_ADMIN_ENABLED) return users
+
+    if (!USERNAME_PATTERN.test(EMERGENCY_ADMIN_USERNAME)) {
+        console.warn('[auth] Emergency admin non creato: username non valido')
+        return users
+    }
+
+    const passwordPolicyError = getPasswordPolicyErrorMessage(EMERGENCY_ADMIN_PASSWORD)
+    if (passwordPolicyError) {
+        console.warn('[auth] Emergency admin non creato: password non conforme alla policy')
+        return users
+    }
+
+    if (!EMAIL_PATTERN.test(EMERGENCY_ADMIN_EMAIL)) {
+        console.warn('[auth] Emergency admin non creato: email non valida')
+        return users
+    }
+
+    const existingIndex = users.findIndex(user => user.username === EMERGENCY_ADMIN_USERNAME)
+    if (existingIndex >= 0) {
+        const existingUser = users[existingIndex]
+        const normalizedRole = normalizeRole(existingUser.role)
+        const shouldUpdate = existingUser.disabled || normalizedRole !== 'admin' || normalizeEmail(existingUser.email) !== EMERGENCY_ADMIN_EMAIL
+        if (!shouldUpdate) return users
+
+        const nextUsers = [...users]
+        nextUsers[existingIndex] = {
+            ...existingUser,
+            role: 'admin',
+            disabled: false,
+            email: EMERGENCY_ADMIN_EMAIL,
+            firstName: EMERGENCY_ADMIN_FIRST_NAME || existingUser.firstName,
+            lastName: EMERGENCY_ADMIN_LAST_NAME || existingUser.lastName,
+            updatedAt: nowIso(),
+            isSeeded: true,
+        }
+        await saveUsers(nextUsers)
+        return nextUsers
+    }
+
+    try {
+        const seededUser = EMERGENCY_ADMIN_GITHUB_TOKEN
+            ? await buildAuthUser({
+                username: EMERGENCY_ADMIN_USERNAME,
+                password: EMERGENCY_ADMIN_PASSWORD,
+                githubToken: EMERGENCY_ADMIN_GITHUB_TOKEN,
+                firstName: EMERGENCY_ADMIN_FIRST_NAME,
+                lastName: EMERGENCY_ADMIN_LAST_NAME,
+                email: EMERGENCY_ADMIN_EMAIL,
+                role: 'admin',
+            })
+            : await buildLocalAuthUser({
+                username: EMERGENCY_ADMIN_USERNAME,
+                password: EMERGENCY_ADMIN_PASSWORD,
+                firstName: EMERGENCY_ADMIN_FIRST_NAME,
+                lastName: EMERGENCY_ADMIN_LAST_NAME,
+                email: EMERGENCY_ADMIN_EMAIL,
+                role: 'admin',
+            })
+        seededUser.isSeeded = true
+        const nextUsers = [...users, seededUser]
+        await saveUsers(nextUsers)
+        console.info('[auth] Account admin di emergenza disponibile:', EMERGENCY_ADMIN_USERNAME)
+        return nextUsers
+    } catch (err) {
+        console.warn('[auth] Impossibile creare account admin di emergenza:', err.message)
+        return users
+    }
+}
+
 // ── Public API ────────────────────────────────────────────────────────────────
 
 export async function initAuth() {
     try {
         let users = await loadUsers()
         users = await ensureDevSeedAccount(users)
+        users = await ensureEmergencyAdminAccount(users)
         state.hasUsers = users.some(u => !u.disabled)
 
         try {
@@ -648,7 +756,7 @@ export function useAuth() {
         async requestPasswordResetByEmail(email, { redirectTo } = {}) {
             const normalizedEmail = assertValidEmail(email)
             if (!isSupabaseConfigured || !supabase) {
-                throw new Error('Reset email non disponibile: configura Supabase in .env.local')
+                throw new Error('Reset email non disponibile: configura Supabase in pwa/.env.local oppure accedi con l\'account admin di emergenza')
             }
 
             const targetRedirect = redirectTo || getSupabaseRedirectTo('/#/impostazioni')

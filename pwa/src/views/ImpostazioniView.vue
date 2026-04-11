@@ -4,6 +4,7 @@ import { useAuth } from '../services/auth'
 import { canRole } from '../services/rbac'
 import { fullSync, exportBackupJson, listPendingConflicts, resolveConflict } from '../services/sync'
 import { formatUserError } from '../services/errorHandling'
+import { confirmDeleteUser } from '../services/confirmations'
 import {
   getNotificationStatusSnapshot,
   requestNotificationPermission,
@@ -478,7 +479,7 @@ async function handleReactivateSeeded(username) {
 }
 
 async function handleDeleteSeeded(username) {
-  const confirmed = window.confirm(`Confermi eliminazione definitiva dell'utente di prova "${username}"?`)
+  const confirmed = await confirmDeleteUser(username)
   if (!confirmed) return
 
   usersBusy.value = true
