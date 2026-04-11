@@ -41,13 +41,13 @@ jobs:
           REF="${{ inputs.deploy_ref || github.sha }}"
           echo "deployed_ref=$REF" >> "$GITHUB_OUTPUT"
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           ref: ${{ steps.resolve_ref.outputs.deployed_ref }}
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
-          node-version: 20
+          node-version: 24
           cache: npm
           cache-dependency-path: pwa/package-lock.json
 
@@ -59,6 +59,10 @@ jobs:
         env:
           # Must match the GitHub Pages base path: /<repo-name>/
           VITE_BASE_URL: /MediTrace/
+          # Optional: configure in repository Variables to enable reset password via Supabase on Pages
+          VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY }}
+          VITE_SUPABASE_REDIRECT_TO: ${{ vars.VITE_SUPABASE_REDIRECT_TO || 'https://vgrazian.github.io/MediTrace/#/auth/reset-password' }}
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
