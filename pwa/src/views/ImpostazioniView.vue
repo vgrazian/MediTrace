@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref, onMounted } from 'vue'
+import { computed, ref, onMounted, watch } from 'vue'
 import { useAuth } from '../services/auth'
 import { canRole } from '../services/rbac'
 import { fullSync, exportBackupJson, listPendingConflicts, resolveConflict } from '../services/sync'
@@ -32,6 +32,7 @@ const {
   currentUser,
   signOut,
   changePassword,
+  updateCurrentProfile,
   getSessionInfo,
   getCredentialPolicyStatus,
   listRecentAuthEvents,
@@ -61,6 +62,12 @@ const pwdNext = ref('')
 const pwdConfirm = ref('')
 const passwordMessage = ref('')
 const passwordBusy = ref(false)
+const profileFirstName = ref('')
+const profileLastName = ref('')
+const profilePhone = ref('')
+const profileEmail = ref('')
+const profileBusy = ref(false)
+const profileMessage = ref('')
 const testUserBusy = ref(false)
 const testUserMessage = ref('')
 const users = ref([])
@@ -103,6 +110,13 @@ const testDataActionLabel = computed(() => {
   if (seedBusy.value) return seedActionMode.value === 'clear' ? 'Rimozione in corso…' : 'Generazione in corso…'
   return seedActionMode.value === 'clear' ? 'Rimuovi dati di test' : 'Genera dati di test'
 })
+
+function hydrateProfileForm() {
+  profileFirstName.value = currentUser.value?.firstName ?? ''
+  profileLastName.value = currentUser.value?.lastName ?? ''
+  profilePhone.value = currentUser.value?.phone ?? ''
+  profileEmail.value = currentUser.value?.email ?? ''
+}
 
 async function refreshSeedStatus() {
   const [legacySeedLoaded, realisticSeedLoaded] = await Promise.all([
@@ -313,6 +327,11 @@ onMounted(async () => {
   await refreshPushStatus()
   await refreshUpcomingReminderRows()
   await refreshSeedStatus()
+  hydrateProfileForm()
+})
+
+watch(currentUser, () => {
+  hydrateProfileForm()
 })
 
 async function handleToggleTestData() {
@@ -450,6 +469,26 @@ async function submitPasswordChange() {
   }
 }
 
+async function submitProfileUpdate() {
+  profileBusy.value = true
+  profileMessage.value = ''
+
+  try {
+    await updateCurrentProfile({
+      firstName: profileFirstName.value,
+      lastName: profileLastName.value,
+      phone: profilePhone.value,
+      email: profileEmail.value,
+    })
+    await refreshUsers()
+    profileMessage.value = 'Profilo aggiornato con successo.'
+  } catch (err) {
+    profileMessage.value = `Errore profilo: ${err.message}`
+  } finally {
+    profileBusy.value = false
+  }
+}
+
 async function disableTestUser() {
   testUserBusy.value = true
   testUserMessage.value = ''
@@ -528,6 +567,7 @@ async function handleInviteUser() {
       <p><strong>Account operatore</strong></p>
       <p class="muted">Username: {{ currentUser?.username }}</p>
       <p class="muted">Nome: {{ currentUser?.firstName || '—' }} {{ currentUser?.lastName || '' }}</p>
+      <p class="muted">Telefono: {{ currentUser?.phone || '—' }}</p>
       <p class="muted">Email: {{ currentUser?.email || '—' }}</p>
       <p class="muted">Ruolo: {{ currentUser?.role === 'admin' ? 'amministratore' : 'operatore' }}</p>
       <p class="muted">Sincronizzazione GitHub: @{{ currentUser?.login }}<span v-if="currentUser?.name !== currentUser?.login"> ({{ currentUser?.name }})</span></p>
@@ -547,6 +587,36 @@ async function handleInviteUser() {
         </button>
         <p v-if="testUserMessage" class="muted" style="margin-top:.5rem;font-size:.8rem">{{ testUserMessage }}</p>
       </template>
+    </div>
+
+    <div class="card">
+      <p><strong>Profilo personale</strong></p>
+      <div class="import-form" style="margin-top:.5rem">
+        <label>
+          Nome profilo
+          <input v-model="profileFirstName" type="text" autocomplete="given-name" />
+        </label>
+
+        <label>
+          Cognome profilo
+          <input v-model="profileLastName" type="text" autocomplete="family-name" />
+        </label>
+
+        <label>
+          Telefono profilo
+          <input v-model="profilePhone" type="tel" autocomplete="tel" placeholder="+39 333 1234567" />
+        </label>
+
+        <label>
+          Email profilo
+          <input v-model="profileEmail" type="email" autocomplete="email" />
+        </label>
+
+        <button :disabled="profileBusy || !profileFirstName || !profileLastName || !profileEmail" @click="submitProfileUpdate">
+          {{ profileBusy ? 'Aggiornamento profilo...' : 'Aggiorna profilo' }}
+        </button>
+      </div>
+      <p v-if="profileMessage" class="muted" style="margin-top:.5rem;font-size:.8rem">{{ profileMessage }}</p>
     </div>
 
     <div class="card">
@@ -597,6 +667,7 @@ async function handleInviteUser() {
             <th>Username</th>
             <th>Nome</th>
             <th>Cognome</th>
+            <th>Telefono</th>
             <th>Email</th>
             <th>GitHub</th>
             <th>Ruolo</th>
@@ -610,6 +681,7 @@ async function handleInviteUser() {
             <td>{{ user.username }}<span v-if="user.isCurrent"> (sessione attiva)</span></td>
             <td>{{ user.firstName || '—' }}</td>
             <td>{{ user.lastName || '—' }}</td>
+            <td>{{ user.phone || '—' }}</td>
             <td>{{ user.email || '—' }}</td>
             <td>@{{ user.login }}</td>
             <td>{{ user.role }}</td>

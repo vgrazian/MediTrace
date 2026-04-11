@@ -15,6 +15,7 @@ MediTrace è un'applicazione **offline-first** per la gestione farmacologica in 
 | **Stanze & Letti** | Gestione unità fisiche e assegnazione letti agli ospiti |
 | **Sync** | Caricamento e scaricamento dati da Gist GitHub privato |
 | **Audit Log** | Registro operazioni in sola lettura con filtri per operatore, ospite, farmaco, terapia e periodo |
+| **Impostazioni account** | Aggiornamento profilo personale (nome, cognome, telefono, email) e cambio password |
 | **Import CSV** | Bulk import da file CSV strutturati secondo i template inclusi |
 | **Home / KPI** | Cruscotto scorte critiche, terapie attive, promemoria in scadenza |
 

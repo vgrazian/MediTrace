@@ -8,6 +8,7 @@ const AUTH_SESSION_KEY = 'authSession'
 const AUTH_SESSION_USERNAME_KEY = 'authSessionUsername'
 const USERNAME_PATTERN = /^[a-z0-9._-]{3,32}$/
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+const PHONE_PATTERN = /^[+0-9()\s-]{6,24}$/
 const PASSWORD_ROTATION_DAYS = Number.parseInt(import.meta.env.VITE_PASSWORD_ROTATION_DAYS || '90', 10)
 const PASSWORD_EXPIRY_WARNING_DAYS = Number.parseInt(import.meta.env.VITE_PASSWORD_EXPIRY_WARNING_DAYS || '14', 10)
 const AUTH_SESSION_TTL_MINUTES = Number.parseInt(import.meta.env.VITE_SESSION_TTL_MINUTES || '480', 10)
@@ -42,6 +43,10 @@ function normalizeEmail(value) {
     return String(value ?? '').trim().toLowerCase()
 }
 
+function normalizePhone(value) {
+    return String(value ?? '').trim()
+}
+
 export function sanitizeUsernameInput(value) {
     return normalizeUsername(value)
         .replace(/[^a-z0-9._-]/g, '')
@@ -64,6 +69,15 @@ function assertValidEmail(email) {
     const normalized = normalizeEmail(email)
     if (!EMAIL_PATTERN.test(normalized)) {
         throw new Error('Email non valida')
+    }
+    return normalized
+}
+
+function assertValidPhone(phone) {
+    const normalized = normalizePhone(phone)
+    if (!normalized) return ''
+    if (!PHONE_PATTERN.test(normalized)) {
+        throw new Error('Telefono non valido')
     }
     return normalized
 }
@@ -155,6 +169,7 @@ function normalizeUsersRoles(users) {
         firstName: String(user.firstName ?? '').trim(),
         lastName: String(user.lastName ?? '').trim(),
         email: normalizeEmail(user.email),
+        phone: normalizePhone(user.phone),
     }))
 
     const hasActiveAdmin = normalized.some(user => !user.disabled && user.role === 'admin')
@@ -299,6 +314,7 @@ function toSessionUser(authUser) {
         firstName,
         lastName,
         email: normalizeEmail(authUser.email),
+        phone: normalizePhone(authUser.phone),
         role: normalizeRole(authUser.role),
         avatarUrl: authUser.avatarUrl,
         isSeeded: Boolean(authUser.isSeeded),
@@ -426,6 +442,7 @@ function summarizeUser(authUser) {
         firstName,
         lastName,
         email: normalizeEmail(authUser.email),
+        phone: normalizePhone(authUser.phone),
         role: normalizeRole(authUser.role),
         isSeeded: Boolean(authUser.isSeeded),
         disabled: Boolean(authUser.disabled),
@@ -435,7 +452,7 @@ function summarizeUser(authUser) {
     }
 }
 
-async function buildAuthUser({ username, password, githubToken, firstName, lastName, email, role = 'operator' }) {
+async function buildAuthUser({ username, password, githubToken, firstName, lastName, email, phone = '', role = 'operator' }) {
     const profile = await fetchGithubProfile(githubToken.trim())
     const passwordSalt = randomSaltHex()
     const passwordHash = await hashPassword(password, passwordSalt)
@@ -452,6 +469,7 @@ async function buildAuthUser({ username, password, githubToken, firstName, lastN
         firstName: String(firstName ?? '').trim(),
         lastName: String(lastName ?? '').trim(),
         email: normalizeEmail(email),
+        phone: normalizePhone(phone),
         avatarUrl: profile.avatarUrl,
         role: normalizeRole(role),
         createdAt: now,
@@ -461,7 +479,7 @@ async function buildAuthUser({ username, password, githubToken, firstName, lastN
     }
 }
 
-async function buildLocalAuthUser({ username, password, firstName, lastName, email, role = 'operator' }) {
+async function buildLocalAuthUser({ username, password, firstName, lastName, email, phone = '', role = 'operator' }) {
     const passwordSalt = randomSaltHex()
     const passwordHash = await hashPassword(password, passwordSalt)
     const now = new Date().toISOString()
@@ -481,6 +499,7 @@ async function buildLocalAuthUser({ username, password, firstName, lastName, ema
         firstName: normalizedFirstName,
         lastName: normalizedLastName,
         email: normalizeEmail(email),
+        phone: normalizePhone(phone),
         avatarUrl: '',
         role: normalizeRole(role),
         createdAt: now,
@@ -627,11 +646,12 @@ export function useAuth() {
     return {
         ...toRefs(readonly(state)),
 
-        async register({ username, password, confirmPassword, githubToken, firstName, lastName, email }) {
+        async register({ username, password, confirmPassword, githubToken, firstName, lastName, email, phone = '' }) {
             const normalized = assertValidUsername(username)
             const normalizedEmail = assertValidEmail(email)
             const normalizedFirstName = String(firstName ?? '').trim()
             const normalizedLastName = String(lastName ?? '').trim()
+            const normalizedPhone = assertValidPhone(phone)
             if (!normalizedFirstName || !normalizedLastName) {
                 throw new Error('Nome e cognome sono obbligatori')
             }
@@ -654,6 +674,7 @@ export function useAuth() {
                 firstName: normalizedFirstName,
                 lastName: normalizedLastName,
                 email: normalizedEmail,
+                phone: normalizedPhone,
                 role: users.some(u => !u.disabled) ? 'operator' : 'admin',
             })
 
@@ -721,6 +742,71 @@ export function useAuth() {
 
             await saveUsers(users)
             await invalidateSession({ reason: 'password-changed', username: activeUser.username, auditAction: 'auth_password_changed' })
+        },
+
+        async updateCurrentProfile({ firstName, lastName, phone = '', email }) {
+            const activeUser = await requireActiveSession()
+            const normalizedFirstName = String(firstName ?? '').trim()
+            const normalizedLastName = String(lastName ?? '').trim()
+            const normalizedPhone = assertValidPhone(phone)
+            const normalizedEmail = assertValidEmail(email)
+
+            if (!normalizedFirstName || !normalizedLastName) {
+                throw new Error('Nome e cognome sono obbligatori')
+            }
+
+            const users = await loadUsers()
+            const idx = users.findIndex(u => !u.disabled && u.username === activeUser.username)
+            if (idx < 0) throw new Error('Utente non trovato')
+
+            if (users.some((u, userIdx) => userIdx !== idx && !u.disabled && normalizeEmail(u.email) === normalizedEmail)) {
+                throw new Error('Email gia esistente')
+            }
+
+            const previousEmail = normalizeEmail(users[idx].email)
+            users[idx] = {
+                ...users[idx],
+                firstName: normalizedFirstName,
+                lastName: normalizedLastName,
+                phone: normalizedPhone,
+                email: normalizedEmail,
+                updatedAt: nowIso(),
+            }
+
+            await saveUsers(users)
+            applySession(users[idx])
+            await writeSession(users[idx], await readSession())
+            await setSetting('lastUser', { login: users[idx].githubLogin, name: users[idx].displayName ?? users[idx].githubLogin })
+
+            // Best effort: if a Supabase auth session is active for the same user, keep profile metadata aligned.
+            if (isSupabaseConfigured && supabase) {
+                try {
+                    const { data: supabaseUserData, error: supabaseUserError } = await supabase.auth.getUser()
+                    if (!supabaseUserError) {
+                        const supabaseEmail = normalizeEmail(supabaseUserData?.user?.email)
+                        if (supabaseEmail && supabaseEmail === previousEmail) {
+                            const payload = {
+                                data: {
+                                    firstName: normalizedFirstName,
+                                    lastName: normalizedLastName,
+                                    phone: normalizedPhone,
+                                },
+                            }
+                            if (normalizedEmail !== supabaseEmail) payload.email = normalizedEmail
+                            await supabase.auth.updateUser(payload)
+                        }
+                    }
+                } catch (_ignored) {
+                    // Local profile update remains authoritative even if Supabase sync is unavailable.
+                }
+            }
+
+            await appendAuthAudit('auth_profile_updated', users[idx].username, {
+                emailChanged: normalizedEmail !== previousEmail,
+                phoneUpdated: Boolean(normalizedPhone),
+            })
+
+            return toSessionUser(users[idx])
         },
 
         async signOut() {

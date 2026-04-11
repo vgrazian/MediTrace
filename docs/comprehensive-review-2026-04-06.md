@@ -1696,7 +1696,7 @@ async register({ username, password, githubToken, email }) {
 
 **Proposed Secure Flow:**
 
-```
+```text
 User Registration Request
          ↓
 Email Verification Link Sent

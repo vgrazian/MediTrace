@@ -41,9 +41,20 @@ La sezione Gestione ospiti deve offrire tre azioni:
 
 - Login applicativo tramite utenza + password.
 - Gestione credenziali utente: creazione utenza, cambio password, revoca/disattivazione utenza.
-- Ogni utente deve includere i campi anagrafici minimi: **nome**, **cognome**, **email** (obbligatori).
+- Ogni utente deve includere i campi anagrafici minimi: **nome**, **cognome**, **email** (obbligatori) e **telefono** (facoltativo).
 - L'email deve essere validata sintatticamente e mantenuta univoca tra utenti attivi.
 - La gestione autenticazione non deve richiedere inserimento manuale di GitHub PAT lato operatore.
+
+### 1.3c Gestione profilo personale da Impostazioni
+
+- Nel pannello **Impostazioni** l'utente autenticato deve poter aggiornare il proprio profilo senza intervento admin.
+- Campi modificabili: **nome**, **cognome**, **telefono**, **email**.
+- Vincoli:
+  - nome/cognome obbligatori
+  - telefono opzionale ma validato sintatticamente se compilato
+  - email obbligatoria, validata sintatticamente e univoca
+- Ogni aggiornamento profilo deve essere registrato nell'audit auth con evento dedicato.
+- Il cambiamento password resta separato nel pannello sicurezza, con policy password invariata.
 
 ### 1.3a Reset password via email
 
