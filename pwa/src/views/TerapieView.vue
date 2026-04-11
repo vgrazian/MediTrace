@@ -3,8 +3,10 @@ import { computed, onMounted, ref } from 'vue'
 import { db } from '../db'
 import { useAuth } from '../services/auth'
 import { deactivateTherapyRecord, upsertTherapy } from '../services/terapie'
+import { confirmDeactivateTherapy, confirmDeleteMultiple } from '../services/confirmations'
 import { useFormValidation } from '../services/formValidation'
 import ValidatedInput from '../components/ValidatedInput.vue'
+import { useSelection } from '../composables/useSelection'
 
 const { currentUser } = useAuth()
 
@@ -55,6 +57,17 @@ const form = ref({
 })
 
 const canCreate = computed(() => hosts.value.length > 0 && drugs.value.length > 0)
+
+const {
+  allSelected,
+  someSelected,
+  selectedCount,
+  toggleSelection,
+  toggleSelectAll,
+  clearSelection,
+  isSelected,
+  getSelectedItems,
+} = useSelection(therapies)
 
 function formatDate(value) {
   if (!value) return '—'
@@ -173,6 +186,13 @@ function openAddForm() {
   isFormOpen.value = true
 }
 
+function openEditForm() {
+  if (selectedCount.value !== 1) return
+  const selectedTherapy = getSelectedItems()[0]
+  if (!selectedTherapy) return
+  startEditTherapy(selectedTherapy)
+}
+
 function resetForm() {
   editingTherapyId.value = null
   panelMode.value = 'list'
@@ -190,7 +210,7 @@ function resetForm() {
 }
 
 async function deleteTherapy(therapy) {
-  const confirmed = window.confirm('Confermi eliminazione terapia?')
+  const confirmed = await confirmDeactivateTherapy(`${hostLabel(therapy.hostId)} · ${drugLabel(therapy.drugId)}`)
   if (!confirmed) return
 
   message.value = ''
@@ -203,6 +223,41 @@ async function deleteTherapy(therapy) {
 
     message.value = 'Terapia eliminata.'
     if (editingTherapyId.value === therapy.id) resetForm()
+    await loadData()
+  } catch (err) {
+    errorMessage.value = `Errore eliminazione: ${err.message}`
+  }
+}
+
+async function deleteSelectedTherapies() {
+  if (selectedCount.value === 0) return
+
+  const selectedTherapies = getSelectedItems()
+  const confirmed = await confirmDeleteMultiple(
+    selectedCount.value,
+    selectedCount.value === 1 ? 'terapia' : 'terapie',
+  )
+  if (!confirmed) return
+
+  message.value = ''
+  errorMessage.value = ''
+
+  try {
+    for (const therapy of selectedTherapies) {
+      await deactivateTherapyRecord({
+        therapy,
+        operatorId: currentUser.value?.login ?? null,
+      })
+    }
+
+    if (editingTherapyId.value && selectedTherapies.some(item => item.id === editingTherapyId.value)) {
+      resetForm()
+    }
+
+    clearSelection()
+    message.value = selectedTherapies.length === 1
+      ? 'Terapia eliminata.'
+      : `${selectedTherapies.length} terapie eliminate.`
     await loadData()
   } catch (err) {
     errorMessage.value = `Errore eliminazione: ${err.message}`
@@ -224,13 +279,35 @@ onMounted(() => {
 
       <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.75rem">
         <button @click="openAddForm">Aggiungi</button>
+        <button :disabled="selectedCount !== 1" @click="openEditForm">Modifica</button>
+        <button
+          :disabled="selectedCount === 0"
+          style="background:#c0392b"
+          @click="deleteSelectedTherapies"
+        >
+          Elimina{{ selectedCount > 0 ? ` (${selectedCount})` : '' }}
+        </button>
       </div>
+
+      <p v-if="selectedCount > 0" class="muted" style="margin-top:.55rem">
+        {{ selectedCount }} terapi{{ selectedCount > 1 ? 'e' : 'a' }} selezionat{{ selectedCount > 1 ? 'e' : 'a' }}.
+        <button type="button" style="margin-left:.4rem" @click="clearSelection">Deseleziona tutto</button>
+      </p>
 
       <p v-if="loading" class="muted" style="margin-top:.5rem">Caricamento...</p>
 
       <table class="conflict-table" style="margin-top:.75rem">
         <thead>
           <tr>
+            <th style="width:2.5rem">
+              <input
+                type="checkbox"
+                :checked="allSelected"
+                :indeterminate.prop="someSelected"
+                aria-label="Seleziona tutte le terapie"
+                @change="toggleSelectAll"
+              />
+            </th>
             <th>Ospite</th>
             <th>Farmaco</th>
             <th>Dose</th>
@@ -242,7 +319,19 @@ onMounted(() => {
           </tr>
         </thead>
         <tbody>
-          <tr v-for="therapy in therapies" :key="therapy.id">
+          <tr
+            v-for="therapy in therapies"
+            :key="therapy.id"
+            :style="isSelected(therapy.id) ? 'background:rgba(52, 152, 219, 0.12)' : undefined"
+          >
+            <td>
+              <input
+                type="checkbox"
+                :checked="isSelected(therapy.id)"
+                :aria-label="`Seleziona terapia ${hostLabel(therapy.hostId)} ${drugLabel(therapy.drugId)}`"
+                @change="toggleSelection(therapy.id)"
+              />
+            </td>
             <td>{{ hostLabel(therapy.hostId) }}</td>
             <td>{{ drugLabel(therapy.drugId) }}</td>
             <td>{{ therapy.dosePerSomministrazione ?? '—' }}</td>
@@ -256,7 +345,7 @@ onMounted(() => {
             </td>
           </tr>
           <tr v-if="therapies.length === 0 && !loading">
-            <td colspan="8" class="muted">Nessuna terapia attiva disponibile.</td>
+            <td colspan="9" class="muted">Nessuna terapia attiva disponibile.</td>
           </tr>
         </tbody>
       </table>

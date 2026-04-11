@@ -59,10 +59,7 @@ jobs:
         env:
           # Must match the GitHub Pages base path: /<repo-name>/
           VITE_BASE_URL: /MediTrace/
-          # Optional: configure in repository Secrets to enable reset password via Supabase on Pages
-          VITE_SUPABASE_URL: ${{ secrets['VITE_SUPABASE_URL'] }}
-          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets['VITE_SUPABASE_PUBLISHABLE_KEY'] }}
-          VITE_SUPABASE_REDIRECT_TO: ${{ secrets['VITE_SUPABASE_REDIRECT_TO'] || 'https://vgrazian.github.io/MediTrace/#/auth/reset-password' }}
+          # Optional Supabase config can be injected at build time from repo/org variables.
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3

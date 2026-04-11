@@ -62,7 +62,7 @@ test('movimenti view supports registering a carico and a scarico', async ({ page
     await expect(page.getByText(/^Movimento registrato \(ID:/i)).toBeVisible()
 
     // The new record should appear in the history table
-    await expect(page.getByRole('cell', { name: 'carico' })).toBeVisible()
+    await expect(page.getByRole('cell', { name: 'carico', exact: true })).toBeVisible()
     await expect(page.getByRole('cell', { name: '20', exact: true })).toBeVisible()
 
     // Register a SCARICO
@@ -72,5 +72,13 @@ test('movimenti view supports registering a carico and a scarico', async ({ page
     await page.getByRole('button', { name: 'Registra movimento' }).click()
 
     await expect(page.getByText(/Movimento registrato/i)).toBeVisible()
-    await expect(page.getByRole('cell', { name: 'scarico' })).toBeVisible()
+    await expect(page.getByRole('cell', { name: 'scarico', exact: true })).toBeVisible()
+
+    await page.getByLabel(/Seleziona movimento scarico/i).first().check()
+    await page.getByRole('button', { name: /^Modifica$/ }).first().click()
+    await expect(page.getByRole('button', { name: 'Salva modifica' })).toBeVisible()
+
+    page.once('dialog', dialog => dialog.accept())
+    await page.getByRole('button', { name: 'Elimina (1)' }).first().click()
+    await expect(page.getByText('Movimento eliminato.')).toBeVisible()
 })

@@ -3,9 +3,10 @@ import { computed, onMounted, ref } from 'vue'
 import { db } from '../db'
 import { useAuth } from '../services/auth'
 import { softDeleteMovement, upsertMovement } from '../services/movimenti'
-import { confirmDeleteMovement } from '../services/confirmations'
+import { confirmDeleteMovement, confirmDeleteMultiple } from '../services/confirmations'
 import { useFormValidation } from '../services/formValidation'
 import ValidatedInput from '../components/ValidatedInput.vue'
+import { useSelection } from '../composables/useSelection'
 
 const { currentUser } = useAuth()
 
@@ -52,6 +53,17 @@ const {
 const canCreateMovement = computed(() => {
   return stockBatches.value.length > 0 && Number(form.value.quantita || 0) > 0
 })
+
+const {
+  allSelected,
+  someSelected,
+  selectedCount,
+  toggleSelection,
+  toggleSelectAll,
+  clearSelection,
+  isSelected,
+  getSelectedItems,
+} = useSelection(movements)
 
 function toLocalDateTimeInput(date = new Date()) {
   const pad = (value) => String(value).padStart(2, '0')
@@ -221,6 +233,13 @@ function startEditMovement(movement) {
   }
 }
 
+function openEditForm() {
+  if (selectedCount.value !== 1) return
+  const selectedMovement = getSelectedItems()[0]
+  if (!selectedMovement) return
+  startEditMovement(selectedMovement)
+}
+
 function resetForm() {
   editingMovementId.value = null
   form.value = {
@@ -258,6 +277,41 @@ async function deleteMovement(movement) {
   }
 }
 
+async function deleteSelectedMovements() {
+  if (selectedCount.value === 0) return
+
+  const selectedMovements = getSelectedItems()
+  const confirmed = await confirmDeleteMultiple(
+    selectedCount.value,
+    selectedCount.value === 1 ? 'movimento' : 'movimenti',
+  )
+  if (!confirmed) return
+
+  message.value = ''
+  errorMessage.value = ''
+
+  try {
+    for (const movement of selectedMovements) {
+      await softDeleteMovement({
+        movement,
+        operatorId: currentUser.value?.login ?? null,
+      })
+    }
+
+    if (editingMovementId.value && selectedMovements.some(item => item.id === editingMovementId.value)) {
+      resetForm()
+    }
+
+    clearSelection()
+    message.value = selectedMovements.length === 1
+      ? 'Movimento eliminato.'
+      : `${selectedMovements.length} movimenti eliminati.`
+    await loadData()
+  } catch (err) {
+    errorMessage.value = `Errore eliminazione movimento: ${err.message}`
+  }
+}
+
 onMounted(() => {
   form.value.dataMovimento = toLocalDateTimeInput()
   void loadData()
@@ -274,9 +328,34 @@ onMounted(() => {
         Elenco locale ordinato per data movimento piu recente.
       </p>
 
+      <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.75rem">
+        <button :disabled="selectedCount !== 1" @click="openEditForm">Modifica</button>
+        <button
+          :disabled="selectedCount === 0"
+          style="background:#c0392b"
+          @click="deleteSelectedMovements"
+        >
+          Elimina{{ selectedCount > 0 ? ` (${selectedCount})` : '' }}
+        </button>
+      </div>
+
+      <p v-if="selectedCount > 0" class="muted" style="margin-top:.55rem">
+        {{ selectedCount }} moviment{{ selectedCount > 1 ? 'i' : 'o' }} selezionat{{ selectedCount > 1 ? 'i' : 'o' }}.
+        <button type="button" style="margin-left:.4rem" @click="clearSelection">Deseleziona tutto</button>
+      </p>
+
       <table class="conflict-table" style="margin-top:.75rem">
         <thead>
           <tr>
+            <th style="width:2.5rem">
+              <input
+                type="checkbox"
+                :checked="allSelected"
+                :indeterminate.prop="someSelected"
+                aria-label="Seleziona tutti i movimenti"
+                @change="toggleSelectAll"
+              />
+            </th>
             <th>Data</th>
             <th>Tipo</th>
             <th>Confezione</th>
@@ -287,7 +366,19 @@ onMounted(() => {
           </tr>
         </thead>
         <tbody>
-          <tr v-for="movement in movements" :key="movement.id">
+          <tr
+            v-for="movement in movements"
+            :key="movement.id"
+            :style="isSelected(movement.id) ? 'background:rgba(52, 152, 219, 0.12)' : undefined"
+          >
+            <td>
+              <input
+                type="checkbox"
+                :checked="isSelected(movement.id)"
+                :aria-label="`Seleziona movimento ${movement.tipoMovimento || movement.type || movement.id}`"
+                @change="toggleSelection(movement.id)"
+              />
+            </td>
             <td>{{ formatDateTime(movement.dataMovimento || movement.updatedAt) }}</td>
             <td>{{ movement.tipoMovimento || movement.type || '—' }}</td>
             <td>{{ batchLabel(stockBatches.find((item) => item.id === movement.stockBatchId)) }}</td>
@@ -300,7 +391,7 @@ onMounted(() => {
             </td>
           </tr>
           <tr v-if="movements.length === 0">
-            <td colspan="7" class="muted">Nessun movimento registrato nel dataset locale.</td>
+            <td colspan="8" class="muted">Nessun movimento registrato nel dataset locale.</td>
           </tr>
         </tbody>
       </table>
