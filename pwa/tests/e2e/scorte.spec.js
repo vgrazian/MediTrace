@@ -50,8 +50,11 @@ test('scorte view supports edit/delete for drug and batch', async ({ page }) => 
     const drugRow = page.locator('tr', { hasText: 'Ibuprofene Test Scorte' }).first()
     await drugRow.getByRole('button', { name: 'Modifica' }).click()
 
-    await page.locator('summary', { hasText: 'Gestione Scorte' }).click()
     const scorteForm = page.locator('details:has(summary:has-text("Gestione Scorte"))')
+    if (!await scorteForm.evaluate((el) => el.hasAttribute('open'))) {
+        await scorteForm.locator('summary').click()
+    }
+    await expect(scorteForm).toHaveAttribute('open', '')
 
     await scorteForm.getByLabel('Principio attivo').fill('إيبوبروفين محدث')
     await scorteForm.getByLabel('Classe terapeutica').fill('Antinfiammatori')
@@ -61,6 +64,10 @@ test('scorte view supports edit/delete for drug and batch', async ({ page }) => 
     // batchLabel = drugLabel(drugId) + nomeCommerciale; drugLabel now prefers nomeFarmaco
     await expect(batchCard.getByRole('cell', { name: 'Brufen Test Scorte - Brufen Test Scorte' })).toBeVisible()
 
+    // Close modal panel before interacting with table rows behind it
+    await page.getByRole('button', { name: 'Chiudi' }).click()
+    await expect(scorteForm).not.toHaveAttribute('open', '')
+
     // Update batch in Scorte
     const batchRow = page.locator('tr', { hasText: 'Brufen Test Scorte' }).first()
     await batchRow.getByRole('button', { name: 'Modifica' }).click()
@@ -69,6 +76,9 @@ test('scorte view supports edit/delete for drug and batch', async ({ page }) => 
 
     await expect(page.getByText('Confezione aggiornata.')).toBeVisible()
     await expect(batchCard.getByRole('cell', { name: 'Brufen Test Scorte - بروفين محدث' })).toBeVisible()
+
+    await page.getByRole('button', { name: 'Chiudi' }).click()
+    await expect(scorteForm).not.toHaveAttribute('open', '')
 
     // Delete batch
     await runWithAcceptedConfirmation(page, async () => {

@@ -1,6 +1,29 @@
 <script setup>
 import { ref } from 'vue'
+import { computed } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { helpContent, manualeSezioni } from '../data/helpContent'
+
+const route = useRoute()
+const router = useRouter()
+
+const returnPath = computed(() => {
+  const from = route.query.from
+  if (!from || typeof from !== 'string') return ''
+  return from
+})
+
+const fromSection = computed(() => {
+  const key = route.query.helpFrom
+  if (!key || typeof key !== 'string') return ''
+  const section = manualeSezioni.find(item => item.key === key)
+  return section?.etichetta || key
+})
+
+async function goBackToSource() {
+  if (!returnPath.value) return
+  await router.push(returnPath.value)
+}
 
 // Track which sections are expanded
 const expanded = ref(Object.fromEntries(manualeSezioni.map((s, i) => [s.key, i === 0])))
@@ -13,6 +36,14 @@ function toggle(key) {
 <template>
   <div class="view manuale-view">
     <h2>Manuale Utente</h2>
+
+    <div v-if="returnPath" class="card" style="padding:.65rem .85rem">
+      <div class="panel-breadcrumb" style="margin:0;padding:0;border:none">
+        <button type="button" class="panel-breadcrumb-link" @click="goBackToSource">Torna alla pagina precedente</button>
+        <span class="panel-breadcrumb-current">/</span>
+        <span class="panel-breadcrumb-current">{{ fromSection || 'Aiuto contestuale' }}</span>
+      </div>
+    </div>
 
     <div class="card manuale-intro">
       <p>

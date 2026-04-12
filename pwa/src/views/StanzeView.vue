@@ -323,7 +323,8 @@ onMounted(() => void loadData())
         <button @click="openAddBedForm">Aggiungi letto</button>
       </div>
 
-      <table class="conflict-table" style="margin-top:.75rem">
+      <div class="dataset-frame" style="margin-top:.75rem">
+      <table class="conflict-table">
         <thead>
           <tr>
             <th>Stanza</th>
@@ -357,6 +358,7 @@ onMounted(() => void loadData())
           </tr>
         </tbody>
       </table>
+      </div>
       <p v-if="loading" class="muted" style="margin-top:.55rem">Caricamento...</p>
     </div>
 
@@ -486,7 +488,8 @@ onMounted(() => void loadData())
             <strong>{{ roomLabel(room) }}</strong>
             <span v-if="room.note" class="muted"> · {{ room.note }}</span>
           </p>
-          <table class="conflict-table" style="font-size:.9rem;margin-top:.5rem">
+          <div class="dataset-frame" style="margin-top:.5rem">
+          <table class="conflict-table" style="font-size:.9rem">
             <thead>
               <tr>
                 <th>Letto</th>
@@ -522,6 +525,7 @@ onMounted(() => void loadData())
               </tr>
             </tbody>
           </table>
+          </div>
         </div>
         <p v-if="activeRooms.length === 0" class="muted">Nessuna stanza.</p>
       </div>

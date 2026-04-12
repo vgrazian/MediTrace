@@ -1,10 +1,10 @@
 # CURRENT STATUS
 
 ## Active Task
-Start follow-up CRUD UX wave 2 implementation (undo recovery, richer save state, list ergonomics).
+Complete review-cycle fixes for CRUD UX wave 2 and keep PR #66 aligned with UX feedback.
 
 ## Current Phase
-PR #64 has been merged to `main` and deployed to production successfully. Follow-up work starts on `feat/crud-ux-followup-wave2`.
+PR #66 is open from `feat/crud-ux-followup-wave2` with undo soft-delete implementation; QA feedback fixes are being applied on top.
 
 ## Done So Far
 1. Referential integrity and conflict error management completed for core CRUD deletes, with unit tests and consistency test scenarios.
@@ -26,20 +26,29 @@ PR #64 has been merged to `main` and deployed to production successfully. Follow
    - post-merge quality gate and deploy pipelines verified successful
 10. CI workflow syntax maintenance released:
 - PR #53 merged to main (`chore(ci): normalize workflow secrets access syntax`)
-11. Guided add-panel UX release completed (PR #64):
+1. Guided add-panel UX release completed (PR #64):
 - `Aggiungi` now opens a guided popup panel in Farmaci, Ospiti, Terapie, Movimenti
 - successful create returns the operator to the list automatically
 - large tables now render inside scrollable framed containers
 - full E2E suite passes locally (`49/49`)
-12. Production release verification completed:
+1. Production release verification completed:
 - `Deploy PWA su GitHub Pages` run `24309878339` success
 - GitHub smoke job success
 - `bash pwa/scripts/smoke-pages.sh https://vgrazian.github.io/MediTrace/` => PASS
+1. Follow-up CRUD UX item 1 implemented on branch `feat/crud-ux-followup-wave2`:
+- undo window for soft-deletes across Farmaci/Ospiti/Terapie/Movimenti/Stanze
+- restore service methods with audit `*_restored` events
+- E2E regression full suite passing (`49/49`)
+1. QA feedback fixes applied after manual tests:
+- added scrollable framed tables in Stanze and Scorte where missing
+- fixed Scorte `Aggiungi` on Confezioni Attive to open the management panel with input fields visible
+- added contextual breadcrumbs in Manuale to return to originating page from `Aiuto`
+- removed stray source text accidentally rendered in Audit header
 
 ## Immediate Next Steps
-1. Implement undo for soft-delete actions in core CRUD views (Farmaci/Ospiti/Terapie/Movimenti/Stanze).
-2. Add save-state indicators (`in corso`, `ultimo salvataggio`, `errore + retry`) on edit/add panels.
-3. Add sort + quick filters and session persistence in high-volume lists.
+1. Validate QA feedback fixes with targeted E2E (Scorte/Stanze/Manuale/Audit paths) and push updates to PR #66.
+2. Merge PR #66 after CI green.
+3. Start follow-up item 2 (save-state indicators) on same branch after merge decision.
 
 ## Blockers
 - No blockers currently identified.
@@ -47,7 +56,7 @@ PR #64 has been merged to `main` and deployed to production successfully. Follow
 ## PR STILL TO BE WORKED ON
 
 ## Open Pull Requests (GitHub)
-1. None
+1. PR #66 - `feat(crud-ux): undo for soft-deletes across core sections`
 
 ## Planned PR Work (Not Open Yet)
 1. New PR from `feat/crud-ux-followup-wave2` for follow-up UX work in `docs/crud-ux-followup-pr.md`.
@@ -67,7 +76,7 @@ PR #64 has been merged to `main` and deployed to production successfully. Follow
 
 ## Current Branch State
 - Branch: feat/crud-ux-followup-wave2
-- Working tree: includes progress tracker update for post-release continuity
+- Working tree: includes QA feedback fixes (Scorte/Stanze/Manuale/Audit) pending push to PR #66
 
 ## Live App Deployment
 - GitHub Pages source: main

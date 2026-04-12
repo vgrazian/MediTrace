@@ -1,9 +1,6 @@
 <template>
   <div class="view audit-log-view">
     <div class="card">
-import { useHelpNavigation } from '../composables/useHelpNavigation'
-
-const { goToHelpSection } = useHelpNavigation()
       <div class="audit-header">
         <div>
             <div class="view-heading" style="margin-bottom:.25rem">
@@ -165,6 +162,9 @@ import {
   getEntityStats,
   queryRecent,
 } from '../services/auditLog'
+import { useHelpNavigation } from '../composables/useHelpNavigation'
+
+const { goToHelpSection } = useHelpNavigation()
 
 const totalEvents = ref(0)
 const allEvents = ref([])
