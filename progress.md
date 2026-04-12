@@ -1,10 +1,10 @@
 # CURRENT STATUS
 
 ## Active Task
-Merge and deploy guided add-panel popup UX release with scrollable dataset frames and full regression validation.
+Start follow-up CRUD UX wave 2 implementation (undo recovery, richer save state, list ergonomics).
 
 ## Current Phase
-PR #64 is open from `feat/add-panel-scroll-frames` and is ready for merge once checks are green. Local verification is complete.
+PR #64 has been merged to `main` and deployed to production successfully. Follow-up work starts on `feat/crud-ux-followup-wave2`.
 
 ## Done So Far
 1. Referential integrity and conflict error management completed for core CRUD deletes, with unit tests and consistency test scenarios.
@@ -26,16 +26,20 @@ PR #64 is open from `feat/add-panel-scroll-frames` and is ready for merge once c
    - post-merge quality gate and deploy pipelines verified successful
 10. CI workflow syntax maintenance released:
 - PR #53 merged to main (`chore(ci): normalize workflow secrets access syntax`)
-11. Guided add-panel UX release prepared on PR #64:
-   - `Aggiungi` now opens a guided popup panel in Farmaci, Ospiti, Terapie, Movimenti
-   - successful create returns the operator to the list automatically
-   - large tables now render inside scrollable framed containers
-   - full E2E suite passes locally (`49/49`)
+11. Guided add-panel UX release completed (PR #64):
+- `Aggiungi` now opens a guided popup panel in Farmaci, Ospiti, Terapie, Movimenti
+- successful create returns the operator to the list automatically
+- large tables now render inside scrollable framed containers
+- full E2E suite passes locally (`49/49`)
+12. Production release verification completed:
+- `Deploy PWA su GitHub Pages` run `24309878339` success
+- GitHub smoke job success
+- `bash pwa/scripts/smoke-pages.sh https://vgrazian.github.io/MediTrace/` => PASS
 
 ## Immediate Next Steps
-1. Watch PR #64 checks to completion and merge to `main`.
-2. Trigger GitHub Pages deploy from `main`.
-3. Run production smoke validation after deploy finishes.
+1. Implement undo for soft-delete actions in core CRUD views (Farmaci/Ospiti/Terapie/Movimenti/Stanze).
+2. Add save-state indicators (`in corso`, `ultimo salvataggio`, `errore + retry`) on edit/add panels.
+3. Add sort + quick filters and session persistence in high-volume lists.
 
 ## Blockers
 - No blockers currently identified.
@@ -43,10 +47,10 @@ PR #64 is open from `feat/add-panel-scroll-frames` and is ready for merge once c
 ## PR STILL TO BE WORKED ON
 
 ## Open Pull Requests (GitHub)
-1. PR #64 - guided add-panel popup UX + scrollable dataset frames
+1. None
 
 ## Planned PR Work (Not Open Yet)
-1. Follow-up UX work from `docs/crud-ux-followup-pr.md` (undo/recovery, richer save-state, stronger list affordances).
+1. New PR from `feat/crud-ux-followup-wave2` for follow-up UX work in `docs/crud-ux-followup-pr.md`.
 2. Subsequent CRUD refinements where guided flows still need consistency.
 
 ## TECHNICAL CONTEXT
@@ -62,8 +66,8 @@ PR #64 is open from `feat/add-panel-scroll-frames` and is ready for merge once c
 - pwa/tests/e2e/
 
 ## Current Branch State
-- Branch: feat/add-panel-scroll-frames
-- Working tree: clean after local verification; awaiting PR merge/deploy
+- Branch: feat/crud-ux-followup-wave2
+- Working tree: includes progress tracker update for post-release continuity
 
 ## Live App Deployment
 - GitHub Pages source: main
@@ -84,11 +88,11 @@ PR #64 is open from `feat/add-panel-scroll-frames` and is ready for merge once c
 - [x] Workflow maintenance merged (PR #53)
 
 ## Remaining Work Items
-1. Merge PR #64 and deploy to production
-2. Continue follow-up CRUD UX work already documented in `docs/crud-ux-followup-pr.md`
+1. Deliver follow-up CRUD UX wave 2 (undo, save-state, sorting/filters persistence)
+2. Add matching E2E and unit coverage for recovery and save-state paths
 3. Keep docs/changelog aligned for each release slice
 
 ## Current Priority
-- HIGH: Deploy guided add-panel popup UX release safely to production
-- HIGH: Preserve 49/49 E2E reliability after merge/deploy
+- HIGH: Implement follow-up CRUD UX wave 2 without regressing guided add flow
+- HIGH: Preserve 49/49 E2E reliability while extending undo/save-state behavior
 - MEDIUM: Keep changelog/docs aligned with each rollout increment
