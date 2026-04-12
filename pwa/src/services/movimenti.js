@@ -51,13 +51,15 @@ export async function softDeleteMovement({ movement, operatorId = null }) {
     const now = new Date().toISOString()
     const deviceId = await getSetting('deviceId', 'unknown')
 
+    const updated = {
+        ...movement,
+        deletedAt: now,
+        updatedAt: now,
+        syncStatus: 'pending',
+    }
+
     await db.transaction('rw', db.movements, db.syncQueue, db.activityLog, async () => {
-        await db.movements.put({
-            ...movement,
-            deletedAt: now,
-            updatedAt: now,
-            syncStatus: 'pending',
-        })
+        await db.movements.put(updated)
         await enqueue('movements', movement.id, 'upsert')
         await db.activityLog.add({
             entityType: 'movements',
@@ -68,4 +70,37 @@ export async function softDeleteMovement({ movement, operatorId = null }) {
             ts: now,
         })
     })
+
+    return updated
+}
+
+export async function restoreMovement({ movement, operatorId = null }) {
+    if (!movement || !movement.deletedAt) {
+        throw new Error('Movimento non ripristinabile')
+    }
+
+    const now = new Date().toISOString()
+    const deviceId = await getSetting('deviceId', 'unknown')
+
+    const updated = {
+        ...movement,
+        deletedAt: null,
+        updatedAt: now,
+        syncStatus: 'pending',
+    }
+
+    await db.transaction('rw', db.movements, db.syncQueue, db.activityLog, async () => {
+        await db.movements.put(updated)
+        await enqueue('movements', movement.id, 'upsert')
+        await db.activityLog.add({
+            entityType: 'movements',
+            entityId: movement.id,
+            action: 'movement_restored',
+            deviceId,
+            operatorId,
+            ts: now,
+        })
+    })
+
+    return updated
 }

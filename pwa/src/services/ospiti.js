@@ -192,6 +192,37 @@ export async function deactivateHost({ hostId, operatorId }) {
     return updated
 }
 
+export async function restoreHost({ hostId, existing, operatorId }) {
+    if (!existing || !existing.deletedAt) {
+        throw new Error(`Ospite "${hostId}" non ripristinabile`)
+    }
+
+    const now = new Date().toISOString()
+    const deviceId = await getSetting('deviceId', 'unknown')
+    const updated = {
+        ...existing,
+        attivo: true,
+        deletedAt: null,
+        updatedAt: now,
+        syncStatus: 'pending',
+    }
+
+    await db.transaction('rw', db.hosts, db.syncQueue, db.activityLog, async () => {
+        await db.hosts.put(updated)
+        await enqueue('hosts', hostId, 'upsert')
+        await db.activityLog.add({
+            entityType: 'hosts',
+            entityId: hostId,
+            action: 'host_restored',
+            deviceId,
+            operatorId: operatorId ?? null,
+            ts: now,
+        })
+    })
+
+    return updated
+}
+
 export async function updateHost({
     hostId,
     codiceInterno,

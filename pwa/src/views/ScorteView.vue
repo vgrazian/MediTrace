@@ -21,6 +21,7 @@ const editingBatchId = ref('')
 const creatingBatch = ref(false)
 const savingDrug = ref(false)
 const editingDrugId = ref('')
+const isFormOpen = ref(false)
 const stockBatches = ref([])
 const drugs = ref([])
 const drugForm = ref({
@@ -96,6 +97,7 @@ async function refreshReport() {
 function startEditBatch(batch) {
   editingBatchId.value = batch.id
   creatingBatch.value = false
+  isFormOpen.value = true
   batchForm.value = {
     drugId: batch.drugId || '',
     nomeCommerciale: batch.nomeCommerciale || '',
@@ -124,12 +126,14 @@ function resetBatchForm() {
 function openAddBatchForm() {
   resetBatchForm()
   creatingBatch.value = true
+  isFormOpen.value = true
 }
 
 function startEditDrug(drugId) {
   const drug = drugs.value.find(d => d.id === drugId)
   if (!drug) return
   editingDrugId.value = drug.id
+  isFormOpen.value = true
   drugForm.value = {
     principioAttivo: drug.principioAttivo || '',
     classeTerapeutica: drug.classeTerapeutica || '',
@@ -468,7 +472,8 @@ onMounted(() => {
         Generato: {{ report.generatedAt }}
       </p>
 
-      <table class="conflict-table" style="margin-top:.75rem">
+      <div class="dataset-frame" style="margin-top:.75rem">
+      <table class="conflict-table">
         <thead>
           <tr>
             <th>Farmaco</th>
@@ -500,6 +505,7 @@ onMounted(() => {
           </tr>
         </tbody>
       </table>
+      </div>
     </div>
 
     <div v-if="report" class="card">
@@ -508,7 +514,8 @@ onMounted(() => {
         Consumi scaricati sulle ultime settimane (movimenti di tipo consumo/scarico/somministrazione).
       </p>
 
-      <table class="conflict-table" style="margin-top:.75rem">
+      <div class="dataset-frame" style="margin-top:.75rem">
+      <table class="conflict-table">
         <thead>
           <tr>
             <th>Farmaco</th>
@@ -529,6 +536,7 @@ onMounted(() => {
           </tr>
         </tbody>
       </table>
+      </div>
     </div>
 
     <div v-if="report" class="card">
@@ -539,7 +547,8 @@ onMounted(() => {
         Aderenza complessiva: {{ formatPercent(report.adherence?.adherenceRate) }}
       </p>
 
-      <table class="conflict-table" style="margin-top:.75rem">
+      <div class="dataset-frame" style="margin-top:.75rem">
+      <table class="conflict-table">
         <thead>
           <tr>
             <th>Ospite</th>
@@ -566,6 +575,7 @@ onMounted(() => {
           </tr>
         </tbody>
       </table>
+      </div>
     </div>
 
     <div class="card">
@@ -578,7 +588,8 @@ onMounted(() => {
         <button @click="openAddBatchForm">Aggiungi</button>
       </div>
 
-      <table class="conflict-table" style="margin-top:.75rem">
+      <div class="dataset-frame" style="margin-top:.75rem">
+      <table class="conflict-table">
         <thead>
           <tr>
             <th>Confezione</th>
@@ -604,9 +615,16 @@ onMounted(() => {
           </tr>
         </tbody>
       </table>
+      </div>
 
-      <details style="margin-top:.75rem">
+      <details class="deep-panel add-panel" style="margin-top:.75rem" :open="isFormOpen" @toggle="isFormOpen = $event.target.open">
         <summary><strong>Gestione Scorte</strong></summary>
+        <div class="panel-breadcrumb" style="margin-top:.75rem">
+          <button type="button" class="panel-breadcrumb-link" @click="isFormOpen = false">Scorte</button>
+          <span class="panel-breadcrumb-current">/</span>
+          <span class="panel-breadcrumb-current">Gestione</span>
+          <button type="button" class="panel-close-btn" @click="isFormOpen = false">Chiudi</button>
+        </div>
         <div class="import-form" style="margin-top:.65rem">
           <label>
             Principio attivo

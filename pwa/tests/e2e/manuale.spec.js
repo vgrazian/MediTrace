@@ -64,9 +64,10 @@ test('contextual help opens from Farmaci view and shows content', async ({ page 
 
     await helpBtn.click()
 
-    await expect(page).toHaveURL(/\/manuale#farmaci$/)
+    await expect(page).toHaveURL(/\/manuale(\?[^#]*)?#farmaci$/)
     await expect(page.getByRole('heading', { name: 'Manuale Utente' })).toBeVisible()
     await expect(page.locator('#farmaci')).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Torna alla pagina precedente' })).toBeVisible()
 })
 
 test('contextual help opens from Terapie view', async ({ page }) => {
@@ -78,7 +79,7 @@ test('contextual help opens from Terapie view', async ({ page }) => {
 
     const terapieView = page.locator('.view').filter({ has: page.getByRole('heading', { name: 'Terapie Attive' }) }).first()
     await terapieView.getByRole('button', { name: 'Aiuto' }).click()
-    await expect(page).toHaveURL(/\/manuale#terapie$/)
+    await expect(page).toHaveURL(/\/manuale(\?[^#]*)?#terapie$/)
     await expect(page.getByRole('heading', { name: 'Manuale Utente' })).toBeVisible()
     await expect(page.locator('#terapie')).toBeVisible()
 })
@@ -90,6 +91,6 @@ test('help drawer link navigates to full manual', async ({ page }) => {
     await page.getByRole('link', { name: 'Ospiti', exact: true }).click()
     const ospitiView = page.locator('.view').filter({ has: page.getByRole('heading', { name: 'Ospiti' }) }).first()
     await ospitiView.getByRole('button', { name: 'Aiuto' }).click()
-    await expect(page).toHaveURL(/\/manuale#ospiti$/)
+    await expect(page).toHaveURL(/\/manuale(\?[^#]*)?#ospiti$/)
     await expect(page.getByRole('heading', { name: 'Manuale Utente' })).toBeVisible()
 })

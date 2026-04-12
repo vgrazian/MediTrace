@@ -1,12 +1,14 @@
 <script setup>
 import { onMounted, ref, computed } from 'vue'
 import { useAuth } from '../services/auth'
-import { createRoom, createBed, updateRoom, updateBed, deactivateRoom, deactivateBed, getRoomsWithBeds } from '../services/stanze'
+import { createRoom, createBed, updateRoom, updateBed, deactivateRoom, deactivateBed, getRoomsWithBeds, restoreRoom, restoreBed } from '../services/stanze'
 import { useHelpNavigation } from '../composables/useHelpNavigation'
 import { openConfirmDialog } from '../services/confirmDialog'
+import { useUndoDelete } from '../composables/useUndoDelete'
 
 const { currentUser } = useAuth()
 const { goToHelpSection } = useHelpNavigation()
+const { pendingUndo, scheduleUndo, executeUndo } = useUndoDelete(10_000)
 
 const loading = ref(false)
 const saving = ref(false)
@@ -174,6 +176,7 @@ async function handleSaveBedEdit() {
 }
 
 async function handleDeactivateRoom(roomId) {
+  const room = roomsData.value.find(item => item.id === roomId)
   const confirmed = await openConfirmDialog({
     title: 'Conferma eliminazione stanza',
     message: `Eliminare la stanza "${roomId}"?`,
@@ -186,15 +189,29 @@ async function handleDeactivateRoom(roomId) {
   message.value = ''
   errorMessage.value = ''
   try {
-    await deactivateRoom({ roomId, operatorId: currentUser.value?.login ?? null })
+    const deletedRoom = await deactivateRoom({ roomId, operatorId: currentUser.value?.login ?? null })
     message.value = 'Stanza eliminata.'
     await loadData()
+    scheduleUndo({
+      label: `Stanza "${roomLabel(room || { codice: roomId })}" eliminata.`,
+      undoAction: async () => {
+        await restoreRoom({
+          roomId: deletedRoom.id,
+          existing: deletedRoom,
+          operatorId: currentUser.value?.login ?? null,
+        })
+        message.value = 'Eliminazione annullata: stanza ripristinata.'
+        await loadData()
+      },
+    })
   } catch (err) {
     errorMessage.value = `Errore: ${err.message}`
   }
 }
 
 async function handleDeactivateBed(bedId) {
+  const room = roomsData.value.find(item => item.beds.some(bed => bed.id === bedId))
+  const bedToDelete = room?.beds.find(bed => bed.id === bedId)
   const confirmed = await openConfirmDialog({
     title: 'Conferma eliminazione letto',
     message: `Eliminare il letto "${bedId}"?`,
@@ -207,9 +224,21 @@ async function handleDeactivateBed(bedId) {
   message.value = ''
   errorMessage.value = ''
   try {
-    await deactivateBed({ bedId, operatorId: currentUser.value?.login ?? null })
+    const deletedBed = await deactivateBed({ bedId, operatorId: currentUser.value?.login ?? null })
     message.value = 'Letto eliminato.'
     await loadData()
+    scheduleUndo({
+      label: `Letto "${bedLabel(bedToDelete || { numero: bedId })}" eliminato.`,
+      undoAction: async () => {
+        await restoreBed({
+          bedId: deletedBed.id,
+          existing: deletedBed,
+          operatorId: currentUser.value?.login ?? null,
+        })
+        message.value = 'Eliminazione annullata: letto ripristinato.'
+        await loadData()
+      },
+    })
   } catch (err) {
     errorMessage.value = `Errore: ${err.message}`
   }
@@ -294,7 +323,8 @@ onMounted(() => void loadData())
         <button @click="openAddBedForm">Aggiungi letto</button>
       </div>
 
-      <table class="conflict-table" style="margin-top:.75rem">
+      <div class="dataset-frame" style="margin-top:.75rem">
+      <table class="conflict-table">
         <thead>
           <tr>
             <th>Stanza</th>
@@ -328,6 +358,7 @@ onMounted(() => void loadData())
           </tr>
         </tbody>
       </table>
+      </div>
       <p v-if="loading" class="muted" style="margin-top:.55rem">Caricamento...</p>
     </div>
 
@@ -457,7 +488,8 @@ onMounted(() => void loadData())
             <strong>{{ roomLabel(room) }}</strong>
             <span v-if="room.note" class="muted"> · {{ room.note }}</span>
           </p>
-          <table class="conflict-table" style="font-size:.9rem;margin-top:.5rem">
+          <div class="dataset-frame" style="margin-top:.5rem">
+          <table class="conflict-table" style="font-size:.9rem">
             <thead>
               <tr>
                 <th>Letto</th>
@@ -493,6 +525,7 @@ onMounted(() => void loadData())
               </tr>
             </tbody>
           </table>
+          </div>
         </div>
         <p v-if="activeRooms.length === 0" class="muted">Nessuna stanza.</p>
       </div>
@@ -500,5 +533,10 @@ onMounted(() => void loadData())
 
     <p v-if="message" class="muted" style="margin-top:.5rem">{{ message }}</p>
     <p v-if="errorMessage" class="import-error" style="margin-top:.5rem">{{ errorMessage }}</p>
+
+    <div v-if="pendingUndo" class="undo-banner" role="status" aria-live="polite">
+      <span>{{ pendingUndo.label }}</span>
+      <button type="button" @click="executeUndo">Annulla eliminazione</button>
+    </div>
   </div>
 </template>

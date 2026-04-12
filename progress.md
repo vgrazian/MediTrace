@@ -1,10 +1,10 @@
 # CURRENT STATUS
 
 ## Active Task
-Merge and deploy guided add-panel popup UX release with scrollable dataset frames and full regression validation.
+Complete review-cycle fixes for CRUD UX wave 2 and keep PR #66 aligned with UX feedback.
 
 ## Current Phase
-PR #64 is open from `feat/add-panel-scroll-frames` and is ready for merge once checks are green. Local verification is complete.
+PR #66 is open from `feat/crud-ux-followup-wave2` with undo soft-delete implementation; QA feedback fixes are being applied on top.
 
 ## Done So Far
 1. Referential integrity and conflict error management completed for core CRUD deletes, with unit tests and consistency test scenarios.
@@ -26,16 +26,29 @@ PR #64 is open from `feat/add-panel-scroll-frames` and is ready for merge once c
    - post-merge quality gate and deploy pipelines verified successful
 10. CI workflow syntax maintenance released:
 - PR #53 merged to main (`chore(ci): normalize workflow secrets access syntax`)
-11. Guided add-panel UX release prepared on PR #64:
-   - `Aggiungi` now opens a guided popup panel in Farmaci, Ospiti, Terapie, Movimenti
-   - successful create returns the operator to the list automatically
-   - large tables now render inside scrollable framed containers
-   - full E2E suite passes locally (`49/49`)
+1. Guided add-panel UX release completed (PR #64):
+- `Aggiungi` now opens a guided popup panel in Farmaci, Ospiti, Terapie, Movimenti
+- successful create returns the operator to the list automatically
+- large tables now render inside scrollable framed containers
+- full E2E suite passes locally (`49/49`)
+1. Production release verification completed:
+- `Deploy PWA su GitHub Pages` run `24309878339` success
+- GitHub smoke job success
+- `bash pwa/scripts/smoke-pages.sh https://vgrazian.github.io/MediTrace/` => PASS
+1. Follow-up CRUD UX item 1 implemented on branch `feat/crud-ux-followup-wave2`:
+- undo window for soft-deletes across Farmaci/Ospiti/Terapie/Movimenti/Stanze
+- restore service methods with audit `*_restored` events
+- E2E regression full suite passing (`49/49`)
+1. QA feedback fixes applied after manual tests:
+- added scrollable framed tables in Stanze and Scorte where missing
+- fixed Scorte `Aggiungi` on Confezioni Attive to open the management panel with input fields visible
+- added contextual breadcrumbs in Manuale to return to originating page from `Aiuto`
+- removed stray source text accidentally rendered in Audit header
 
 ## Immediate Next Steps
-1. Watch PR #64 checks to completion and merge to `main`.
-2. Trigger GitHub Pages deploy from `main`.
-3. Run production smoke validation after deploy finishes.
+1. Validate QA feedback fixes with targeted E2E (Scorte/Stanze/Manuale/Audit paths) and push updates to PR #66.
+2. Merge PR #66 after CI green.
+3. Start follow-up item 2 (save-state indicators) on same branch after merge decision.
 
 ## Blockers
 - No blockers currently identified.
@@ -43,10 +56,10 @@ PR #64 is open from `feat/add-panel-scroll-frames` and is ready for merge once c
 ## PR STILL TO BE WORKED ON
 
 ## Open Pull Requests (GitHub)
-1. PR #64 - guided add-panel popup UX + scrollable dataset frames
+1. PR #66 - `feat(crud-ux): undo for soft-deletes across core sections`
 
 ## Planned PR Work (Not Open Yet)
-1. Follow-up UX work from `docs/crud-ux-followup-pr.md` (undo/recovery, richer save-state, stronger list affordances).
+1. New PR from `feat/crud-ux-followup-wave2` for follow-up UX work in `docs/crud-ux-followup-pr.md`.
 2. Subsequent CRUD refinements where guided flows still need consistency.
 
 ## TECHNICAL CONTEXT
@@ -62,8 +75,8 @@ PR #64 is open from `feat/add-panel-scroll-frames` and is ready for merge once c
 - pwa/tests/e2e/
 
 ## Current Branch State
-- Branch: feat/add-panel-scroll-frames
-- Working tree: clean after local verification; awaiting PR merge/deploy
+- Branch: feat/crud-ux-followup-wave2
+- Working tree: includes QA feedback fixes (Scorte/Stanze/Manuale/Audit) pending push to PR #66
 
 ## Live App Deployment
 - GitHub Pages source: main
@@ -84,11 +97,11 @@ PR #64 is open from `feat/add-panel-scroll-frames` and is ready for merge once c
 - [x] Workflow maintenance merged (PR #53)
 
 ## Remaining Work Items
-1. Merge PR #64 and deploy to production
-2. Continue follow-up CRUD UX work already documented in `docs/crud-ux-followup-pr.md`
+1. Deliver follow-up CRUD UX wave 2 (undo, save-state, sorting/filters persistence)
+2. Add matching E2E and unit coverage for recovery and save-state paths
 3. Keep docs/changelog aligned for each release slice
 
 ## Current Priority
-- HIGH: Deploy guided add-panel popup UX release safely to production
-- HIGH: Preserve 49/49 E2E reliability after merge/deploy
+- HIGH: Implement follow-up CRUD UX wave 2 without regressing guided add flow
+- HIGH: Preserve 49/49 E2E reliability while extending undo/save-state behavior
 - MEDIUM: Keep changelog/docs aligned with each rollout increment

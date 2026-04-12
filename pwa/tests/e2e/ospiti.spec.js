@@ -84,6 +84,10 @@ test('ospiti view supports create, selection-based edit, and bulk delete with ex
         await deleteOneButton.click()
     })
 
-    await expect(page.getByText(/Ospite ".+" eliminato\./i)).toBeVisible({ timeout: 5000 })
-    await expect(page.getByRole('cell', { name: 'OSP-E2E-001' })).not.toBeVisible({ timeout: 5000 })
+    await expect(page.locator('p.muted', { hasText: /Ospite ".+" eliminato\./i })).toBeVisible({ timeout: 5000 })
+    const undoBanner = page.locator('.undo-banner')
+    await expect(undoBanner).toContainText('Ospite')
+    await undoBanner.getByRole('button', { name: 'Annulla eliminazione' }).click()
+    await expect(page.getByText(/Eliminazione annullata: ospite ripristinato\./i)).toBeVisible({ timeout: 5000 })
+    await expect(page.getByRole('cell', { name: 'OSP-E2E-001', exact: true })).toBeVisible({ timeout: 5000 })
 })

@@ -63,5 +63,14 @@ test('farmaci view supports creating and deactivating stock batch', async ({ pag
     })
 
     await expect(page.getByText('Confezione eliminata.')).toBeVisible()
+    await expect(page.locator('.undo-banner')).toContainText('Confezione')
+    await page.locator('.undo-banner').getByRole('button', { name: 'Annulla eliminazione' }).click()
+    await expect(page.getByText('Eliminazione annullata: confezione ripristinata.')).toBeVisible()
+    await expect(page.locator('tbody tr', { hasText: 'Tachipirina Test' }).first()).toBeVisible()
+
+    await page.getByLabel('Seleziona confezione Tachipirina Test').check()
+    await runWithAcceptedConfirmation(page, async () => {
+        await batchCard.getByRole('button', { name: 'Elimina (1)' }).click()
+    })
     await expect(page.getByText('Nessuna confezione attiva disponibile.')).toBeVisible()
 })

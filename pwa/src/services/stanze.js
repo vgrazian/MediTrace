@@ -219,6 +219,34 @@ export async function deactivateRoom({ roomId, operatorId = null }) {
     return record
 }
 
+export async function restoreRoom({ roomId, existing, operatorId = null }) {
+    if (!existing || !existing.deletedAt) throw new Error(`Room ${roomId} non ripristinabile`)
+
+    const now = new Date().toISOString()
+    const deviceId = await getSetting('deviceId', 'unknown')
+    const record = {
+        ...existing,
+        deletedAt: null,
+        updatedAt: now,
+        syncStatus: 'pending',
+    }
+
+    await db.transaction('rw', db.rooms, db.syncQueue, db.activityLog, async () => {
+        await db.rooms.put(record)
+        await enqueue('rooms', record.id, 'upsert')
+        await db.activityLog.add({
+            entityType: 'rooms',
+            entityId: record.id,
+            action: 'room_restored',
+            deviceId,
+            operatorId,
+            ts: now,
+        })
+    })
+
+    return record
+}
+
 /**
  * Deactivate a bed (soft delete).
  */
@@ -253,6 +281,34 @@ export async function deactivateBed({ bedId, operatorId = null }) {
             entityType: 'beds',
             entityId: record.id,
             action: 'bed_deactivated',
+            deviceId,
+            operatorId,
+            ts: now,
+        })
+    })
+
+    return record
+}
+
+export async function restoreBed({ bedId, existing, operatorId = null }) {
+    if (!existing || !existing.deletedAt) throw new Error(`Bed ${bedId} non ripristinabile`)
+
+    const now = new Date().toISOString()
+    const deviceId = await getSetting('deviceId', 'unknown')
+    const record = {
+        ...existing,
+        deletedAt: null,
+        updatedAt: now,
+        syncStatus: 'pending',
+    }
+
+    await db.transaction('rw', db.beds, db.syncQueue, db.activityLog, async () => {
+        await db.beds.put(record)
+        await enqueue('beds', record.id, 'upsert')
+        await db.activityLog.add({
+            entityType: 'beds',
+            entityId: record.id,
+            action: 'bed_restored',
             deviceId,
             operatorId,
             ts: now,
