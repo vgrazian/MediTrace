@@ -7,8 +7,10 @@ import { confirmDeleteDrug, confirmDeleteBatch, confirmDeleteMultiple } from '..
 import { useFormValidation } from '../services/formValidation'
 import ValidatedInput from '../components/ValidatedInput.vue'
 import { useSelection } from '../composables/useSelection'
+import { useHelp } from '../composables/useHelp'
 
 const { currentUser } = useAuth()
+const { openHelp } = useHelp()
 
 // Validation for drug form
 const {
@@ -438,7 +440,10 @@ onMounted(() => {
 
 <template>
   <div class="view">
-    <h2>Catalogo Farmaci</h2>
+    <div class="view-heading">
+      <h2>Catalogo Farmaci</h2>
+      <button class="help-btn" aria-label="Apri guida Farmaci" @click="openHelp('farmaci')">?</button>
+    </div>
 
     <div class="card">
       <p><strong>Farmaci registrati</strong></p>

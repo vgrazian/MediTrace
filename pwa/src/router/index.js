@@ -61,6 +61,11 @@ const routes = [
         component: () => import('../views/InformazioniView.vue'),
         meta: { title: 'Informazioni' },
     },
+    {
+        path: '/manuale',
+        component: () => import('../views/ManualeView.vue'),
+        meta: { title: 'Manuale Utente' },
+    },
 ]
 
 const router = createRouter({

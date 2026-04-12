@@ -7,9 +7,11 @@ import { buildReminderRows, markReminder, reminderStateBadge, REMINDER_OUTCOMES 
 import { confirmDeleteReminder } from '../services/confirmations'
 import { useFormValidation } from '../services/formValidation'
 import ValidatedInput from '../components/ValidatedInput.vue'
+import { useHelp } from '../composables/useHelp'
 
 const route = useRoute()
 const { currentUser } = useAuth()
+const { openHelp } = useHelp()
 
 const loading = ref(false)
 const markingId = ref(null)
@@ -231,7 +233,10 @@ watch(() => route.fullPath, () => void loadData())
 
 <template>
   <div class="view">
-    <h2>Promemoria</h2>
+    <div class="view-heading">
+      <h2>Promemoria</h2>
+      <button class="help-btn" aria-label="Apri guida Promemoria" @click="openHelp('promemoria')">?</button>
+    </div>
 
     <div class="card">
       <p><strong>Filtri</strong></p>

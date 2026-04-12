@@ -1,9 +1,15 @@
 <template>
   <div class="view audit-log-view">
     <div class="card">
+import { useHelp } from '../composables/useHelp'
+
+const { openHelp } = useHelp()
       <div class="audit-header">
         <div>
-          <h2>Registro Operazioni (Audit)</h2>
+            <div class="view-heading" style="margin-bottom:.25rem">
+              <h2 style="margin-bottom:0">Registro Operazioni (Audit)</h2>
+              <button class="help-btn" aria-label="Apri guida Registro Operazioni" @click="openHelp('audit')">?</button>
+            </div>
           <p class="muted" style="margin-top:.3rem">
             Pannello in sola lettura per verificare chi ha eseguito una specifica operazione.
           </p>

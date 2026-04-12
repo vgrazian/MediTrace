@@ -26,6 +26,7 @@ import {
   clearRealisticSeedData,
   isRealisticSeedDataLoaded,
 } from '../services/seedData'
+import { useHelp } from '../composables/useHelp'
 
 const {
   accessToken,
@@ -44,6 +45,7 @@ const {
   reactivateSeededUser,
   deleteSeededUser,
 } = useAuth()
+const { openHelp } = useHelp()
 const deviceId = ref(null)
 const datasetVersion = ref(null)
 const syncMessage = ref('')
@@ -561,7 +563,10 @@ async function handleInviteUser() {
 
 <template>
   <div class="view">
-    <h2>Impostazioni</h2>
+    <div class="view-heading">
+      <h2>Impostazioni</h2>
+      <button class="help-btn" aria-label="Apri guida Impostazioni" @click="openHelp('impostazioni')">?</button>
+    </div>
 
     <div class="card">
       <p><strong>Account operatore</strong></p>
