@@ -4,10 +4,10 @@ import { db, enqueue, getSetting } from '../db'
 import { buildOperationalReport, buildOrderDraftText, operationalReportToCsv } from '../services/reporting'
 import { confirmDeleteDrug, confirmDeleteBatch } from '../services/confirmations'
 import { useAuth } from '../services/auth'
-import { useHelp } from '../composables/useHelp'
+import { useHelpNavigation } from '../composables/useHelpNavigation'
 
 const { currentUser } = useAuth()
-const { openHelp } = useHelp()
+const { goToHelpSection } = useHelpNavigation()
 
 const report = ref(null)
 const reportLoading = ref(false)

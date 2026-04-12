@@ -26,7 +26,7 @@ import {
   clearRealisticSeedData,
   isRealisticSeedDataLoaded,
 } from '../services/seedData'
-import { useHelp } from '../composables/useHelp'
+import { useHelpNavigation } from '../composables/useHelpNavigation'
 
 const {
   accessToken,
@@ -45,7 +45,7 @@ const {
   reactivateSeededUser,
   deleteSeededUser,
 } = useAuth()
-const { openHelp } = useHelp()
+const { goToHelpSection } = useHelpNavigation()
 const deviceId = ref(null)
 const datasetVersion = ref(null)
 const syncMessage = ref('')

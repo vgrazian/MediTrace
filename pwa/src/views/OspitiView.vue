@@ -8,10 +8,10 @@ import { useFormValidation } from '../services/formValidation'
 import ValidatedInput from '../components/ValidatedInput.vue'
 import { useSelection } from '../composables/useSelection'
 import { db } from '../db'
-import { useHelp } from '../composables/useHelp'
+import { useHelpNavigation } from '../composables/useHelpNavigation'
 
 const { currentUser } = useAuth()
-const { openHelp } = useHelp()
+const { goToHelpSection } = useHelpNavigation()
 
 const {
   errors,
@@ -296,7 +296,7 @@ onMounted(() => void loadData())
   <div class="view">
     <div class="view-heading">
       <h2>Ospiti</h2>
-      <button class="help-btn" aria-label="Apri guida Ospiti" @click="openHelp('ospiti')">?</button>
+      <button class="help-btn" @click="goToHelpSection('ospiti')">Aiuto</button>
     </div>
 
     <div class="card">
