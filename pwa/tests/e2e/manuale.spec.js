@@ -58,20 +58,15 @@ test('contextual help opens from Farmaci view and shows content', async ({ page 
     await page.getByRole('link', { name: 'Farmaci' }).click()
     await expect(page.getByRole('heading', { name: 'Catalogo Farmaci' })).toBeVisible()
 
-    // The ? help button should be visible
-    const helpBtn = page.getByRole('button', { name: 'Apri guida Farmaci' })
+    const farmaciView = page.locator('.view').filter({ has: page.getByRole('heading', { name: 'Catalogo Farmaci' }) }).first()
+    const helpBtn = farmaciView.getByRole('button', { name: 'Aiuto' })
     await expect(helpBtn).toBeVisible()
 
     await helpBtn.click()
 
-    // Help drawer should open with correct title
-    await expect(page.getByRole('dialog', { name: 'Catalogo Farmaci — Guida' })).toBeVisible()
-    // First section open by default
-    await expect(page.getByText(/Un farmaco è la scheda generale/i)).toBeVisible()
-
-    // Close via X button
-    await page.getByRole('button', { name: 'Chiudi guida' }).click()
-    await expect(page.getByRole('dialog', { name: 'Catalogo Farmaci — Guida' })).toBeHidden()
+    await expect(page).toHaveURL(/\/manuale#farmaci$/)
+    await expect(page.getByRole('heading', { name: 'Manuale Utente' })).toBeVisible()
+    await expect(page.locator('#farmaci')).toBeVisible()
 })
 
 test('contextual help opens from Terapie view', async ({ page }) => {
@@ -81,13 +76,11 @@ test('contextual help opens from Terapie view', async ({ page }) => {
     await page.getByRole('link', { name: 'Terapie' }).click()
     await expect(page.getByRole('heading', { name: 'Terapie Attive' })).toBeVisible()
 
-    await page.getByRole('button', { name: 'Apri guida Terapie' }).click()
-    await expect(page.getByRole('dialog', { name: 'Terapie Attive — Guida' })).toBeVisible()
-    await expect(page.getByText(/terapie farmacologiche in corso/i)).toBeVisible()
-
-    // Close through explicit button for cross-browser stability
-    await page.getByRole('button', { name: 'Chiudi guida' }).click()
-    await expect(page.getByRole('dialog', { name: 'Terapie Attive — Guida' })).toBeHidden()
+    const terapieView = page.locator('.view').filter({ has: page.getByRole('heading', { name: 'Terapie Attive' }) }).first()
+    await terapieView.getByRole('button', { name: 'Aiuto' }).click()
+    await expect(page).toHaveURL(/\/manuale#terapie$/)
+    await expect(page.getByRole('heading', { name: 'Manuale Utente' })).toBeVisible()
+    await expect(page.locator('#terapie')).toBeVisible()
 })
 
 test('help drawer link navigates to full manual', async ({ page }) => {
@@ -95,9 +88,8 @@ test('help drawer link navigates to full manual', async ({ page }) => {
     await loginOrRegisterSeededUser(page)
 
     await page.getByRole('link', { name: 'Ospiti', exact: true }).click()
-    await page.getByRole('button', { name: 'Apri guida Ospiti' }).click()
-    await expect(page.getByRole('dialog')).toBeVisible()
-
-    await page.getByRole('link', { name: /Apri manuale completo/i }).click()
+    const ospitiView = page.locator('.view').filter({ has: page.getByRole('heading', { name: 'Ospiti' }) }).first()
+    await ospitiView.getByRole('button', { name: 'Aiuto' }).click()
+    await expect(page).toHaveURL(/\/manuale#ospiti$/)
     await expect(page.getByRole('heading', { name: 'Manuale Utente' })).toBeVisible()
 })

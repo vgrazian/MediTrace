@@ -434,7 +434,7 @@ onMounted(() => {
   <div class="view">
     <div class="view-heading">
       <h2>Scorte</h2>
-      <button class="help-btn" aria-label="Apri guida Scorte" @click="openHelp('scorte')">?</button>
+      <button class="help-btn" @click="goToHelpSection('scorte')">Aiuto</button>
     </div>
 
     <div class="card">

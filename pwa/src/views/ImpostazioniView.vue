@@ -565,7 +565,7 @@ async function handleInviteUser() {
   <div class="view">
     <div class="view-heading">
       <h2>Impostazioni</h2>
-      <button class="help-btn" aria-label="Apri guida Impostazioni" @click="openHelp('impostazioni')">?</button>
+      <button class="help-btn" @click="goToHelpSection('impostazioni')">Aiuto</button>
     </div>
 
     <div class="card">

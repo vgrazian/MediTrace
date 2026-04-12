@@ -109,6 +109,9 @@ test('expanded workflow scenario: multi-drug catalog, batch management, and ther
 
     // PHASE 2: Create stock batches for each drug with varying quantities
     console.log('\n=== PHASE 2: Creating stock batches with different quantities ===')
+    await page.locator('summary', { hasText: 'Gestisci Farmaci' }).click()
+    await page.waitForTimeout(200)
+
     const batches = [
         { drugName: 'Ibuprofene 200mg', commercialName: 'Brufen 200', dosage: '200mg', quantity: 24, threshold: 6 },
         { drugName: 'Ibuprofene 200mg', commercialName: 'Ibupiù', dosage: '200mg', quantity: 48, threshold: 8 },
@@ -120,8 +123,12 @@ test('expanded workflow scenario: multi-drug catalog, batch management, and ther
     for (const batch of batches) {
         console.log(`  Creating batch: ${batch.commercialName} (${batch.quantity} units)`)
 
-        const drugOption = `${batch.drugName} (${batch.active})`
-        await page.locator('select').first().selectOption({ label: batch.drugName })
+        const matchingDrugOption = page.locator('option').filter({ hasText: batch.drugName }).first()
+        const matchingDrugValue = await matchingDrugOption.getAttribute('value')
+        if (!matchingDrugValue) {
+            throw new Error(`Nessuna opzione farmaco trovata per ${batch.drugName}`)
+        }
+        await page.locator('select').first().selectOption(matchingDrugValue)
         await page.waitForTimeout(200)
 
         await page.getByLabel('Nome commerciale').fill(batch.commercialName)
@@ -242,22 +249,16 @@ test('expanded workflow scenario: multi-drug catalog, batch management, and ther
     // PHASE 6: Verify audit logging for all operations
     console.log('\n=== PHASE 6: Audit logging verification ===')
     await page.getByRole('link', { name: 'Audit' }).click()
-    await expect(page.getByRole('heading', { name: 'Audit Log' })).toBeVisible()
+    await expect(page.getByRole('heading', { name: /Audit/ })).toBeVisible()
 
-    const auditTable = page.locator('table').filter({ hasText: 'Timestamp' }).first()
+    const auditTable = page.locator('table[aria-label="Registro operazioni"]').first()
     const auditRows = auditTable.locator('tbody tr')
     const auditEntryCount = await auditRows.count()
 
     console.log(`  Audit log contains ${auditEntryCount} entries`)
 
-    // Verify we have entries for various operations
-    const allAuditText = await auditTable.textContent()
-    const hasCreateEntries = allAuditText.includes('create') || allAuditText.includes('insert')
-    const hasUpdateEntries = allAuditText.includes('update') || allAuditText.includes('modif')
-
-    if (hasCreateEntries) console.log('  ✓ Create/insert operations logged')
-    if (hasUpdateEntries) console.log('  ✓ Update operations logged')
-
+    // In CI we can have empty datasets, but the audit view must still render reliably.
+    await expect(auditTable).toBeVisible()
     expect(auditEntryCount).toBeGreaterThan(0)
     console.log('✓ Audit logging verified')
 
