@@ -48,6 +48,7 @@ export async function upsertDrug({
     principioAttivo,
     classeTerapeutica = '',
     scortaMinima = 0,
+    sogliaGiorniAutonomia = 30,
     operatorId = null,
 }) {
     const now = new Date().toISOString()
@@ -59,6 +60,7 @@ export async function upsertDrug({
         principioAttivo: principioAttivo.trim(),
         classeTerapeutica: classeTerapeutica.trim() || '',
         scortaMinima: Number(scortaMinima || 0),
+        sogliaGiorniAutonomia: Number(sogliaGiorniAutonomia ?? 30) || 30,
         updatedAt: now,
         deletedAt: null,
         syncStatus: 'pending',

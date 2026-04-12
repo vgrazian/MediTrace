@@ -250,6 +250,19 @@ describe('confirmations service', () => {
             expect(callArg).toContain('eliminare 3 farmaci')
             expect(callArg).toContain('eliminerà 3 farmaci')
         })
+
+        it('includes cascade warning for host bulk deletion', async () => {
+            confirmSpy.mockReturnValue(true)
+
+            const result = await confirmDeleteMultiple(2, 'ospiti')
+
+            expect(confirmSpy).toHaveBeenCalled()
+            expect(result).toBe(true)
+            const callArg = confirmSpy.mock.calls[0][0]
+            expect(callArg).toContain('eliminare 2 ospiti')
+            expect(callArg).toContain('terapie associate')
+            expect(callArg).toContain('stanza/letto')
+        })
     })
 
     describe('user cancellation', () => {
