@@ -6,6 +6,7 @@ ENV_FILE="$ROOT_DIR/credentials.local.env"
 OUTPUT_FILE="$ROOT_DIR/pwa/.env.production.local"
 RUN_BUILD="0"
 TRIGGER_DEPLOY="0"
+SET_GH="0"
 
 usage() {
   cat <<'EOF'
@@ -15,13 +16,15 @@ Options:
   --env-file <path>      Source env file (default: credentials.local.env)
   --output-file <path>   Target file (default: pwa/.env.production.local)
   --build                Run production build after writing env file
+  --set-gh               Push required Variables/Secrets to GitHub repository
   --trigger-deploy       Trigger GitHub Actions deploy workflow
   -h, --help             Show this help
 
 Examples:
   bash pwa/scripts/setup-production-deploy.sh
+  bash pwa/scripts/setup-production-deploy.sh --set-gh
   bash pwa/scripts/setup-production-deploy.sh --build
-  bash pwa/scripts/setup-production-deploy.sh --build --trigger-deploy
+  bash pwa/scripts/setup-production-deploy.sh --set-gh --build --trigger-deploy
 EOF
 }
 
@@ -30,6 +33,28 @@ require_cmd() {
     echo "[error] Missing required command: $1"
     exit 1
   fi
+}
+
+set_repo_variable() {
+  local name="$1"
+  local value="$2"
+  if [[ -z "$value" ]]; then
+    echo "[skip] Variable $name empty"
+    return
+  fi
+  gh variable set "$name" --body "$value"
+  echo "[ok] Variable $name configured"
+}
+
+set_repo_secret() {
+  local name="$1"
+  local value="$2"
+  if [[ -z "$value" ]]; then
+    echo "[skip] Secret $name empty"
+    return
+  fi
+  gh secret set "$name" --body "$value"
+  echo "[ok] Secret $name configured"
 }
 
 while [[ $# -gt 0 ]]; do
@@ -44,6 +69,10 @@ while [[ $# -gt 0 ]]; do
       ;;
     --build)
       RUN_BUILD="1"
+      shift
+      ;;
+    --set-gh)
+      SET_GH="1"
       shift
       ;;
     --trigger-deploy)
@@ -107,6 +136,24 @@ EOF
 
 echo "[ok] Wrote $OUTPUT_FILE"
 echo "[info] Emergency admin enabled: $VITE_EMERGENCY_ADMIN_ENABLED_VALUE"
+
+if [[ "$SET_GH" == "1" ]]; then
+  require_cmd gh
+  if ! gh auth status >/dev/null 2>&1; then
+    echo "[error] gh CLI is not authenticated. Run: gh auth login"
+    exit 1
+  fi
+
+  echo "[info] Syncing GitHub Variables/Secrets for production deploy..."
+  set_repo_variable "VITE_BASE_URL" "$VITE_BASE_URL_VALUE"
+  set_repo_variable "VITE_EMERGENCY_ADMIN_ENABLED" "$VITE_EMERGENCY_ADMIN_ENABLED_VALUE"
+  set_repo_variable "VITE_EMERGENCY_ADMIN_USERNAME" "$VITE_EMERGENCY_ADMIN_USERNAME_VALUE"
+  set_repo_variable "VITE_EMERGENCY_ADMIN_EMAIL" "$VITE_EMERGENCY_ADMIN_EMAIL_VALUE"
+  set_repo_variable "VITE_EMERGENCY_ADMIN_FIRST_NAME" "$VITE_EMERGENCY_ADMIN_FIRST_NAME_VALUE"
+  set_repo_variable "VITE_EMERGENCY_ADMIN_LAST_NAME" "$VITE_EMERGENCY_ADMIN_LAST_NAME_VALUE"
+  set_repo_secret "VITE_EMERGENCY_ADMIN_PASSWORD" "$VITE_EMERGENCY_ADMIN_PASSWORD_VALUE"
+  set_repo_secret "VITE_EMERGENCY_ADMIN_GITHUB_TOKEN" "$VITE_EMERGENCY_ADMIN_GITHUB_TOKEN_VALUE"
+fi
 
 if [[ "$RUN_BUILD" == "1" ]]; then
   require_cmd npm

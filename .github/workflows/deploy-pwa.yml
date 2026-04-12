@@ -58,8 +58,16 @@ jobs:
         run: npm run build
         env:
           # Must match the GitHub Pages base path: /<repo-name>/
-          VITE_BASE_URL: /MediTrace/
-          # Optional Supabase config can be injected at build time from repo/org variables.
+          VITE_BASE_URL: ${{ vars.VITE_BASE_URL || '/MediTrace/' }}
+
+          # Emergency admin bootstrap for production build
+          VITE_EMERGENCY_ADMIN_ENABLED: ${{ vars.VITE_EMERGENCY_ADMIN_ENABLED || '0' }}
+          VITE_EMERGENCY_ADMIN_USERNAME: ${{ vars.VITE_EMERGENCY_ADMIN_USERNAME || '' }}
+          VITE_EMERGENCY_ADMIN_EMAIL: ${{ vars.VITE_EMERGENCY_ADMIN_EMAIL || '' }}
+          VITE_EMERGENCY_ADMIN_FIRST_NAME: ${{ vars.VITE_EMERGENCY_ADMIN_FIRST_NAME || 'Admin' }}
+          VITE_EMERGENCY_ADMIN_LAST_NAME: ${{ vars.VITE_EMERGENCY_ADMIN_LAST_NAME || 'Emergenza' }}
+          VITE_EMERGENCY_ADMIN_PASSWORD: ${{ secrets.VITE_EMERGENCY_ADMIN_PASSWORD || '' }}
+          VITE_EMERGENCY_ADMIN_GITHUB_TOKEN: ${{ secrets.VITE_EMERGENCY_ADMIN_GITHUB_TOKEN || '' }}
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
