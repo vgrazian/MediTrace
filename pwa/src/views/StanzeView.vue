@@ -2,10 +2,10 @@
 import { onMounted, ref, computed } from 'vue'
 import { useAuth } from '../services/auth'
 import { createRoom, createBed, updateRoom, updateBed, deactivateRoom, deactivateBed, getRoomsWithBeds } from '../services/stanze'
-import { useHelp } from '../composables/useHelp'
+import { useHelpNavigation } from '../composables/useHelpNavigation'
 
 const { currentUser } = useAuth()
-const { openHelp } = useHelp()
+const { goToHelpSection } = useHelpNavigation()
 
 const loading = ref(false)
 const saving = ref(false)
@@ -262,7 +262,7 @@ onMounted(() => void loadData())
   <div class="view">
     <div class="view-heading">
       <h2>Stanze e Letti</h2>
-      <button class="help-btn" aria-label="Apri guida Stanze e Letti" @click="openHelp('stanze')">?</button>
+      <button class="help-btn" @click="goToHelpSection('stanze')">Aiuto</button>
     </div>
 
     <div class="card">

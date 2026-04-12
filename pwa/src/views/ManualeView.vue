@@ -21,7 +21,7 @@ function toggle(key) {
       </p>
       <p class="muted" style="margin-top:.5rem">
         Puoi anche aprire la guida contestuale di ciascuna sezione premendo il pulsante
-        <span class="help-btn-preview" aria-hidden="true">?</span> in alto nella pagina corrispondente.
+        <span class="help-btn-preview" aria-hidden="true">Aiuto</span> in alto nella pagina corrispondente.
       </p>
     </div>
 

@@ -1,14 +1,14 @@
 <template>
   <div class="view audit-log-view">
     <div class="card">
-import { useHelp } from '../composables/useHelp'
+import { useHelpNavigation } from '../composables/useHelpNavigation'
 
-const { openHelp } = useHelp()
+const { goToHelpSection } = useHelpNavigation()
       <div class="audit-header">
         <div>
             <div class="view-heading" style="margin-bottom:.25rem">
               <h2 style="margin-bottom:0">Registro Operazioni (Audit)</h2>
-              <button class="help-btn" aria-label="Apri guida Registro Operazioni" @click="openHelp('audit')">?</button>
+              <button class="help-btn" @click="goToHelpSection('audit')">Aiuto</button>
             </div>
           <p class="muted" style="margin-top:.3rem">
             Pannello in sola lettura per verificare chi ha eseguito una specifica operazione.

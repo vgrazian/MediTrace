@@ -7,10 +7,10 @@ import { confirmDeleteMovement, confirmDeleteMultiple } from '../services/confir
 import { useFormValidation } from '../services/formValidation'
 import ValidatedInput from '../components/ValidatedInput.vue'
 import { useSelection } from '../composables/useSelection'
-import { useHelp } from '../composables/useHelp'
+import { useHelpNavigation } from '../composables/useHelpNavigation'
 
 const { currentUser } = useAuth()
-const { openHelp } = useHelp()
+const { goToHelpSection } = useHelpNavigation()
 
 const loading = ref(false)
 const saving = ref(false)
@@ -324,7 +324,7 @@ onMounted(() => {
   <div class="view">
     <div class="view-heading">
       <h2>Movimenti</h2>
-      <button class="help-btn" aria-label="Apri guida Movimenti" @click="openHelp('movimenti')">?</button>
+      <button class="help-btn" @click="goToHelpSection('movimenti')">Aiuto</button>
     </div>
 
     <div class="card">
