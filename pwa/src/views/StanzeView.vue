@@ -3,6 +3,7 @@ import { onMounted, ref, computed } from 'vue'
 import { useAuth } from '../services/auth'
 import { createRoom, createBed, updateRoom, updateBed, deactivateRoom, deactivateBed, getRoomsWithBeds } from '../services/stanze'
 import { useHelpNavigation } from '../composables/useHelpNavigation'
+import { openConfirmDialog } from '../services/confirmDialog'
 
 const { currentUser } = useAuth()
 const { goToHelpSection } = useHelpNavigation()
@@ -173,7 +174,15 @@ async function handleSaveBedEdit() {
 }
 
 async function handleDeactivateRoom(roomId) {
-  if (!confirm(`Eliminare la stanza "${roomId}"?`)) return
+  const confirmed = await openConfirmDialog({
+    title: 'Conferma eliminazione stanza',
+    message: `Eliminare la stanza "${roomId}"?`,
+    details: 'La stanza verrà disattivata e non sarà più selezionabile nelle nuove assegnazioni.',
+    confirmText: 'Elimina stanza',
+    cancelText: 'Annulla',
+    tone: 'danger',
+  })
+  if (!confirmed) return
   message.value = ''
   errorMessage.value = ''
   try {
@@ -186,7 +195,15 @@ async function handleDeactivateRoom(roomId) {
 }
 
 async function handleDeactivateBed(bedId) {
-  if (!confirm(`Eliminare il letto "${bedId}"?`)) return
+  const confirmed = await openConfirmDialog({
+    title: 'Conferma eliminazione letto',
+    message: `Eliminare il letto "${bedId}"?`,
+    details: 'Il letto verrà disattivato e rimosso dalle assegnazioni future.',
+    confirmText: 'Elimina letto',
+    cancelText: 'Annulla',
+    tone: 'danger',
+  })
+  if (!confirmed) return
   message.value = ''
   errorMessage.value = ''
   try {

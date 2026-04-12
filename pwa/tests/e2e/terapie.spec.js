@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test'
 import { loginOrRegisterSeededUser } from './helpers/login'
+import { runWithAcceptedConfirmation } from './helpers/confirm'
 
 test('terapie view supports create and delete flow', async ({ page }) => {
     await page.route('https://api.github.com/user', async route => {
@@ -65,8 +66,9 @@ test('terapie view supports create and delete flow', async ({ page }) => {
     await expect(page.getByRole('button', { name: 'Salva modifica' })).toBeVisible()
     await page.getByRole('button', { name: 'Annulla' }).first().click()
 
-    page.once('dialog', dialog => dialog.accept())
-    await page.getByRole('button', { name: 'Elimina (1)' }).first().click()
+    await runWithAcceptedConfirmation(page, async () => {
+        await page.getByRole('button', { name: 'Elimina (1)' }).first().click()
+    })
 
     await expect(page.getByText('Terapia eliminata.')).toBeVisible()
     await expect(page.getByText('Nessuna terapia attiva disponibile.')).toBeVisible()

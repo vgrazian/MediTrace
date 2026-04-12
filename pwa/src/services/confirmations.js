@@ -1,3 +1,5 @@
+import { openConfirmDialog } from './confirmDialog'
+
 /**
  * Confirmation Dialog Service
  * 
@@ -43,10 +45,14 @@ export async function confirmDestructiveAction(options) {
 
     fullMessage += '\n\nQuesta azione non può essere annullata.'
 
-    // For now, use enhanced confirm with better messaging
-    // In future, this can be replaced with a custom modal component
-    // Use globalThis.confirm for better testability (works in both browser and Node.js test environment)
-    return globalThis.confirm(`${title}\n\n${fullMessage}`)
+    return openConfirmDialog({
+        title,
+        message,
+        details: fullMessage.replace(`${message}\n\n`, ''),
+        confirmText,
+        cancelText,
+        tone: 'danger',
+    })
 }
 
 /**
@@ -224,7 +230,14 @@ export async function confirmDeleteMultiple(count, itemType = 'elementi') {
         ? `Questa azione eliminerà ${count} ${itemType} e non può essere annullata.`
         : 'Questa azione non può essere annullata.'
 
-    return globalThis.confirm(`${message}\n\n${details}`)
+    return openConfirmDialog({
+        title: count === 1 ? 'Conferma eliminazione' : 'Conferma eliminazione multipla',
+        message,
+        details,
+        confirmText: 'Elimina',
+        cancelText: 'Annulla',
+        tone: 'danger',
+    })
 }
 
 // Made with Bob

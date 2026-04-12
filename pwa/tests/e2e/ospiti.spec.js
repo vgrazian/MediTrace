@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test'
 import { loginOrRegisterSeededUser } from './helpers/login'
+import { runWithAcceptedConfirmation } from './helpers/confirm'
 
 test('ospiti view supports create, selection-based edit, and bulk delete with extended anagrafica fields', async ({ page }) => {
     await page.route('https://api.github.com/user', async route => {
@@ -77,8 +78,9 @@ test('ospiti view supports create, selection-based edit, and bulk delete with ex
     const deleteOneButton = page.getByRole('button', { name: 'Elimina (1)' })
     await expect(deleteOneButton).toBeEnabled()
 
-    page.once('dialog', dialog => dialog.accept())
-    await deleteOneButton.click()
+    await runWithAcceptedConfirmation(page, async () => {
+        await deleteOneButton.click()
+    })
 
     await expect(page.getByText(/Ospite ".+" eliminato\./i)).toBeVisible({ timeout: 5000 })
     await expect(page.getByRole('cell', { name: 'OSP-E2E-001' })).not.toBeVisible({ timeout: 5000 })

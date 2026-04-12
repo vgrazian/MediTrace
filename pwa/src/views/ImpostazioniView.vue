@@ -27,6 +27,7 @@ import {
   isRealisticSeedDataLoaded,
 } from '../services/seedData'
 import { useHelpNavigation } from '../composables/useHelpNavigation'
+import { openConfirmDialog } from '../services/confirmDialog'
 
 const {
   accessToken,
@@ -341,8 +342,22 @@ async function handleToggleTestData() {
 
   const shouldClear = seedActionMode.value === 'clear'
   const confirmed = shouldClear
-    ? window.confirm('Rimuovere tutti i dati di test dal database locale?')
-    : window.confirm('Generare e importare dati di test nel database locale?')
+    ? await openConfirmDialog({
+      title: 'Conferma rimozione dati di test',
+      message: 'Rimuovere tutti i dati di test dal database locale?',
+      details: 'Questa operazione elimina i dataset demo locali per ripartire da uno stato pulito.',
+      confirmText: 'Rimuovi dati',
+      cancelText: 'Annulla',
+      tone: 'danger',
+    })
+    : await openConfirmDialog({
+      title: 'Conferma import dati di test',
+      message: 'Generare e importare dati di test nel database locale?',
+      details: 'I dati demo esistenti verranno prima rimossi, poi ricreati con il pacchetto realistico.',
+      confirmText: 'Importa dati',
+      cancelText: 'Annulla',
+      tone: 'primary',
+    })
   if (!confirmed) return
 
   seedBusy.value = true

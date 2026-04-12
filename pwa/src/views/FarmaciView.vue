@@ -6,8 +6,10 @@ import { upsertDrug, deleteDrug, upsertBatch, deactivateBatch } from '../service
 import { confirmDeleteDrug, confirmDeleteBatch, confirmDeleteMultiple } from '../services/confirmations'
 import { useFormValidation } from '../services/formValidation'
 import ValidatedInput from '../components/ValidatedInput.vue'
+import CrudFilterBar from '../components/CrudFilterBar.vue'
 import { useSelection } from '../composables/useSelection'
 import { useHelpNavigation } from '../composables/useHelpNavigation'
+import { useUnsavedChangesGuard } from '../composables/useUnsavedChangesGuard'
 
 const { currentUser } = useAuth()
 const { goToHelpSection } = useHelpNavigation()
@@ -66,6 +68,8 @@ const editingDrugId = ref(null)
 const editingBatchId = ref(null)
 const isFormOpen = ref(false)
 const panelMode = ref('list')
+const filterQuery = ref('')
+const formSnapshot = ref('')
 
 const drugForm = ref({
   nomeFarmaco: '',
@@ -85,6 +89,47 @@ const batchForm = ref({
 
 const canCreateBatch = computed(() => drugs.value.length > 0)
 
+const normalizedFilter = computed(() => filterQuery.value.trim().toLowerCase())
+
+const filteredDrugs = computed(() => {
+  const q = normalizedFilter.value
+  if (!q) return drugs.value
+  return drugs.value.filter((drug) => {
+    const haystack = [
+      drug.id,
+      drug.nomeFarmaco,
+      drug.principioAttivo,
+      drug.classeTerapeutica,
+    ].filter(Boolean).join(' ').toLowerCase()
+    return haystack.includes(q)
+  })
+})
+
+const filteredBatches = computed(() => {
+  const q = normalizedFilter.value
+  if (!q) return batches.value
+  return batches.value.filter((batch) => {
+    const haystack = [
+      batch.id,
+      batch.nomeCommerciale,
+      batch.dosaggio,
+      drugLabel(batch.drugId),
+    ].filter(Boolean).join(' ').toLowerCase()
+    return haystack.includes(q)
+  })
+})
+
+const isDirty = computed(() => {
+  if (!isFormOpen.value) return false
+  return formSnapshot.value !== JSON.stringify({
+    panelMode: panelMode.value,
+    drugForm: drugForm.value,
+    batchForm: batchForm.value,
+  })
+})
+
+useUnsavedChangesGuard(isDirty)
+
 const {
   allSelected: allDrugsSelected,
   someSelected: someDrugsSelected,
@@ -94,7 +139,7 @@ const {
   clearSelection: clearDrugSelection,
   isSelected: isDrugSelected,
   getSelectedItems: getSelectedDrugs,
-} = useSelection(drugs)
+} = useSelection(filteredDrugs)
 
 const {
   allSelected: allBatchesSelected,
@@ -105,7 +150,15 @@ const {
   clearSelection: clearBatchSelection,
   isSelected: isBatchSelected,
   getSelectedItems: getSelectedBatches,
-} = useSelection(batches)
+} = useSelection(filteredBatches)
+
+function markFormSnapshot() {
+  formSnapshot.value = JSON.stringify({
+    panelMode: panelMode.value,
+    drugForm: drugForm.value,
+    batchForm: batchForm.value,
+  })
+}
 
 function drugLabel(drugId) {
   const item = drugs.value.find(drug => drug.id === drugId)
@@ -184,6 +237,7 @@ async function createDrug() {
     editingDrugId.value = null
     message.value = existing && !existing.deletedAt ? 'Farmaco aggiornato.' : `Farmaco salvato (ID: ${saved.id}).`
     await loadData()
+    markFormSnapshot()
   } catch (err) {
     errorMessage.value = `Errore salvataggio farmaco: ${err.message}`
   } finally {
@@ -232,6 +286,7 @@ async function createBatch() {
     editingBatchId.value = null
     message.value = existing ? 'Confezione aggiornata.' : 'Confezione salvata.'
     await loadData()
+    markFormSnapshot()
   } catch (err) {
     errorMessage.value = `Errore salvataggio confezione: ${err.message}`
   } finally {
@@ -266,12 +321,14 @@ function openAddDrugForm() {
   resetDrugForm()
   panelMode.value = 'create-drug'
   isFormOpen.value = true
+  markFormSnapshot()
 }
 
 function openAddBatchForm() {
   resetBatchForm()
   panelMode.value = 'create-batch'
   isFormOpen.value = true
+  markFormSnapshot()
 }
 
 function startEditDrug(drug) {
@@ -284,6 +341,7 @@ function startEditDrug(drug) {
     classeTerapeutica: drug.classeTerapeutica || '',
     scortaMinima: String(drug.scortaMinima ?? ''),
   }
+  markFormSnapshot()
 }
 
 function startEditBatch(batch) {
@@ -298,6 +356,7 @@ function startEditBatch(batch) {
     sogliaRiordino: String(batch.sogliaRiordino ?? ''),
     scadenza: batch.scadenza ? String(batch.scadenza).slice(0, 10) : '',
   }
+  markFormSnapshot()
 }
 
 function resetDrugForm() {
@@ -309,6 +368,7 @@ function resetDrugForm() {
     scortaMinima: '',
   }
   clearDrugErrors()
+  markFormSnapshot()
 }
 
 function resetBatchForm() {
@@ -322,6 +382,7 @@ function resetBatchForm() {
     scadenza: '',
   }
   clearBatchErrors()
+  markFormSnapshot()
 }
 
 async function deleteDrugRecord(drug) {
@@ -435,6 +496,7 @@ async function deleteSelectedBatches() {
 
 onMounted(() => {
   void loadData()
+  markFormSnapshot()
 })
 </script>
 
@@ -447,6 +509,13 @@ onMounted(() => {
 
     <div class="card">
       <p><strong>Farmaci registrati</strong></p>
+      <CrudFilterBar
+        v-model="filterQuery"
+        label="Filtra farmaci e confezioni"
+        placeholder="Cerca per nome farmaco, principio attivo, confezione o dosaggio"
+        :visible-count="filteredDrugs.length + filteredBatches.length"
+        :total-count="drugs.length + batches.length"
+      />
       <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.75rem">
         <button @click="openAddDrugForm">Aggiungi</button>
         <button :disabled="selectedDrugsCount !== 1" @click="openEditDrugForm">Modifica</button>
@@ -485,7 +554,7 @@ onMounted(() => {
         </thead>
         <tbody>
           <tr
-            v-for="drug in drugs"
+            v-for="drug in filteredDrugs"
             :key="drug.id"
             :style="isDrugSelected(drug.id) ? 'background:rgba(52, 152, 219, 0.12)' : undefined"
           >
@@ -506,7 +575,7 @@ onMounted(() => {
               <button style="background:#c0392b" @click="deleteDrugRecord(drug)">Elimina</button>
             </td>
           </tr>
-          <tr v-if="drugs.length === 0 && !loading">
+          <tr v-if="filteredDrugs.length === 0 && !loading">
             <td colspan="6" class="muted">Nessun farmaco disponibile.</td>
           </tr>
         </tbody>
@@ -554,7 +623,7 @@ onMounted(() => {
         </thead>
         <tbody>
           <tr
-            v-for="batch in batches"
+            v-for="batch in filteredBatches"
             :key="batch.id"
             :style="isBatchSelected(batch.id) ? 'background:rgba(52, 152, 219, 0.12)' : undefined"
           >
@@ -577,7 +646,7 @@ onMounted(() => {
               <button style="background:#c0392b" @click="deactivateBatchUI(batch)">Elimina</button>
             </td>
           </tr>
-          <tr v-if="batches.length === 0 && !loading">
+          <tr v-if="filteredBatches.length === 0 && !loading">
             <td colspan="8" class="muted">Nessuna confezione attiva disponibile.</td>
           </tr>
         </tbody>

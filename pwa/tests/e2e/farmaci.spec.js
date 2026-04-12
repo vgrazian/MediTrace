@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test'
 import { loginOrRegisterSeededUser } from './helpers/login'
+import { runWithAcceptedConfirmation } from './helpers/confirm'
 
 test('farmaci view supports creating and deactivating stock batch', async ({ page }) => {
     await page.route('https://api.github.com/user', async route => {
@@ -46,10 +47,11 @@ test('farmaci view supports creating and deactivating stock batch', async ({ pag
     await expect(page.getByText(/Confezione salvata/i)).toBeVisible()
     await expect(page.locator('tbody tr', { hasText: 'Tachipirina Test' }).first()).toBeVisible()
 
-    page.once('dialog', dialog => dialog.accept())
     await page.getByLabel('Seleziona confezione Tachipirina Test').check()
     const batchCard = page.locator('.card', { hasText: 'Confezioni attive' })
-    await batchCard.getByRole('button', { name: 'Elimina (1)' }).click()
+    await runWithAcceptedConfirmation(page, async () => {
+        await batchCard.getByRole('button', { name: 'Elimina (1)' }).click()
+    })
 
     await expect(page.getByText('Confezione eliminata.')).toBeVisible()
     await expect(page.getByText('Nessuna confezione attiva disponibile.')).toBeVisible()
