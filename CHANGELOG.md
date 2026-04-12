@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.0] - 2026-04-12
+### Added
+- Added guided popup add panels opened from `Aggiungi` actions in [`FarmaciView.vue`](pwa/src/views/FarmaciView.vue), [`OspitiView.vue`](pwa/src/views/OspitiView.vue), [`TerapieView.vue`](pwa/src/views/TerapieView.vue), and [`MovimentiView.vue`](pwa/src/views/MovimentiView.vue).
+- Added reusable `.dataset-frame` table containers in [`style.css`](pwa/src/style.css) so large datasets remain visible inside scrollable framed areas.
+
+### Changed
+- Updated create flows so new records return the operator to the originating list after save, while `Annulla` also dismisses the popup panel.
+- Added explicit `Aggiungi` entry point for Movimenti and moved success feedback outside the panel so post-save confirmation remains visible.
+- Updated E2E coverage in [`crud-ux-first-pass.spec.js`](pwa/tests/e2e/crud-ux-first-pass.spec.js), [`farmaci.spec.js`](pwa/tests/e2e/farmaci.spec.js), [`ospiti.spec.js`](pwa/tests/e2e/ospiti.spec.js), [`terapie.spec.js`](pwa/tests/e2e/terapie.spec.js), [`movimenti.spec.js`](pwa/tests/e2e/movimenti.spec.js), [`scorte.spec.js`](pwa/tests/e2e/scorte.spec.js), and [`expanded-workflow.spec.js`](pwa/tests/e2e/expanded-workflow.spec.js) to match the new guided add flow.
+
+### Verified
+- Full Playwright regression suite passes locally: `49/49`.
+
 ## [0.4.0] - 2026-04-09
 ### Changed
 - Standardized CRUD UX labels to `Aggiungi`, `Modifica`, `Elimina` across [`OspitiView.vue`](pwa/src/views/OspitiView.vue), [`StanzeView.vue`](pwa/src/views/StanzeView.vue), [`FarmaciView.vue`](pwa/src/views/FarmaciView.vue), [`ScorteView.vue`](pwa/src/views/ScorteView.vue), and [`TerapieView.vue`](pwa/src/views/TerapieView.vue).
