@@ -98,6 +98,6 @@ onUnmounted(() => {
 }
 
 .actions .danger {
-  background: #c0392b;
+  background: #d35f55;
 }
 </style>

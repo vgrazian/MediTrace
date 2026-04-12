@@ -72,7 +72,7 @@ test('daily operations scenario covers therapy edits, executions, stock checks a
     await page.getByRole('button', { name: 'Aggiorna report' }).click()
     await page.getByRole('button', { name: 'Prepara testo ordine farmaci' }).click()
 
-    const orderPreparedMessage = page.getByText(/Testo ordine copiato negli appunti.|Clipboard non disponibile: scaricato file \.txt con il testo ordine\./)
+    const draftPanelTitle = page.getByText('Bozza testo ordine farmaci')
     const noPriorityMessage = page.getByText(/Nessun farmaco con priorita'/)
 
     if (await noPriorityMessage.isVisible().catch(() => false)) {
@@ -92,5 +92,7 @@ test('daily operations scenario covers therapy edits, executions, stock checks a
         await page.getByRole('button', { name: 'Prepara testo ordine farmaci' }).click()
     }
 
-    await expect(orderPreparedMessage).toBeVisible()
+    await expect(draftPanelTitle).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Copia' })).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Annulla' })).toBeVisible()
 })

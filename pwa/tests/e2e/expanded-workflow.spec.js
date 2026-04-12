@@ -248,7 +248,7 @@ test('expanded workflow scenario: multi-drug catalog, batch management, and ther
 
     // Try to prepare order
     await page.getByRole('button', { name: 'Prepara testo ordine farmaci' }).click()
-    const orderMsg = page.getByText(/Testo ordine|Nessun farmaco/)
+    const orderMsg = page.getByText(/Bozza testo ordine farmaci|Nessun farmaco/)
     await expect(orderMsg).toBeVisible({ timeout: 5000 })
     console.log('✓ Stock report updated and order preparation ready')
 

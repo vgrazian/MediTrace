@@ -439,7 +439,7 @@ onMounted(() => {
         <button :disabled="selectedCount !== 1" @click="openEditForm">Modifica</button>
         <button
           :disabled="selectedCount === 0"
-          style="background:#c0392b"
+          style="background:#d35f55"
           @click="deleteSelectedMovements"
         >
           Elimina{{ selectedCount > 0 ? ` (${selectedCount})` : '' }}
@@ -495,7 +495,7 @@ onMounted(() => {
             <td>{{ movement.note || '—' }}</td>
             <td>
               <button style="margin-right:.35rem" @click="startEditMovement(movement)">Modifica</button>
-              <button style="background:#c0392b" @click="deleteMovement(movement)">Elimina</button>
+              <button style="background:#d35f55" @click="deleteMovement(movement)">Elimina</button>
             </td>
           </tr>
           <tr v-if="filteredMovements.length === 0">

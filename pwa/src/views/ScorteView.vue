@@ -14,6 +14,8 @@ const reportLoading = ref(false)
 const reportError = ref('')
 const reportActionMessage = ref('')
 const reportActionError = ref('')
+const orderDraftText = ref('')
+const isOrderDraftOpen = ref(false)
 const actionMessage = ref('')
 const actionError = ref('')
 const savingBatch = ref(false)
@@ -398,14 +400,31 @@ async function prepareOrderDraft() {
 
   const draftText = buildOrderDraftText(report.value)
   if (!draftText) {
+    isOrderDraftOpen.value = false
+    orderDraftText.value = ''
     reportActionError.value = 'Nessun farmaco con priorita\' critica/alta/media da includere nell\'ordine.'
+    return
+  }
+
+  orderDraftText.value = draftText
+  isOrderDraftOpen.value = true
+  reportActionMessage.value = 'Bozza ordine pronta. Puoi modificarla e poi copiarla.'
+}
+
+async function copyOrderDraft() {
+  reportActionMessage.value = ''
+  reportActionError.value = ''
+
+  const text = String(orderDraftText.value || '').trim()
+  if (!text) {
+    reportActionError.value = 'Il testo ordine e\' vuoto.'
     return
   }
 
   let copied = false
   try {
     if (navigator?.clipboard?.writeText) {
-      await navigator.clipboard.writeText(draftText)
+      await navigator.clipboard.writeText(text)
       copied = true
     }
   } catch {
@@ -413,7 +432,7 @@ async function prepareOrderDraft() {
   }
 
   if (!copied) {
-    copied = copyTextFallback(draftText)
+    copied = copyTextFallback(text)
   }
 
   if (copied) {
@@ -421,12 +440,14 @@ async function prepareOrderDraft() {
     return
   }
 
-  const date = new Date().toISOString().slice(0, 10)
-  const anchor = document.createElement('a')
-  anchor.href = URL.createObjectURL(new Blob([draftText], { type: 'text/plain;charset=utf-8' }))
-  anchor.download = `meditrace-ordine-farmaci-${date}.txt`
-  anchor.click()
-  reportActionMessage.value = 'Clipboard non disponibile: scaricato file .txt con il testo ordine.'
+  reportActionError.value = 'Clipboard non disponibile su questo dispositivo/browser.'
+}
+
+function cancelOrderDraft() {
+  isOrderDraftOpen.value = false
+  orderDraftText.value = ''
+  reportActionMessage.value = 'Bozza ordine annullata.'
+  reportActionError.value = ''
 }
 
 onMounted(() => {
@@ -462,6 +483,25 @@ onMounted(() => {
       <p v-if="reportError" class="import-error" style="margin-top:.5rem">Errore report: {{ reportError }}</p>
       <p v-if="reportActionMessage" class="muted" style="margin-top:.5rem">{{ reportActionMessage }}</p>
       <p v-if="reportActionError" class="import-error" style="margin-top:.5rem">{{ reportActionError }}</p>
+
+      <div v-if="isOrderDraftOpen" class="dataset-frame" style="margin-top:.75rem;padding:.75rem;background:#fff8db;border:1px solid #f3e3a1">
+        <p><strong>Bozza testo ordine farmaci</strong></p>
+        <p class="muted" style="margin-top:.25rem">Puoi modificare il testo prima di copiarlo negli appunti.</p>
+        <textarea
+          v-model="orderDraftText"
+          rows="10"
+          style="width:100%;margin-top:.6rem"
+          aria-label="Bozza ordine farmaci"
+        />
+        <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.65rem">
+          <button type="button" :disabled="!String(orderDraftText || '').trim()" @click="copyOrderDraft">
+            Copia
+          </button>
+          <button type="button" @click="cancelOrderDraft">
+            Annulla
+          </button>
+        </div>
+      </div>
     </div>
 
     <div v-if="report" class="card">
@@ -497,7 +537,7 @@ onMounted(() => {
             <td>{{ row.warningReason }}</td>
             <td>
               <button style="margin-right:.35rem" @click="startEditDrug(row.drugId)">Modifica</button>
-              <button style="background:#c0392b" @click="deleteDrug(row.drugId)">Elimina</button>
+              <button style="background:#d35f55" @click="deleteDrug(row.drugId)">Elimina</button>
             </td>
           </tr>
           <tr v-if="report.rows.length === 0">
@@ -607,7 +647,7 @@ onMounted(() => {
             <td>{{ batch.scadenza || '—' }}</td>
             <td>
               <button style="margin-right:.35rem" @click="startEditBatch(batch)">Modifica</button>
-              <button style="background:#c0392b" @click="deleteBatch(batch.id)">Elimina</button>
+              <button style="background:#d35f55" @click="deleteBatch(batch.id)">Elimina</button>
             </td>
           </tr>
           <tr v-if="!hasBatches && !reportLoading">

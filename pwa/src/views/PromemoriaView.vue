@@ -313,7 +313,7 @@ watch(() => route.fullPath, () => void loadData())
                 </button>
                 <button
                   :disabled="markingId === reminder.id"
-                  style="padding:.2rem .55rem;font-size:.8rem;background:#c0392b"
+                  style="padding:.2rem .55rem;font-size:.8rem;background:#e6a817;color:#111"
                   @click="applyOutcome(reminder.id, 'SALTATO')"
                 >
                   Saltato
@@ -328,7 +328,7 @@ watch(() => route.fullPath, () => void loadData())
               </div>
               <div style="display:flex;gap:.4rem;flex-wrap:wrap">
                 <button :disabled="markingId === reminder.id || savingEdit" @click="startEdit(reminder)">Modifica</button>
-                <button :disabled="markingId === reminder.id || savingEdit" style="background:#c0392b" @click="deleteReminder(reminder.id)">Elimina</button>
+                <button :disabled="markingId === reminder.id || savingEdit" style="background:#d35f55" @click="deleteReminder(reminder.id)">Elimina</button>
               </div>
             </td>
           </tr>

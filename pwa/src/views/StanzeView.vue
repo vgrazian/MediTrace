@@ -346,7 +346,7 @@ onMounted(() => void loadData())
               </button>
               <button
                 v-if="!room.deletedAt"
-                style="padding:.2rem .55rem;font-size:.8rem;background:#c0392b"
+                style="padding:.2rem .55rem;font-size:.8rem;background:#d35f55"
                 @click="handleDeactivateRoom(room.id)"
               >
                 Elimina
@@ -513,7 +513,7 @@ onMounted(() => void loadData())
                   </button>
                   <button
                     v-if="!bed.deletedAt"
-                    style="padding:.2rem .35rem;font-size:.75rem;background:#c0392b"
+                    style="padding:.2rem .35rem;font-size:.75rem;background:#d35f55"
                     @click="handleDeactivateBed(bed.id)"
                   >
                     Elimina
