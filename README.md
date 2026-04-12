@@ -158,6 +158,56 @@ npm --prefix pwa run build
 npm --prefix pwa run preview
 ```
 
+### Setup deployment produzione (variabili ambiente)
+
+Le variabili applicative usate dal build sono:
+
+- `VITE_BASE_URL` (default `/MediTrace/`)
+- `VITE_SUPABASE_URL` (opzionale)
+- `VITE_SUPABASE_PUBLISHABLE_KEY` (opzionale)
+- `VITE_SUPABASE_REDIRECT_TO` (opzionale)
+- `VITE_EMERGENCY_ADMIN_ENABLED` (consigliato `0` in produzione)
+- `VITE_EMERGENCY_ADMIN_USERNAME` (opzionale)
+- `VITE_EMERGENCY_ADMIN_PASSWORD` (opzionale)
+- `VITE_EMERGENCY_ADMIN_EMAIL` (opzionale)
+- `VITE_EMERGENCY_ADMIN_FIRST_NAME` (opzionale)
+- `VITE_EMERGENCY_ADMIN_LAST_NAME` (opzionale)
+- `VITE_EMERGENCY_ADMIN_GITHUB_TOKEN` (opzionale)
+
+Script automatico (interattivo):
+
+```bash
+# Dalla root del repository
+bash pwa/scripts/setup-production-deploy.sh
+```
+
+Lo script:
+
+1. legge i valori da `credentials.local.env` (o da file passato con `--env-file`)
+2. genera `pwa/.env.production.local` (non tracciato da git)
+3. opzionalmente esegue build (`--build`)
+4. opzionalmente avvia il workflow deploy (`--trigger-deploy`)
+
+Esempi:
+
+```bash
+# solo setup env locale
+bash pwa/scripts/setup-production-deploy.sh
+
+# setup + build produzione
+bash pwa/scripts/setup-production-deploy.sh --build
+
+# setup + build + trigger deploy GitHub Pages
+bash pwa/scripts/setup-production-deploy.sh --build --trigger-deploy
+```
+
+Deploy operativo:
+
+1. Esegui lo script di setup
+2. Push su `main` (oppure avvia manualmente workflow `Deploy PWA su GitHub Pages`)
+3. Verifica URL pubblicato dal job `Deploy to GitHub Pages`
+4. Verifica smoke check (`Smoke test deployed Pages`)
+
 ## Qualità e copertura
 
 | Metrica | Valore |
