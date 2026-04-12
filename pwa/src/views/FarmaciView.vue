@@ -342,6 +342,28 @@ function openAddDrugForm() {
   markFormSnapshot()
 }
 
+function closeFormPanel() {
+  isFormOpen.value = false
+  panelMode.value = 'list'
+}
+
+function handleFormPanelToggle(event) {
+  const nextOpen = event.target.open
+  isFormOpen.value = nextOpen
+
+  if (!nextOpen) {
+    panelMode.value = 'list'
+    return
+  }
+
+  // If opened directly from the summary, default to the primary flow.
+  if (panelMode.value === 'list') {
+    panelMode.value = 'create-drug'
+    resetDrugForm()
+    markFormSnapshot()
+  }
+}
+
 function openAddBatchForm() {
   resetBatchForm()
   panelMode.value = 'create-batch'
@@ -731,12 +753,12 @@ onMounted(() => {
     </div>
 
     <div class="card">
-      <details class="deep-panel add-panel" :open="isFormOpen" @toggle="isFormOpen = $event.target.open">
+      <details class="deep-panel add-panel" :open="isFormOpen" @toggle="handleFormPanelToggle">
         <summary><strong>Gestisci Farmaci</strong></summary>
 
         <div style="margin-top:.75rem">
           <div class="panel-breadcrumb">
-            <button type="button" class="panel-breadcrumb-link" @click="isFormOpen = false">Farmaci</button>
+            <button type="button" class="panel-breadcrumb-link" @click="closeFormPanel">Farmaci</button>
             <span class="panel-breadcrumb-current">/</span>
             <span class="panel-breadcrumb-current">
               {{ panelMode.includes('batch') ? 'Confezioni' : 'Farmaco' }}
@@ -745,7 +767,7 @@ onMounted(() => {
             <span class="panel-breadcrumb-current">
               {{ panelMode.startsWith('edit') ? 'Modifica' : 'Aggiungi' }}
             </span>
-            <button type="button" class="panel-close-btn" @click="isFormOpen = false">Chiudi</button>
+            <button type="button" class="panel-close-btn" @click="closeFormPanel">Chiudi</button>
           </div>
           <p class="muted" style="margin-bottom:.55rem">
             Pannello rapido: ogni click su Aggiungi apre il modulo corretto e al salvataggio torni alla lista.
@@ -796,7 +818,7 @@ onMounted(() => {
             <button :disabled="savingDrug || hasDrugErrors" @click="createDrug">
               {{ savingDrug ? 'Salvataggio...' : (editingDrugId ? 'Salva modifica' : 'Salva farmaco') }}
             </button>
-            <button type="button" :disabled="savingDrug" @click="() => { resetDrugForm(); isFormOpen = false }">Annulla</button>
+            <button type="button" :disabled="savingDrug" @click="() => { resetDrugForm(); closeFormPanel() }">Annulla</button>
           </div>
           </div>
         </div>
@@ -872,7 +894,7 @@ onMounted(() => {
             <button :disabled="savingBatch || !canCreateBatch || hasBatchErrors" @click="createBatch">
               {{ savingBatch ? 'Salvataggio...' : (editingBatchId ? 'Salva modifica' : 'Salva confezione') }}
             </button>
-            <button type="button" :disabled="savingBatch" @click="() => { resetBatchForm(); isFormOpen = false }">Annulla</button>
+            <button type="button" :disabled="savingBatch" @click="() => { resetBatchForm(); closeFormPanel() }">Annulla</button>
           </div>
           <p v-if="!canCreateBatch" class="muted" style="margin-top:.5rem;font-size:.85rem">
             Prima crea almeno un farmaco.
