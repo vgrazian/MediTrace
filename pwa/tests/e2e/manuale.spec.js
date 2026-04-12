@@ -1,6 +1,20 @@
 import { test, expect } from '@playwright/test'
 import { loginOrRegisterSeededUser } from './helpers/login'
 
+test.beforeEach(async ({ page }) => {
+    await page.route('https://api.github.com/user', async route => {
+        await route.fulfill({
+            status: 200,
+            contentType: 'application/json',
+            body: JSON.stringify({
+                login: 'seeded-gh-user',
+                name: 'Seeded User',
+                avatar_url: 'https://avatars.githubusercontent.com/u/1?v=4',
+            }),
+        })
+    })
+})
+
 test('Manuale page is accessible via nav and shows all sections', async ({ page }) => {
     await page.goto('/')
     await loginOrRegisterSeededUser(page)
@@ -71,8 +85,8 @@ test('contextual help opens from Terapie view', async ({ page }) => {
     await expect(page.getByRole('dialog', { name: 'Terapie Attive — Guida' })).toBeVisible()
     await expect(page.getByText(/terapie farmacologiche in corso/i)).toBeVisible()
 
-    // Backdrop click should close the drawer
-    await page.locator('.help-backdrop').click({ force: true })
+    // Close through explicit button for cross-browser stability
+    await page.getByRole('button', { name: 'Chiudi guida' }).click()
     await expect(page.getByRole('dialog', { name: 'Terapie Attive — Guida' })).toBeHidden()
 })
 
