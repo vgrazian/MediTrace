@@ -194,6 +194,8 @@ async function saveTherapy() {
     editingTherapyId.value = null
     message.value = existing ? 'Terapia aggiornata.' : `Terapia salvata (ID: ${saved.id}).`
     await loadData()
+    isFormOpen.value = false
+    panelMode.value = 'list'
     markFormSnapshot()
   } catch (err) {
     errorMessage.value = `Errore salvataggio: ${err.message}`
@@ -354,7 +356,8 @@ onMounted(() => {
 
       <p v-if="loading" class="muted" style="margin-top:.5rem">Caricamento...</p>
 
-      <table class="conflict-table" style="margin-top:.75rem">
+      <div class="dataset-frame" style="margin-top:.75rem">
+      <table class="conflict-table">
         <thead>
           <tr>
             <th style="width:2.5rem">
@@ -407,12 +410,13 @@ onMounted(() => {
           </tr>
         </tbody>
       </table>
+      </div>
       <p v-if="message" class="muted" style="margin-top:.5rem">{{ message }}</p>
       <p v-if="errorMessage" class="import-error" style="margin-top:.5rem">{{ errorMessage }}</p>
     </div>
 
     <div class="card">
-      <details class="deep-panel" :open="isFormOpen" @toggle="isFormOpen = $event.target.open">
+      <details class="deep-panel add-panel" :open="isFormOpen" @toggle="isFormOpen = $event.target.open">
         <summary><strong>Gestione Terapie</strong></summary>
 
         <div style="margin-top:.75rem">
@@ -424,6 +428,7 @@ onMounted(() => {
           </div>
           <p><strong>{{ editingTherapyId ? 'Modifica terapia' : 'Aggiungi nuova terapia' }}</strong></p>
           <p class="muted" style="margin-top:.25rem">Compila i campi minimi per registrare una terapia attiva per ospite.</p>
+          <p class="muted" style="margin-top:.25rem">Dopo il salvataggio di una nuova terapia torni automaticamente alla lista.</p>
 
           <div class="import-form" style="margin-top:.65rem">
             <label>
@@ -520,7 +525,7 @@ onMounted(() => {
             <button :disabled="saving || !canCreate || hasErrors" @click="saveTherapy">
               {{ saving ? 'Salvataggio...' : (editingTherapyId ? 'Salva modifica' : 'Salva terapia') }}
             </button>
-            <button type="button" :disabled="saving" @click="resetForm">Annulla</button>
+            <button type="button" :disabled="saving" @click="() => { resetForm(); isFormOpen = false }">Annulla</button>
           </div>
 
           <p v-if="!canCreate" class="muted" style="margin-top:.5rem;font-size:.85rem">

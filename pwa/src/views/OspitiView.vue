@@ -213,6 +213,7 @@ async function handleSave() {
           message.value = `Ospite "${created.id}" creato.`
         }
         resetForm()
+        isFormOpen.value = false
         markFormSnapshot()
         await loadData()
     } catch (err) {
@@ -380,7 +381,8 @@ onMounted(() => {
         <button type="button" style="margin-left:.4rem" @click="clearSelection">Deseleziona tutto</button>
       </p>
 
-      <table class="conflict-table" style="margin-top:.75rem">
+      <div class="dataset-frame" style="margin-top:.75rem">
+      <table class="conflict-table">
         <thead>
           <tr>
             <th style="width:2.5rem">
@@ -443,11 +445,12 @@ onMounted(() => {
           </tr>
         </tbody>
       </table>
+      </div>
       <p v-if="loading" class="muted" style="margin-top:.55rem">Caricamento...</p>
     </div>
 
     <div class="card">
-      <details class="deep-panel" :open="isFormOpen" @toggle="isFormOpen = $event.target.open">
+      <details class="deep-panel add-panel" :open="isFormOpen" @toggle="isFormOpen = $event.target.open">
         <summary><strong>Gestione Ospiti</strong></summary>
 
         <div style="margin-top:.75rem">
@@ -458,6 +461,9 @@ onMounted(() => {
             <button type="button" class="panel-close-btn" @click="isFormOpen = false">Chiudi</button>
           </div>
           <p><strong>{{ editingHostId ? 'Modifica ospite' : 'Aggiungi nuovo ospite' }}</strong></p>
+          <p class="muted" style="margin-top:.25rem">
+            Pannello guidato: compila i dati essenziali e salva per tornare subito alla lista ospiti.
+          </p>
           <div class="import-form" style="margin-top:.65rem">
             <label>
               Codice interno
@@ -552,7 +558,7 @@ onMounted(() => {
             <button :disabled="saving || !canSave || hasErrors" @click="handleSave">
               {{ saving ? 'Salvataggio...' : (editingHostId ? 'Salva modifica' : 'Salva ospite') }}
             </button>
-            <button type="button" :disabled="saving" @click="resetForm">
+            <button type="button" :disabled="saving" @click="() => { resetForm(); isFormOpen = false }">
               Annulla
             </button>
           </div>

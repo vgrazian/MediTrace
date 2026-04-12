@@ -1,10 +1,10 @@
 # CURRENT STATUS
 
 ## Active Task
-Deliver simplified CRUD rollout slice 2 on FarmaciView (selection toolbar + bulk actions) with E2E validation.
+Merge and deploy guided add-panel popup UX release with scrollable dataset frames and full regression validation.
 
 ## Current Phase
-PR #53 has been merged to main. New feature work is in progress on `feat/simplified-crud-farmaci-slice2`.
+PR #64 is open from `feat/add-panel-scroll-frames` and is ready for merge once checks are green. Local verification is complete.
 
 ## Done So Far
 1. Referential integrity and conflict error management completed for core CRUD deletes, with unit tests and consistency test scenarios.
@@ -26,11 +26,16 @@ PR #53 has been merged to main. New feature work is in progress on `feat/simplif
    - post-merge quality gate and deploy pipelines verified successful
 10. CI workflow syntax maintenance released:
 - PR #53 merged to main (`chore(ci): normalize workflow secrets access syntax`)
+11. Guided add-panel UX release prepared on PR #64:
+   - `Aggiungi` now opens a guided popup panel in Farmaci, Ospiti, Terapie, Movimenti
+   - successful create returns the operator to the list automatically
+   - large tables now render inside scrollable framed containers
+   - full E2E suite passes locally (`49/49`)
 
 ## Immediate Next Steps
-1. Finalize FarmaciView slice 2 implementation (multi-select farmaci + confezioni).
-2. Run targeted E2E (`tests/e2e/farmaci.spec.js`) and validate no regressions.
-3. Open PR and merge to main after CI pass.
+1. Watch PR #64 checks to completion and merge to `main`.
+2. Trigger GitHub Pages deploy from `main`.
+3. Run production smoke validation after deploy finishes.
 
 ## Blockers
 - No blockers currently identified.
@@ -38,25 +43,27 @@ PR #53 has been merged to main. New feature work is in progress on `feat/simplif
 ## PR STILL TO BE WORKED ON
 
 ## Open Pull Requests (GitHub)
-1. None
+1. PR #64 - guided add-panel popup UX + scrollable dataset frames
 
 ## Planned PR Work (Not Open Yet)
-1. New PR - simplified CRUD rollout slice 2: FarmaciView multi-table selection/actions.
-2. Subsequent slices for remaining scoped views (as defined in docs/ISSUE-4.7-SIMPLIFIED-CRUD.md).
+1. Follow-up UX work from `docs/crud-ux-followup-pr.md` (undo/recovery, richer save-state, stronger list affordances).
+2. Subsequent CRUD refinements where guided flows still need consistency.
 
 ## TECHNICAL CONTEXT
 
 ## Priority Files For Next Slice
-- docs/ISSUE-4.7-SIMPLIFIED-CRUD.md
+- CHANGELOG.md
+- progress.md
 - pwa/src/views/FarmaciView.vue
-- pwa/src/composables/useSelection.js
-- pwa/src/services/confirmations.js
+- pwa/src/views/OspitiView.vue
+- pwa/src/views/TerapieView.vue
+- pwa/src/views/MovimentiView.vue
+- pwa/src/style.css
 - pwa/tests/e2e/
-- pwa/tests/unit/
 
 ## Current Branch State
-- Branch: feat/simplified-crud-farmaci-slice2
-- Working tree: in progress (FarmaciView + E2E farmaci)
+- Branch: feat/add-panel-scroll-frames
+- Working tree: clean after local verification; awaiting PR merge/deploy
 
 ## Live App Deployment
 - GitHub Pages source: main
@@ -77,11 +84,11 @@ PR #53 has been merged to main. New feature work is in progress on `feat/simplif
 - [x] Workflow maintenance merged (PR #53)
 
 ## Remaining Work Items
-1. Complete and merge FarmaciView slice 2 PR
-2. Continue simplified CRUD rollout to Terapie/Movimenti/Promemoria/Scorte/Stanze
-3. Keep docs/changelog aligned for each slice
+1. Merge PR #64 and deploy to production
+2. Continue follow-up CRUD UX work already documented in `docs/crud-ux-followup-pr.md`
+3. Keep docs/changelog aligned for each release slice
 
 ## Current Priority
-- HIGH: FarmaciView PR52 rollout (slice 2)
-- HIGH: Preserve E2E reliability while extending selection flows
+- HIGH: Deploy guided add-panel popup UX release safely to production
+- HIGH: Preserve 49/49 E2E reliability after merge/deploy
 - MEDIUM: Keep changelog/docs aligned with each rollout increment

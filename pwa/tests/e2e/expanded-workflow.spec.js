@@ -1,6 +1,13 @@
 import { test, expect } from '@playwright/test'
 import { loginOrRegisterSeededUser } from './helpers/login'
 
+async function closePanelIfVisible(page) {
+    const closeButton = page.getByRole('button', { name: 'Chiudi' }).first()
+    if (await closeButton.isVisible().catch(() => false)) {
+        await closeButton.click()
+    }
+}
+
 test('expanded workflow scenario: multi-drug catalog, batch management, and therapy administration', async ({ page }) => {
     test.setTimeout(180_000)
 
@@ -89,7 +96,7 @@ test('expanded workflow scenario: multi-drug catalog, batch management, and ther
 
     for (const drug of drugs) {
         console.log(`  Adding drug: ${drug.name}`)
-        await page.locator('summary', { hasText: 'Gestisci Farmaci' }).click()
+        await page.locator('.card', { hasText: 'Farmaci registrati' }).getByRole('button', { name: 'Aggiungi' }).click()
         await page.waitForTimeout(200)
 
         await page.getByLabel('Nome farmaco').fill(drug.name)
@@ -100,8 +107,8 @@ test('expanded workflow scenario: multi-drug catalog, batch management, and ther
         await page.getByRole('button', { name: 'Salva farmaco' }).click()
         await expect(page.getByRole('cell', { name: drug.name, exact: true })).toBeVisible({ timeout: 5000 })
 
-        // Close form
-        await page.getByRole('button', { name: 'Chiudi' }).click()
+        // Close panel if still open (some saves auto-close).
+        await closePanelIfVisible(page)
         await page.waitForTimeout(300)
     }
 
@@ -109,9 +116,6 @@ test('expanded workflow scenario: multi-drug catalog, batch management, and ther
 
     // PHASE 2: Create stock batches for each drug with varying quantities
     console.log('\n=== PHASE 2: Creating stock batches with different quantities ===')
-    await page.locator('summary', { hasText: 'Gestisci Farmaci' }).click()
-    await page.waitForTimeout(200)
-
     const batches = [
         { drugName: 'Ibuprofene 200mg', commercialName: 'Brufen 200', dosage: '200mg', quantity: 24, threshold: 6 },
         { drugName: 'Ibuprofene 200mg', commercialName: 'Ibupiù', dosage: '200mg', quantity: 48, threshold: 8 },
@@ -122,13 +126,15 @@ test('expanded workflow scenario: multi-drug catalog, batch management, and ther
 
     for (const batch of batches) {
         console.log(`  Creating batch: ${batch.commercialName} (${batch.quantity} units)`)
+        await page.locator('.card', { hasText: 'Confezioni attive' }).getByRole('button', { name: 'Aggiungi' }).click()
+        await page.waitForTimeout(150)
 
         const matchingDrugOption = page.locator('option').filter({ hasText: batch.drugName }).first()
         const matchingDrugValue = await matchingDrugOption.getAttribute('value')
         if (!matchingDrugValue) {
             throw new Error(`Nessuna opzione farmaco trovata per ${batch.drugName}`)
         }
-        await page.locator('select').first().selectOption(matchingDrugValue)
+        await page.getByLabel('Farmaco *').selectOption(matchingDrugValue)
         await page.waitForTimeout(200)
 
         await page.getByLabel('Nome commerciale').fill(batch.commercialName)
@@ -175,8 +181,8 @@ test('expanded workflow scenario: multi-drug catalog, batch management, and ther
         await expect(page.getByText('Terapia aggiornata.')).toBeVisible({ timeout: 5000 })
         console.log('  ✓ Updated therapy 1 with Ibuprofene')
 
-        // Close form
-        await page.getByRole('button', { name: 'Chiudi' }).click()
+        // Close panel if still open.
+        await closePanelIfVisible(page)
         await page.waitForTimeout(300)
     }
 
@@ -199,8 +205,8 @@ test('expanded workflow scenario: multi-drug catalog, batch management, and ther
         await expect(page.getByText('Terapia aggiornata.')).toBeVisible({ timeout: 5000 })
         console.log('  ✓ Updated therapy 2 with Metformina')
 
-        // Close form
-        await page.getByRole('button', { name: 'Chiudi' }).click()
+        // Close form if still open.
+        await closePanelIfVisible(page)
         await page.waitForTimeout(300)
     }
 
@@ -382,8 +388,8 @@ test('therapy dosage adjustments and host-specific drug monitoring', async ({ pa
         await page.getByRole('button', { name: 'Salva modifica' }).click()
         await expect(page.getByText('Terapia aggiornata.')).toBeVisible({ timeout: 5000 })
 
-        // Close the form
-        await page.getByRole('button', { name: 'Chiudi' }).click()
+        // Close the form if still open.
+        await closePanelIfVisible(page)
         await page.waitForTimeout(200)
     }
 

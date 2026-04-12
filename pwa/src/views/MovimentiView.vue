@@ -25,6 +25,8 @@ const hosts = ref([])
 const therapies = ref([])
 const movements = ref([])
 const editingMovementId = ref(null)
+const isFormOpen = ref(false)
+const panelMode = ref('list')
 const filterQuery = ref('')
 const formSnapshot = ref('')
 
@@ -80,6 +82,7 @@ const filteredMovements = computed(() => {
 })
 
 const isDirty = computed(() => {
+  if (!isFormOpen.value) return false
   if (editingMovementId.value === null && !form.value.stockBatchId && !String(form.value.quantita || '').trim() && !String(form.value.note || '').trim()) {
     return false
   }
@@ -249,6 +252,8 @@ async function saveMovement() {
 
     message.value = existing ? 'Movimento aggiornato.' : `Movimento registrato (ID: ${saved.id}).`
     await loadData()
+    isFormOpen.value = false
+    panelMode.value = 'list'
     markFormSnapshot()
   } catch (err) {
     errorMessage.value = `Errore registrazione movimento: ${err.message}`
@@ -276,6 +281,8 @@ function startEditMovement(movement) {
     therapyId: movement.therapyId || '',
     note: movement.note || '',
   }
+  panelMode.value = 'edit'
+  isFormOpen.value = true
   markFormSnapshot()
 }
 
@@ -284,10 +291,19 @@ function openEditForm() {
   const selectedMovement = getSelectedItems()[0]
   if (!selectedMovement) return
   startEditMovement(selectedMovement)
+  panelMode.value = 'edit'
+  isFormOpen.value = true
+}
+
+function openAddForm() {
+  resetForm()
+  panelMode.value = 'create'
+  isFormOpen.value = true
 }
 
 function resetForm() {
   editingMovementId.value = null
+  panelMode.value = 'list'
   form.value = {
     stockBatchId: '',
     tipoMovimento: 'scarico',
@@ -387,6 +403,7 @@ onMounted(() => {
       />
 
       <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.75rem">
+        <button @click="openAddForm">Aggiungi</button>
         <button :disabled="selectedCount !== 1" @click="openEditForm">Modifica</button>
         <button
           :disabled="selectedCount === 0"
@@ -402,7 +419,8 @@ onMounted(() => {
         <button type="button" style="margin-left:.4rem" @click="clearSelection">Deseleziona tutto</button>
       </p>
 
-      <table class="conflict-table" style="margin-top:.75rem">
+      <div class="dataset-frame" style="margin-top:.75rem">
+      <table class="conflict-table">
         <thead>
           <tr>
             <th style="width:2.5rem">
@@ -453,18 +471,28 @@ onMounted(() => {
           </tr>
         </tbody>
       </table>
+      </div>
 
       <p v-if="loading" class="muted" style="margin-top:.55rem">Aggiornamento dati...</p>
     </div>
 
     <div class="card">
-      <details>
+      <details class="deep-panel add-panel" :open="isFormOpen" @toggle="isFormOpen = $event.target.open">
         <summary><strong>Gestione Movimenti</strong></summary>
 
         <div style="margin-top:.75rem">
+          <div class="panel-breadcrumb">
+            <button type="button" class="panel-breadcrumb-link" @click="isFormOpen = false">Movimenti</button>
+            <span class="panel-breadcrumb-current">/</span>
+            <span class="panel-breadcrumb-current">{{ panelMode === 'edit' ? 'Modifica' : 'Aggiungi' }}</span>
+            <button type="button" class="panel-close-btn" @click="isFormOpen = false">Chiudi</button>
+          </div>
           <p><strong>{{ editingMovementId ? 'Modifica movimento' : 'Nuovo movimento magazzino' }}</strong></p>
           <p class="muted" style="margin-top:.25rem">
             Registra carichi/scarichi operativi con tracciamento sincronizzazione e audit.
+          </p>
+          <p class="muted" style="margin-top:.25rem">
+            Dopo il salvataggio di un nuovo movimento il pannello si chiude e torni alla lista.
           </p>
 
           <div class="import-form" style="margin-top:.65rem">
@@ -556,13 +584,13 @@ onMounted(() => {
             <button :disabled="saving || !canCreateMovement || hasErrors" @click="saveMovement">
               {{ saving ? 'Registrazione...' : (editingMovementId ? 'Salva modifica' : 'Registra movimento') }}
             </button>
-            <button type="button" :disabled="saving" @click="resetForm">Annulla</button>
+            <button type="button" :disabled="saving" @click="() => { resetForm(); isFormOpen = false }">Annulla</button>
           </div>
-
-          <p v-if="message" class="muted" style="margin-top:.55rem">{{ message }}</p>
-          <p v-if="errorMessage" class="import-error">{{ errorMessage }}</p>
         </div>
       </details>
     </div>
+
+    <p v-if="message" class="muted" style="margin-top:.55rem">{{ message }}</p>
+    <p v-if="errorMessage" class="import-error">{{ errorMessage }}</p>
   </div>
 </template>

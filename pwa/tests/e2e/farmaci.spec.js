@@ -20,8 +20,13 @@ test('farmaci view supports creating and deactivating stock batch', async ({ pag
 
     await page.getByRole('link', { name: 'Farmaci' }).click()
     await expect(page.getByRole('heading', { name: 'Catalogo Farmaci' })).toBeVisible()
+    await expect(page.locator('.dataset-frame')).toHaveCount(2)
 
-    await page.locator('summary', { hasText: 'Gestisci Farmaci' }).click()
+    const panel = page.locator('details:has(summary:has-text("Gestisci Farmaci"))')
+    await expect(panel).not.toHaveAttribute('open', '')
+
+    await page.locator('.card', { hasText: 'Farmaci registrati' }).getByRole('button', { name: 'Aggiungi' }).click()
+    await expect(panel).toHaveAttribute('open', '')
 
     await page.getByLabel('Nome farmaco').fill('Tachipirina Test')
     await page.getByLabel('Principio attivo').fill('Paracetamolo Test')
@@ -31,13 +36,16 @@ test('farmaci view supports creating and deactivating stock batch', async ({ pag
 
     // Avoid flaky toast assertion on CI: verify persisted row directly.
     await expect(page.getByRole('cell', { name: 'Tachipirina Test', exact: true })).toBeVisible()
+    await expect(panel).not.toHaveAttribute('open', '')
 
     await page.getByLabel('Seleziona farmaco Tachipirina Test').check()
     await page.getByRole('button', { name: 'Modifica' }).first().click()
     await expect(page.getByRole('button', { name: 'Salva modifica' })).toBeVisible()
     await page.getByRole('button', { name: 'Annulla' }).first().click()
 
-    await page.locator('select').first().selectOption('Tachipirina Test (Paracetamolo Test)')
+    await page.locator('.card', { hasText: 'Confezioni attive' }).getByRole('button', { name: 'Aggiungi' }).click()
+    await expect(panel).toHaveAttribute('open', '')
+    await page.getByLabel('Farmaco *').selectOption('Tachipirina Test (Paracetamolo Test)')
     await page.getByLabel('Nome commerciale').fill('Tachipirina Test')
     await page.getByLabel('Dosaggio').fill('500mg')
     await page.getByLabel(/Quantit.* attuale/).fill('12')
@@ -45,6 +53,7 @@ test('farmaci view supports creating and deactivating stock batch', async ({ pag
     await page.getByRole('button', { name: 'Salva confezione' }).click()
 
     await expect(page.getByText(/Confezione salvata/i)).toBeVisible()
+    await expect(panel).not.toHaveAttribute('open', '')
     await expect(page.locator('tbody tr', { hasText: 'Tachipirina Test' }).first()).toBeVisible()
 
     await page.getByLabel('Seleziona confezione Tachipirina Test').check()
