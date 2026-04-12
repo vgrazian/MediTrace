@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test'
 import { loginOrRegisterSeededUser } from './helpers/login'
+import { runWithAcceptedConfirmation } from './helpers/confirm'
 
 test('stanze view supports creating a room', async ({ page }) => {
     await page.route('https://api.github.com/user', async route => {
@@ -128,10 +129,11 @@ test('stanze view deletes rooms correctly', async ({ page }) => {
     await expect(page.getByRole('cell', { name: 'Deactivate Test' })).toBeVisible({ timeout: 5000 })
 
     // Test delete
-    page.once('dialog', dialog => dialog.accept())
     const rowToDeactivate = page.locator('tbody tr', { has: page.getByRole('cell', { name: 'Deactivate Test' }) }).first()
     const disactivateButton = rowToDeactivate.getByRole('button', { name: 'Elimina' })
-    await disactivateButton.click()
+    await runWithAcceptedConfirmation(page, async () => {
+        await disactivateButton.click()
+    })
 
     // Verify success message
     await expect(page.getByText(/Stanza eliminata/i)).toBeVisible({ timeout: 5000 })

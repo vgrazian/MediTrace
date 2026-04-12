@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test'
 import { loginOrRegisterSeededUser } from './helpers/login'
+import { runWithAcceptedConfirmation } from './helpers/confirm'
 
 test('scorte view supports edit/delete for drug and batch', async ({ page }) => {
     await page.route('https://api.github.com/user', async route => {
@@ -69,13 +70,15 @@ test('scorte view supports edit/delete for drug and batch', async ({ page }) => 
     await expect(batchCard.getByRole('cell', { name: 'Brufen Test Scorte - بروفين محدث' })).toBeVisible()
 
     // Delete batch
-    page.once('dialog', dialog => dialog.accept())
-    await batchCard.locator('tr', { hasText: 'بروفين محدث' }).first().getByRole('button', { name: 'Elimina' }).click()
+    await runWithAcceptedConfirmation(page, async () => {
+        await batchCard.locator('tr', { hasText: 'بروفين محدث' }).first().getByRole('button', { name: 'Elimina' }).click()
+    })
     await expect(page.getByText('Confezione eliminata.')).toBeVisible()
     await expect(batchCard.getByRole('cell', { name: 'Brufen Test Scorte - بروفين محدث' })).toHaveCount(0)
 
     // Delete drug
-    page.once('dialog', dialog => dialog.accept())
-    await reportCard.locator('tr', { hasText: 'إيبوبروفين محدث' }).first().getByRole('button', { name: 'Elimina' }).click()
+    await runWithAcceptedConfirmation(page, async () => {
+        await reportCard.locator('tr', { hasText: 'إيبوبروفين محدث' }).first().getByRole('button', { name: 'Elimina' }).click()
+    })
     await expect(page.getByText('Farmaco eliminato.')).toBeVisible()
 })

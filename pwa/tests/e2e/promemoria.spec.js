@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test'
 import { loginOrRegisterSeededUser } from './helpers/login'
+import { runWithAcceptedConfirmation } from './helpers/confirm'
 
 test('promemoria view shows reminders with labels and supports mark as eseguito/saltato', async ({ page }) => {
     await page.route('https://api.github.com/user', async route => {
@@ -239,7 +240,8 @@ test('promemoria view supports edit/delete and handles Arabic host names', async
     await expect(row.getByText('SALTATO', { exact: true })).toBeVisible()
 
     // Delete reminder
-    page.once('dialog', dialog => dialog.accept())
-    await row.getByRole('button', { name: 'Elimina' }).click()
+    await runWithAcceptedConfirmation(page, async () => {
+        await row.getByRole('button', { name: 'Elimina' }).click()
+    })
     await expect(page.getByText('Promemoria eliminato.')).toBeVisible()
 })

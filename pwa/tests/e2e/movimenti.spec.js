@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test'
 import { loginOrRegisterSeededUser } from './helpers/login'
+import { runWithAcceptedConfirmation } from './helpers/confirm'
 
 test('movimenti view supports registering a carico and a scarico', async ({ page }) => {
     await page.route('https://api.github.com/user', async route => {
@@ -78,7 +79,8 @@ test('movimenti view supports registering a carico and a scarico', async ({ page
     await page.getByRole('button', { name: /^Modifica$/ }).first().click()
     await expect(page.getByRole('button', { name: 'Salva modifica' })).toBeVisible()
 
-    page.once('dialog', dialog => dialog.accept())
-    await page.getByRole('button', { name: 'Elimina (1)' }).first().click()
+    await runWithAcceptedConfirmation(page, async () => {
+        await page.getByRole('button', { name: 'Elimina (1)' }).first().click()
+    })
     await expect(page.getByText('Movimento eliminato.')).toBeVisible()
 })

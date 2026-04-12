@@ -6,8 +6,10 @@ import { deactivateTherapyRecord, upsertTherapy } from '../services/terapie'
 import { confirmDeactivateTherapy, confirmDeleteMultiple } from '../services/confirmations'
 import { useFormValidation } from '../services/formValidation'
 import ValidatedInput from '../components/ValidatedInput.vue'
+import CrudFilterBar from '../components/CrudFilterBar.vue'
 import { useSelection } from '../composables/useSelection'
 import { useHelpNavigation } from '../composables/useHelpNavigation'
+import { useUnsavedChangesGuard } from '../composables/useUnsavedChangesGuard'
 
 const { currentUser } = useAuth()
 const { goToHelpSection } = useHelpNavigation()
@@ -46,6 +48,8 @@ const message = ref('')
 const errorMessage = ref('')
 const isFormOpen = ref(false)
 const panelMode = ref('list')
+const filterQuery = ref('')
+const formSnapshot = ref('')
 
 const form = ref({
   hostId: '',
@@ -60,6 +64,35 @@ const form = ref({
 
 const canCreate = computed(() => hosts.value.length > 0 && drugs.value.length > 0)
 
+const normalizedFilter = computed(() => filterQuery.value.trim().toLowerCase())
+
+const filteredTherapies = computed(() => {
+  const q = normalizedFilter.value
+  if (!q) return therapies.value
+  return therapies.value.filter((therapy) => {
+    const haystack = [
+      therapy.id,
+      hostLabel(therapy.hostId),
+      drugLabel(therapy.drugId),
+      therapy.note,
+      therapy.dosePerSomministrazione,
+      therapy.somministrazioniGiornaliere,
+    ].filter(Boolean).join(' ').toLowerCase()
+    return haystack.includes(q)
+  })
+})
+
+const isDirty = computed(() => {
+  if (!isFormOpen.value) return false
+  return formSnapshot.value !== JSON.stringify({
+    panelMode: panelMode.value,
+    editingTherapyId: editingTherapyId.value,
+    form: form.value,
+  })
+})
+
+useUnsavedChangesGuard(isDirty)
+
 const {
   allSelected,
   someSelected,
@@ -69,7 +102,15 @@ const {
   clearSelection,
   isSelected,
   getSelectedItems,
-} = useSelection(therapies)
+} = useSelection(filteredTherapies)
+
+function markFormSnapshot() {
+  formSnapshot.value = JSON.stringify({
+    panelMode: panelMode.value,
+    editingTherapyId: editingTherapyId.value,
+    form: form.value,
+  })
+}
 
 function formatDate(value) {
   if (!value) return '—'
@@ -153,6 +194,7 @@ async function saveTherapy() {
     editingTherapyId.value = null
     message.value = existing ? 'Terapia aggiornata.' : `Terapia salvata (ID: ${saved.id}).`
     await loadData()
+    markFormSnapshot()
   } catch (err) {
     errorMessage.value = `Errore salvataggio: ${err.message}`
   } finally {
@@ -180,12 +222,14 @@ function startEditTherapy(therapy) {
     note: therapy.note || '',
   }
   isFormOpen.value = true
+  markFormSnapshot()
 }
 
 function openAddForm() {
   resetForm()
   panelMode.value = 'create'
   isFormOpen.value = true
+  markFormSnapshot()
 }
 
 function openEditForm() {
@@ -209,6 +253,7 @@ function resetForm() {
     note: '',
   }
   clearErrors()
+  markFormSnapshot()
 }
 
 async function deleteTherapy(therapy) {
@@ -268,6 +313,7 @@ async function deleteSelectedTherapies() {
 
 onMounted(() => {
   void loadData()
+  markFormSnapshot()
 })
 </script>
 
@@ -281,6 +327,13 @@ onMounted(() => {
     <div class="card">
       <p><strong>Elenco terapie attive</strong></p>
       <p class="muted" style="margin-top:.25rem">Terapie non eliminate presenti nel dataset locale.</p>
+      <CrudFilterBar
+        v-model="filterQuery"
+        label="Filtra terapie"
+        placeholder="Cerca per ospite, farmaco, dose o note"
+        :visible-count="filteredTherapies.length"
+        :total-count="therapies.length"
+      />
 
       <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.75rem">
         <button @click="openAddForm">Aggiungi</button>
@@ -325,7 +378,7 @@ onMounted(() => {
         </thead>
         <tbody>
           <tr
-            v-for="therapy in therapies"
+            v-for="therapy in filteredTherapies"
             :key="therapy.id"
             :style="isSelected(therapy.id) ? 'background:rgba(52, 152, 219, 0.12)' : undefined"
           >
@@ -349,7 +402,7 @@ onMounted(() => {
               <button style="background:#c0392b" @click="deleteTherapy(therapy)">Elimina</button>
             </td>
           </tr>
-          <tr v-if="therapies.length === 0 && !loading">
+          <tr v-if="filteredTherapies.length === 0 && !loading">
             <td colspan="9" class="muted">Nessuna terapia attiva disponibile.</td>
           </tr>
         </tbody>
