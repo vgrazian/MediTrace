@@ -24,7 +24,7 @@ test('farmaci uses filter bar and custom confirmation modal for delete', async (
     await page.getByRole('link', { name: 'Farmaci' }).click()
     await expect(page.getByRole('heading', { name: 'Catalogo Farmaci' })).toBeVisible()
 
-    await page.locator('summary', { hasText: 'Gestisci Farmaci' }).click()
+    await page.locator('.card', { hasText: 'Farmaci registrati' }).getByRole('button', { name: 'Aggiungi' }).click()
 
     const drugName = 'Farmaco UX E2E'
     await page.getByLabel('Nome farmaco').fill(drugName)
@@ -66,7 +66,7 @@ test('unsaved changes guard blocks accidental navigation and supports leave', as
     await page.getByRole('button', { name: 'Aggiungi' }).click()
     await page.getByLabel('Note').fill('bozza non salvata e2e')
 
-    await page.getByRole('link', { name: 'Cruscotto' }).click()
+    await page.getByRole('link', { name: 'Cruscotto' }).click({ force: true })
 
     const confirmDialog = page.locator('.confirm-dialog')
     await expect(confirmDialog).toBeVisible()
@@ -75,7 +75,7 @@ test('unsaved changes guard blocks accidental navigation and supports leave', as
     await confirmDialog.getByRole('button', { name: 'Resta nella pagina' }).click()
     await expect(page.getByRole('heading', { name: 'Terapie Attive' })).toBeVisible()
 
-    await page.getByRole('link', { name: 'Cruscotto' }).click()
+    await page.getByRole('link', { name: 'Cruscotto' }).click({ force: true })
     await page.locator('.confirm-dialog').getByRole('button', { name: 'Esci senza salvare' }).click()
 
     await expect(page.getByRole('heading', { name: 'Cruscotto MediTrace' })).toBeVisible()

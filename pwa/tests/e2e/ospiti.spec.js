@@ -20,6 +20,7 @@ test('ospiti view supports create, selection-based edit, and bulk delete with ex
 
     await page.getByRole('link', { name: 'Ospiti', exact: true }).click()
     await expect(page.getByRole('heading', { name: 'Ospiti' })).toBeVisible()
+    await expect(page.locator('.dataset-frame')).toHaveCount(1)
 
     const details = page.locator('details:has(summary:has-text("Gestione Ospiti"))')
     await expect(details).toBeVisible({ timeout: 5000 })
@@ -50,6 +51,7 @@ test('ospiti view supports create, selection-based edit, and bulk delete with ex
     await page.getByRole('button', { name: 'Salva ospite' }).click()
 
     await expect(page.getByText(/Ospite ".+" creato\./i)).toBeVisible({ timeout: 5000 })
+    await expect(details).not.toHaveAttribute('open', '')
 
     const firstRow = page.locator('tbody tr', {
         has: page.getByRole('cell', { name: 'OSP-E2E-001', exact: true }),

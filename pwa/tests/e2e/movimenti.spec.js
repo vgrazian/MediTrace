@@ -46,8 +46,11 @@ test('movimenti view supports registering a carico and a scarico', async ({ page
     // Navigate to Movimenti
     await page.getByRole('link', { name: 'Movimenti' }).click()
     await expect(page.getByRole('heading', { name: 'Movimenti' })).toBeVisible()
+    await expect(page.locator('.dataset-frame')).toHaveCount(1)
 
-    await page.locator('summary', { hasText: 'Gestione Movimenti' }).click()
+    const panel = page.locator('details:has(summary:has-text("Gestione Movimenti"))')
+    await page.getByRole('button', { name: 'Aggiungi' }).click()
+    await expect(panel).toHaveAttribute('open', '')
 
     // Validation should block invalid quantity after required fields are present
     const batchSelect = page.locator('select').filter({ has: page.getByRole('option', { name: 'Seleziona confezione' }) })
@@ -61,12 +64,15 @@ test('movimenti view supports registering a carico and a scarico', async ({ page
     await page.getByRole('button', { name: 'Registra movimento' }).click()
 
     await expect(page.getByText(/^Movimento registrato \(ID:/i)).toBeVisible()
+    await expect(panel).not.toHaveAttribute('open', '')
 
     // The new record should appear in the history table
     await expect(page.getByRole('cell', { name: 'carico', exact: true })).toBeVisible()
     await expect(page.getByRole('cell', { name: '20', exact: true })).toBeVisible()
 
     // Register a SCARICO
+    await page.getByRole('button', { name: 'Aggiungi' }).click()
+    await expect(panel).toHaveAttribute('open', '')
     await batchSelect.selectOption({ label: 'Ibuprofene E2E - Moment E2E' })
     await page.getByLabel('Tipo movimento').selectOption('scarico')
     await page.getByLabel('Quantita').fill('5')
@@ -75,9 +81,17 @@ test('movimenti view supports registering a carico and a scarico', async ({ page
     await expect(page.getByText(/Movimento registrato/i)).toBeVisible()
     await expect(page.getByRole('cell', { name: 'scarico', exact: true })).toBeVisible()
 
+    const closePanelButton = page.getByRole('button', { name: 'Chiudi' })
+    if (await closePanelButton.isVisible().catch(() => false)) {
+        await closePanelButton.click()
+        await expect(panel).not.toHaveAttribute('open', '')
+    }
+
     await page.getByLabel(/Seleziona movimento scarico/i).first().check()
     await page.getByRole('button', { name: /^Modifica$/ }).first().click()
     await expect(page.getByRole('button', { name: 'Salva modifica' })).toBeVisible()
+    await page.getByRole('button', { name: 'Annulla' }).first().click()
+    await expect(panel).not.toHaveAttribute('open', '')
 
     await runWithAcceptedConfirmation(page, async () => {
         await page.getByRole('button', { name: 'Elimina (1)' }).first().click()

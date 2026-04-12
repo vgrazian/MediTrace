@@ -271,6 +271,60 @@ main { padding: 1.25rem; max-width: 980px; margin: 0 auto; }
   cursor: pointer;
 }
 
+details.add-panel > summary {
+  cursor: pointer;
+}
+
+details.add-panel[open] {
+  position: fixed;
+  top: 5.1rem;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(860px, calc(100vw - 2rem));
+  max-height: calc(100vh - 6rem);
+  z-index: 80;
+  margin: 0;
+  border-radius: .75rem;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  padding: 0;
+  overflow: hidden;
+  box-shadow: 0 20px 48px rgba(11, 26, 47, 0.32);
+}
+
+details.add-panel[open] > summary {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  list-style: none;
+  background: #edf3fb;
+  border-bottom: 1px solid var(--line);
+  padding: .95rem 1rem;
+}
+
+details.add-panel[open] > summary::-webkit-details-marker {
+  display: none;
+}
+
+details.add-panel[open] > div {
+  height: calc(100vh - 9.2rem);
+  overflow: auto;
+  padding: .85rem 1rem 1.1rem;
+}
+
+.dataset-frame {
+  border: 1px solid var(--line);
+  border-radius: .5rem;
+  background: #fff;
+  max-height: 24rem;
+  overflow: auto;
+}
+
+.dataset-frame .conflict-table {
+  margin-top: 0;
+  border: none;
+}
+
 /* ── login screen ── */
 .login-screen {
   display: flex;

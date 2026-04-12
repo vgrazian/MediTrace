@@ -46,8 +46,11 @@ test('terapie view supports create and delete flow', async ({ page }) => {
 
     await page.getByRole('link', { name: 'Terapie' }).click()
     await expect(page.getByRole('heading', { name: 'Terapie Attive' })).toBeVisible()
+    await expect(page.locator('.dataset-frame')).toHaveCount(1)
 
-    await page.locator('summary', { hasText: 'Gestione Terapie' }).click()
+    const panel = page.locator('details:has(summary:has-text("Gestione Terapie"))')
+    await page.getByRole('button', { name: 'Aggiungi' }).click()
+    await expect(panel).toHaveAttribute('open', '')
 
     await page.getByLabel('Ospite').selectOption('HOST-1')
     await page.getByLabel('Farmaco').selectOption('DRUG-1')
@@ -58,6 +61,7 @@ test('terapie view supports create and delete flow', async ({ page }) => {
     await page.getByRole('button', { name: 'Salva terapia' }).click()
 
     await expect(page.getByText(/Terapia salvata/i)).toBeVisible()
+    await expect(panel).not.toHaveAttribute('open', '')
     await expect(page.getByRole('cell', { name: '[OSP-01] - OSP-01', exact: true })).toBeVisible()
     await expect(page.getByRole('cell', { name: 'Paracetamolo', exact: true })).toBeVisible()
 

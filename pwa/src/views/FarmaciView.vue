@@ -237,6 +237,8 @@ async function createDrug() {
     editingDrugId.value = null
     message.value = existing && !existing.deletedAt ? 'Farmaco aggiornato.' : `Farmaco salvato (ID: ${saved.id}).`
     await loadData()
+    isFormOpen.value = false
+    panelMode.value = 'list'
     markFormSnapshot()
   } catch (err) {
     errorMessage.value = `Errore salvataggio farmaco: ${err.message}`
@@ -286,6 +288,8 @@ async function createBatch() {
     editingBatchId.value = null
     message.value = existing ? 'Confezione aggiornata.' : 'Confezione salvata.'
     await loadData()
+    isFormOpen.value = false
+    panelMode.value = 'list'
     markFormSnapshot()
   } catch (err) {
     errorMessage.value = `Errore salvataggio confezione: ${err.message}`
@@ -533,7 +537,8 @@ onMounted(() => {
       </p>
       <p v-if="loading" class="muted" style="margin-top:.5rem">Caricamento...</p>
 
-      <table class="conflict-table" style="margin-top:.75rem">
+      <div class="dataset-frame" style="margin-top:.75rem">
+      <table class="conflict-table">
         <thead>
           <tr>
             <th style="width:2.5rem">
@@ -580,6 +585,7 @@ onMounted(() => {
           </tr>
         </tbody>
       </table>
+      </div>
     </div>
 
     <div class="card">
@@ -600,7 +606,8 @@ onMounted(() => {
         <button type="button" style="margin-left:.4rem" @click="clearBatchSelection">Deseleziona tutto</button>
       </p>
 
-      <table class="conflict-table" style="margin-top:.75rem">
+      <div class="dataset-frame" style="margin-top:.75rem">
+      <table class="conflict-table">
         <thead>
           <tr>
             <th style="width:2.5rem">
@@ -651,13 +658,14 @@ onMounted(() => {
           </tr>
         </tbody>
       </table>
+      </div>
 
       <p v-if="message" class="muted" style="margin-top:.5rem">{{ message }}</p>
       <p v-if="errorMessage" class="import-error" style="margin-top:.5rem">{{ errorMessage }}</p>
     </div>
 
     <div class="card">
-      <details class="deep-panel" :open="isFormOpen" @toggle="isFormOpen = $event.target.open">
+      <details class="deep-panel add-panel" :open="isFormOpen" @toggle="isFormOpen = $event.target.open">
         <summary><strong>Gestisci Farmaci</strong></summary>
 
         <div style="margin-top:.75rem">
@@ -673,6 +681,11 @@ onMounted(() => {
             </span>
             <button type="button" class="panel-close-btn" @click="isFormOpen = false">Chiudi</button>
           </div>
+          <p class="muted" style="margin-bottom:.55rem">
+            Pannello rapido: ogni click su Aggiungi apre il modulo corretto e al salvataggio torni alla lista.
+          </p>
+
+          <div v-if="panelMode.includes('drug')">
           <p><strong>{{ editingDrugId ? 'Modifica farmaco' : 'Aggiungi nuovo farmaco' }}</strong></p>
           <div class="import-form" style="margin-top:.65rem">
             <ValidatedInput
@@ -717,11 +730,12 @@ onMounted(() => {
             <button :disabled="savingDrug || hasDrugErrors" @click="createDrug">
               {{ savingDrug ? 'Salvataggio...' : (editingDrugId ? 'Salva modifica' : 'Salva farmaco') }}
             </button>
-            <button type="button" :disabled="savingDrug" @click="resetDrugForm">Annulla</button>
+            <button type="button" :disabled="savingDrug" @click="() => { resetDrugForm(); isFormOpen = false }">Annulla</button>
+          </div>
           </div>
         </div>
 
-        <div style="margin-top:1rem">
+        <div v-if="panelMode.includes('batch')" style="margin-top:1rem">
           <p><strong>{{ editingBatchId ? 'Modifica confezione di magazzino' : 'Aggiungi confezione di magazzino' }}</strong></p>
           <div class="import-form" style="margin-top:.65rem">
             <label>
@@ -792,7 +806,7 @@ onMounted(() => {
             <button :disabled="savingBatch || !canCreateBatch || hasBatchErrors" @click="createBatch">
               {{ savingBatch ? 'Salvataggio...' : (editingBatchId ? 'Salva modifica' : 'Salva confezione') }}
             </button>
-            <button type="button" :disabled="savingBatch" @click="resetBatchForm">Annulla</button>
+            <button type="button" :disabled="savingBatch" @click="() => { resetBatchForm(); isFormOpen = false }">Annulla</button>
           </div>
           <p v-if="!canCreateBatch" class="muted" style="margin-top:.5rem;font-size:.85rem">
             Prima crea almeno un farmaco.
