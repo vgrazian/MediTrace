@@ -7,8 +7,10 @@ import { confirmDeleteMovement, confirmDeleteMultiple } from '../services/confir
 import { useFormValidation } from '../services/formValidation'
 import ValidatedInput from '../components/ValidatedInput.vue'
 import { useSelection } from '../composables/useSelection'
+import { useHelp } from '../composables/useHelp'
 
 const { currentUser } = useAuth()
+const { openHelp } = useHelp()
 
 const loading = ref(false)
 const saving = ref(false)
@@ -320,7 +322,10 @@ onMounted(() => {
 
 <template>
   <div class="view">
-    <h2>Movimenti</h2>
+    <div class="view-heading">
+      <h2>Movimenti</h2>
+      <button class="help-btn" aria-label="Apri guida Movimenti" @click="openHelp('movimenti')">?</button>
+    </div>
 
     <div class="card">
       <p><strong>Ultimi movimenti</strong></p>

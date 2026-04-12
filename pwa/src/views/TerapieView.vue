@@ -7,8 +7,10 @@ import { confirmDeactivateTherapy, confirmDeleteMultiple } from '../services/con
 import { useFormValidation } from '../services/formValidation'
 import ValidatedInput from '../components/ValidatedInput.vue'
 import { useSelection } from '../composables/useSelection'
+import { useHelp } from '../composables/useHelp'
 
 const { currentUser } = useAuth()
+const { openHelp } = useHelp()
 
 const {
   errors,
@@ -271,7 +273,10 @@ onMounted(() => {
 
 <template>
   <div class="view">
-    <h2>Terapie Attive</h2>
+    <div class="view-heading">
+      <h2>Terapie Attive</h2>
+      <button class="help-btn" aria-label="Apri guida Terapie" @click="openHelp('terapie')">?</button>
+    </div>
 
     <div class="card">
       <p><strong>Elenco terapie attive</strong></p>

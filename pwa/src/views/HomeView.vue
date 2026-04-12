@@ -3,8 +3,10 @@ import { useAuth } from '../services/auth'
 import { ref, onMounted } from 'vue'
 import { RouterLink } from 'vue-router'
 import { buildHomeDashboardKpis } from '../services/homeDashboard'
+import { useHelp } from '../composables/useHelp'
 
 const { currentUser } = useAuth()
+const { openHelp } = useHelp()
 const datasetVersion = ref(null)
 const syncStatus = ref('—')
 const homeKpi = ref(null)
@@ -32,7 +34,10 @@ onMounted(async () => {
 <template>
   <div class="view home-view">
     <div class="card home-intro">
-      <h2>Cruscotto MediTrace</h2>
+      <div class="view-heading">
+        <h2>Cruscotto MediTrace</h2>
+        <button class="help-btn" aria-label="Apri guida Cruscotto" @click="openHelp('home')">?</button>
+      </div>
       <p class="muted" style="margin-top:.35rem">
         Monitoraggio scorte, terapie e promemoria con controllo operativo continuo.
       </p>

@@ -4,8 +4,10 @@ import { db, enqueue, getSetting } from '../db'
 import { buildOperationalReport, buildOrderDraftText, operationalReportToCsv } from '../services/reporting'
 import { confirmDeleteDrug, confirmDeleteBatch } from '../services/confirmations'
 import { useAuth } from '../services/auth'
+import { useHelp } from '../composables/useHelp'
 
 const { currentUser } = useAuth()
+const { openHelp } = useHelp()
 
 const report = ref(null)
 const reportLoading = ref(false)
@@ -430,7 +432,10 @@ onMounted(() => {
 
 <template>
   <div class="view">
-    <h2>Scorte</h2>
+    <div class="view-heading">
+      <h2>Scorte</h2>
+      <button class="help-btn" aria-label="Apri guida Scorte" @click="openHelp('scorte')">?</button>
+    </div>
 
     <div class="card">
       <p><strong>Report operativo (consumi/scorte)</strong></p>

@@ -2,6 +2,7 @@
 import { computed, ref, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import AppNav from './components/AppNav.vue'
+import HelpDrawer from './components/HelpDrawer.vue'
 import { initAuth, sanitizeEmailInput, sanitizeUsernameInput, useAuth } from './services/auth'
 
 const { currentUser, hasUsers, isInitialized, signIn, register, requestPasswordResetByEmail } = useAuth()
@@ -219,6 +220,7 @@ async function handlePasswordResetEmail() {
       <main>
         <RouterView />
       </main>
+      <HelpDrawer />
     </template>
   </div>
 </template>
