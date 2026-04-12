@@ -96,5 +96,9 @@ test('movimenti view supports registering a carico and a scarico', async ({ page
     await runWithAcceptedConfirmation(page, async () => {
         await page.getByRole('button', { name: 'Elimina (1)' }).first().click()
     })
-    await expect(page.getByText('Movimento eliminato.')).toBeVisible()
+    await expect(page.locator('p.muted', { hasText: 'Movimento eliminato.' })).toBeVisible()
+    await expect(page.locator('.undo-banner')).toContainText('Movimento')
+    await page.locator('.undo-banner').getByRole('button', { name: 'Annulla eliminazione' }).click()
+    await expect(page.getByText('Eliminazione annullata: movimento ripristinato.')).toBeVisible()
+    await expect(page.getByRole('cell', { name: 'scarico', exact: true })).toBeVisible()
 })

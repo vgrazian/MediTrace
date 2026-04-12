@@ -325,6 +325,29 @@ details.add-panel[open] > div {
   border: none;
 }
 
+.undo-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: .65rem;
+  border: 1px solid #f2d09a;
+  background: #fff4de;
+  color: #6b3b0a;
+  border-radius: .5rem;
+  padding: .65rem .8rem;
+  margin-top: .75rem;
+}
+
+.undo-banner button {
+  border: 1px solid #c27f2e;
+  background: #f9d39e;
+  color: #5b3208;
+  padding: .28rem .6rem;
+  border-radius: .35rem;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
 /* ── login screen ── */
 .login-screen {
   display: flex;

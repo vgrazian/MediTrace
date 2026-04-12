@@ -2,7 +2,7 @@
 import { computed, onMounted, ref } from 'vue'
 import { db } from '../db'
 import { useAuth } from '../services/auth'
-import { deactivateTherapyRecord, upsertTherapy } from '../services/terapie'
+import { deactivateTherapyRecord, restoreTherapyRecord, upsertTherapy } from '../services/terapie'
 import { confirmDeactivateTherapy, confirmDeleteMultiple } from '../services/confirmations'
 import { useFormValidation } from '../services/formValidation'
 import ValidatedInput from '../components/ValidatedInput.vue'
@@ -10,9 +10,11 @@ import CrudFilterBar from '../components/CrudFilterBar.vue'
 import { useSelection } from '../composables/useSelection'
 import { useHelpNavigation } from '../composables/useHelpNavigation'
 import { useUnsavedChangesGuard } from '../composables/useUnsavedChangesGuard'
+import { useUndoDelete } from '../composables/useUndoDelete'
 
 const { currentUser } = useAuth()
 const { goToHelpSection } = useHelpNavigation()
+const { pendingUndo, scheduleUndo, executeUndo } = useUndoDelete(10_000)
 
 const {
   errors,
@@ -265,7 +267,7 @@ async function deleteTherapy(therapy) {
   message.value = ''
   errorMessage.value = ''
   try {
-    await deactivateTherapyRecord({
+    const deletedTherapy = await deactivateTherapyRecord({
       therapy,
       operatorId: currentUser.value?.login ?? null,
     })
@@ -273,6 +275,17 @@ async function deleteTherapy(therapy) {
     message.value = 'Terapia eliminata.'
     if (editingTherapyId.value === therapy.id) resetForm()
     await loadData()
+    scheduleUndo({
+      label: `Terapia ${hostLabel(therapy.hostId)} · ${drugLabel(therapy.drugId)} eliminata.`,
+      undoAction: async () => {
+        await restoreTherapyRecord({
+          therapy: deletedTherapy,
+          operatorId: currentUser.value?.login ?? null,
+        })
+        message.value = 'Eliminazione annullata: terapia ripristinata.'
+        await loadData()
+      },
+    })
   } catch (err) {
     errorMessage.value = `Errore eliminazione: ${err.message}`
   }
@@ -292,11 +305,13 @@ async function deleteSelectedTherapies() {
   errorMessage.value = ''
 
   try {
+    const deletedTherapies = []
     for (const therapy of selectedTherapies) {
-      await deactivateTherapyRecord({
+      const deleted = await deactivateTherapyRecord({
         therapy,
         operatorId: currentUser.value?.login ?? null,
       })
+      deletedTherapies.push(deleted)
     }
 
     if (editingTherapyId.value && selectedTherapies.some(item => item.id === editingTherapyId.value)) {
@@ -308,6 +323,23 @@ async function deleteSelectedTherapies() {
       ? 'Terapia eliminata.'
       : `${selectedTherapies.length} terapie eliminate.`
     await loadData()
+    scheduleUndo({
+      label: selectedTherapies.length === 1
+        ? 'Terapia eliminata.'
+        : `${selectedTherapies.length} terapie eliminate.`,
+      undoAction: async () => {
+        for (const deleted of deletedTherapies) {
+          await restoreTherapyRecord({
+            therapy: deleted,
+            operatorId: currentUser.value?.login ?? null,
+          })
+        }
+        message.value = selectedTherapies.length === 1
+          ? 'Eliminazione annullata: terapia ripristinata.'
+          : `Eliminazione annullata: ${selectedTherapies.length} terapie ripristinate.`
+        await loadData()
+      },
+    })
   } catch (err) {
     errorMessage.value = `Errore eliminazione: ${err.message}`
   }
@@ -533,6 +565,11 @@ onMounted(() => {
           </p>
         </div>
       </details>
+    </div>
+
+    <div v-if="pendingUndo" class="undo-banner" role="status" aria-live="polite">
+      <span>{{ pendingUndo.label }}</span>
+      <button type="button" @click="executeUndo">Annulla eliminazione</button>
     </div>
   </div>
 </template>

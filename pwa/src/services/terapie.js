@@ -71,3 +71,35 @@ export async function deactivateTherapyRecord({ therapy, operatorId = null }) {
 
     return updated
 }
+
+export async function restoreTherapyRecord({ therapy, operatorId = null }) {
+    if (!therapy || !therapy.deletedAt) {
+        throw new Error('Terapia non ripristinabile')
+    }
+
+    const now = new Date().toISOString()
+    const deviceId = await getSetting('deviceId', 'unknown')
+
+    const updated = {
+        ...therapy,
+        attiva: true,
+        deletedAt: null,
+        updatedAt: now,
+        syncStatus: 'pending',
+    }
+
+    await db.transaction('rw', db.therapies, db.syncQueue, db.activityLog, async () => {
+        await db.therapies.put(updated)
+        await enqueue('therapies', therapy.id, 'upsert')
+        await db.activityLog.add({
+            entityType: 'therapies',
+            entityId: therapy.id,
+            action: 'therapy_restored',
+            deviceId,
+            operatorId,
+            ts: now,
+        })
+    })
+
+    return updated
+}

@@ -74,6 +74,9 @@ test('terapie view supports create and delete flow', async ({ page }) => {
         await page.getByRole('button', { name: 'Elimina (1)' }).first().click()
     })
 
-    await expect(page.getByText('Terapia eliminata.')).toBeVisible()
-    await expect(page.getByText('Nessuna terapia attiva disponibile.')).toBeVisible()
+    await expect(page.locator('p.muted', { hasText: 'Terapia eliminata.' })).toBeVisible()
+    await expect(page.locator('.undo-banner')).toContainText('Terapia')
+    await page.locator('.undo-banner').getByRole('button', { name: 'Annulla eliminazione' }).click()
+    await expect(page.getByText('Eliminazione annullata: terapia ripristinata.')).toBeVisible()
+    await expect(page.getByRole('cell', { name: '[OSP-01] - OSP-01', exact: true })).toBeVisible()
 })

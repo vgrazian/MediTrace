@@ -143,6 +143,37 @@ export async function deleteDrug({ drugId, existing, operatorId = null }) {
     return record
 }
 
+export async function restoreDrug({ drugId, existing, operatorId = null }) {
+    if (!existing || !existing.deletedAt) {
+        throw new Error(`Farmaco "${drugId}" non ripristinabile`)
+    }
+
+    const now = new Date().toISOString()
+    const record = {
+        ...existing,
+        deletedAt: null,
+        updatedAt: now,
+        syncStatus: 'pending',
+    }
+
+    const deviceId = await getSetting('deviceId', 'unknown')
+
+    await db.transaction('rw', db.drugs, db.syncQueue, db.activityLog, async () => {
+        await db.drugs.put(record)
+        await enqueue('drugs', drugId, 'upsert')
+        await db.activityLog.add({
+            entityType: 'drugs',
+            entityId: drugId,
+            action: 'drug_restored',
+            deviceId,
+            operatorId,
+            ts: now,
+        })
+    })
+
+    return record
+}
+
 /**
  * Create or update a stock batch (confezione) record with audit trail.
  *
@@ -242,6 +273,37 @@ export async function deactivateBatch({ batchId, existing, operatorId = null }) 
             entityType: 'stockBatches',
             entityId: batchId,
             action: 'stock_batch_deactivated',
+            deviceId,
+            operatorId,
+            ts: now,
+        })
+    })
+
+    return record
+}
+
+export async function restoreBatch({ batchId, existing, operatorId = null }) {
+    if (!existing || !existing.deletedAt) {
+        throw new Error(`Confezione "${batchId}" non ripristinabile`)
+    }
+
+    const now = new Date().toISOString()
+    const record = {
+        ...existing,
+        deletedAt: null,
+        updatedAt: now,
+        syncStatus: 'pending',
+    }
+
+    const deviceId = await getSetting('deviceId', 'unknown')
+
+    await db.transaction('rw', db.stockBatches, db.syncQueue, db.activityLog, async () => {
+        await db.stockBatches.put(record)
+        await enqueue('stockBatches', batchId, 'upsert')
+        await db.activityLog.add({
+            entityType: 'stockBatches',
+            entityId: batchId,
+            action: 'stock_batch_restored',
             deviceId,
             operatorId,
             ts: now,

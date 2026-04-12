@@ -1,7 +1,7 @@
 <script setup>
 import { onMounted, ref, computed } from 'vue'
 import { useAuth } from '../services/auth'
-import { buildHostRows, createHost, deleteHost, formatHostDisplay, updateHost } from '../services/ospiti'
+import { buildHostRows, createHost, deleteHost, formatHostDisplay, restoreHost, updateHost } from '../services/ospiti'
 import { getRoomsWithBeds } from '../services/stanze'
 import { confirmDeleteHost, confirmDeleteMultiple } from '../services/confirmations'
 import { useFormValidation } from '../services/formValidation'
@@ -11,9 +11,11 @@ import { useSelection } from '../composables/useSelection'
 import { db } from '../db'
 import { useHelpNavigation } from '../composables/useHelpNavigation'
 import { useUnsavedChangesGuard } from '../composables/useUnsavedChangesGuard'
+import { useUndoDelete } from '../composables/useUndoDelete'
 
 const { currentUser } = useAuth()
 const { goToHelpSection } = useHelpNavigation()
+const { pendingUndo, scheduleUndo, executeUndo } = useUndoDelete(10_000)
 
 const {
   errors,
@@ -233,13 +235,25 @@ async function handleDeactivate(hostId) {
     message.value = ''
     errorMessage.value = ''
     try {
-        await deleteHost({ hostId, operatorId: currentUser.value?.login ?? null })
+        const deletedHost = await deleteHost({ hostId, operatorId: currentUser.value?.login ?? null })
         if (editingHostId.value === hostId) {
           resetForm()
         }
         clearSelection()
         message.value = `Ospite "${hostId}" eliminato.`
         await loadData()
+        scheduleUndo({
+          label: `Ospite "${hostName}" eliminato.`,
+          undoAction: async () => {
+            await restoreHost({
+              hostId: deletedHost.id,
+              existing: deletedHost,
+              operatorId: currentUser.value?.login ?? null,
+            })
+            message.value = 'Eliminazione annullata: ospite ripristinato.'
+            await loadData()
+          },
+        })
     } catch (err) {
         errorMessage.value = `Errore: ${err.message}`
     }
@@ -274,11 +288,13 @@ async function deleteSelectedHosts() {
   errorMessage.value = ''
 
   try {
+    const deletedHosts = []
     for (const host of selectedHosts) {
-      await deleteHost({
+      const deleted = await deleteHost({
         hostId: host.id,
         operatorId: currentUser.value?.login ?? null,
       })
+      deletedHosts.push(deleted)
     }
 
     if (editingHostId.value && selectedHosts.some(host => host.id === editingHostId.value)) {
@@ -290,6 +306,24 @@ async function deleteSelectedHosts() {
       ? `Ospite "${selectedHosts[0].id}" eliminato.`
       : `${selectedHosts.length} ospiti eliminati.`
     await loadData()
+    scheduleUndo({
+      label: selectedHosts.length === 1
+        ? `Ospite "${formatHostDisplay(selectedHosts[0])}" eliminato.`
+        : `${selectedHosts.length} ospiti eliminati.`,
+      undoAction: async () => {
+        for (const deleted of deletedHosts) {
+          await restoreHost({
+            hostId: deleted.id,
+            existing: deleted,
+            operatorId: currentUser.value?.login ?? null,
+          })
+        }
+        message.value = selectedHosts.length === 1
+          ? 'Eliminazione annullata: ospite ripristinato.'
+          : `Eliminazione annullata: ${selectedHosts.length} ospiti ripristinati.`
+        await loadData()
+      },
+    })
   } catch (err) {
     errorMessage.value = `Errore: ${err.message}`
   }
@@ -568,5 +602,10 @@ onMounted(() => {
 
     <p v-if="message" class="muted" style="margin-top:.5rem">{{ message }}</p>
     <p v-if="errorMessage" class="import-error" style="margin-top:.5rem">{{ errorMessage }}</p>
+
+    <div v-if="pendingUndo" class="undo-banner" role="status" aria-live="polite">
+      <span>{{ pendingUndo.label }}</span>
+      <button type="button" @click="executeUndo">Annulla eliminazione</button>
+    </div>
   </div>
 </template>

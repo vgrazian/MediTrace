@@ -2,7 +2,7 @@
 import { computed, onMounted, ref } from 'vue'
 import { db, getSetting } from '../db'
 import { useAuth } from '../services/auth'
-import { upsertDrug, deleteDrug, upsertBatch, deactivateBatch } from '../services/farmaci'
+import { upsertDrug, deleteDrug, upsertBatch, deactivateBatch, restoreDrug, restoreBatch } from '../services/farmaci'
 import { confirmDeleteDrug, confirmDeleteBatch, confirmDeleteMultiple } from '../services/confirmations'
 import { useFormValidation } from '../services/formValidation'
 import ValidatedInput from '../components/ValidatedInput.vue'
@@ -10,9 +10,11 @@ import CrudFilterBar from '../components/CrudFilterBar.vue'
 import { useSelection } from '../composables/useSelection'
 import { useHelpNavigation } from '../composables/useHelpNavigation'
 import { useUnsavedChangesGuard } from '../composables/useUnsavedChangesGuard'
+import { useUndoDelete } from '../composables/useUndoDelete'
 
 const { currentUser } = useAuth()
 const { goToHelpSection } = useHelpNavigation()
+const { pendingUndo, scheduleUndo, executeUndo } = useUndoDelete(10_000)
 
 // Validation for drug form
 const {
@@ -308,7 +310,7 @@ async function deactivateBatchUI(batch) {
   errorMessage.value = ''
 
   try {
-    await deactivateBatch({
+    const deletedBatch = await deactivateBatch({
       batchId: batch.id,
       existing: batch,
       operatorId: currentUser.value?.login ?? null,
@@ -316,6 +318,18 @@ async function deactivateBatchUI(batch) {
 
     message.value = 'Confezione eliminata.'
     await loadData()
+    scheduleUndo({
+      label: `Confezione "${batch.nomeCommerciale}" eliminata.`,
+      undoAction: async () => {
+        await restoreBatch({
+          batchId: deletedBatch.id,
+          existing: deletedBatch,
+          operatorId: currentUser.value?.login ?? null,
+        })
+        message.value = 'Eliminazione annullata: confezione ripristinata.'
+        await loadData()
+      },
+    })
   } catch (err) {
     errorMessage.value = `Errore eliminazione confezione: ${err.message}`
   }
@@ -398,7 +412,7 @@ async function deleteDrugRecord(drug) {
   errorMessage.value = ''
 
   try {
-    await deleteDrug({
+    const deletedDrug = await deleteDrug({
       drugId: drug.id,
       existing: drug,
       operatorId: currentUser.value?.login ?? null,
@@ -407,6 +421,18 @@ async function deleteDrugRecord(drug) {
     if (editingDrugId.value === drug.id) resetDrugForm()
     message.value = 'Farmaco eliminato.'
     await loadData()
+    scheduleUndo({
+      label: `Farmaco "${drugName}" eliminato.`,
+      undoAction: async () => {
+        await restoreDrug({
+          drugId: deletedDrug.id,
+          existing: deletedDrug,
+          operatorId: currentUser.value?.login ?? null,
+        })
+        message.value = 'Eliminazione annullata: farmaco ripristinato.'
+        await loadData()
+      },
+    })
   } catch (err) {
     errorMessage.value = `Errore eliminazione farmaco: ${err.message}`
   }
@@ -440,12 +466,14 @@ async function deleteSelectedDrugs() {
   errorMessage.value = ''
 
   try {
+    const deletedDrugs = []
     for (const drug of selectedDrugs) {
-      await deleteDrug({
+      const deleted = await deleteDrug({
         drugId: drug.id,
         existing: drug,
         operatorId: currentUser.value?.login ?? null,
       })
+      deletedDrugs.push(deleted)
     }
 
     if (editingDrugId.value && selectedDrugs.some(drug => drug.id === editingDrugId.value)) {
@@ -457,6 +485,24 @@ async function deleteSelectedDrugs() {
       ? 'Farmaco eliminato.'
       : `${selectedDrugs.length} farmaci eliminati.`
     await loadData()
+    scheduleUndo({
+      label: selectedDrugs.length === 1
+        ? `Farmaco "${selectedDrugs[0].nomeFarmaco || selectedDrugs[0].principioAttivo || selectedDrugs[0].id}" eliminato.`
+        : `${selectedDrugs.length} farmaci eliminati.`,
+      undoAction: async () => {
+        for (const deleted of deletedDrugs) {
+          await restoreDrug({
+            drugId: deleted.id,
+            existing: deleted,
+            operatorId: currentUser.value?.login ?? null,
+          })
+        }
+        message.value = selectedDrugs.length === 1
+          ? 'Eliminazione annullata: farmaco ripristinato.'
+          : `Eliminazione annullata: ${selectedDrugs.length} farmaci ripristinati.`
+        await loadData()
+      },
+    })
   } catch (err) {
     errorMessage.value = `Errore eliminazione farmaco: ${err.message}`
   }
@@ -476,12 +522,14 @@ async function deleteSelectedBatches() {
   errorMessage.value = ''
 
   try {
+    const deletedBatches = []
     for (const batch of selectedBatches) {
-      await deactivateBatch({
+      const deleted = await deactivateBatch({
         batchId: batch.id,
         existing: batch,
         operatorId: currentUser.value?.login ?? null,
       })
+      deletedBatches.push(deleted)
     }
 
     if (editingBatchId.value && selectedBatches.some(batch => batch.id === editingBatchId.value)) {
@@ -493,6 +541,24 @@ async function deleteSelectedBatches() {
       ? 'Confezione eliminata.'
       : `${selectedBatches.length} confezioni eliminate.`
     await loadData()
+    scheduleUndo({
+      label: selectedBatches.length === 1
+        ? `Confezione "${selectedBatches[0].nomeCommerciale}" eliminata.`
+        : `${selectedBatches.length} confezioni eliminate.`,
+      undoAction: async () => {
+        for (const deleted of deletedBatches) {
+          await restoreBatch({
+            batchId: deleted.id,
+            existing: deleted,
+            operatorId: currentUser.value?.login ?? null,
+          })
+        }
+        message.value = selectedBatches.length === 1
+          ? 'Eliminazione annullata: confezione ripristinata.'
+          : `Eliminazione annullata: ${selectedBatches.length} confezioni ripristinate.`
+        await loadData()
+      },
+    })
   } catch (err) {
     errorMessage.value = `Errore eliminazione confezione: ${err.message}`
   }
@@ -813,6 +879,11 @@ onMounted(() => {
           </p>
         </div>
       </details>
+    </div>
+
+    <div v-if="pendingUndo" class="undo-banner" role="status" aria-live="polite">
+      <span>{{ pendingUndo.label }}</span>
+      <button type="button" @click="executeUndo">Annulla eliminazione</button>
     </div>
   </div>
 </template>

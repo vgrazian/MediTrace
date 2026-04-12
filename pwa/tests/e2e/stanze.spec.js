@@ -137,8 +137,8 @@ test('stanze view deletes rooms correctly', async ({ page }) => {
 
     // Verify success message
     await expect(page.getByText(/Stanza eliminata/i)).toBeVisible({ timeout: 5000 })
-
-    // Verify deleted room is no longer visible (filter off by default)
-    await page.waitForTimeout(300)
-    await expect(page.getByRole('cell', { name: 'Deactivate Test' })).not.toBeVisible({ timeout: 2000 })
+    await expect(page.locator('.undo-banner')).toContainText('Stanza')
+    await page.locator('.undo-banner').getByRole('button', { name: 'Annulla eliminazione' }).click()
+    await expect(page.getByText(/Eliminazione annullata: stanza ripristinata/i)).toBeVisible({ timeout: 5000 })
+    await expect(page.getByRole('cell', { name: 'Deactivate Test' })).toBeVisible({ timeout: 5000 })
 })

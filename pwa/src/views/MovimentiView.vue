@@ -2,7 +2,7 @@
 import { computed, onMounted, ref } from 'vue'
 import { db } from '../db'
 import { useAuth } from '../services/auth'
-import { softDeleteMovement, upsertMovement } from '../services/movimenti'
+import { restoreMovement, softDeleteMovement, upsertMovement } from '../services/movimenti'
 import { confirmDeleteMovement, confirmDeleteMultiple } from '../services/confirmations'
 import { useFormValidation } from '../services/formValidation'
 import ValidatedInput from '../components/ValidatedInput.vue'
@@ -10,9 +10,11 @@ import CrudFilterBar from '../components/CrudFilterBar.vue'
 import { useSelection } from '../composables/useSelection'
 import { useHelpNavigation } from '../composables/useHelpNavigation'
 import { useUnsavedChangesGuard } from '../composables/useUnsavedChangesGuard'
+import { useUndoDelete } from '../composables/useUndoDelete'
 
 const { currentUser } = useAuth()
 const { goToHelpSection } = useHelpNavigation()
+const { pendingUndo, scheduleUndo, executeUndo } = useUndoDelete(10_000)
 
 const loading = ref(false)
 const saving = ref(false)
@@ -327,7 +329,7 @@ async function deleteMovement(movement) {
   message.value = ''
   errorMessage.value = ''
   try {
-    await softDeleteMovement({
+    const deletedMovement = await softDeleteMovement({
       movement,
       operatorId: currentUser.value?.login ?? null,
     })
@@ -335,6 +337,17 @@ async function deleteMovement(movement) {
     if (editingMovementId.value === movement.id) resetForm()
     message.value = 'Movimento eliminato.'
     await loadData()
+    scheduleUndo({
+      label: `Movimento "${movement.tipoMovimento || movement.type || movement.id}" eliminato.`,
+      undoAction: async () => {
+        await restoreMovement({
+          movement: deletedMovement,
+          operatorId: currentUser.value?.login ?? null,
+        })
+        message.value = 'Eliminazione annullata: movimento ripristinato.'
+        await loadData()
+      },
+    })
   } catch (err) {
     errorMessage.value = `Errore eliminazione movimento: ${err.message}`
   }
@@ -354,11 +367,13 @@ async function deleteSelectedMovements() {
   errorMessage.value = ''
 
   try {
+    const deletedMovements = []
     for (const movement of selectedMovements) {
-      await softDeleteMovement({
+      const deleted = await softDeleteMovement({
         movement,
         operatorId: currentUser.value?.login ?? null,
       })
+      deletedMovements.push(deleted)
     }
 
     if (editingMovementId.value && selectedMovements.some(item => item.id === editingMovementId.value)) {
@@ -370,6 +385,23 @@ async function deleteSelectedMovements() {
       ? 'Movimento eliminato.'
       : `${selectedMovements.length} movimenti eliminati.`
     await loadData()
+    scheduleUndo({
+      label: selectedMovements.length === 1
+        ? 'Movimento eliminato.'
+        : `${selectedMovements.length} movimenti eliminati.`,
+      undoAction: async () => {
+        for (const deleted of deletedMovements) {
+          await restoreMovement({
+            movement: deleted,
+            operatorId: currentUser.value?.login ?? null,
+          })
+        }
+        message.value = selectedMovements.length === 1
+          ? 'Eliminazione annullata: movimento ripristinato.'
+          : `Eliminazione annullata: ${selectedMovements.length} movimenti ripristinati.`
+        await loadData()
+      },
+    })
   } catch (err) {
     errorMessage.value = `Errore eliminazione movimento: ${err.message}`
   }
@@ -592,5 +624,10 @@ onMounted(() => {
 
     <p v-if="message" class="muted" style="margin-top:.55rem">{{ message }}</p>
     <p v-if="errorMessage" class="import-error">{{ errorMessage }}</p>
+
+    <div v-if="pendingUndo" class="undo-banner" role="status" aria-live="polite">
+      <span>{{ pendingUndo.label }}</span>
+      <button type="button" @click="executeUndo">Annulla eliminazione</button>
+    </div>
   </div>
 </template>
