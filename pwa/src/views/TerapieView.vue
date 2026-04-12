@@ -374,7 +374,7 @@ onMounted(() => {
         <button :disabled="selectedCount !== 1" @click="openEditForm">Modifica</button>
         <button
           :disabled="selectedCount === 0"
-          style="background:#c0392b"
+          style="background:#d35f55"
           @click="deleteSelectedTherapies"
         >
           Elimina{{ selectedCount > 0 ? ` (${selectedCount})` : '' }}
@@ -434,7 +434,7 @@ onMounted(() => {
             <td>{{ formatDate(therapy.dataFine) }}</td>
             <td>
               <button style="margin-right:.35rem" @click="startEditTherapy(therapy)">Modifica</button>
-              <button style="background:#c0392b" @click="deleteTherapy(therapy)">Elimina</button>
+              <button style="background:#d35f55" @click="deleteTherapy(therapy)">Elimina</button>
             </td>
           </tr>
           <tr v-if="filteredTherapies.length === 0 && !loading">

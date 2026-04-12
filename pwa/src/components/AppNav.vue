@@ -1,8 +1,12 @@
 <script setup>
 import { useAuth } from '../services/auth'
 
-const { currentUser } = useAuth()
+const { currentUser, signOut } = useAuth()
 const logoSrc = `${import.meta.env.BASE_URL}branding/logo-header.svg`
+
+async function handleSignOut() {
+  await signOut()
+}
 </script>
 
 <template>
@@ -27,6 +31,7 @@ const logoSrc = `${import.meta.env.BASE_URL}branding/logo-header.svg`
     <div class="user-area">
       <RouterLink to="/impostazioni" class="user-name user-name-link">{{ currentUser?.name }}</RouterLink>
       <RouterLink to="/impostazioni">⚙</RouterLink>
+      <button type="button" @click="handleSignOut">Logout</button>
     </div>
   </nav>
 </template>
