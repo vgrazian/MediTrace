@@ -6,9 +6,11 @@ import { getRoomsWithBeds } from '../services/stanze'
 import { confirmDeleteHost, confirmDeleteMultiple } from '../services/confirmations'
 import { useFormValidation } from '../services/formValidation'
 import ValidatedInput from '../components/ValidatedInput.vue'
+import CrudFilterBar from '../components/CrudFilterBar.vue'
 import { useSelection } from '../composables/useSelection'
 import { db } from '../db'
 import { useHelpNavigation } from '../composables/useHelpNavigation'
+import { useUnsavedChangesGuard } from '../composables/useUnsavedChangesGuard'
 
 const { currentUser } = useAuth()
 const { goToHelpSection } = useHelpNavigation()
@@ -47,6 +49,8 @@ const showAll = ref(false)
 const editingHostId = ref(null)
 const isFormOpen = ref(false)
 const panelMode = ref('list')
+const filterQuery = ref('')
+const formSnapshot = ref('')
 
 const form = ref({
     codiceInterno: '',
@@ -69,6 +73,37 @@ const rows = computed(() => buildHostRows({
     showAll: showAll.value,
 }))
 
+const normalizedFilter = computed(() => filterQuery.value.trim().toLowerCase())
+
+const filteredRows = computed(() => {
+  const q = normalizedFilter.value
+  if (!q) return rows.value
+  return rows.value.filter((host) => {
+    const haystack = [
+      host.id,
+      host.codiceInterno,
+      host.iniziali,
+      host.nome,
+      host.cognome,
+      host.stanza,
+      host.letto,
+      formatHostDisplay(host),
+    ].filter(Boolean).join(' ').toLowerCase()
+    return haystack.includes(q)
+  })
+})
+
+const isDirty = computed(() => {
+  if (!isFormOpen.value) return false
+  return formSnapshot.value !== JSON.stringify({
+    panelMode: panelMode.value,
+    editingHostId: editingHostId.value,
+    form: form.value,
+  })
+})
+
+useUnsavedChangesGuard(isDirty)
+
 const canCreate = computed(() => ((form.value.nome || '').trim() || (form.value.cognome || '').trim() || form.value.codiceInterno.trim() || form.value.iniziali.trim()))
 const canSave = computed(() => ((form.value.nome || '').trim() || (form.value.cognome || '').trim() || form.value.codiceInterno.trim() || form.value.iniziali.trim()))
 
@@ -87,7 +122,15 @@ const {
   clearSelection,
   isSelected,
   getSelectedItems,
-} = useSelection(rows)
+} = useSelection(filteredRows)
+
+function markFormSnapshot() {
+  formSnapshot.value = JSON.stringify({
+    panelMode: panelMode.value,
+    editingHostId: editingHostId.value,
+    form: form.value,
+  })
+}
 
 async function loadData() {
     loading.value = true
@@ -170,6 +213,7 @@ async function handleSave() {
           message.value = `Ospite "${created.id}" creato.`
         }
         resetForm()
+        markFormSnapshot()
         await loadData()
     } catch (err) {
         errorMessage.value = `Errore: ${err.message}`
@@ -204,6 +248,7 @@ function openAddForm() {
   resetForm()
   panelMode.value = 'create'
   isFormOpen.value = true
+  markFormSnapshot()
 }
 
 function openEditForm() {
@@ -267,6 +312,7 @@ function startEdit(host) {
     note: host.note || '',
   }
   isFormOpen.value = true
+  markFormSnapshot()
 }
 
 function resetForm() {
@@ -287,9 +333,13 @@ function resetForm() {
       note: '',
     }
   clearErrors()
+  markFormSnapshot()
 }
 
-onMounted(() => void loadData())
+onMounted(() => {
+  void loadData()
+  markFormSnapshot()
+})
 </script>
 
 <template>
@@ -301,6 +351,13 @@ onMounted(() => void loadData())
 
     <div class="card">
       <p><strong>Lista ospiti</strong></p>
+      <CrudFilterBar
+        v-model="filterQuery"
+        label="Filtra ospiti"
+        placeholder="Cerca per nome, cognome, codice, iniziali o stanza"
+        :visible-count="filteredRows.length"
+        :total-count="rows.length"
+      />
       <label style="margin-top:.5rem;display:flex;align-items:center;gap:.4rem">
         <input v-model="showAll" type="checkbox" />
         Mostra anche disattivati
@@ -347,7 +404,7 @@ onMounted(() => void loadData())
         </thead>
         <tbody>
           <tr
-            v-for="host in rows"
+            v-for="host in filteredRows"
             :key="host.id"
             :style="isSelected(host.id) ? 'background:rgba(52, 152, 219, 0.12)' : undefined"
           >
@@ -381,7 +438,7 @@ onMounted(() => void loadData())
               </button>
             </td>
           </tr>
-          <tr v-if="rows.length === 0 && !loading">
+          <tr v-if="filteredRows.length === 0 && !loading">
             <td colspan="9" class="muted">Nessun ospite disponibile.</td>
           </tr>
         </tbody>

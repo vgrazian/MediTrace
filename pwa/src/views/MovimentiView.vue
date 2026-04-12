@@ -6,8 +6,10 @@ import { softDeleteMovement, upsertMovement } from '../services/movimenti'
 import { confirmDeleteMovement, confirmDeleteMultiple } from '../services/confirmations'
 import { useFormValidation } from '../services/formValidation'
 import ValidatedInput from '../components/ValidatedInput.vue'
+import CrudFilterBar from '../components/CrudFilterBar.vue'
 import { useSelection } from '../composables/useSelection'
 import { useHelpNavigation } from '../composables/useHelpNavigation'
+import { useUnsavedChangesGuard } from '../composables/useUnsavedChangesGuard'
 
 const { currentUser } = useAuth()
 const { goToHelpSection } = useHelpNavigation()
@@ -23,6 +25,8 @@ const hosts = ref([])
 const therapies = ref([])
 const movements = ref([])
 const editingMovementId = ref(null)
+const filterQuery = ref('')
+const formSnapshot = ref('')
 
 const form = ref({
   stockBatchId: '',
@@ -56,6 +60,37 @@ const canCreateMovement = computed(() => {
   return stockBatches.value.length > 0 && Number(form.value.quantita || 0) > 0
 })
 
+const normalizedFilter = computed(() => filterQuery.value.trim().toLowerCase())
+
+const filteredMovements = computed(() => {
+  const q = normalizedFilter.value
+  if (!q) return movements.value
+  return movements.value.filter((movement) => {
+    const batch = stockBatches.value.find((item) => item.id === movement.stockBatchId)
+    const haystack = [
+      movement.id,
+      movement.tipoMovimento,
+      movement.note,
+      movement.quantita,
+      batchLabel(batch),
+      hostLabel(movement.hostId),
+    ].filter(Boolean).join(' ').toLowerCase()
+    return haystack.includes(q)
+  })
+})
+
+const isDirty = computed(() => {
+  if (editingMovementId.value === null && !form.value.stockBatchId && !String(form.value.quantita || '').trim() && !String(form.value.note || '').trim()) {
+    return false
+  }
+  return formSnapshot.value !== JSON.stringify({
+    editingMovementId: editingMovementId.value,
+    form: form.value,
+  })
+})
+
+useUnsavedChangesGuard(isDirty)
+
 const {
   allSelected,
   someSelected,
@@ -65,7 +100,14 @@ const {
   clearSelection,
   isSelected,
   getSelectedItems,
-} = useSelection(movements)
+} = useSelection(filteredMovements)
+
+function markFormSnapshot() {
+  formSnapshot.value = JSON.stringify({
+    editingMovementId: editingMovementId.value,
+    form: form.value,
+  })
+}
 
 function toLocalDateTimeInput(date = new Date()) {
   const pad = (value) => String(value).padStart(2, '0')
@@ -207,6 +249,7 @@ async function saveMovement() {
 
     message.value = existing ? 'Movimento aggiornato.' : `Movimento registrato (ID: ${saved.id}).`
     await loadData()
+    markFormSnapshot()
   } catch (err) {
     errorMessage.value = `Errore registrazione movimento: ${err.message}`
   } finally {
@@ -233,6 +276,7 @@ function startEditMovement(movement) {
     therapyId: movement.therapyId || '',
     note: movement.note || '',
   }
+  markFormSnapshot()
 }
 
 function openEditForm() {
@@ -254,6 +298,7 @@ function resetForm() {
     note: '',
   }
   clearErrors()
+  markFormSnapshot()
 }
 
 async function deleteMovement(movement) {
@@ -317,6 +362,7 @@ async function deleteSelectedMovements() {
 onMounted(() => {
   form.value.dataMovimento = toLocalDateTimeInput()
   void loadData()
+  markFormSnapshot()
 })
 </script>
 
@@ -332,6 +378,13 @@ onMounted(() => {
       <p class="muted" style="margin-top:.25rem">
         Elenco locale ordinato per data movimento piu recente.
       </p>
+      <CrudFilterBar
+        v-model="filterQuery"
+        label="Filtra movimenti"
+        placeholder="Cerca per tipo, confezione, ospite o note"
+        :visible-count="filteredMovements.length"
+        :total-count="movements.length"
+      />
 
       <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.75rem">
         <button :disabled="selectedCount !== 1" @click="openEditForm">Modifica</button>
@@ -372,7 +425,7 @@ onMounted(() => {
         </thead>
         <tbody>
           <tr
-            v-for="movement in movements"
+            v-for="movement in filteredMovements"
             :key="movement.id"
             :style="isSelected(movement.id) ? 'background:rgba(52, 152, 219, 0.12)' : undefined"
           >
@@ -395,7 +448,7 @@ onMounted(() => {
               <button style="background:#c0392b" @click="deleteMovement(movement)">Elimina</button>
             </td>
           </tr>
-          <tr v-if="movements.length === 0">
+          <tr v-if="filteredMovements.length === 0">
             <td colspan="8" class="muted">Nessun movimento registrato nel dataset locale.</td>
           </tr>
         </tbody>
