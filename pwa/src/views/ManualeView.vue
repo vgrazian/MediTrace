@@ -3,6 +3,9 @@ import { ref } from 'vue'
 import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { helpContent, manualeSezioni } from '../data/helpContent'
+import pkg from '../../package.json'
+
+const appVersion = pkg.version
 
 const route = useRoute()
 const router = useRouter()
@@ -46,13 +49,18 @@ function toggle(key) {
     </div>
 
     <div class="card manuale-intro">
-      <p>
-        Benvenuto nella guida di <strong>MediTrace</strong>.
-        Qui trovi spiegazioni semplici su come usare ogni sezione dell'applicazione.
+      <p><strong>MediTrace</strong> <span class="muted">v{{ appVersion }}</span></p>
+      <p style="margin-top:.45rem">
+        Supporta la gestione quotidiana di terapie, scorte e promemoria in strutture di cura, con controllo operativo continuo anche offline.
       </p>
-      <p class="muted" style="margin-top:.5rem">
-        Puoi anche aprire la guida contestuale di ciascuna sezione premendo il pulsante
-        <span class="help-btn-preview" aria-hidden="true">Aiuto</span> in alto nella pagina corrispondente.
+      <ul class="info-list" style="margin-top:.6rem">
+        <li>Gestione catalogo farmaci e scorte con KPI operativi.</li>
+        <li>Terapie attive per ospite con tracciamento locale e sincronizzazione.</li>
+        <li>Promemoria con flusso notifiche e controlli di sicurezza sessione.</li>
+        <li>Stanze e letti con assegnazione ospiti e storico completo.</li>
+      </ul>
+      <p class="muted" style="margin-top:.65rem;font-size:.85rem">
+        Per assistenza interna aprire una issue nel repository MediTrace indicando dispositivo, passaggi e orario evento.
       </p>
     </div>
 

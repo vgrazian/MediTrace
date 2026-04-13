@@ -255,15 +255,71 @@ function normalizePatologie(value) {
     return String(value ?? '').trim()
 }
 
+const FALLBACK_FIRST_NAMES = [
+    'Alberto', 'Beatrice', 'Carlo', 'Daniela', 'Enrico', 'Francesca', 'Giorgio', 'Helena',
+    'Ivano', 'Lidia', 'Marco', 'Nadia', 'Omar', 'Paola', 'Renato', 'Silvia',
+]
+
+const FALLBACK_LAST_NAMES = [
+    'Conti', 'Moretti', 'Ferrari', 'Galli', 'Fontana', 'Mariani', 'De Luca', 'Caruso',
+    'Lombardi', 'Rinaldi', 'Longo', 'Bianco', 'Mancini', 'Leone', 'Barbieri', 'Pellegrini',
+]
+
+function capitalizeHumanName(value) {
+    const raw = String(value ?? '').trim().toLowerCase()
+    if (!raw) return ''
+    return raw
+        .split(/\s+/)
+        .filter(Boolean)
+        .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+        .join(' ')
+}
+
+function pickUniqueHostName({ templateNome, templateCognome, hostIndex, usedNames }) {
+    let nome = capitalizeHumanName(templateNome)
+    let cognome = capitalizeHumanName(templateCognome)
+
+    if (!nome) nome = FALLBACK_FIRST_NAMES[hostIndex % FALLBACK_FIRST_NAMES.length]
+    if (!cognome) cognome = FALLBACK_LAST_NAMES[hostIndex % FALLBACK_LAST_NAMES.length]
+
+    let candidate = `${nome} ${cognome}`.toLowerCase()
+    let attempt = 0
+    while (usedNames.has(candidate)) {
+        const altFirst = FALLBACK_FIRST_NAMES[(hostIndex + attempt) % FALLBACK_FIRST_NAMES.length]
+        const altLast = FALLBACK_LAST_NAMES[(hostIndex * 3 + attempt) % FALLBACK_LAST_NAMES.length]
+        if (attempt % 2 === 0) {
+            nome = altFirst
+        } else {
+            cognome = altLast
+        }
+        candidate = `${nome} ${cognome}`.toLowerCase()
+        attempt += 1
+    }
+
+    usedNames.add(candidate)
+    return { nome, cognome }
+}
+
 /**
  * Generate realistic hosts from provided JSON dataset
  */
-function generateRealisticHosts(now) {
+function generateRealisticHosts(now, { roomsById = new Map(), bedsById = new Map() } = {}) {
     const templateHosts = Array.isArray(realisticDataset?.hosts) ? realisticDataset.hosts : []
+    const usedNames = new Set()
     return templateHosts.map((row, idx) => {
         const templateId = Number(row.id || idx + 1)
-        const nome = String(row.nome ?? '').trim()
-        const cognome = String(row.cognome ?? '').trim()
+        const { nome, cognome } = pickUniqueHostName({
+            templateNome: row.nome,
+            templateCognome: row.cognome,
+            hostIndex: idx,
+            usedNames,
+        })
+        const roomNumericId = toSafeNumericId(row.roomId)
+        const bedNumericId = toSafeNumericId(row.bedId)
+        const roomId = roomNumericId ? `__realistic__room-${roomNumericId}` : null
+        const bedId = bedNumericId ? `__realistic__bed-${bedNumericId}` : null
+        const room = roomId ? roomsById.get(roomId) : null
+        const bed = bedId ? bedsById.get(bedId) : null
         return {
             id: `__realistic__host-${templateId}`,
             codiceInterno: String(row.codiceInterno || `OSP-${String(templateId).padStart(3, '0')}`),
@@ -275,8 +331,10 @@ function generateRealisticHosts(now) {
             sesso: '',
             codiceFiscale: '',
             patologie: normalizePatologie(row.patologie),
-            roomId: row.roomId ? `__realistic__room-${Number(row.roomId)}` : null,
-            bedId: row.bedId ? `__realistic__bed-${Number(row.bedId)}` : null,
+            roomId,
+            bedId,
+            stanza: room?.codice || '',
+            letto: bed ? String(bed.numero || '') : '',
             attivo: true,
             updatedAt: now,
             deletedAt: null,
@@ -437,9 +495,11 @@ export function generateRealisticSeedData() {
     }
 
     const now = new Date().toISOString()
-    const hosts = generateRealisticHosts(now)
-    const drugs = generateRealisticDrugs()
     const { rooms, beds } = generateRealisticRoomsAndBeds(now)
+    const roomsById = new Map(rooms.map(room => [room.id, room]))
+    const bedsById = new Map(beds.map(bed => [bed.id, bed]))
+    const hosts = generateRealisticHosts(now, { roomsById, bedsById })
+    const drugs = generateRealisticDrugs()
     const batches = generateRealisticStockBatches(drugs)
     const therapies = generateRealisticTherapies(hosts, drugs, batches, now)
 

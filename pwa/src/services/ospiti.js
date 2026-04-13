@@ -28,7 +28,7 @@ export function formatHostDisplay(host) {
  * @param {boolean} params.showAll    — se true, include anche ospiti disattivati
  * @returns {Array} host arricchiti, ordinati per codiceInterno asc
  */
-export function buildHostRows({ hosts, therapies, showAll = false }) {
+export function buildHostRows({ hosts, therapies, showAll = false, rooms = [] }) {
     const therapyCountByHost = new Map()
     for (const t of therapies) {
         if (!t.deletedAt && !t.dataFine) {
@@ -36,13 +36,35 @@ export function buildHostRows({ hosts, therapies, showAll = false }) {
         }
     }
 
+    const roomById = new Map(rooms.map(r => [r.id, r]))
+    const bedById = new Map()
+    for (const room of rooms) {
+        for (const bed of (room.beds ?? [])) {
+            bedById.set(bed.id, bed)
+        }
+    }
+
     return hosts
         .filter(h => !h.deletedAt)
         .filter(h => showAll || h.attivo !== false)
-        .map(h => ({
-            ...h,
-            activeTherapies: therapyCountByHost.get(h.id) ?? 0,
-        }))
+        .map(h => {
+            let stanza = h.stanza || ''
+            let letto = h.letto !== null && h.letto !== undefined ? String(h.letto) : ''
+            if (h.roomId && !stanza) {
+                const room = roomById.get(h.roomId)
+                if (room) stanza = room.codice || ''
+            }
+            if (h.bedId && !letto) {
+                const bed = bedById.get(h.bedId)
+                if (bed) letto = String(bed.numero || '')
+            }
+            return {
+                ...h,
+                stanza,
+                letto,
+                activeTherapies: therapyCountByHost.get(h.id) ?? 0,
+            }
+        })
         .sort((a, b) => (a.codiceInterno || a.id).localeCompare(b.codiceInterno || b.id))
 }
 
@@ -103,8 +125,8 @@ export async function createHost({
         patologie: patologie?.trim() ?? '',
         roomId: roomId ?? null,
         bedId: bedId ?? null,
-        stanza: stanza?.trim() ?? '',
-        letto: letto?.trim() ?? '',
+        stanza: stanza !== null && stanza !== undefined ? String(stanza).trim() : '',
+        letto: letto !== null && letto !== undefined ? String(letto).trim() : '',
         note: note?.trim() ?? '',
         attivo: true,
         createdAt: now,
@@ -299,8 +321,8 @@ export async function updateHost({
         patologie: patologie?.trim() ?? '',
         roomId: roomId ?? null,
         bedId: bedId ?? null,
-        stanza: stanza?.trim() ?? '',
-        letto: letto?.trim() ?? '',
+        stanza: stanza !== null && stanza !== undefined ? String(stanza).trim() : '',
+        letto: letto !== null && letto !== undefined ? String(letto).trim() : '',
         note: note?.trim() ?? '',
         updatedAt: now,
         syncStatus: 'pending',

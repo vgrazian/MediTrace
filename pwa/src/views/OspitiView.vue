@@ -73,6 +73,7 @@ const rows = computed(() => buildHostRows({
     hosts: allHosts.value,
     therapies: therapies.value,
     showAll: showAll.value,
+    rooms: roomsData.value,
 }))
 
 const normalizedFilter = computed(() => filterQuery.value.trim().toLowerCase())

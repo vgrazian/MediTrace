@@ -89,18 +89,21 @@ function assertSeedEnabled(options = {}) {
 const NOW = '2026-04-04T08:00:00.000Z'
 
 const SEED_ROOMS = [
-    { id: '__seed__room-A', codice: 'A - Piano Terra', note: 'Ala nord, piano terra', updatedAt: NOW, deletedAt: null, syncStatus: 'pending', _seeded: true },
-    { id: '__seed__room-B', codice: 'B - Piano Terra', note: 'Ala sud, piano terra', updatedAt: NOW, deletedAt: null, syncStatus: 'pending', _seeded: true },
-    { id: '__seed__room-C', codice: 'C - Piano Primo', note: 'Ala centrale, primo piano', updatedAt: NOW, deletedAt: null, syncStatus: 'pending', _seeded: true },
+    { id: '__seed__room-A', codice: 'A', note: 'Piano terra, ala nord', updatedAt: NOW, deletedAt: null, syncStatus: 'pending', _seeded: true },
+    { id: '__seed__room-B', codice: 'B', note: 'Piano terra, ala sud', updatedAt: NOW, deletedAt: null, syncStatus: 'pending', _seeded: true },
+    { id: '__seed__room-C', codice: 'C', note: 'Primo piano, ala centrale', updatedAt: NOW, deletedAt: null, syncStatus: 'pending', _seeded: true },
 ]
 
 const SEED_BEDS = [
     { id: '__seed__bed-A-1', roomId: '__seed__room-A', numero: 1, note: '', updatedAt: NOW, deletedAt: null, syncStatus: 'pending', _seeded: true },
     { id: '__seed__bed-A-2', roomId: '__seed__room-A', numero: 2, note: '', updatedAt: NOW, deletedAt: null, syncStatus: 'pending', _seeded: true },
+    { id: '__seed__bed-A-3', roomId: '__seed__room-A', numero: 3, note: '', updatedAt: NOW, deletedAt: null, syncStatus: 'pending', _seeded: true },
     { id: '__seed__bed-B-1', roomId: '__seed__room-B', numero: 1, note: '', updatedAt: NOW, deletedAt: null, syncStatus: 'pending', _seeded: true },
     { id: '__seed__bed-B-2', roomId: '__seed__room-B', numero: 2, note: '', updatedAt: NOW, deletedAt: null, syncStatus: 'pending', _seeded: true },
+    { id: '__seed__bed-B-3', roomId: '__seed__room-B', numero: 3, note: '', updatedAt: NOW, deletedAt: null, syncStatus: 'pending', _seeded: true },
     { id: '__seed__bed-C-1', roomId: '__seed__room-C', numero: 1, note: '', updatedAt: NOW, deletedAt: null, syncStatus: 'pending', _seeded: true },
     { id: '__seed__bed-C-2', roomId: '__seed__room-C', numero: 2, note: '', updatedAt: NOW, deletedAt: null, syncStatus: 'pending', _seeded: true },
+    { id: '__seed__bed-C-3', roomId: '__seed__room-C', numero: 3, note: '', updatedAt: NOW, deletedAt: null, syncStatus: 'pending', _seeded: true },
 ]
 
 const SEED_DRUGS = [
@@ -123,9 +126,9 @@ const SEED_HOSTS = [
     { id: '__seed__host-4', codiceInterno: 'OSP-04', iniziali: 'L.T.', nome: 'Laura', cognome: 'Tesi', luogoNascita: 'Torino', dataNascita: '1950-02-14', sesso: 'F', codiceFiscale: 'TSELRU50B54L219X', patologie: 'Artrosi', roomId: '__seed__room-B', bedId: '__seed__bed-B-2', stanza: 'B', letto: '2', attivo: true, noteEssenziali: '', updatedAt: NOW, deletedAt: null, syncStatus: 'pending', _seeded: true },
     { id: '__seed__host-5', codiceInterno: 'OSP-05', iniziali: 'E.S.', nome: 'Elena', cognome: 'Seri', luogoNascita: 'Bologna', dataNascita: '1947-09-18', sesso: 'F', codiceFiscale: 'SRELEN47P58A944X', patologie: 'Cardiopatia ischemica', roomId: '__seed__room-C', bedId: '__seed__bed-C-1', stanza: 'C', letto: '1', attivo: true, noteEssenziali: 'Follow-up cardiologo mensile', updatedAt: NOW, deletedAt: null, syncStatus: 'pending', _seeded: true },
     { id: '__seed__host-6', codiceInterno: 'OSP-06', iniziali: 'P.C.', nome: 'Paolo', cognome: 'Cerri', luogoNascita: 'Genova', dataNascita: '1944-05-09', sesso: 'M', codiceFiscale: 'CRRPLA44E09D969X', patologie: 'Reflusso gastroesofageo', roomId: '__seed__room-C', bedId: '__seed__bed-C-2', stanza: 'C', letto: '2', attivo: true, noteEssenziali: '', updatedAt: NOW, deletedAt: null, syncStatus: 'pending', _seeded: true },
-    { id: '__seed__host-7', codiceInterno: 'OSP-07', iniziali: 'V.D.', nome: 'Vito', cognome: 'Danti', luogoNascita: 'Bari', dataNascita: '1941-01-26', sesso: 'M', codiceFiscale: 'DNTVTI41A26A662X', patologie: 'Diabete controllato', roomId: '__seed__room-A', bedId: null, stanza: 'A', letto: '3', attivo: true, noteEssenziali: 'Diabete controllato', updatedAt: NOW, deletedAt: null, syncStatus: 'pending', _seeded: true },
-    { id: '__seed__host-8', codiceInterno: 'OSP-08', iniziali: 'F.M.', nome: 'Fatima', cognome: 'Mansouri', luogoNascita: 'Rabat', dataNascita: '1949-10-05', sesso: 'F', codiceFiscale: 'MNSFTM49R45Z330X', patologie: 'Ipertensione', roomId: '__seed__room-B', bedId: null, stanza: 'B', letto: '3', attivo: true, noteEssenziali: '', updatedAt: NOW, deletedAt: null, syncStatus: 'pending', _seeded: true },
-    { id: '__seed__host-9', codiceInterno: 'OSP-09', iniziali: 'C.N.', nome: 'أحمد', cognome: 'علي', luogoNascita: 'Casablanca', dataNascita: '1946-12-30', sesso: 'M', codiceFiscale: 'LIXHMD46T30Z330X', patologie: 'BPCO lieve', roomId: '__seed__room-C', bedId: null, stanza: 'C', letto: '3', attivo: true, noteEssenziali: 'Stato stabile', updatedAt: NOW, deletedAt: null, syncStatus: 'pending', _seeded: true },
+    { id: '__seed__host-7', codiceInterno: 'OSP-07', iniziali: 'V.D.', nome: 'Vito', cognome: 'Danti', luogoNascita: 'Bari', dataNascita: '1941-01-26', sesso: 'M', codiceFiscale: 'DNTVTI41A26A662X', patologie: 'Diabete controllato', roomId: '__seed__room-A', bedId: '__seed__bed-A-3', stanza: 'A', letto: '3', attivo: true, noteEssenziali: 'Diabete controllato', updatedAt: NOW, deletedAt: null, syncStatus: 'pending', _seeded: true },
+    { id: '__seed__host-8', codiceInterno: 'OSP-08', iniziali: 'F.M.', nome: 'Fatima', cognome: 'Mansouri', luogoNascita: 'Rabat', dataNascita: '1949-10-05', sesso: 'F', codiceFiscale: 'MNSFTM49R45Z330X', patologie: 'Ipertensione', roomId: '__seed__room-B', bedId: '__seed__bed-B-3', stanza: 'B', letto: '3', attivo: true, noteEssenziali: '', updatedAt: NOW, deletedAt: null, syncStatus: 'pending', _seeded: true },
+    { id: '__seed__host-9', codiceInterno: 'OSP-09', iniziali: 'A.H.', nome: 'Ahmed', cognome: 'Hassan', luogoNascita: 'Casablanca', dataNascita: '1946-12-30', sesso: 'M', codiceFiscale: 'LIXHMD46T30Z330X', patologie: 'BPCO lieve', roomId: '__seed__room-C', bedId: '__seed__bed-C-3', stanza: 'C', letto: '3', attivo: true, noteEssenziali: 'Stato stabile', updatedAt: NOW, deletedAt: null, syncStatus: 'pending', _seeded: true },
     { id: '__seed__host-10', codiceInterno: 'OSP-10', iniziali: 'S.R.', nome: 'Sara', cognome: 'Riva', luogoNascita: 'Firenze', dataNascita: '1952-04-11', sesso: 'F', codiceFiscale: 'RVISRA52D51D612X', patologie: 'Dimesso', roomId: null, bedId: null, stanza: 'D', letto: '1', attivo: false, noteEssenziali: 'Dimesso 2026-03-28', updatedAt: NOW, deletedAt: NOW, syncStatus: 'pending', _seeded: true },
 ]
 

@@ -25,8 +25,7 @@ async function handleSignOut() {
     <RouterLink to="/terapie">Terapie</RouterLink>
     <RouterLink to="/promemoria">Promemoria</RouterLink>
     <RouterLink to="/audit">Audit</RouterLink>
-    <RouterLink to="/informazioni">Informazioni</RouterLink>
-  <RouterLink to="/manuale">Manuale</RouterLink>
+    <RouterLink to="/manuale">Manuale</RouterLink>
 
     <div class="user-area">
       <RouterLink to="/impostazioni" class="user-name user-name-link">{{ currentUser?.name }}</RouterLink>
