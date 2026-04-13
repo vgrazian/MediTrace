@@ -610,7 +610,7 @@ onMounted(() => {
             <ValidatedInput
               v-model="form.note"
               field-name="note"
-              label="Dettagli somministrazione"
+              label="Note terapia (dettagli somministrazione)"
               :error="errors.note"
               placeholder="Es: a stomaco vuoto prima del pasto"
               @validate="validateField"
@@ -633,7 +633,7 @@ onMounted(() => {
       <p><strong>Somministrazioni attive per ospite</strong></p>
       <p class="muted" style="margin-top:.25rem">Vista operativa per ospite con dettaglio terapia attiva.</p>
 
-      <div class="dataset-frame" style="margin-top:.75rem">
+      <div style="margin-top:.75rem;border:1px solid var(--line);border-radius:.5rem;background:#fff;max-height:22rem;overflow:auto">
         <table class="conflict-table">
           <thead>
             <tr>
