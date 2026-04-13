@@ -85,7 +85,7 @@ onMounted(async () => {
           <p class="muted">Promemoria somministrazioni e notifiche pendenti.</p>
         </div>
         <div class="dashboard-nav-item">
-          <RouterLink class="quick-link" to="/movimenti" aria-label="Shortcut cruscotto 7">Movimenti</RouterLink>
+          <RouterLink class="quick-link" to="/movimenti" aria-label="Shortcut cruscotto 7">Movimenti Magazzino</RouterLink>
           <p class="muted">Storico movimenti di magazzino: carichi, scarichi e rettifiche.</p>
         </div>
         <div class="dashboard-nav-item">

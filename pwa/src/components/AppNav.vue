@@ -21,7 +21,7 @@ async function handleSignOut() {
     <RouterLink to="/stanze">Stanze</RouterLink>
     <RouterLink to="/ospiti">Ospiti</RouterLink>
     <RouterLink to="/scorte">Scorte</RouterLink>
-    <RouterLink to="/movimenti">Movimenti</RouterLink>
+    <RouterLink to="/movimenti">Movimenti Magazzino</RouterLink>
     <RouterLink to="/terapie">Terapie</RouterLink>
     <RouterLink to="/promemoria">Promemoria</RouterLink>
     <RouterLink to="/audit">Audit</RouterLink>

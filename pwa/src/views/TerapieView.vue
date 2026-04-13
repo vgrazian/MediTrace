@@ -84,6 +84,34 @@ const filteredTherapies = computed(() => {
   })
 })
 
+function isTherapyCurrentlyActive(therapy) {
+  if (!therapy || therapy.deletedAt) return false
+  if (therapy.attiva === false) return false
+  const now = new Date()
+  const start = therapy.dataInizio ? new Date(therapy.dataInizio) : null
+  const end = therapy.dataFine ? new Date(therapy.dataFine) : null
+  if (start && !Number.isNaN(start.getTime()) && start > now) return false
+  if (end && !Number.isNaN(end.getTime()) && end < now) return false
+  return true
+}
+
+const therapiesByHost = computed(() => {
+  const grouped = new Map()
+  for (const therapy of therapies.value) {
+    if (!isTherapyCurrentlyActive(therapy)) continue
+    const hostKey = therapy.hostId || 'host-missing'
+    const entry = grouped.get(hostKey) ?? {
+      hostId: hostKey,
+      hostDisplay: hostLabel(hostKey),
+      therapies: [],
+    }
+    entry.therapies.push(therapy)
+    grouped.set(hostKey, entry)
+  }
+
+  return Array.from(grouped.values()).sort((a, b) => a.hostDisplay.localeCompare(b.hostDisplay))
+})
+
 const isDirty = computed(() => {
   if (!isFormOpen.value) return false
   return formSnapshot.value !== JSON.stringify({
@@ -582,9 +610,9 @@ onMounted(() => {
             <ValidatedInput
               v-model="form.note"
               field-name="note"
-              label="Note"
+              label="Dettagli somministrazione"
               :error="errors.note"
-              placeholder="Indicazioni operative"
+              placeholder="Es: a stomaco vuoto prima del pasto"
               @validate="validateField"
             />
 
@@ -599,6 +627,39 @@ onMounted(() => {
           </p>
         </div>
       </details>
+    </div>
+
+    <div class="card">
+      <p><strong>Somministrazioni attive per ospite</strong></p>
+      <p class="muted" style="margin-top:.25rem">Vista operativa per ospite con dettaglio terapia attiva.</p>
+
+      <div class="dataset-frame" style="margin-top:.75rem">
+        <table class="conflict-table">
+          <thead>
+            <tr>
+              <th>Ospite</th>
+              <th>Farmaco</th>
+              <th>Dose</th>
+              <th>Freq./giorno</th>
+              <th>Dettagli somministrazione</th>
+            </tr>
+          </thead>
+          <tbody>
+            <template v-for="group in therapiesByHost" :key="group.hostId">
+              <tr v-for="(therapy, idx) in group.therapies" :key="therapy.id">
+                <td>{{ idx === 0 ? group.hostDisplay : '↳' }}</td>
+                <td>{{ drugLabel(therapy.drugId) }}</td>
+                <td>{{ therapy.dosePerSomministrazione ?? '—' }}</td>
+                <td>{{ therapy.somministrazioniGiornaliere ?? '—' }}</td>
+                <td>{{ therapy.note || therapy.notaTerapia || '—' }}</td>
+              </tr>
+            </template>
+            <tr v-if="therapiesByHost.length === 0">
+              <td colspan="5" class="muted">Nessuna somministrazione attiva disponibile.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
     </div>
 
     <div v-if="pendingUndo" class="undo-banner" role="status" aria-live="polite">

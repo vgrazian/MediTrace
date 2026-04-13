@@ -508,13 +508,12 @@ onMounted(() => void loadData())
     <div class="card" style="margin-top:1rem">
       <p><strong>Dettaglio stanze e letti</strong></p>
       <div v-if="loading" class="muted" style="margin-top:.5rem">Caricamento...</div>
-      <div v-else style="margin-top:.75rem">
+      <div v-else class="dataset-frame" style="margin-top:.75rem;max-height:24rem;padding:.75rem">
         <div v-for="room in activeRooms" :key="room.id" style="margin-bottom:1.5rem;padding:1rem;border:1px solid #e0e0e0;border-radius:.4rem">
           <p style="margin-bottom:.5rem">
             <strong>{{ roomLabel(room) }}</strong>
             <span v-if="room.note" class="muted"> · {{ room.note }}</span>
           </p>
-          <div class="dataset-frame" style="margin-top:.5rem">
           <table class="conflict-table" style="font-size:.9rem">
             <thead>
               <tr>
@@ -551,7 +550,6 @@ onMounted(() => void loadData())
               </tr>
             </tbody>
           </table>
-          </div>
         </div>
         <p v-if="activeRooms.length === 0" class="muted">Nessuna stanza.</p>
       </div>
