@@ -69,6 +69,12 @@ jobs:
           VITE_EMERGENCY_ADMIN_PASSWORD: ${{ secrets.VITE_EMERGENCY_ADMIN_PASSWORD || '' }}
           VITE_EMERGENCY_ADMIN_GITHUB_TOKEN: ${{ secrets.VITE_EMERGENCY_ADMIN_GITHUB_TOKEN || '' }}
 
+          # Supabase/Auth and Web Push (public runtime config)
+          VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL || '' }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY || '' }}
+          VITE_SUPABASE_REDIRECT_TO: ${{ vars.VITE_SUPABASE_REDIRECT_TO || '' }}
+          VITE_VAPID_PUBLIC_KEY: ${{ vars.VITE_VAPID_PUBLIC_KEY || '' }}
+
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:

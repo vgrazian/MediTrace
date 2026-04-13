@@ -24,7 +24,7 @@ test('import CSV non dry-run persists rows in IndexedDB', async ({ page }) => {
 
     await page.getByLabel('Sorgente').selectOption('03_Ospiti.csv')
     await page.locator('label.checkbox-label input[type="checkbox"]').uncheck()
-    await page.locator('input[type="file"]').setInputFiles({
+    await page.locator('input[type="file"][accept=".csv,text/csv"]').setInputFiles({
         name: '03_Ospiti.csv',
         mimeType: 'text/csv',
         buffer: Buffer.from('guest_id,codice_interno\nguest-e2e-1,OSP-E2E-1\n'),

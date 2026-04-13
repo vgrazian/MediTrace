@@ -1,0 +1,3 @@
+guest_id,codice_interno,iniziali,nome,cognome,luogo_nascita,data_nascita,sesso,codice_fiscale,casa_alloggio,stanza_id,letto_id,patologie,attivo,note_essenziali,updated_at,deleted_at
+host_demo_001,OSP-101,MR,Mario,Rossi,Roma,1948-05-12,M,RSSMRA48E12H501X,Casa Nord,room_01,bed_01,"Ipertensione, diabete",true,Allergia penicillina,2026-04-13T08:10:00.000Z,
+host_demo_002,OSP-102,GL,Giulia,Lombardi,Milano,1952-10-21,F,LMBGLI52R61F205Y,Casa Sud,room_02,bed_03,Demenza lieve,true,Dieta iposodica,2026-04-13T08:10:00.000Z,

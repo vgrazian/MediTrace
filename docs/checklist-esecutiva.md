@@ -140,10 +140,17 @@ Criterio accettazione:
 ### 3.3 Backup, restore, aggiornamenti
 
 - [ ] Definire frequenza backup e owner operativo
-- [ ] Testare restore completo su dispositivo secondario
+- [ ] Testare restore completo su dispositivo secondario (file JSON locale)
 - [ ] Definire canale aggiornamento GitHub Pages / release rollback
 - [ ] Testare upgrade versione con migrazione dati
 - [ ] Documentare procedura rollback
+
+Test cases minimi richiesti:
+
+- [ ] Backup JSON scaricato e riaperto con validazione struttura (tabelle v1)
+- [ ] Restore JSON su device pulito con riallineamento datasetVersion
+- [ ] Verifica sync queue valorizzata dopo restore e sync manuale riuscita
+- [ ] Verifica pannello Impostazioni: stato Push API + stato Supabase con messaggi variabili mancanti
 
 Criterio accettazione:
 

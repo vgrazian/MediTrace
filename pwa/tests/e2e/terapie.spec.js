@@ -27,7 +27,7 @@ test('terapie view blocks delete when therapy is assigned to active host', async
     }
 
     await page.getByLabel('Sorgente').selectOption('03_Ospiti.csv')
-    await page.locator('input[type="file"]').setInputFiles({
+    await page.locator('input[type="file"][accept=".csv,text/csv"]').setInputFiles({
         name: '03_Ospiti.csv',
         mimeType: 'text/csv',
         buffer: Buffer.from('guest_id,codice_interno\nHOST-1,OSP-01\n'),
@@ -36,7 +36,7 @@ test('terapie view blocks delete when therapy is assigned to active host', async
     await expect(page.getByText('Accettate: 1')).toBeVisible()
 
     await page.getByLabel('Sorgente').selectOption('01_CatalogoFarmaci.csv')
-    await page.locator('input[type="file"]').setInputFiles({
+    await page.locator('input[type="file"][accept=".csv,text/csv"]').setInputFiles({
         name: '01_CatalogoFarmaci.csv',
         mimeType: 'text/csv',
         buffer: Buffer.from('drug_id,principio_attivo\nDRUG-1,Paracetamolo\n'),

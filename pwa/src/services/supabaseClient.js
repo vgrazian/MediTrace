@@ -5,6 +5,16 @@ const supabasePublishableKey = String(import.meta.env.VITE_SUPABASE_PUBLISHABLE_
 
 export const isSupabaseConfigured = Boolean(supabaseUrl && supabasePublishableKey)
 
+export function getSupabaseConfigStatus() {
+    const missingVars = []
+    if (!supabaseUrl) missingVars.push('VITE_SUPABASE_URL')
+    if (!supabasePublishableKey) missingVars.push('VITE_SUPABASE_PUBLISHABLE_KEY')
+    return {
+        configured: isSupabaseConfigured,
+        missingVars,
+    }
+}
+
 export const supabase = isSupabaseConfigured
     ? createClient(supabaseUrl, supabasePublishableKey, {
         auth: {

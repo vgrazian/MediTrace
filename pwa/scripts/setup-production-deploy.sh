@@ -4,9 +4,11 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 ENV_FILE="$ROOT_DIR/credentials.local.env"
 OUTPUT_FILE="$ROOT_DIR/pwa/.env.production.local"
+LOCAL_ENV_FILE="$ROOT_DIR/pwa/.env.local"
 RUN_BUILD="0"
 TRIGGER_DEPLOY="0"
 SET_GH="0"
+SYNC_LOCAL_ENV="1"
 
 usage() {
   cat <<'EOF'
@@ -18,6 +20,7 @@ Options:
   --build                Run production build after writing env file
   --set-gh               Push required Variables/Secrets to GitHub repository
   --trigger-deploy       Trigger GitHub Actions deploy workflow
+  --no-sync-local-env    Do not mirror generated values to pwa/.env.local
   -h, --help             Show this help
 
 Examples:
@@ -79,6 +82,10 @@ while [[ $# -gt 0 ]]; do
       TRIGGER_DEPLOY="1"
       shift
       ;;
+    --no-sync-local-env)
+      SYNC_LOCAL_ENV="0"
+      shift
+      ;;
     -h|--help)
       usage
       exit 0
@@ -104,6 +111,7 @@ VITE_BASE_URL_VALUE="${VITE_BASE_URL:-/MediTrace/}"
 VITE_SUPABASE_URL_VALUE="${VITE_SUPABASE_URL:-}"
 VITE_SUPABASE_PUBLISHABLE_KEY_VALUE="${VITE_SUPABASE_PUBLISHABLE_KEY:-}"
 VITE_SUPABASE_REDIRECT_TO_VALUE="${VITE_SUPABASE_REDIRECT_TO:-}"
+VITE_VAPID_PUBLIC_KEY_VALUE="${VITE_VAPID_PUBLIC_KEY:-}"
 
 VITE_EMERGENCY_ADMIN_ENABLED_VALUE="${VITE_EMERGENCY_ADMIN_ENABLED:-0}"
 VITE_EMERGENCY_ADMIN_USERNAME_VALUE="${VITE_EMERGENCY_ADMIN_USERNAME:-${MEDITRACE_EMERGENCY_ADMIN_USERNAME:-}}"
@@ -124,6 +132,7 @@ VITE_BASE_URL=${VITE_BASE_URL_VALUE}
 VITE_SUPABASE_URL=${VITE_SUPABASE_URL_VALUE}
 VITE_SUPABASE_PUBLISHABLE_KEY=${VITE_SUPABASE_PUBLISHABLE_KEY_VALUE}
 VITE_SUPABASE_REDIRECT_TO=${VITE_SUPABASE_REDIRECT_TO_VALUE}
+VITE_VAPID_PUBLIC_KEY=${VITE_VAPID_PUBLIC_KEY_VALUE}
 
 VITE_EMERGENCY_ADMIN_ENABLED=${VITE_EMERGENCY_ADMIN_ENABLED_VALUE}
 VITE_EMERGENCY_ADMIN_USERNAME=${VITE_EMERGENCY_ADMIN_USERNAME_VALUE}
@@ -137,6 +146,11 @@ EOF
 echo "[ok] Wrote $OUTPUT_FILE"
 echo "[info] Emergency admin enabled: $VITE_EMERGENCY_ADMIN_ENABLED_VALUE"
 
+if [[ "$SYNC_LOCAL_ENV" == "1" ]]; then
+  cp "$OUTPUT_FILE" "$LOCAL_ENV_FILE"
+  echo "[ok] Synced $LOCAL_ENV_FILE"
+fi
+
 if [[ "$SET_GH" == "1" ]]; then
   require_cmd gh
   if ! gh auth status >/dev/null 2>&1; then
@@ -146,6 +160,10 @@ if [[ "$SET_GH" == "1" ]]; then
 
   echo "[info] Syncing GitHub Variables/Secrets for production deploy..."
   set_repo_variable "VITE_BASE_URL" "$VITE_BASE_URL_VALUE"
+  set_repo_variable "VITE_SUPABASE_URL" "$VITE_SUPABASE_URL_VALUE"
+  set_repo_variable "VITE_SUPABASE_PUBLISHABLE_KEY" "$VITE_SUPABASE_PUBLISHABLE_KEY_VALUE"
+  set_repo_variable "VITE_SUPABASE_REDIRECT_TO" "$VITE_SUPABASE_REDIRECT_TO_VALUE"
+  set_repo_variable "VITE_VAPID_PUBLIC_KEY" "$VITE_VAPID_PUBLIC_KEY_VALUE"
   set_repo_variable "VITE_EMERGENCY_ADMIN_ENABLED" "$VITE_EMERGENCY_ADMIN_ENABLED_VALUE"
   set_repo_variable "VITE_EMERGENCY_ADMIN_USERNAME" "$VITE_EMERGENCY_ADMIN_USERNAME_VALUE"
   set_repo_variable "VITE_EMERGENCY_ADMIN_EMAIL" "$VITE_EMERGENCY_ADMIN_EMAIL_VALUE"

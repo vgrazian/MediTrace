@@ -129,6 +129,7 @@ cp pwa/.env.example pwa/.env.local
 # VITE_SUPABASE_URL=...
 # VITE_SUPABASE_PUBLISHABLE_KEY=...
 # VITE_SUPABASE_REDIRECT_TO=...
+# VITE_VAPID_PUBLIC_KEY=...
 ```
 
 ### Test
@@ -166,6 +167,7 @@ Le variabili applicative usate dal build sono:
 - `VITE_SUPABASE_URL` (opzionale)
 - `VITE_SUPABASE_PUBLISHABLE_KEY` (opzionale)
 - `VITE_SUPABASE_REDIRECT_TO` (opzionale)
+- `VITE_VAPID_PUBLIC_KEY` (opzionale, richiesto per Web Push API)
 - `VITE_EMERGENCY_ADMIN_ENABLED` (consigliato `0` in produzione)
 - `VITE_EMERGENCY_ADMIN_USERNAME` (opzionale)
 - `VITE_EMERGENCY_ADMIN_PASSWORD` (opzionale)
@@ -185,8 +187,10 @@ Lo script:
 
 1. legge i valori da `credentials.local.env` (o da file passato con `--env-file`)
 2. genera `pwa/.env.production.local` (non tracciato da git)
-3. opzionalmente esegue build (`--build`)
-4. opzionalmente avvia il workflow deploy (`--trigger-deploy`)
+3. sincronizza automaticamente anche `pwa/.env.local` (usa `--no-sync-local-env` per disattivare)
+4. opzionalmente aggiorna GitHub Variables/Secrets (`--set-gh`)
+5. opzionalmente esegue build (`--build`)
+6. opzionalmente avvia il workflow deploy (`--trigger-deploy`)
 
 Esempi:
 
@@ -197,9 +201,19 @@ bash pwa/scripts/setup-production-deploy.sh
 # setup + build produzione
 bash pwa/scripts/setup-production-deploy.sh --build
 
+# setup + sync variabili repository + build
+bash pwa/scripts/setup-production-deploy.sh --set-gh --build
+
 # setup + build + trigger deploy GitHub Pages
 bash pwa/scripts/setup-production-deploy.sh --build --trigger-deploy
 ```
+
+### Backup/Restore locale e CSV d'esempio
+
+- In `Impostazioni > Backup locale` sono disponibili:
+  - download backup JSON completo
+  - restore da file JSON con conferma e ri-coda sync
+- Nel `Manuale Utente` (sezione Impostazioni) sono disponibili file CSV di esempio scaricabili per `Import CSV guidato`.
 
 Deploy operativo:
 

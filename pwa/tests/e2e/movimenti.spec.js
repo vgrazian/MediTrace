@@ -26,7 +26,7 @@ test('movimenti view supports registering a carico and a scarico', async ({ page
     if (await dryRunCheckbox.isChecked()) await dryRunCheckbox.uncheck()
 
     await page.getByLabel('Sorgente').selectOption('01_CatalogoFarmaci.csv')
-    await page.locator('input[type="file"]').setInputFiles({
+    await page.locator('input[type="file"][accept=".csv,text/csv"]').setInputFiles({
         name: '01_CatalogoFarmaci.csv',
         mimeType: 'text/csv',
         buffer: Buffer.from('drug_id,principio_attivo\nDRUG-MOV-1,Ibuprofene E2E\n'),
@@ -35,7 +35,7 @@ test('movimenti view supports registering a carico and a scarico', async ({ page
     await expect(page.getByText('Accettate: 1')).toBeVisible()
 
     await page.getByLabel('Sorgente').selectOption('02_ConfezioniMagazzino.csv')
-    await page.locator('input[type="file"]').setInputFiles({
+    await page.locator('input[type="file"][accept=".csv,text/csv"]').setInputFiles({
         name: '02_ConfezioniMagazzino.csv',
         mimeType: 'text/csv',
         buffer: Buffer.from('stock_item_id,drug_id,nome_commerciale,quantita_attuale\nBATCH-MOV-1,DRUG-MOV-1,Moment E2E,50\n'),
