@@ -136,6 +136,23 @@ function drugLabel(drugId) {
   return drug.nomeFarmaco || drug.principioAttivo || 'Farmaco senza nome'
 }
 
+function isActiveHost(host) {
+  if (!host) return false
+  if (host.deletedAt) return false
+  if (host.attivo === false) return false
+  return true
+}
+
+function getBlockingHostForTherapy(therapy) {
+  if (!therapy?.hostId) return null
+  const host = hosts.value.find(item => item.id === therapy.hostId)
+  return isActiveHost(host) ? host : null
+}
+
+function therapyAssignmentLabel(therapy) {
+  return `${therapy.id || 'terapia-n/d'} (ospite: ${hostLabel(therapy.hostId)})`
+}
+
 async function loadData() {
   loading.value = true
   errorMessage.value = ''
@@ -261,6 +278,13 @@ function resetForm() {
 }
 
 async function deleteTherapy(therapy) {
+  const blockingHost = getBlockingHostForTherapy(therapy)
+  if (blockingHost) {
+    message.value = ''
+    errorMessage.value = `Non e' possibile eliminare la terapia ${therapyAssignmentLabel(therapy)} in quanto e' ancora assegnata a un ospite attivo. Aggiorna prima l'assegnazione.`
+    return
+  }
+
   const confirmed = await confirmDeactivateTherapy(`${hostLabel(therapy.hostId)} · ${drugLabel(therapy.drugId)}`)
   if (!confirmed) return
 
@@ -295,6 +319,16 @@ async function deleteSelectedTherapies() {
   if (selectedCount.value === 0) return
 
   const selectedTherapies = getSelectedItems()
+
+  const blocked = selectedTherapies
+    .filter(therapy => getBlockingHostForTherapy(therapy))
+  if (blocked.length > 0) {
+    const details = blocked.map(therapyAssignmentLabel).join(', ')
+    message.value = ''
+    errorMessage.value = `Non e' possibile eliminare una o piu' terapie in quanto ancora assegnate a ospiti attivi: ${details}. Aggiorna prima le assegnazioni.`
+    return
+  }
+
   const confirmed = await confirmDeleteMultiple(
     selectedCount.value,
     selectedCount.value === 1 ? 'terapia' : 'terapie',

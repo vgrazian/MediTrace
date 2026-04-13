@@ -177,6 +177,16 @@ async function handleSaveBedEdit() {
 
 async function handleDeactivateRoom(roomId) {
   const room = roomsData.value.find(item => item.id === roomId)
+  const activeBeds = (room?.beds || []).filter(bed => !bed.deletedAt)
+  if (activeBeds.length > 0) {
+    const containedBeds = activeBeds
+      .map(bed => `${bedLabel(bed)} (${bed.id})`)
+      .join(', ')
+    message.value = ''
+    errorMessage.value = `Non e' possibile eliminare la stanza "${roomLabel(room || { codice: roomId })}" in quanto contiene ancora oggetti di tipo letto: ${containedBeds}.`
+    return
+  }
+
   const confirmed = await openConfirmDialog({
     title: 'Conferma eliminazione stanza',
     message: `Eliminare la stanza "${roomId}"?`,
