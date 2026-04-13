@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.1] - 2026-04-13
+### Added
+- Added seeded demo operator auth accounts (`rosa`, `margherita`, `giglio`) through [`seedAuthUsers.js`](pwa/src/services/seedAuthUsers.js), integrated in both legacy and realistic seed flows.
+- Added Android phone UI smoke coverage with dedicated Playwright project `android-phone-chromium-smoke` and spec [`android-phone-smoke.spec.js`](pwa/tests/e2e/android-phone-smoke.spec.js).
+
+### Changed
+- Updated test-data cleanup so [`clearSeedData()`](pwa/src/services/seedData.js) and [`clearRealisticSeedData()`](pwa/src/services/seedDataRealistic.js) always remove demo operators, including when no seed manifest is present.
+- Updated emergency admin bootstrap credentials to use `admin` (alphanumeric password >= 8) and preserve the admin user during demo-data cleanup.
+- Updated import feedback in [`ImpostazioniView.vue`](pwa/src/views/ImpostazioniView.vue) to report the number of seeded demo operators created.
+
+### Verified
+- Full unit suite passes locally: `270/270`.
+- Full Playwright suite passes locally: `54/54` (including Android phone emulation smoke).
+- Production build passes locally: `npm --prefix pwa run build`.
+
 ## [0.5.0] - 2026-04-12
 ### Added
 - Added guided popup add panels opened from `Aggiungi` actions in [`FarmaciView.vue`](pwa/src/views/FarmaciView.vue), [`OspitiView.vue`](pwa/src/views/OspitiView.vue), [`TerapieView.vue`](pwa/src/views/TerapieView.vue), and [`MovimentiView.vue`](pwa/src/views/MovimentiView.vue).

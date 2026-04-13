@@ -45,7 +45,7 @@ Dispositivo A                     GitHub Gist (privato)
 | **Autenticazione** | Username + password locale con hash/salt; Supabase Auth opzionale per reset/inviti email |
 | **Sync cloud** | GitHub Gist privato (manifest JSON + snapshot dati) |
 | **Hosting** | GitHub Pages + Service Worker (offline cache) |
-| **Test** | Vitest 3 (unit + coverage v8) + Playwright (E2E, Chromium + WebKit) |
+| **Test** | Vitest 3 (unit + coverage v8) + Playwright (E2E, Chromium + WebKit + Android phone emulation smoke) |
 | **Build** | Vite 5 — ~70 kb gzip |
 
 ### Object store IndexedDB
@@ -137,7 +137,7 @@ cp pwa/.env.example pwa/.env.local
 # Unit test + coverage
 npm --prefix pwa run test:unit
 
-# E2E con Playwright (Chromium + WebKit)
+# E2E con Playwright (Chromium + WebKit + Android phone smoke)
 npm --prefix pwa run test:e2e
 
 # Scenario operativo giornaliero (E2E user journey)
@@ -212,8 +212,8 @@ Deploy operativo:
 
 | Metrica | Valore |
 | --- | --- |
-| Unit test | **123 / 123** ✅ (15 file, Vitest) |
-| E2E test | **34 / 34** ✅ (Playwright, Chromium + WebKit mobile) |
+| Unit test | **270 / 270** ✅ (22 file, Vitest) |
+| E2E test | **54 / 54** ✅ (Playwright, Chromium + WebKit + Android phone emulation smoke) |
 | Statements | 66 % |
 | Branches | 53 % |
 | Functions | 68 % |

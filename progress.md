@@ -1,10 +1,10 @@
 # CURRENT STATUS
 
 ## Active Task
-Complete review-cycle fixes for CRUD UX wave 2 and keep PR #66 aligned with UX feedback.
+Post-merge stabilization after PR #70 and documentation alignment for seed/auth/mobile smoke updates.
 
 ## Current Phase
-PR #66 is open from `feat/crud-ux-followup-wave2` with undo soft-delete implementation; QA feedback fixes are being applied on top.
+PR #70 (`feat(seed): demo operators + android phone smoke`) merged to `main`; repository is in green CI state.
 
 ## Done So Far
 1. Referential integrity and conflict error management completed for core CRUD deletes, with unit tests and consistency test scenarios.
@@ -44,11 +44,20 @@ PR #66 is open from `feat/crud-ux-followup-wave2` with undo soft-delete implemen
 - fixed Scorte `Aggiungi` on Confezioni Attive to open the management panel with input fields visible
 - added contextual breadcrumbs in Manuale to return to originating page from `Aiuto`
 - removed stray source text accidentally rendered in Audit header
+1. PR #70 merged to `main`:
+- seeded demo operators added (`rosa`, `margherita`, `giglio`) for test-data generation
+- demo cleanup now removes seeded operators in both legacy and realistic clear paths, while preserving `admin`
+- emergency admin bootstrap switched to username `admin` with compliant password policy
+- Android phone emulator smoke test added in Playwright (`android-phone-chromium-smoke`)
+1. Validation completed for PR #70 changes:
+- `npm --prefix pwa run test:unit` passed (`270/270`)
+- `npm --prefix pwa run test:e2e` passed (`54/54`)
+- `npm --prefix pwa run build` passed
 
 ## Immediate Next Steps
-1. Validate QA feedback fixes with targeted E2E (Scorte/Stanze/Manuale/Audit paths) and push updates to PR #66.
-2. Merge PR #66 after CI green.
-3. Start follow-up item 2 (save-state indicators) on same branch after merge decision.
+1. Monitor next post-merge CI/deploy runs on `main` and confirm Pages smoke remains green.
+2. Start the next planned CRUD UX follow-up slice from updated `main` baseline.
+3. Keep changelog/progress in sync for each merged PR slice.
 
 ## Blockers
 - No blockers currently identified.
@@ -56,7 +65,7 @@ PR #66 is open from `feat/crud-ux-followup-wave2` with undo soft-delete implemen
 ## PR STILL TO BE WORKED ON
 
 ## Open Pull Requests (GitHub)
-1. PR #66 - `feat(crud-ux): undo for soft-deletes across core sections`
+1. None currently open.
 
 ## Planned PR Work (Not Open Yet)
 1. New PR from `feat/crud-ux-followup-wave2` for follow-up UX work in `docs/crud-ux-followup-pr.md`.
@@ -75,8 +84,8 @@ PR #66 is open from `feat/crud-ux-followup-wave2` with undo soft-delete implemen
 - pwa/tests/e2e/
 
 ## Current Branch State
-- Branch: feat/crud-ux-followup-wave2
-- Working tree: includes QA feedback fixes (Scorte/Stanze/Manuale/Audit) pending push to PR #66
+- Branch: main
+- Working tree: clean after PR #70 merge
 
 ## Live App Deployment
 - GitHub Pages source: main
@@ -102,6 +111,6 @@ PR #66 is open from `feat/crud-ux-followup-wave2` with undo soft-delete implemen
 3. Keep docs/changelog aligned for each release slice
 
 ## Current Priority
-- HIGH: Implement follow-up CRUD UX wave 2 without regressing guided add flow
-- HIGH: Preserve 49/49 E2E reliability while extending undo/save-state behavior
+- HIGH: Preserve green CI/deploy baseline after PR #70 merge
+- HIGH: Continue CRUD UX follow-up wave 2 from refreshed main baseline
 - MEDIUM: Keep changelog/docs aligned with each rollout increment
