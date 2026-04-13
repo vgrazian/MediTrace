@@ -19,6 +19,9 @@ vi.mock('../../src/db', () => ({
             async toArray() {
                 return Array.from(therapies.values())
             },
+            async put(row) {
+                therapies.set(String(row.id), row)
+            },
         },
         syncQueue: {
             async add() {
@@ -205,6 +208,15 @@ describe('ospiti service CRUD', () => {
     })
 
     it('deleteHost performs soft-delete and enqueues delete', async () => {
+        therapies.set('therapy-active', {
+            id: 'therapy-active',
+            hostId: 'host-existing',
+            dataFine: null,
+            deletedAt: null,
+            attiva: true,
+            syncStatus: 'synced',
+        })
+
         const deleted = await deleteHost({
             hostId: 'host-existing',
             operatorId: 'op-admin',
@@ -212,16 +224,23 @@ describe('ospiti service CRUD', () => {
 
         expect(deleted.attivo).toBe(false)
         expect(deleted.deletedAt).toBeTruthy()
+        expect(hosts.get('host-existing')?.roomId).toBeNull()
+        expect(hosts.get('host-existing')?.bedId).toBeNull()
+        expect(therapies.get('therapy-active')?.deletedAt).toBeTruthy()
+        expect(therapies.get('therapy-active')?.attiva).toBe(false)
         expect(hosts.get('host-existing')?.syncStatus).toBe('pending')
         expect(enqueueCalls).toContainEqual({ entityType: 'hosts', entityId: 'host-existing', operation: 'delete' })
+        expect(enqueueCalls).toContainEqual({ entityType: 'therapies', entityId: 'therapy-active', operation: 'upsert' })
         const deletedAudit = activityLogRows.find(row => row.action === 'host_deleted')
+        const therapyCascadeAudit = activityLogRows.find(row => row.action === 'therapy_deactivated_due_host_delete')
         expect(deletedAudit).toBeTruthy()
+        expect(therapyCascadeAudit).toBeTruthy()
         expect(deletedAudit?.deviceId).toBe('device-test')
         expect(deletedAudit?.operatorId).toBe('op-admin')
         expect(typeof deletedAudit?.ts).toBe('string')
     })
 
-    it('deleteHost blocks when host has active therapies', async () => {
+    it('deleteHost cascades when host has active therapies', async () => {
         therapies.set('therapy-active', {
             id: 'therapy-active',
             hostId: 'host-existing',
@@ -230,16 +249,15 @@ describe('ospiti service CRUD', () => {
             attiva: true,
         })
 
-        await expect(deleteHost({
+        const deleted = await deleteHost({
             hostId: 'host-existing',
             operatorId: 'op-admin',
-        })).rejects.toMatchObject({
-            code: 'HOST_HAS_ACTIVE_THERAPIES',
-            category: 'conflict',
         })
 
-        expect(hosts.get('host-existing')?.deletedAt).toBeNull()
-        expect(activityLogRows).toHaveLength(0)
+        expect(deleted.deletedAt).toBeTruthy()
+        expect(therapies.get('therapy-active')?.deletedAt).toBeTruthy()
+        expect(activityLogRows.find(row => row.action === 'host_deleted')).toBeTruthy()
+        expect(activityLogRows.find(row => row.action === 'therapy_deactivated_due_host_delete')).toBeTruthy()
     })
 
     it('deleteHost allows deletion when therapies are historical', async () => {

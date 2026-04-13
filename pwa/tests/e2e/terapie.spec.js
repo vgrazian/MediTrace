@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test'
 import { loginOrRegisterSeededUser } from './helpers/login'
 import { runWithAcceptedConfirmation } from './helpers/confirm'
 
-test('terapie view supports create and delete flow', async ({ page }) => {
+test('terapie view blocks delete when therapy is assigned to active host', async ({ page }) => {
     await page.route('https://api.github.com/user', async route => {
         await route.fulfill({
             status: 200,
@@ -70,13 +70,8 @@ test('terapie view supports create and delete flow', async ({ page }) => {
     await expect(page.getByRole('button', { name: 'Salva modifica' })).toBeVisible()
     await page.getByRole('button', { name: 'Annulla' }).first().click()
 
-    await runWithAcceptedConfirmation(page, async () => {
-        await page.getByRole('button', { name: 'Elimina (1)' }).first().click()
-    })
-
-    await expect(page.locator('p.muted', { hasText: 'Terapia eliminata.' })).toBeVisible()
-    await expect(page.locator('.undo-banner')).toContainText('Terapia')
-    await page.locator('.undo-banner').getByRole('button', { name: 'Annulla eliminazione' }).click()
-    await expect(page.getByText('Eliminazione annullata: terapia ripristinata.')).toBeVisible()
+    await page.getByRole('button', { name: 'Elimina (1)' }).first().click()
+    await expect(page.getByText(/Non e' possibile eliminare una o piu' terapie/i)).toBeVisible()
+    await expect(page.getByText(/ancora assegnate a ospiti attivi/i)).toBeVisible()
     await expect(page.getByRole('cell', { name: '[OSP-01] - OSP-01', exact: true })).toBeVisible()
 })

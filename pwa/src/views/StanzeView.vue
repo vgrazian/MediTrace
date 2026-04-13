@@ -5,6 +5,7 @@ import { createRoom, createBed, updateRoom, updateBed, deactivateRoom, deactivat
 import { useHelpNavigation } from '../composables/useHelpNavigation'
 import { openConfirmDialog } from '../services/confirmDialog'
 import { useUndoDelete } from '../composables/useUndoDelete'
+import CrudFilterBar from '../components/CrudFilterBar.vue'
 
 const { currentUser } = useAuth()
 const { goToHelpSection } = useHelpNavigation()
@@ -18,6 +19,7 @@ const errorMessage = ref('')
 const roomsData = ref([])
 const showInactive = ref(false)
 const isFormOpen = ref(false)
+const filterQuery = ref('')
 const panelMode = ref('list')
 
 const roomForm = ref({
@@ -44,7 +46,15 @@ const bedEditForm = ref({
   note: '',
 })
 
-const activeRooms = computed(() => roomsData.value.filter(r => !showInactive.value ? !r.deletedAt : true))
+const activeRooms = computed(() => {
+  const base = roomsData.value.filter(r => !showInactive.value ? !r.deletedAt : true)
+  const q = filterQuery.value.trim().toLowerCase()
+  if (!q) return base
+  return base.filter(r => {
+    const haystack = [r.codice, r.note, ...(r.beds ?? []).map(b => String(b.numero))].filter(Boolean).join(' ').toLowerCase()
+    return haystack.includes(q)
+  })
+})
 
 const canCreateRoom = computed(() => roomForm.value.codice.trim())
 
@@ -177,6 +187,15 @@ async function handleSaveBedEdit() {
 
 async function handleDeactivateRoom(roomId) {
   const room = roomsData.value.find(item => item.id === roomId)
+  const activeBeds = (room?.beds || []).filter(bed => !bed.deletedAt)
+  if (activeBeds.length > 0) {
+    const containedBeds = activeBeds
+      .map(bed => `${bedLabel(bed)} (${bed.id})`)
+      .join(', ')
+    message.value = ''
+    errorMessage.value = `Non e' possibile eliminare la stanza "${roomLabel(room || { codice: roomId })}" in quanto contiene ancora oggetti di tipo letto: ${containedBeds}.`
+    return
+  }
   const confirmed = await openConfirmDialog({
     title: 'Conferma eliminazione stanza',
     message: `Eliminare la stanza "${roomId}"?`,
@@ -313,6 +332,13 @@ onMounted(() => void loadData())
 
     <div class="card">
       <p><strong>Elenco stanze</strong></p>
+      <CrudFilterBar
+        v-model="filterQuery"
+        label="Filtra stanze"
+        placeholder="Cerca per codice stanza o note"
+        :visible-count="activeRooms.length"
+        :total-count="roomsData.filter(r => !showInactive ? !r.deletedAt : true).length"
+      />
       <label style="margin-top:.5rem;display:flex;align-items:center;gap:.4rem">
         <input v-model="showInactive" type="checkbox" />
         Mostra anche disattivate

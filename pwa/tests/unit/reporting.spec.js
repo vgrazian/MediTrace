@@ -25,8 +25,8 @@ import { buildOperationalReport, buildOrderDraftText, operationalReportToCsv, re
 describe('operational reporting', () => {
     beforeEach(() => {
         data.drugs = [
-            { id: 'drug-a', principioAttivo: 'Paracetamolo', scortaMinima: 10 },
-            { id: 'drug-b', principioAttivo: 'Ibuprofene', scortaMinima: 8 },
+            { id: 'drug-a', principioAttivo: 'Paracetamolo', scortaMinima: 10, sogliaGiorniAutonomia: 14 },
+            { id: 'drug-b', principioAttivo: 'Ibuprofene', scortaMinima: 8, sogliaGiorniAutonomia: 30 },
         ]
 
         data.hosts = [
@@ -227,7 +227,8 @@ describe('operational reporting', () => {
 
         const critical = reportingTestUtils.computePriority({ stockCurrent: 0, weeklyConsumption: 4, reorderThreshold: 2 })
         const medium = reportingTestUtils.computePriority({ stockCurrent: 3, weeklyConsumption: 0, reorderThreshold: 5 })
-        const ok = reportingTestUtils.computePriority({ stockCurrent: 20, weeklyConsumption: 5, reorderThreshold: 5 })
+        // stockCurrent 50 / weeklyConsumption 5 = 10 weeks > 30-day default threshold (4.28 weeks) → ok
+        const ok = reportingTestUtils.computePriority({ stockCurrent: 50, weeklyConsumption: 5, reorderThreshold: 5 })
 
         expect(critical.warningPriority).toBe('critica')
         expect(medium.warningPriority).toBe('media')

@@ -27,12 +27,14 @@ const {
   nomeFarmaco: { required: true, minLength: 2, maxLength: 100 },
   principioAttivo: { required: true, minLength: 2, maxLength: 100 },
   classeTerapeutica: { maxLength: 50 },
-  scortaMinima: { numeric: true, positiveNumber: true, integer: true }
+  scortaMinima: { numeric: true, positiveNumber: true, integer: true },
+  sogliaGiorniAutonomia: { numeric: true, positiveNumber: true, integer: true }
 }, {
   nomeFarmaco: 'Nome farmaco',
   principioAttivo: 'Principio attivo',
   classeTerapeutica: 'Classe terapeutica',
-  scortaMinima: 'Scorta minima'
+  scortaMinima: 'Scorta minima',
+  sogliaGiorniAutonomia: 'Soglia autonomia (giorni)'
 })
 
 // Validation for batch form
@@ -78,6 +80,7 @@ const drugForm = ref({
   principioAttivo: '',
   classeTerapeutica: '',
   scortaMinima: '',
+  sogliaGiorniAutonomia: '30',
 })
 
 const batchForm = ref({
@@ -180,6 +183,38 @@ function formatDate(value) {
   return date.toLocaleDateString()
 }
 
+function isActiveTherapy(therapy) {
+  if (!therapy || therapy.deletedAt) return false
+  if (therapy.attiva === false) return false
+  if (therapy.dataFine) return false
+  return true
+}
+
+async function getBlockingTherapiesByDrugIds(drugIds) {
+  const normalizedIds = new Set((drugIds || []).filter(Boolean))
+  if (normalizedIds.size === 0) return new Map()
+
+  const rawTherapies = await db.therapies.toArray()
+  const blockers = rawTherapies
+    .filter(isActiveTherapy)
+    .filter(therapy => normalizedIds.has(therapy.drugId))
+
+  const grouped = new Map()
+  for (const therapy of blockers) {
+    const key = therapy.drugId
+    const list = grouped.get(key) || []
+    list.push(therapy)
+    grouped.set(key, list)
+  }
+  return grouped
+}
+
+function therapyRefLabel(therapy) {
+  const hostRef = String(therapy.hostId || 'ospite-n/d').trim()
+  const therapyRef = String(therapy.id || 'terapia-n/d').trim()
+  return `${therapyRef} (ospite: ${hostRef})`
+}
+
 async function loadData() {
   loading.value = true
   errorMessage.value = ''
@@ -226,6 +261,7 @@ async function createDrug() {
       principioAttivo,
       classeTerapeutica: drugForm.value.classeTerapeutica.trim() || '',
       scortaMinima: Number(drugForm.value.scortaMinima || 0),
+      sogliaGiorniAutonomia: Number(drugForm.value.sogliaGiorniAutonomia ?? 30) || 30,
       operatorId: currentUser.value?.login ?? null,
     })
 
@@ -234,6 +270,7 @@ async function createDrug() {
       principioAttivo: '',
       classeTerapeutica: '',
       scortaMinima: '',
+      sogliaGiorniAutonomia: '30',
     }
     clearDrugErrors()
     editingDrugId.value = null
@@ -380,6 +417,7 @@ function startEditDrug(drug) {
     principioAttivo: drug.principioAttivo || '',
     classeTerapeutica: drug.classeTerapeutica || '',
     scortaMinima: String(drug.scortaMinima ?? ''),
+    sogliaGiorniAutonomia: String(drug.sogliaGiorniAutonomia ?? 30),
   }
   markFormSnapshot()
 }
@@ -406,6 +444,7 @@ function resetDrugForm() {
     principioAttivo: '',
     classeTerapeutica: '',
     scortaMinima: '',
+    sogliaGiorniAutonomia: '30',
   }
   clearDrugErrors()
   markFormSnapshot()
@@ -427,6 +466,16 @@ function resetBatchForm() {
 
 async function deleteDrugRecord(drug) {
   const drugName = drug.nomeFarmaco || drug.principioAttivo || drug.id
+
+  const blockersByDrug = await getBlockingTherapiesByDrugIds([drug.id])
+  const blockers = blockersByDrug.get(drug.id) || []
+  if (blockers.length > 0) {
+    const contained = blockers.map(therapyRefLabel).join(', ')
+    message.value = ''
+    errorMessage.value = `Non e' possibile eliminare il farmaco "${drugName}" in quanto contiene ancora oggetti di tipo terapia attiva: ${contained}. Aggiorna o disattiva prima le terapie collegate.`
+    return
+  }
+
   const confirmed = await confirmDeleteDrug(drugName)
   if (!confirmed) return
 
@@ -478,6 +527,23 @@ async function deleteSelectedDrugs() {
   if (selectedDrugsCount.value === 0) return
 
   const selectedDrugs = getSelectedDrugs()
+
+  const blockersByDrug = await getBlockingTherapiesByDrugIds(selectedDrugs.map(drug => drug.id))
+  if (blockersByDrug.size > 0) {
+    const details = selectedDrugs
+      .map((drug) => {
+        const blockers = blockersByDrug.get(drug.id) || []
+        if (blockers.length === 0) return null
+        const name = drug.nomeFarmaco || drug.principioAttivo || drug.id
+        return `${name}: ${blockers.map(therapyRefLabel).join(', ')}`
+      })
+      .filter(Boolean)
+      .join(' | ')
+    message.value = ''
+    errorMessage.value = `Non e' possibile eliminare uno o piu' farmaci perche' presenti in terapie attive: ${details}. Aggiorna o disattiva prima le terapie collegate.`
+    return
+  }
+
   const confirmed = await confirmDeleteMultiple(
     selectedDrugsCount.value,
     selectedDrugsCount.value === 1 ? 'farmaco' : 'farmaci',
@@ -642,6 +708,7 @@ onMounted(() => {
             <th>Principio attivo</th>
             <th>Classe</th>
             <th>Scorta minima</th>
+            <th>Autonomia (gg)</th>
             <th>Azioni</th>
           </tr>
         </thead>
@@ -663,6 +730,7 @@ onMounted(() => {
             <td>{{ drug.principioAttivo }}</td>
             <td>{{ drug.classeTerapeutica || '—' }}</td>
             <td>{{ drug.scortaMinima ?? 0 }}</td>
+            <td>{{ drug.sogliaGiorniAutonomia ?? 30 }}</td>
             <td>
               <button style="margin-right:.35rem" @click="startEditDrug(drug)">Modifica</button>
               <button style="background:#d35f55" @click="deleteDrugRecord(drug)">Elimina</button>
@@ -812,6 +880,16 @@ onMounted(() => {
               type="number"
               :error="drugErrors.scortaMinima"
               placeholder="0"
+              @validate="(field, value) => validateDrugField(field, value)"
+            />
+
+            <ValidatedInput
+              v-model="drugForm.sogliaGiorniAutonomia"
+              field-name="sogliaGiorniAutonomia"
+              label="Soglia autonomia (giorni)"
+              type="number"
+              :error="drugErrors.sogliaGiorniAutonomia"
+              placeholder="30"
               @validate="(field, value) => validateDrugField(field, value)"
             />
 

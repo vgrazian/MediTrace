@@ -8,14 +8,6 @@
  */
 import { db, enqueue, getSetting } from '../db'
 import { generateEntityId } from './ids'
-import { AppError, ErrorCategory, ErrorSeverity } from './errorHandling'
-
-function isActiveTherapy(therapy) {
-    if (!therapy || therapy.deletedAt) return false
-    if (therapy.attiva === false) return false
-    if (therapy.dataFine) return false
-    return true
-}
 
 export function formatHostDisplay(host) {
     if (!host) return '—'
@@ -36,7 +28,7 @@ export function formatHostDisplay(host) {
  * @param {boolean} params.showAll    — se true, include anche ospiti disattivati
  * @returns {Array} host arricchiti, ordinati per codiceInterno asc
  */
-export function buildHostRows({ hosts, therapies, showAll = false }) {
+export function buildHostRows({ hosts, therapies, showAll = false, rooms = [] }) {
     const therapyCountByHost = new Map()
     for (const t of therapies) {
         if (!t.deletedAt && !t.dataFine) {
@@ -44,13 +36,35 @@ export function buildHostRows({ hosts, therapies, showAll = false }) {
         }
     }
 
+    const roomById = new Map(rooms.map(r => [r.id, r]))
+    const bedById = new Map()
+    for (const room of rooms) {
+        for (const bed of (room.beds ?? [])) {
+            bedById.set(bed.id, bed)
+        }
+    }
+
     return hosts
         .filter(h => !h.deletedAt)
         .filter(h => showAll || h.attivo !== false)
-        .map(h => ({
-            ...h,
-            activeTherapies: therapyCountByHost.get(h.id) ?? 0,
-        }))
+        .map(h => {
+            let stanza = h.stanza || ''
+            let letto = h.letto !== null && h.letto !== undefined ? String(h.letto) : ''
+            if (h.roomId && !stanza) {
+                const room = roomById.get(h.roomId)
+                if (room) stanza = room.codice || ''
+            }
+            if (h.bedId && !letto) {
+                const bed = bedById.get(h.bedId)
+                if (bed) letto = String(bed.numero || '')
+            }
+            return {
+                ...h,
+                stanza,
+                letto,
+                activeTherapies: therapyCountByHost.get(h.id) ?? 0,
+            }
+        })
         .sort((a, b) => (a.codiceInterno || a.id).localeCompare(b.codiceInterno || b.id))
 }
 
@@ -111,8 +125,8 @@ export async function createHost({
         patologie: patologie?.trim() ?? '',
         roomId: roomId ?? null,
         bedId: bedId ?? null,
-        stanza: stanza?.trim() ?? '',
-        letto: letto?.trim() ?? '',
+        stanza: stanza !== null && stanza !== undefined ? String(stanza).trim() : '',
+        letto: letto !== null && letto !== undefined ? String(letto).trim() : '',
         note: note?.trim() ?? '',
         attivo: true,
         createdAt: now,
@@ -150,35 +164,41 @@ export async function deactivateHost({ hostId, operatorId }) {
     if (!host || host.deletedAt) throw new Error(`Ospite "${hostId}" non trovato`)
 
     const allTherapies = await (db.therapies?.toArray?.() ?? Promise.resolve([]))
-    const activeTherapies = allTherapies
+    const therapiesToDeactivate = allTherapies
         .filter(therapy => therapy.hostId === hostId)
-        .filter(isActiveTherapy)
-    if (activeTherapies.length > 0) {
-        throw new AppError(
-            'Impossibile eliminare l\'ospite: sono presenti terapie attive. Disattivare o chiudere prima le terapie collegate.',
-            {
-                category: ErrorCategory.CONFLICT,
-                severity: ErrorSeverity.HIGH,
-                code: 'HOST_HAS_ACTIVE_THERAPIES',
-                recoverable: true,
-                technicalDetails: { hostId, therapyIds: activeTherapies.map(therapy => therapy.id) },
-            },
-        )
-    }
+        .filter(therapy => !therapy.deletedAt)
 
     const now = new Date().toISOString()
     const deviceId = await getSetting('deviceId', 'unknown')
     const updated = {
         ...host,
+        roomId: null,
+        bedId: null,
+        stanza: '',
+        letto: '',
         attivo: false,
         deletedAt: now,
         updatedAt: now,
         syncStatus: 'pending',
     }
 
-    await db.transaction('rw', db.hosts, db.syncQueue, db.activityLog, async () => {
+    const deactivatedTherapies = therapiesToDeactivate.map((therapy) => ({
+        ...therapy,
+        attiva: false,
+        deletedAt: now,
+        updatedAt: now,
+        syncStatus: 'pending',
+    }))
+
+    await db.transaction('rw', db.hosts, db.therapies, db.syncQueue, db.activityLog, async () => {
         await db.hosts.put(updated)
         await enqueue('hosts', hostId, 'delete')
+
+        for (const therapy of deactivatedTherapies) {
+            await db.therapies.put(therapy)
+            await enqueue('therapies', therapy.id, 'upsert')
+        }
+
         await db.activityLog.add({
             entityType: 'hosts',
             entityId: hostId,
@@ -187,9 +207,27 @@ export async function deactivateHost({ hostId, operatorId }) {
             operatorId: operatorId ?? null,
             ts: now,
         })
+
+        for (const therapy of deactivatedTherapies) {
+            await db.activityLog.add({
+                entityType: 'therapies',
+                entityId: therapy.id,
+                action: 'therapy_deactivated_due_host_delete',
+                deviceId,
+                operatorId: operatorId ?? null,
+                ts: now,
+            })
+        }
     })
 
-    return updated
+    return {
+        ...updated,
+        roomId: host.roomId ?? null,
+        bedId: host.bedId ?? null,
+        stanza: host.stanza ?? '',
+        letto: host.letto ?? '',
+        _cascadeDeletedTherapies: deactivatedTherapies,
+    }
 }
 
 export async function restoreHost({ hostId, existing, operatorId }) {
@@ -207,9 +245,33 @@ export async function restoreHost({ hostId, existing, operatorId }) {
         syncStatus: 'pending',
     }
 
-    await db.transaction('rw', db.hosts, db.syncQueue, db.activityLog, async () => {
+    await db.transaction('rw', db.hosts, db.therapies, db.syncQueue, db.activityLog, async () => {
         await db.hosts.put(updated)
         await enqueue('hosts', hostId, 'upsert')
+
+        const cascadeTherapies = Array.isArray(existing._cascadeDeletedTherapies)
+            ? existing._cascadeDeletedTherapies
+            : []
+        for (const therapy of cascadeTherapies) {
+            const restoredTherapy = {
+                ...therapy,
+                attiva: true,
+                deletedAt: null,
+                updatedAt: now,
+                syncStatus: 'pending',
+            }
+            await db.therapies.put(restoredTherapy)
+            await enqueue('therapies', restoredTherapy.id, 'upsert')
+            await db.activityLog.add({
+                entityType: 'therapies',
+                entityId: restoredTherapy.id,
+                action: 'therapy_restored_due_host_undo',
+                deviceId,
+                operatorId: operatorId ?? null,
+                ts: now,
+            })
+        }
+
         await db.activityLog.add({
             entityType: 'hosts',
             entityId: hostId,
@@ -259,8 +321,8 @@ export async function updateHost({
         patologie: patologie?.trim() ?? '',
         roomId: roomId ?? null,
         bedId: bedId ?? null,
-        stanza: stanza?.trim() ?? '',
-        letto: letto?.trim() ?? '',
+        stanza: stanza !== null && stanza !== undefined ? String(stanza).trim() : '',
+        letto: letto !== null && letto !== undefined ? String(letto).trim() : '',
         note: note?.trim() ?? '',
         updatedAt: now,
         syncStatus: 'pending',

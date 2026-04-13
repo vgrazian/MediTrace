@@ -5,6 +5,7 @@ import { buildOperationalReport, buildOrderDraftText, operationalReportToCsv } f
 import { confirmDeleteDrug, confirmDeleteBatch } from '../services/confirmations'
 import { useAuth } from '../services/auth'
 import { useHelpNavigation } from '../composables/useHelpNavigation'
+import CrudFilterBar from '../components/CrudFilterBar.vue'
 
 const { currentUser } = useAuth()
 const { goToHelpSection } = useHelpNavigation()
@@ -12,6 +13,7 @@ const { goToHelpSection } = useHelpNavigation()
 const report = ref(null)
 const reportLoading = ref(false)
 const reportError = ref('')
+const filterQuery = ref('')
 const reportActionMessage = ref('')
 const reportActionError = ref('')
 const orderDraftText = ref('')
@@ -45,6 +47,16 @@ const canEditBatchForm = computed(() => Boolean(editingBatchId.value || creating
 const canSaveBatch = computed(() => {
   if (!canEditBatchForm.value) return false
   return Boolean(batchForm.value.drugId && String(batchForm.value.nomeCommerciale || '').trim())
+})
+
+const filteredReportRows = computed(() => {
+  const rows = report.value?.rows ?? []
+  const q = filterQuery.value.trim().toLowerCase()
+  if (!q) return rows
+  return rows.filter(row => {
+    const haystack = [row.principioAttivo, row.warningPriority, row.warningReason].filter(Boolean).join(' ').toLowerCase()
+    return haystack.includes(q)
+  })
 })
 
 function drugLabel(drugId) {
@@ -512,6 +524,13 @@ onMounted(() => {
         Generato: {{ report.generatedAt }}
       </p>
 
+      <CrudFilterBar
+        v-model="filterQuery"
+        label="Filtro rapido scorte"
+        placeholder="Cerca per farmaco, priorita o motivo"
+        :visible-count="filteredReportRows.length"
+        :total-count="report.rows.length"
+      />
       <div class="dataset-frame" style="margin-top:.75rem">
       <table class="conflict-table">
         <thead>
@@ -527,7 +546,7 @@ onMounted(() => {
           </tr>
         </thead>
         <tbody>
-          <tr v-for="row in report.rows" :key="row.drugId">
+          <tr v-for="row in filteredReportRows" :key="row.drugId">
             <td>{{ row.principioAttivo }}</td>
             <td>{{ formatNumber(row.stockCurrent) }}</td>
             <td>{{ formatNumber(row.weeklyConsumption) }}</td>
@@ -540,7 +559,7 @@ onMounted(() => {
               <button style="background:#d35f55" @click="deleteDrug(row.drugId)">Elimina</button>
             </td>
           </tr>
-          <tr v-if="report.rows.length === 0">
+          <tr v-if="filteredReportRows.length === 0">
             <td colspan="8" class="muted">Nessun farmaco disponibile nel dataset locale.</td>
           </tr>
         </tbody>

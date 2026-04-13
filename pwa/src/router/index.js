@@ -58,8 +58,7 @@ const routes = [
     },
     {
         path: '/informazioni',
-        component: () => import('../views/InformazioniView.vue'),
-        meta: { title: 'Informazioni' },
+        redirect: '/manuale',
     },
     {
         path: '/manuale',

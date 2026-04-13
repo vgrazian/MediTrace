@@ -29,8 +29,8 @@ test('menu navigation opens major sections', async ({ page }) => {
     await page.getByRole('link', { name: 'Promemoria' }).click()
     await expect(page.getByRole('heading', { name: 'Promemoria' })).toBeVisible()
 
-    await page.getByRole('link', { name: 'Informazioni' }).click()
-    await expect(page.getByRole('heading', { name: 'Informazioni' })).toBeVisible()
+    await page.getByRole('link', { name: 'Manuale' }).click()
+    await expect(page.getByRole('heading', { name: 'Manuale Utente' })).toBeVisible()
 })
 
 test('global logout is available from main navigation', async ({ page }) => {

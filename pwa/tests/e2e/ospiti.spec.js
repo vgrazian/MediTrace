@@ -91,3 +91,89 @@ test('ospiti view supports create, selection-based edit, and bulk delete with ex
     await expect(page.getByText(/Eliminazione annullata: ospite ripristinato\./i)).toBeVisible({ timeout: 5000 })
     await expect(page.getByRole('cell', { name: 'OSP-E2E-001', exact: true })).toBeVisible({ timeout: 5000 })
 })
+
+test('ospiti delete cascades therapies and asks explicit confirmation', async ({ page }) => {
+    await page.route('https://api.github.com/user', async route => {
+        await route.fulfill({
+            status: 200,
+            contentType: 'application/json',
+            body: JSON.stringify({
+                login: 'seeded-gh-user',
+                name: 'Seeded User',
+                avatar_url: 'https://avatars.githubusercontent.com/u/1?v=4',
+            }),
+        })
+    })
+
+    await page.goto('/')
+    await loginOrRegisterSeededUser(page)
+
+    await page.getByRole('link', { name: '⚙' }).click()
+    await expect(page.getByRole('heading', { name: 'Impostazioni' })).toBeVisible()
+
+    const dryRunCheckbox = page.getByLabel('Esegui simulazione (nessuna scrittura)')
+    if (await dryRunCheckbox.isChecked()) {
+        await dryRunCheckbox.uncheck()
+    }
+
+    await page.getByLabel('Sorgente').selectOption('03_Ospiti.csv')
+    await page.locator('input[type="file"]').setInputFiles({
+        name: '03_Ospiti.csv',
+        mimeType: 'text/csv',
+        buffer: Buffer.from('guest_id,codice_interno\nHOST-CASCADE,OSP-CASCADE\n'),
+    })
+    await page.getByRole('button', { name: 'Avvia import CSV' }).click()
+    await expect(page.getByText('Accettate: 1')).toBeVisible()
+
+    await page.getByLabel('Sorgente').selectOption('01_CatalogoFarmaci.csv')
+    await page.locator('input[type="file"]').setInputFiles({
+        name: '01_CatalogoFarmaci.csv',
+        mimeType: 'text/csv',
+        buffer: Buffer.from('drug_id,principio_attivo\nDRUG-CASCADE,Farmaco Cascata\n'),
+    })
+    await page.getByRole('button', { name: 'Avvia import CSV' }).click()
+    await expect(page.getByText('Accettate: 1')).toBeVisible()
+
+    await page.getByRole('link', { name: 'Terapie' }).click()
+    await expect(page.getByRole('heading', { name: 'Terapie Attive' })).toBeVisible()
+    await page.getByRole('button', { name: 'Aggiungi' }).click()
+    await page.getByLabel('Ospite').selectOption('HOST-CASCADE')
+    await page.getByLabel('Farmaco').selectOption('DRUG-CASCADE')
+    await page.getByLabel('Dose per somministrazione').fill('1')
+    await page.getByLabel('Somministrazioni giornaliere').fill('2')
+    await page.getByLabel('Consumo medio settimanale').fill('14')
+    await page.getByLabel('Data inizio').fill('2030-01-01')
+    await page.getByRole('button', { name: 'Salva terapia' }).click()
+    await expect(page.getByText(/Terapia salvata/i)).toBeVisible()
+
+    await page.getByRole('link', { name: 'Ospiti', exact: true }).click()
+    await expect(page.getByRole('heading', { name: 'Ospiti' })).toBeVisible()
+
+    const hostRow = page.locator('tbody tr', { hasText: 'OSP-CASCADE' }).first()
+    await expect(hostRow).toBeVisible()
+    await hostRow.locator('input[type="checkbox"]').first().check()
+
+    await page.locator('.card', { hasText: 'Lista ospiti' }).getByRole('button', { name: 'Elimina (1)' }).click()
+
+    const confirmDialog = page.locator('.confirm-dialog')
+    await expect(confirmDialog).toBeVisible()
+    await expect(confirmDialog).toContainText('terapie associate')
+    await expect(confirmDialog).toContainText('stanza/letto')
+    await confirmDialog.locator('.actions button').last().click()
+
+    await expect(page.locator('p.muted', { hasText: /eliminato\./i })).toBeVisible({ timeout: 5000 })
+    await expect(page.locator('tbody tr', { hasText: 'OSP-CASCADE' })).toHaveCount(0)
+
+    await page.getByRole('link', { name: 'Farmaci' }).click()
+    await expect(page.getByRole('heading', { name: 'Catalogo Farmaci' })).toBeVisible()
+
+    const drugRow = page.locator('tbody tr', { hasText: 'Farmaco Cascata' }).first()
+    await expect(drugRow).toBeVisible()
+    await drugRow.locator('input[type="checkbox"]').first().check()
+    await runWithAcceptedConfirmation(page, async () => {
+        await page.locator('.card', { hasText: 'Farmaci registrati' }).getByRole('button', { name: 'Elimina (1)' }).click()
+    })
+
+    await expect(page.getByText(/Farmaco eliminato/i)).toBeVisible()
+    await expect(page.getByText(/Non e' possibile eliminare (il farmaco|uno o piu' farmaci)/i)).toHaveCount(0)
+})

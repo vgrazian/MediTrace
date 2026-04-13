@@ -179,19 +179,24 @@ function buildAdherenceSnapshot(reminders, hostsById, now = new Date(), windowDa
     }
 }
 
-function computePriority({ stockCurrent, weeklyConsumption, reorderThreshold }) {
+function computePriority({ stockCurrent, weeklyConsumption, reorderThreshold, sogliaGiorniAutonomia = 30 }) {
     const coverageWeeks = weeklyConsumption > 0 ? stockCurrent / weeklyConsumption : null
+    const thresholdWeeks = (Number(sogliaGiorniAutonomia) || 30) / 7
 
     if (stockCurrent <= 0) {
         return { warningPriority: 'critica', coverageWeeks, reason: 'scorta esaurita' }
     }
 
-    if (weeklyConsumption > 0 && coverageWeeks !== null && coverageWeeks < 1) {
-        return { warningPriority: 'critica', coverageWeeks, reason: 'copertura sotto 1 settimana' }
+    if (weeklyConsumption > 0 && coverageWeeks !== null && coverageWeeks < thresholdWeeks * 0.25) {
+        return { warningPriority: 'critica', coverageWeeks, reason: `copertura sotto ${Math.round(thresholdWeeks * 0.25 * 7)} giorni` }
     }
 
-    if (weeklyConsumption > 0 && coverageWeeks !== null && coverageWeeks < 2) {
-        return { warningPriority: 'alta', coverageWeeks, reason: 'copertura sotto 2 settimane' }
+    if (weeklyConsumption > 0 && coverageWeeks !== null && coverageWeeks < thresholdWeeks * 0.5) {
+        return { warningPriority: 'alta', coverageWeeks, reason: `copertura sotto ${Math.round(thresholdWeeks * 0.5 * 7)} giorni` }
+    }
+
+    if (weeklyConsumption > 0 && coverageWeeks !== null && coverageWeeks < thresholdWeeks) {
+        return { warningPriority: 'media', coverageWeeks, reason: `copertura sotto ${Math.round(thresholdWeeks * 7)} giorni` }
     }
 
     if (reorderThreshold > 0 && stockCurrent <= reorderThreshold) {
@@ -248,7 +253,7 @@ export async function buildOperationalReport() {
             const reorderFromBatches = batches.reduce((sum, batch) => sum + toNumber(batch.sogliaRiordino, 0), 0)
             const reorderThreshold = toNumber(drug.scortaMinima, reorderFromBatches)
             const weeklyConsumption = weeklyConsumptionByDrug.get(drug.id) ?? 0
-            const priority = computePriority({ stockCurrent, weeklyConsumption, reorderThreshold })
+            const priority = computePriority({ stockCurrent, weeklyConsumption, reorderThreshold, sogliaGiorniAutonomia: drug.sogliaGiorniAutonomia ?? 30 })
 
             return {
                 drugId: drug.id,

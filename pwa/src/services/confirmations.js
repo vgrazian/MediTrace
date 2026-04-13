@@ -222,13 +222,20 @@ export async function confirmDeactivateRoom(roomName) {
  * True when the user confirms the bulk deletion.
  */
 export async function confirmDeleteMultiple(count, itemType = 'elementi') {
+    const normalizedType = String(itemType || '').toLowerCase()
+    const isHostType = normalizedType.includes('ospite') || normalizedType.includes('ospiti')
+
     const message = count === 1
         ? `Sei sicuro di voler eliminare questo ${itemType}?`
         : `Sei sicuro di voler eliminare ${count} ${itemType}?`
 
-    const details = count > 1
+    const baseDetails = count > 1
         ? `Questa azione eliminerà ${count} ${itemType} e non può essere annullata.`
         : 'Questa azione non può essere annullata.'
+    const cascadeDetails = isHostType
+        ? ' Verranno disattivate anche le terapie associate e liberate le assegnazioni stanza/letto.'
+        : ''
+    const details = `${baseDetails}${cascadeDetails}`
 
     return openConfirmDialog({
         title: count === 1 ? 'Conferma eliminazione' : 'Conferma eliminazione multipla',
