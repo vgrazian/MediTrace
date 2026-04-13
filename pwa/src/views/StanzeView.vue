@@ -196,7 +196,6 @@ async function handleDeactivateRoom(roomId) {
     errorMessage.value = `Non e' possibile eliminare la stanza "${roomLabel(room || { codice: roomId })}" in quanto contiene ancora oggetti di tipo letto: ${containedBeds}.`
     return
   }
-
   const confirmed = await openConfirmDialog({
     title: 'Conferma eliminazione stanza',
     message: `Eliminare la stanza "${roomId}"?`,

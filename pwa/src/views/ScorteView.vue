@@ -531,7 +531,6 @@ onMounted(() => {
         :visible-count="filteredReportRows.length"
         :total-count="report.rows.length"
       />
-
       <div class="dataset-frame" style="margin-top:.75rem">
       <table class="conflict-table">
         <thead>
