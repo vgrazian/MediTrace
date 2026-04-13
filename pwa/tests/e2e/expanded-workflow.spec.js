@@ -2,9 +2,9 @@ import { test, expect } from '@playwright/test'
 import { loginOrRegisterSeededUser } from './helpers/login'
 
 async function closePanelIfVisible(page) {
-    const closeButton = page.getByRole('button', { name: 'Chiudi' }).first()
-    if (await closeButton.isVisible().catch(() => false)) {
-        await closeButton.click()
+    const closeButton = page.locator('details[open] .panel-close-btn:visible').first()
+    if (await closeButton.count()) {
+        await closeButton.click({ timeout: 3000, force: true })
     }
 }
 
