@@ -128,7 +128,7 @@ function formatDateTime(value) {
   if (!value) return '—'
   const parsed = new Date(value)
   if (Number.isNaN(parsed.getTime())) return value
-  return parsed.toLocaleString()
+  return parsed.toLocaleString('it-IT', { hour12: false })
 }
 
 function drugLabel(drugId) {
@@ -417,7 +417,7 @@ onMounted(() => {
 <template>
   <div class="view">
     <div class="view-heading">
-      <h2>Movimenti Magazzino</h2>
+      <h2>Movimenti</h2>
       <button class="help-btn" @click="goToHelpSection('movimenti')">Aiuto</button>
     </div>
 
@@ -514,7 +514,7 @@ onMounted(() => {
 
         <div style="margin-top:.75rem">
           <div class="panel-breadcrumb">
-            <button type="button" class="panel-breadcrumb-link" @click="isFormOpen = false">Movimenti Magazzino</button>
+            <button type="button" class="panel-breadcrumb-link" @click="isFormOpen = false">Movimenti</button>
             <span class="panel-breadcrumb-current">/</span>
             <span class="panel-breadcrumb-current">{{ panelMode === 'edit' ? 'Modifica' : 'Aggiungi' }}</span>
             <button type="button" class="panel-close-btn" @click="isFormOpen = false">Chiudi</button>

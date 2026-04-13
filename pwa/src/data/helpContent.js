@@ -159,7 +159,7 @@ export const helpContent = {
     },
 
     movimenti: {
-        titolo: 'Movimenti Magazzino — Guida',
+        titolo: 'Movimenti — Guida',
         intro:
             'Qui registri ogni entrata e uscita di farmaci dal magazzino. Ogni movimento aggiorna automaticamente la quantità in Scorte.',
         sezioni: [

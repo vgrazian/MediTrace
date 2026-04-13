@@ -458,10 +458,12 @@ function generateRealisticDrugs() {
 
     return rows.map((row, idx) => ({
         id: `__realistic__drug-${idx + 1}`,
+        nomeFarmaco: `${row.marca || 'N.D.'} - ${row.farmaco || ''}`.trim(),
         marca: row.marca || '',
         principioAttivo: row.farmaco || '',
         classeTerapeutica: 'Generico',
-        scortaMinima: 10,
+        scortaMinima: 8 + (idx % 5),
+        sogliaGiorniAutonomia: 15 + (idx % 20),
         fornitore: 'Fornitore Centrale',
         note: '',
         updatedAt: now,
@@ -542,10 +544,22 @@ function generateRealisticStockBatches(drugs) {
             const lotNumber = `LOT${String(idx + 1).padStart(3, '0')}-${String(i + 1).padStart(2, '0')}`
             const scadenzaDate = new Date()
             scadenzaDate.setMonth(scadenzaDate.getMonth() + (3 + i * 2))
-            const quantitaIniziale = 70 + (idx * 9) + (i * 14)
-            const consumoStimato = 10 + ((idx * 5 + i * 7) % 40)
-            const quantitaAttuale = Math.max(4, quantitaIniziale - consumoStimato)
-            const sogliaRiordino = 8 + ((idx + i) % 9)
+
+            // Ensure first 3 drugs have low stock (in esaurimento)
+            let quantitaAttuale, quantitaIniziale, consumoStimato, sogliaRiordino
+            if (idx < 3) {
+                // Low stock: quantita < soglia to trigger urgent reorder
+                quantitaIniziale = 20 + (idx * 5)
+                consumoStimato = 10 + idx * 3
+                sogliaRiordino = 15 + (idx * 2)
+                quantitaAttuale = 3 + (idx % 4) // Very low: 3-6 units
+            } else {
+                // Normal stock for other drugs
+                quantitaIniziale = 70 + (idx * 9) + (i * 14)
+                consumoStimato = 10 + ((idx * 5 + i * 7) % 40)
+                sogliaRiordino = 8 + ((idx + i) % 9)
+                quantitaAttuale = Math.max(4, quantitaIniziale - consumoStimato)
+            }
 
             batches.push({
                 id: `__realistic__batch-${idx + 1}-${i + 1}`,

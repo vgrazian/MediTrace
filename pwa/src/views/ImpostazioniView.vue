@@ -16,7 +16,7 @@ import {
   listUpcomingReminderNotifications24h,
 } from '../services/notifications'
 import { listSupportedImportSources, importCsv } from '../services/csvImport'
-import { getSetting } from '../db'
+import { db, getSetting, enqueue } from '../db'
 import {
   loadSeedData,
   clearSeedData,
@@ -176,7 +176,7 @@ async function refreshInvitedProfiles() {
 function formatScheduledAt(value) {
   const date = new Date(value)
   if (Number.isNaN(date.getTime())) return '—'
-  return date.toLocaleString()
+  return date.toLocaleString('it-IT', { hour12: false })
 }
 
 async function refreshSecurityInfo() {
@@ -341,7 +341,9 @@ async function handleToggleTestData() {
   if (!canManageTestData.value) return
 
   const shouldClear = seedActionMode.value === 'clear'
-  const confirmed = shouldClear
+  
+  // First confirmation dialog: operation to perform
+  const confirmed1 = shouldClear
     ? await openConfirmDialog({
       title: 'Conferma rimozione dati di test',
       message: 'Rimuovere tutti i dati di test dal database locale?',
@@ -358,12 +360,28 @@ async function handleToggleTestData() {
       cancelText: 'Annulla',
       tone: 'primary',
     })
-  if (!confirmed) return
+  if (!confirmed1) return
+
+  // Second confirmation dialog: production environment warning (only if loading data)
+  if (!shouldClear) {
+    const confirmed2 = await openConfirmDialog({
+      title: '⚠️ ATTENZIONE: Ambiente di produzione?',
+      message: 'I dati archiviati verranno danneggiati se si procede in produzione.',
+      details: 'I dati di test sostituiranno i dati effettivi. Utilizzare SOLO in ambiente di sviluppo/test. I dati di produzione saranno PERDUTI.',
+      confirmText: 'Proceedi comunque (Sviluppo)',
+      cancelText: 'Annulla (Salva produzione)',
+      tone: 'danger',
+    })
+    if (!confirmed2) return
+  }
 
   seedBusy.value = true
   seedMessage.value = ''
 
   try {
+    const now = new Date().toISOString()
+    const deviceId = await getSetting('deviceId', 'unknown')
+
     if (shouldClear) {
       const [legacyResult, realisticResult] = await Promise.all([
         clearSeedData({ allowInProduction: true }),
@@ -376,6 +394,19 @@ async function handleToggleTestData() {
         ? 'Dati di test rimossi.'
         : 'Nessun dato di test presente da rimuovere.'
       if (!cleared) await refreshSeedStatus()
+      
+      // Log the removal to audit log
+      if (cleared) {
+        await db.activityLog.add({
+          entityType: 'seeds',
+          entityId: 'seed_data',
+          action: 'seed_data_cleared',
+          deviceId,
+          operatorId: currentUser.value?.login ?? null,
+          ts: now,
+          details: 'Dati di test rimossi manualmente',
+        })
+      }
     } else {
       await Promise.all([
         clearSeedData({ allowInProduction: true }),
@@ -385,6 +416,17 @@ async function handleToggleTestData() {
       seedLoaded.value = true
       seedActionMode.value = 'clear'
       seedMessage.value = `Importati dati di test: ${stats.drugs} farmaci, ${stats.hosts} ospiti, ${stats.stockBatches} confezioni, ${stats.therapies} terapie, ${stats.movements ?? 0} movimenti, ${stats.reminders ?? 0} promemoria, ${stats.activityLog ?? 0} eventi audit, ${stats.rooms} stanze, ${stats.beds} letti, ${stats.operators ?? 0} operatori demo.`
+      
+      // Log the generation to audit log
+      await db.activityLog.add({
+        entityType: 'seeds',
+        entityId: 'seed_data',
+        action: 'seed_data_loaded',
+        deviceId,
+        operatorId: currentUser.value?.login ?? null,
+        ts: now,
+        details: `Dati di test caricati: ${stats.drugs} farmaci, ${stats.hosts} ospiti, ${stats.stockBatches} confezioni, ${stats.therapies} terapie, ${stats.reminders ?? 0} promemoria`,
+      })
     }
   } catch (err) {
     seedMessage.value = `Errore gestione dati di test: ${err.message}`
