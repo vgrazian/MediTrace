@@ -12,6 +12,7 @@
 
 import { db, getSetting, setSetting } from '../db'
 import realisticDataset from '../data/realisticDataset.json'
+import { upsertDemoAuthUsers, clearDemoAuthUsers } from './seedAuthUsers.js'
 
 const REALISTIC_SEED_KEY = '_realisticSeedDataManifest'
 const REALISTIC_SEED_PREFIX = '__realistic__'
@@ -556,6 +557,7 @@ export async function loadRealisticSeedData(options = {}) {
     }
 
     await setSetting(REALISTIC_SEED_KEY, manifest)
+    const operatorStats = await upsertDemoAuthUsers()
 
     return {
         rooms: bundle.rooms.length,
@@ -564,6 +566,7 @@ export async function loadRealisticSeedData(options = {}) {
         drugs: bundle.drugs.length,
         stockBatches: bundle.stockBatches.length,
         therapies: bundle.therapies.length,
+        operators: operatorStats.total,
     }
 }
 
@@ -572,7 +575,14 @@ export async function loadRealisticSeedData(options = {}) {
  */
 export async function clearRealisticSeedData(options = {}) {
     const manifest = await getRealisticSeedManifest()
-    if (!manifest) return { cleared: false, reason: 'nessun dato realistico trovato' }
+    if (!manifest) {
+        const authResult = await clearDemoAuthUsers({ preserveAdminUsername: 'admin' })
+        return {
+            cleared: false,
+            reason: 'nessun dato realistico trovato',
+            removedOperators: authResult.removed,
+        }
+    }
 
     const availableStores = await getAvailableStoreNames(REALISTIC_SEED_STORE_NAMES)
     const transactionTables = [
@@ -596,7 +606,8 @@ export async function clearRealisticSeedData(options = {}) {
     }
 
     await setSetting(REALISTIC_SEED_KEY, null)
-    return { cleared: true, tables: Object.keys(manifest) }
+    const authResult = await clearDemoAuthUsers({ preserveAdminUsername: 'admin' })
+    return { cleared: true, tables: Object.keys(manifest), removedOperators: authResult.removed }
 }
 
 /**

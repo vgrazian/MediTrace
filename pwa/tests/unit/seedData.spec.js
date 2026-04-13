@@ -210,6 +210,16 @@ describe('seedData — loadSeedData', () => {
         await loadSeedData()
         expect(tables.drugs.size).toBe(firstCount)
     })
+
+    it('creates demo operator accounts in authUsers settings', async () => {
+        await loadSeedData()
+        const users = settings.get('authUsers')
+        expect(Array.isArray(users)).toBe(true)
+        const usernames = users.map(user => user.username)
+        expect(usernames).toContain('rosa')
+        expect(usernames).toContain('margherita')
+        expect(usernames).toContain('giglio')
+    })
 })
 
 describe('seedData — clearSeedData', () => {
@@ -245,6 +255,34 @@ describe('seedData — clearSeedData', () => {
         expect(result.cleared).toBe(false)
     })
 
+    it('still removes demo operators when no manifest exists', async () => {
+        settings.set('authUsers', [
+            {
+                id: 'admin-1',
+                username: 'admin',
+                role: 'admin',
+                isSeeded: true,
+                seedScope: 'emergency',
+                disabled: false,
+            },
+            {
+                id: '__seed__auth-rosa',
+                username: 'rosa',
+                role: 'operator',
+                isSeeded: true,
+                seedScope: 'demo',
+                disabled: false,
+            },
+        ])
+
+        const result = await clearSeedData()
+        expect(result.cleared).toBe(false)
+        expect(result.removedOperators).toBe(1)
+
+        const users = settings.get('authUsers') || []
+        expect(users.map(user => user.username)).toEqual(['admin'])
+    })
+
     it('does not affect non-seed records in the same tables', async () => {
         // Pre-populate with a non-seed record
         tables.drugs.set('real-drug-1', { id: 'real-drug-1', principioAttivo: 'Aspirina' })
@@ -254,5 +292,28 @@ describe('seedData — clearSeedData', () => {
 
         expect(tables.drugs.has('real-drug-1')).toBe(true)
         expect(tables.drugs.size).toBe(1)
+    })
+
+    it('removes demo operators but preserves admin user', async () => {
+        settings.set('authUsers', [
+            {
+                id: 'admin-1',
+                username: 'admin',
+                role: 'admin',
+                isSeeded: true,
+                seedScope: 'emergency',
+                disabled: false,
+            },
+        ])
+
+        await loadSeedData()
+        await clearSeedData()
+
+        const users = settings.get('authUsers') || []
+        const usernames = users.map(user => user.username)
+        expect(usernames).toContain('admin')
+        expect(usernames).not.toContain('rosa')
+        expect(usernames).not.toContain('margherita')
+        expect(usernames).not.toContain('giglio')
     })
 })

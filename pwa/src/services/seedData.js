@@ -24,6 +24,7 @@ import {
     clearRealisticSeedData,
     isRealisticSeedDataLoaded,
 } from './seedDataRealistic.js'
+import { upsertDemoAuthUsers, clearDemoAuthUsers } from './seedAuthUsers.js'
 
 // ── Guard ─────────────────────────────────────────────────────────────────────
 
@@ -260,6 +261,8 @@ export async function loadSeedData(options = {}) {
         reminders: availableStores.has('reminders') ? SEED_MANIFEST.reminders : [],
     })
 
+    await upsertDemoAuthUsers()
+
     return getSeedStats()
 }
 
@@ -271,7 +274,14 @@ export async function clearSeedData(options = {}) {
     assertSeedEnabled(options)
 
     const manifest = await getLegacySeedManifest()
-    if (!manifest) return { cleared: false, reason: 'nessun dato demo trovato' }
+    if (!manifest) {
+        const authResult = await clearDemoAuthUsers({ preserveAdminUsername: 'admin' })
+        return {
+            cleared: false,
+            reason: 'nessun dato demo trovato',
+            removedOperators: authResult.removed,
+        }
+    }
 
     const availableStores = await getAvailableStoreNames(LEGACY_SEED_STORE_NAMES)
     const transactionTables = [
@@ -299,8 +309,9 @@ export async function clearSeedData(options = {}) {
     }
 
     await setSetting(SEED_MANIFEST_KEY, null)
+    const authResult = await clearDemoAuthUsers({ preserveAdminUsername: 'admin' })
 
-    return { cleared: true, tables: Object.keys(manifest) }
+    return { cleared: true, tables: Object.keys(manifest), removedOperators: authResult.removed }
 }
 
 /**

@@ -14,7 +14,16 @@ export default defineConfig({
     projects: [
         {
             name: 'desktop-chromium',
+            testIgnore: '**/android-phone-smoke.spec.js',
             use: {
+                browserName: 'chromium',
+            },
+        },
+        {
+            name: 'android-phone-chromium-smoke',
+            testMatch: '**/android-phone-smoke.spec.js',
+            use: {
+                ...devices['Pixel 5'],
                 browserName: 'chromium',
             },
         },
