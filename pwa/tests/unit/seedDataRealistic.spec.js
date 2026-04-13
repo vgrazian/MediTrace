@@ -128,4 +128,20 @@ describe('seedDataRealistic mapping', () => {
         const uniqueBedIds = new Set(bedIds)
         expect(uniqueBedIds.size).toBe(bedIds.length)
     })
+
+    it('generates stock batches with non-zero and variable active quantities', () => {
+        const generated = generateRealisticSeedData()
+
+        const quantities = generated.stockBatches
+            .map(batch => Number(batch.quantitaAttuale))
+            .filter(Number.isFinite)
+
+        expect(quantities.length).toBe(generated.stockBatches.length)
+        expect(quantities.every(qty => qty > 0)).toBe(true)
+
+        const uniqueQuantities = new Set(quantities)
+        expect(uniqueQuantities.size).toBeGreaterThan(1)
+
+        expect(generated.stockBatches.every(batch => Number.isFinite(Number(batch.sogliaRiordino)))).toBe(true)
+    })
 })

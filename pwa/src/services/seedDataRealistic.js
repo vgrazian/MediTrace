@@ -529,14 +529,22 @@ function generateRealisticStockBatches(drugs) {
             const lotNumber = `LOT${String(idx + 1).padStart(3, '0')}-${String(i + 1).padStart(2, '0')}`
             const scadenzaDate = new Date()
             scadenzaDate.setMonth(scadenzaDate.getMonth() + (3 + i * 2))
+            const quantitaIniziale = 70 + (idx * 9) + (i * 14)
+            const consumoStimato = 10 + ((idx * 5 + i * 7) % 40)
+            const quantitaAttuale = Math.max(4, quantitaIniziale - consumoStimato)
+            const sogliaRiordino = 8 + ((idx + i) % 9)
 
             batches.push({
                 id: `__realistic__batch-${idx + 1}-${i + 1}`,
                 drugId: drug.id,
                 nomeCommerciale: `${drug.principioAttivo} - Batch ${lotNumber}`,
+                dosaggio: `${(idx % 4 + 1) * 100} mg`,
+                unitaMisura: 'cpr',
                 lotto: lotNumber,
                 scadenza: scadenzaDate.toISOString().split('T')[0],
-                quantita: 500 + Math.floor(Math.random() * 500),
+                quantitaIniziale,
+                quantitaAttuale,
+                sogliaRiordino,
                 updatedAt: now,
                 deletedAt: null,
                 syncStatus: 'pending',
