@@ -384,7 +384,7 @@ async function handleToggleTestData() {
       const stats = await loadRealisticSeedData({ allowInProduction: true })
       seedLoaded.value = true
       seedActionMode.value = 'clear'
-      seedMessage.value = `Importati dati di test: ${stats.drugs} farmaci, ${stats.hosts} ospiti, ${stats.stockBatches} confezioni, ${stats.therapies} terapie, ${stats.rooms} stanze, ${stats.beds} letti.`
+      seedMessage.value = `Importati dati di test: ${stats.drugs} farmaci, ${stats.hosts} ospiti, ${stats.stockBatches} confezioni, ${stats.therapies} terapie, ${stats.rooms} stanze, ${stats.beds} letti, ${stats.operators ?? 0} operatori demo.`
     }
   } catch (err) {
     seedMessage.value = `Errore gestione dati di test: ${err.message}`
