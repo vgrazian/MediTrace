@@ -58,12 +58,14 @@ describe('seedDataRealistic mapping', () => {
     it('maps dataset entities and preserves cardinality', () => {
         const generated = generateRealisticSeedData()
 
-        expect(generated.rooms).toHaveLength(realisticDataset.rooms.length)
-        expect(generated.beds).toHaveLength(realisticDataset.beds.length)
-        expect(generated.hosts).toHaveLength(realisticDataset.hosts.length)
-        expect(generated.therapies).toHaveLength(realisticDataset.therapies.length)
-        expect(generated.drugs.length).toBeGreaterThan(0)
-        expect(generated.stockBatches.length).toBeGreaterThan(0)
+        expect(generated.rooms).toHaveLength(4)
+        expect(generated.beds).toHaveLength(12)
+        expect(generated.hosts).toHaveLength(9)
+        expect(generated.drugs).toHaveLength(12)
+        expect(generated.stockBatches.length).toBeGreaterThanOrEqual(12)
+        expect(generated.therapies.length).toBeGreaterThanOrEqual(12)
+        expect(generated.movements.length).toBeGreaterThanOrEqual(12)
+        expect(generated.reminders.length).toBeGreaterThanOrEqual(12)
     })
 
     it('creates prefixed IDs and consistent foreign keys', () => {
@@ -74,6 +76,7 @@ describe('seedDataRealistic mapping', () => {
         const hostIds = new Set(generated.hosts.map(row => row.id))
         const drugIds = new Set(generated.drugs.map(row => row.id))
         const batchIds = new Set(generated.stockBatches.map(row => row.id))
+        const therapyIds = new Set(generated.therapies.map(row => row.id))
 
         for (const room of generated.rooms) {
             expect(room.id.startsWith('__realistic__room-')).toBe(true)
@@ -94,6 +97,21 @@ describe('seedDataRealistic mapping', () => {
             if (therapy.stockBatchId) {
                 expect(batchIds.has(therapy.stockBatchId)).toBe(true)
             }
+        }
+
+        for (const movement of generated.movements) {
+            expect(movement.id.startsWith('__realistic__mov-')).toBe(true)
+            if (movement.drugId) expect(drugIds.has(movement.drugId)).toBe(true)
+            if (movement.hostId) expect(hostIds.has(movement.hostId)).toBe(true)
+            if (movement.therapyId) expect(therapyIds.has(movement.therapyId)).toBe(true)
+            if (movement.stockBatchId) expect(batchIds.has(movement.stockBatchId)).toBe(true)
+        }
+
+        for (const reminder of generated.reminders) {
+            expect(reminder.id.startsWith('__realistic__rem-')).toBe(true)
+            expect(hostIds.has(reminder.hostId)).toBe(true)
+            expect(drugIds.has(reminder.drugId)).toBe(true)
+            expect(therapyIds.has(reminder.therapyId)).toBe(true)
         }
     })
 

@@ -16,7 +16,32 @@ import { upsertDemoAuthUsers, clearDemoAuthUsers } from './seedAuthUsers.js'
 
 const REALISTIC_SEED_KEY = '_realisticSeedDataManifest'
 const REALISTIC_SEED_PREFIX = '__realistic__'
-const REALISTIC_SEED_STORE_NAMES = ['rooms', 'beds', 'hosts', 'drugs', 'stockBatches', 'therapies']
+const REALISTIC_SEED_STORE_NAMES = ['rooms', 'beds', 'hosts', 'drugs', 'stockBatches', 'therapies', 'movements', 'reminders']
+
+const TARGET_ROOM_IDS = [1, 2, 3, 4]
+const TARGET_HOST_COUNT = 9
+const TARGET_DRUG_COUNT = 12
+
+const REALISTIC_HOST_IDENTITIES = [
+    { nome: 'Elisa', cognome: 'Montelupo' },
+    { nome: 'Marco', cognome: 'Valdieri' },
+    { nome: 'Nadia', cognome: 'Serafini' },
+    { nome: 'Pietro', cognome: 'Campolmi' },
+    { nome: 'Giulia', cognome: 'Ventresca' },
+    { nome: 'Dario', cognome: 'Nervetti' },
+    { nome: 'Chiara', cognome: 'Roventi' },
+    { nome: 'Fabio', cognome: 'Serralta' },
+    { nome: 'Marta', cognome: 'Bellinati' },
+]
+
+const THERAPY_DETAIL_NOTES = [
+    'A stomaco vuoto prima del pasto',
+    'A stomaco pieno dopo il pranzo',
+    'Con abbondante acqua',
+    'Somministrare dopo controllo pressione',
+    'Preferibilmente entro le 09:00',
+    'Diluire in acqua e monitorare tolleranza',
+]
 
 const DATASET_REQUIRED_ARRAY_KEYS = ['rooms', 'beds', 'hosts', 'therapies']
 const DATASET_REQUIRED_FIELDS = {
@@ -188,16 +213,18 @@ async function getRealisticSeedManifest() {
     const manifest = await getSetting(REALISTIC_SEED_KEY, null)
     if (manifest) return manifest
 
-    const [rooms, beds, hosts, drugs, stockBatches, therapies] = await Promise.all([
+    const [rooms, beds, hosts, drugs, stockBatches, therapies, movements, reminders] = await Promise.all([
         findRealisticSeedIds(db.rooms),
         findRealisticSeedIds(db.beds),
         findRealisticSeedIds(db.hosts),
         findRealisticSeedIds(db.drugs),
         findRealisticSeedIds(db.stockBatches),
         findRealisticSeedIds(db.therapies),
+        findRealisticSeedIds(db.movements),
+        findRealisticSeedIds(db.reminders),
     ])
 
-    const fallbackManifest = { rooms, beds, hosts, drugs, stockBatches, therapies }
+    const fallbackManifest = { rooms, beds, hosts, drugs, stockBatches, therapies, movements, reminders }
     const hasSeedRows = Object.values(fallbackManifest).some(ids => ids.length > 0)
     return hasSeedRows ? fallbackManifest : null
 }
@@ -339,7 +366,8 @@ function pickNextAvailableBed({ preferredRoomId, bedsByRoom, allBeds, usedBedIds
  * Generate realistic hosts from provided JSON dataset
  */
 function generateRealisticHosts(now, { roomsById = new Map(), bedsById = new Map() } = {}) {
-    const templateHosts = Array.isArray(realisticDataset?.hosts) ? realisticDataset.hosts : []
+    const templateHosts = (Array.isArray(realisticDataset?.hosts) ? realisticDataset.hosts : [])
+        .slice(0, TARGET_HOST_COUNT)
     const usedNames = new Set()
     const usedBedIds = new Set()
     const bedsByRoom = buildAvailableBedsByRoom(bedsById)
@@ -347,9 +375,13 @@ function generateRealisticHosts(now, { roomsById = new Map(), bedsById = new Map
 
     return templateHosts.map((row, idx) => {
         const templateId = Number(row.id || idx + 1)
+        const identity = REALISTIC_HOST_IDENTITIES[idx] || {
+            nome: `Operatore${idx + 1}`,
+            cognome: `Ospite${idx + 1}`,
+        }
         const { nome, cognome } = pickUniqueHostName({
-            templateNome: row.nome,
-            templateCognome: row.cognome,
+            templateNome: identity.nome,
+            templateCognome: identity.cognome,
             hostIndex: idx,
             usedNames,
         })
@@ -408,7 +440,7 @@ function generateRealisticHosts(now, { roomsById = new Map(), bedsById = new Map
  * Generate realistic drugs from CSV data
  */
 function generateRealisticDrugs() {
-    const rows = parseCSV(CSV_FARMACI)
+    const rows = parseCSV(CSV_FARMACI).slice(0, TARGET_DRUG_COUNT)
     const now = new Date().toISOString()
 
     return rows.map((row, idx) => ({
@@ -433,7 +465,10 @@ function generateRealisticRoomsAndBeds(now) {
     const templateRooms = Array.isArray(realisticDataset?.rooms) ? realisticDataset.rooms : []
     const templateBeds = Array.isArray(realisticDataset?.beds) ? realisticDataset.beds : []
 
-    const rooms = templateRooms.map((room, idx) => {
+    const selectedRooms = templateRooms.filter(room => TARGET_ROOM_IDS.includes(Number(room.id)))
+    const selectedBeds = templateBeds.filter(bed => TARGET_ROOM_IDS.includes(Number(bed.roomId)))
+
+    const rooms = selectedRooms.map((room, idx) => {
         const roomId = Number(room.id || idx + 1)
         return {
             id: `__realistic__room-${roomId}`,
@@ -446,7 +481,7 @@ function generateRealisticRoomsAndBeds(now) {
         }
     })
 
-    const beds = templateBeds.map((bed, idx) => {
+    const beds = selectedBeds.map((bed, idx) => {
         const bedId = Number(bed.id || idx + 1)
         return {
             id: `__realistic__bed-${bedId}`,
@@ -461,6 +496,24 @@ function generateRealisticRoomsAndBeds(now) {
     })
 
     return { rooms, beds }
+}
+
+function weekKeyFromDate(dateValue) {
+    const date = new Date(dateValue)
+    if (Number.isNaN(date.getTime())) return ''
+    const tmp = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()))
+    const day = tmp.getUTCDay() || 7
+    tmp.setUTCDate(tmp.getUTCDate() + 4 - day)
+    const yearStart = new Date(Date.UTC(tmp.getUTCFullYear(), 0, 1))
+    const weekNo = Math.ceil((((tmp - yearStart) / 86400000) + 1) / 7)
+    return `${tmp.getUTCFullYear()}-W${String(weekNo).padStart(2, '0')}`
+}
+
+function isoDateDaysAgo(now, daysAgo, hour = 8, minute = 0) {
+    const ref = new Date(now)
+    ref.setDate(ref.getDate() - daysAgo)
+    ref.setHours(hour, minute, 0, 0)
+    return ref.toISOString()
 }
 
 /**
@@ -499,49 +552,155 @@ function generateRealisticStockBatches(drugs) {
  * Generate therapies from provided JSON dataset
  */
 function generateRealisticTherapies(hosts, drugs, batches, now) {
-    const templateTherapies = Array.isArray(realisticDataset?.therapies) ? realisticDataset.therapies : []
+    if (hosts.length === 0 || drugs.length === 0) return []
 
-    return templateTherapies
-        .map((therapy, idx) => {
-            const hostId = `__realistic__host-${Number(therapy.hostId)}`
-            const host = hosts.find(item => item.id === hostId)
-            if (!host || drugs.length === 0) return null
+    const baseSlots = [
+        [0, 0, 1, 2], [1, 1, 1, 1], [2, 2, 1, 2], [3, 3, 2, 2], [4, 4, 1, 1],
+        [5, 5, 1, 2], [6, 6, 1, 1], [7, 7, 1, 1], [8, 8, 1, 2],
+        [0, 9, 1, 1], [2, 10, 1, 1], [4, 11, 1, 1], [6, 2, 1, 2], [8, 3, 1, 1],
+    ]
 
-            const drugIdx = ((Number(therapy.drugId) || 1) - 1) % drugs.length
-            const safeDrugIdx = drugIdx < 0 ? 0 : drugIdx
-            const drug = drugs[safeDrugIdx]
-            const associatedBatches = batches.filter(batch => batch.drugId === drug.id)
-            const batch = associatedBatches[0] ?? null
+    return baseSlots.map((slot, idx) => {
+        const [hostIdx, drugIdx, dose, freq] = slot
+        const host = hosts[hostIdx % hosts.length]
+        const drug = drugs[drugIdx % drugs.length]
+        const associatedBatches = batches.filter(batch => batch.drugId === drug.id)
+        const batch = associatedBatches[0] ?? null
+        const dosePerSomministrazione = Number(dose)
+        const somministrazioniGiornaliere = Number(freq)
+        const consumoMedioSettimanale = dosePerSomministrazione * somministrazioniGiornaliere * 7
+        const detailNote = THERAPY_DETAIL_NOTES[idx % THERAPY_DETAIL_NOTES.length]
 
-            // Transform frequency to numeric count
-            const somministrazioniGiornaliere = frequencyToCount(therapy.frequenza) ?? 1
-            // Transform dosage to numeric value
-            const dosePerSomministrazione = dosageToNumeric(therapy.dosaggio) ?? 1
-            // Calculate weekly consumption
-            const consumoMedioSettimanale = dosePerSomministrazione * somministrazioniGiornaliere * 7
+        return {
+            id: `__realistic__therapy-${idx + 1}`,
+            hostId: host.id,
+            drugId: drug.id,
+            stockBatchId: batch ? batch.id : null,
+            dataInizio: isoDateDaysAgo(now, 30 - idx, 8, 0),
+            dataFine: null,
+            dosePerSomministrazione,
+            unitaDose: 'compressa',
+            somministrazioniGiornaliere,
+            consumoMedioSettimanale,
+            dosaggio: `${dosePerSomministrazione} compressa`,
+            frequenza: `${somministrazioniGiornaliere} volta/die`,
+            notaTerapia: detailNote,
+            note: detailNote,
+            attiva: true,
+            updatedAt: now,
+            deletedAt: null,
+            syncStatus: 'pending',
+            _seeded: true,
+        }
+    })
+}
 
-            return {
-                id: `__realistic__therapy-${Number(therapy.id || idx + 1)}`,
-                hostId: host.id,
-                drugId: drug.id,
-                stockBatchId: batch ? batch.id : null,
-                dataInizio: therapy.dataInizio || now.slice(0, 10),
-                dataFine: therapy.dataFine || null,
-                dosePerSomministrazione,
-                unitaDose: 'compressa',
-                somministrazioniGiornaliere,
-                consumoMedioSettimanale,
-                dosaggio: String(therapy.dosaggio || '1 compressa'),
-                frequenza: String(therapy.frequenza || '1 volta/die'),
-                notaTerapia: String(therapy.notaTerapia || `Terapia per ${host.patologie || 'patologia'}`),
-                attiva: !therapy.dataFine,
-                updatedAt: now,
-                deletedAt: null,
-                syncStatus: 'pending',
-                _seeded: true,
-            }
+function generateRealisticMovements(therapies, batches, now) {
+    if (therapies.length === 0) return []
+
+    const batchById = new Map(batches.map(batch => [batch.id, batch]))
+    const movements = []
+
+    for (let i = 0; i < therapies.length; i += 1) {
+        const therapy = therapies[i]
+        const performedAt = isoDateDaysAgo(now, i % 7, 7 + (i % 3), 15)
+        const qty = Math.max(1, Number(therapy.dosePerSomministrazione || 1) * Number(therapy.somministrazioniGiornaliere || 1))
+        const batch = batchById.get(therapy.stockBatchId)
+        movements.push({
+            id: `__realistic__mov-${i + 1}`,
+            stockBatchId: therapy.stockBatchId || null,
+            drugId: therapy.drugId,
+            hostId: therapy.hostId,
+            therapyId: therapy.id,
+            tipoMovimento: 'SCARICO',
+            quantita: qty,
+            unitaMisura: therapy.unitaDose || 'compressa',
+            causale: 'Somministrazione da piano terapeutico',
+            dataMovimento: performedAt,
+            settimanaRiferimento: weekKeyFromDate(performedAt),
+            operatore: `op-demo-${(i % 3) + 1}`,
+            source: 'therapy',
+            note: `Somministrazione ${batch?.nomeCommerciale || 'farmaco'}`,
+            updatedAt: performedAt,
+            deletedAt: null,
+            syncStatus: 'pending',
+            _seeded: true,
         })
-        .filter(Boolean)
+    }
+
+    for (let i = 0; i < 4 && i < batches.length; i += 1) {
+        const recordedAt = isoDateDaysAgo(now, 6 - i, 10, 30)
+        const batch = batches[i]
+        movements.push({
+            id: `__realistic__mov-carico-${i + 1}`,
+            stockBatchId: batch.id,
+            drugId: batch.drugId,
+            hostId: null,
+            therapyId: null,
+            tipoMovimento: 'CARICO',
+            quantita: 20 + (i * 5),
+            unitaMisura: batch.unitaMisura || 'cpr',
+            causale: 'Reintegro magazzino',
+            dataMovimento: recordedAt,
+            settimanaRiferimento: weekKeyFromDate(recordedAt),
+            operatore: `op-demo-${(i % 3) + 1}`,
+            source: 'manual',
+            note: 'Consegna settimanale',
+            updatedAt: recordedAt,
+            deletedAt: null,
+            syncStatus: 'pending',
+            _seeded: true,
+        })
+    }
+
+    return movements
+}
+
+function generateRealisticReminders(therapies, now) {
+    if (therapies.length === 0) return []
+
+    const reminders = []
+
+    for (let i = 0; i < therapies.length; i += 1) {
+        const therapy = therapies[i]
+        const morningAt = isoDateDaysAgo(now, i % 7, 8, 0)
+        const eveningAt = isoDateDaysAgo(now, i % 7, 20, 0)
+        const done = i % 3 !== 0
+
+        reminders.push({
+            id: `__realistic__rem-${(i * 2) + 1}`,
+            hostId: therapy.hostId,
+            therapyId: therapy.id,
+            drugId: therapy.drugId,
+            scheduledAt: morningAt,
+            stato: done ? 'ESEGUITO' : 'DA_ESEGUIRE',
+            eseguitoAt: done ? isoDateDaysAgo(now, i % 7, 8, 12) : null,
+            operatore: done ? `op-demo-${(i % 3) + 1}` : null,
+            note: therapy.note || '',
+            updatedAt: done ? isoDateDaysAgo(now, i % 7, 8, 12) : morningAt,
+            deletedAt: null,
+            syncStatus: 'pending',
+            _seeded: true,
+        })
+
+        reminders.push({
+            id: `__realistic__rem-${(i * 2) + 2}`,
+            hostId: therapy.hostId,
+            therapyId: therapy.id,
+            drugId: therapy.drugId,
+            scheduledAt: eveningAt,
+            stato: i % 5 === 0 ? 'POSTICIPATO' : 'DA_ESEGUIRE',
+            eseguitoAt: null,
+            operatore: null,
+            note: therapy.note || '',
+            updatedAt: eveningAt,
+            deletedAt: null,
+            syncStatus: 'pending',
+            _seeded: true,
+        })
+    }
+
+    return reminders
 }
 
 /**
@@ -562,6 +721,8 @@ export function generateRealisticSeedData() {
     const drugs = generateRealisticDrugs()
     const batches = generateRealisticStockBatches(drugs)
     const therapies = generateRealisticTherapies(hosts, drugs, batches, now)
+    const movements = generateRealisticMovements(therapies, batches, now)
+    const reminders = generateRealisticReminders(therapies, now)
 
     return {
         hosts,
@@ -570,6 +731,8 @@ export function generateRealisticSeedData() {
         drugs,
         stockBatches: batches,
         therapies,
+        movements,
+        reminders,
     }
 }
 
@@ -593,6 +756,8 @@ export async function loadRealisticSeedData(options = {}) {
         availableStores.has('drugs') ? db.drugs : null,
         availableStores.has('stockBatches') ? db.stockBatches : null,
         availableStores.has('therapies') ? db.therapies : null,
+        availableStores.has('movements') ? db.movements : null,
+        availableStores.has('reminders') ? db.reminders : null,
     ].filter(Boolean)
 
     if (transactionTables.length > 0) {
@@ -603,6 +768,8 @@ export async function loadRealisticSeedData(options = {}) {
             if (availableStores.has('drugs')) for (const record of bundle.drugs) await db.drugs.put(record)
             if (availableStores.has('stockBatches')) for (const record of bundle.stockBatches) await db.stockBatches.put(record)
             if (availableStores.has('therapies')) for (const record of bundle.therapies) await db.therapies.put(record)
+            if (availableStores.has('movements')) for (const record of bundle.movements) await db.movements.put(record)
+            if (availableStores.has('reminders')) for (const record of bundle.reminders) await db.reminders.put(record)
         })
     }
 
@@ -613,6 +780,8 @@ export async function loadRealisticSeedData(options = {}) {
         drugs: availableStores.has('drugs') ? bundle.drugs.map(r => r.id) : [],
         stockBatches: availableStores.has('stockBatches') ? bundle.stockBatches.map(r => r.id) : [],
         therapies: availableStores.has('therapies') ? bundle.therapies.map(r => r.id) : [],
+        movements: availableStores.has('movements') ? bundle.movements.map(r => r.id) : [],
+        reminders: availableStores.has('reminders') ? bundle.reminders.map(r => r.id) : [],
     }
 
     await setSetting(REALISTIC_SEED_KEY, manifest)
@@ -625,6 +794,8 @@ export async function loadRealisticSeedData(options = {}) {
         drugs: bundle.drugs.length,
         stockBatches: bundle.stockBatches.length,
         therapies: bundle.therapies.length,
+        movements: bundle.movements.length,
+        reminders: bundle.reminders.length,
         operators: operatorStats.total,
     }
 }
@@ -651,6 +822,8 @@ export async function clearRealisticSeedData(options = {}) {
         availableStores.has('drugs') ? db.drugs : null,
         availableStores.has('stockBatches') ? db.stockBatches : null,
         availableStores.has('therapies') ? db.therapies : null,
+        availableStores.has('movements') ? db.movements : null,
+        availableStores.has('reminders') ? db.reminders : null,
     ].filter(Boolean)
 
     if (transactionTables.length > 0) {
@@ -661,6 +834,8 @@ export async function clearRealisticSeedData(options = {}) {
             if (availableStores.has('drugs')) for (const id of (manifest.drugs ?? [])) await db.drugs.delete(id)
             if (availableStores.has('stockBatches')) for (const id of (manifest.stockBatches ?? [])) await db.stockBatches.delete(id)
             if (availableStores.has('therapies')) for (const id of (manifest.therapies ?? [])) await db.therapies.delete(id)
+            if (availableStores.has('movements')) for (const id of (manifest.movements ?? [])) await db.movements.delete(id)
+            if (availableStores.has('reminders')) for (const id of (manifest.reminders ?? [])) await db.reminders.delete(id)
         })
     }
 
