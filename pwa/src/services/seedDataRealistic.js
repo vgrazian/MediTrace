@@ -277,6 +277,8 @@ function capitalizeHumanName(value) {
 }
 
 function pickUniqueHostName({ templateNome, templateCognome, hostIndex, usedNames }) {
+    const baseNome = capitalizeHumanName(templateNome)
+    const baseCognome = capitalizeHumanName(templateCognome)
     let nome = capitalizeHumanName(templateNome)
     let cognome = capitalizeHumanName(templateCognome)
 
@@ -293,6 +295,11 @@ function pickUniqueHostName({ templateNome, templateCognome, hostIndex, usedName
         } else {
             cognome = altLast
         }
+        // If fallback rotations are exhausted, add a deterministic numeric suffix.
+        if (attempt > (FALLBACK_FIRST_NAMES.length * FALLBACK_LAST_NAMES.length)) {
+            nome = baseNome || altFirst
+            cognome = `${baseCognome || altLast} ${attempt - 255}`
+        }
         candidate = `${nome} ${cognome}`.toLowerCase()
         attempt += 1
     }
@@ -301,12 +308,43 @@ function pickUniqueHostName({ templateNome, templateCognome, hostIndex, usedName
     return { nome, cognome }
 }
 
+function buildAvailableBedsByRoom(bedsById = new Map()) {
+    const bedsByRoom = new Map()
+    for (const bed of bedsById.values()) {
+        if (!bed?.id || !bed?.roomId) continue
+        const list = bedsByRoom.get(bed.roomId) ?? []
+        list.push(bed)
+        bedsByRoom.set(bed.roomId, list)
+    }
+
+    for (const [roomId, beds] of bedsByRoom.entries()) {
+        beds.sort((a, b) => Number(a?.numero || 0) - Number(b?.numero || 0))
+        bedsByRoom.set(roomId, beds)
+    }
+
+    return bedsByRoom
+}
+
+function pickNextAvailableBed({ preferredRoomId, bedsByRoom, allBeds, usedBedIds }) {
+    if (preferredRoomId) {
+        const roomBeds = bedsByRoom.get(preferredRoomId) ?? []
+        const freeRoomBed = roomBeds.find(bed => bed?.id && !usedBedIds.has(bed.id))
+        if (freeRoomBed) return freeRoomBed
+    }
+
+    return allBeds.find(bed => bed?.id && !usedBedIds.has(bed.id)) ?? null
+}
+
 /**
  * Generate realistic hosts from provided JSON dataset
  */
 function generateRealisticHosts(now, { roomsById = new Map(), bedsById = new Map() } = {}) {
     const templateHosts = Array.isArray(realisticDataset?.hosts) ? realisticDataset.hosts : []
     const usedNames = new Set()
+    const usedBedIds = new Set()
+    const bedsByRoom = buildAvailableBedsByRoom(bedsById)
+    const allBeds = Array.from(bedsById.values())
+
     return templateHosts.map((row, idx) => {
         const templateId = Number(row.id || idx + 1)
         const { nome, cognome } = pickUniqueHostName({
@@ -317,10 +355,31 @@ function generateRealisticHosts(now, { roomsById = new Map(), bedsById = new Map
         })
         const roomNumericId = toSafeNumericId(row.roomId)
         const bedNumericId = toSafeNumericId(row.bedId)
-        const roomId = roomNumericId ? `__realistic__room-${roomNumericId}` : null
-        const bedId = bedNumericId ? `__realistic__bed-${bedNumericId}` : null
-        const room = roomId ? roomsById.get(roomId) : null
+        const preferredRoomId = roomNumericId ? `__realistic__room-${roomNumericId}` : null
+        const preferredBedId = bedNumericId ? `__realistic__bed-${bedNumericId}` : null
+
+        let bedId = preferredBedId && bedsById.has(preferredBedId) && !usedBedIds.has(preferredBedId)
+            ? preferredBedId
+            : null
+
+        if (!bedId) {
+            const fallbackBed = pickNextAvailableBed({
+                preferredRoomId,
+                bedsByRoom,
+                allBeds,
+                usedBedIds,
+            })
+            bedId = fallbackBed?.id ?? null
+        }
+
+        if (bedId) {
+            usedBedIds.add(bedId)
+        }
+
         const bed = bedId ? bedsById.get(bedId) : null
+        const roomId = bed?.roomId || preferredRoomId || null
+        const room = roomId ? roomsById.get(roomId) : null
+
         return {
             id: `__realistic__host-${templateId}`,
             codiceInterno: String(row.codiceInterno || `OSP-${String(templateId).padStart(3, '0')}`),

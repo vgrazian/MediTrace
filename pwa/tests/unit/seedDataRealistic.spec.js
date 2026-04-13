@@ -96,4 +96,18 @@ describe('seedDataRealistic mapping', () => {
             }
         }
     })
+
+    it('ensures unique ospite names and one-bed-per-ospite allocation', () => {
+        const generated = generateRealisticSeedData()
+
+        const fullNames = generated.hosts
+            .map(host => `${host.cognome} ${host.nome}`.trim().toLowerCase())
+            .filter(Boolean)
+        const uniqueNames = new Set(fullNames)
+        expect(uniqueNames.size).toBe(fullNames.length)
+
+        const bedIds = generated.hosts.map(host => host.bedId).filter(Boolean)
+        const uniqueBedIds = new Set(bedIds)
+        expect(uniqueBedIds.size).toBe(bedIds.length)
+    })
 })
