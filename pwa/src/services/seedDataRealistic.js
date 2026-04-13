@@ -16,7 +16,7 @@ import { upsertDemoAuthUsers, clearDemoAuthUsers } from './seedAuthUsers.js'
 
 const REALISTIC_SEED_KEY = '_realisticSeedDataManifest'
 const REALISTIC_SEED_PREFIX = '__realistic__'
-const REALISTIC_SEED_STORE_NAMES = ['rooms', 'beds', 'hosts', 'drugs', 'stockBatches', 'therapies', 'movements', 'reminders']
+const REALISTIC_SEED_STORE_NAMES = ['rooms', 'beds', 'hosts', 'drugs', 'stockBatches', 'therapies', 'movements', 'reminders', 'activityLog']
 
 const TARGET_ROOM_IDS = [1, 2, 3, 4]
 const TARGET_HOST_COUNT = 9
@@ -213,7 +213,7 @@ async function getRealisticSeedManifest() {
     const manifest = await getSetting(REALISTIC_SEED_KEY, null)
     if (manifest) return manifest
 
-    const [rooms, beds, hosts, drugs, stockBatches, therapies, movements, reminders] = await Promise.all([
+    const [rooms, beds, hosts, drugs, stockBatches, therapies, movements, reminders, activityLog] = await Promise.all([
         findRealisticSeedIds(db.rooms),
         findRealisticSeedIds(db.beds),
         findRealisticSeedIds(db.hosts),
@@ -222,11 +222,24 @@ async function getRealisticSeedManifest() {
         findRealisticSeedIds(db.therapies),
         findRealisticSeedIds(db.movements),
         findRealisticSeedIds(db.reminders),
+        findRealisticSeedActivityLogIds(),
     ])
 
-    const fallbackManifest = { rooms, beds, hosts, drugs, stockBatches, therapies, movements, reminders }
+    const fallbackManifest = { rooms, beds, hosts, drugs, stockBatches, therapies, movements, reminders, activityLog }
     const hasSeedRows = Object.values(fallbackManifest).some(ids => ids.length > 0)
     return hasSeedRows ? fallbackManifest : null
+}
+
+async function findRealisticSeedActivityLogIds() {
+    if (!db.activityLog || typeof db.activityLog.toArray !== 'function') return []
+    const rows = await db.activityLog.toArray()
+    return rows
+        .filter((row) => {
+            const entityId = String(row?.entityId || '')
+            return entityId.startsWith(REALISTIC_SEED_PREFIX) || row?.seedTag === REALISTIC_SEED_PREFIX
+        })
+        .map(row => row?.id)
+        .filter(id => id !== null && id !== undefined)
 }
 
 const CSV_FARMACI = `marca,farmaco
@@ -563,9 +576,10 @@ function generateRealisticTherapies(hosts, drugs, batches, now) {
     if (hosts.length === 0 || drugs.length === 0) return []
 
     const baseSlots = [
-        [0, 0, 1, 2], [1, 1, 1, 1], [2, 2, 1, 2], [3, 3, 2, 2], [4, 4, 1, 1],
-        [5, 5, 1, 2], [6, 6, 1, 1], [7, 7, 1, 1], [8, 8, 1, 2],
+        [0, 0, 1, 2], [1, 1, 1, 1], [2, 2, 1.5, 2], [3, 3, 2, 2], [4, 4, 1, 1],
+        [5, 5, 1, 2], [6, 6, 0.5, 3], [7, 7, 1, 1], [8, 8, 1, 2],
         [0, 9, 1, 1], [2, 10, 1, 1], [4, 11, 1, 1], [6, 2, 1, 2], [8, 3, 1, 1],
+        [1, 4, 2, 1], [3, 6, 1, 3],
     ]
 
     return baseSlots.map((slot, idx) => {
@@ -614,16 +628,20 @@ function generateRealisticMovements(therapies, batches, now) {
         const performedAt = isoDateDaysAgo(now, i % 7, 7 + (i % 3), 15)
         const qty = Math.max(1, Number(therapy.dosePerSomministrazione || 1) * Number(therapy.somministrazioniGiornaliere || 1))
         const batch = batchById.get(therapy.stockBatchId)
+        const typePattern = ['SCARICO', 'SOMMINISTRAZIONE', 'SCARICO', 'CORREZIONE']
+        const tipoMovimento = typePattern[i % typePattern.length]
         movements.push({
             id: `__realistic__mov-${i + 1}`,
             stockBatchId: therapy.stockBatchId || null,
             drugId: therapy.drugId,
             hostId: therapy.hostId,
             therapyId: therapy.id,
-            tipoMovimento: 'SCARICO',
+            tipoMovimento,
             quantita: qty,
             unitaMisura: therapy.unitaDose || 'compressa',
-            causale: 'Somministrazione da piano terapeutico',
+            causale: tipoMovimento === 'CORREZIONE'
+                ? 'Rettifica inventario post-controllo'
+                : 'Somministrazione da piano terapeutico',
             dataMovimento: performedAt,
             settimanaRiferimento: weekKeyFromDate(performedAt),
             operatore: `op-demo-${(i % 3) + 1}`,
@@ -673,7 +691,9 @@ function generateRealisticReminders(therapies, now) {
         const therapy = therapies[i]
         const morningAt = isoDateDaysAgo(now, i % 7, 8, 0)
         const eveningAt = isoDateDaysAgo(now, i % 7, 20, 0)
-        const done = i % 3 !== 0
+        const stateCycle = ['ESEGUITO', 'DA_ESEGUIRE', 'POSTICIPATO', 'SALTATO']
+        const morningState = stateCycle[i % stateCycle.length]
+        const eveningState = stateCycle[(i + 1) % stateCycle.length]
 
         reminders.push({
             id: `__realistic__rem-${(i * 2) + 1}`,
@@ -681,11 +701,11 @@ function generateRealisticReminders(therapies, now) {
             therapyId: therapy.id,
             drugId: therapy.drugId,
             scheduledAt: morningAt,
-            stato: done ? 'ESEGUITO' : 'DA_ESEGUIRE',
-            eseguitoAt: done ? isoDateDaysAgo(now, i % 7, 8, 12) : null,
-            operatore: done ? `op-demo-${(i % 3) + 1}` : null,
+            stato: morningState,
+            eseguitoAt: morningState === 'ESEGUITO' ? isoDateDaysAgo(now, i % 7, 8, 12) : null,
+            operatore: morningState === 'ESEGUITO' || morningState === 'SALTATO' ? `op-demo-${(i % 3) + 1}` : null,
             note: therapy.note || '',
-            updatedAt: done ? isoDateDaysAgo(now, i % 7, 8, 12) : morningAt,
+            updatedAt: morningState === 'ESEGUITO' ? isoDateDaysAgo(now, i % 7, 8, 12) : morningAt,
             deletedAt: null,
             syncStatus: 'pending',
             _seeded: true,
@@ -697,9 +717,9 @@ function generateRealisticReminders(therapies, now) {
             therapyId: therapy.id,
             drugId: therapy.drugId,
             scheduledAt: eveningAt,
-            stato: i % 5 === 0 ? 'POSTICIPATO' : 'DA_ESEGUIRE',
+            stato: eveningState,
             eseguitoAt: null,
-            operatore: null,
+            operatore: eveningState === 'SALTATO' ? `op-demo-${((i + 1) % 3) + 1}` : null,
             note: therapy.note || '',
             updatedAt: eveningAt,
             deletedAt: null,
@@ -709,6 +729,112 @@ function generateRealisticReminders(therapies, now) {
     }
 
     return reminders
+}
+
+function generateRealisticAuditEvents({ rooms, beds, hosts, drugs, stockBatches, therapies, movements, reminders }) {
+    const events = []
+    const operators = ['admin', 'rosa', 'margherita', 'giglio']
+    const now = new Date()
+
+    const pushEvent = ({ entityType, entityId, action, operatorId, ts }) => {
+        events.push({
+            entityType,
+            entityId,
+            action,
+            deviceId: 'seed-device-demo',
+            operatorId,
+            ts,
+            seedTag: REALISTIC_SEED_PREFIX,
+        })
+    }
+
+    rooms.forEach((item, idx) => {
+        pushEvent({
+            entityType: 'rooms',
+            entityId: item.id,
+            action: 'room_created',
+            operatorId: operators[idx % operators.length],
+            ts: isoDateDaysAgo(now, 8 - (idx % 5), 9, 10 + idx),
+        })
+    })
+
+    beds.slice(0, hosts.length).forEach((item, idx) => {
+        pushEvent({
+            entityType: 'beds',
+            entityId: item.id,
+            action: 'bed_created',
+            operatorId: operators[(idx + 1) % operators.length],
+            ts: isoDateDaysAgo(now, 8 - (idx % 5), 9, 25 + idx),
+        })
+    })
+
+    hosts.forEach((item, idx) => {
+        pushEvent({
+            entityType: 'hosts',
+            entityId: item.id,
+            action: 'host_updated',
+            operatorId: operators[(idx + 2) % operators.length],
+            ts: isoDateDaysAgo(now, 7 - (idx % 6), 10, 5 + idx),
+        })
+    })
+
+    drugs.slice(0, 8).forEach((item, idx) => {
+        pushEvent({
+            entityType: 'drugs',
+            entityId: item.id,
+            action: idx % 2 === 0 ? 'drug_created' : 'drug_updated',
+            operatorId: operators[(idx + 3) % operators.length],
+            ts: isoDateDaysAgo(now, 6 - (idx % 5), 10, 35 + idx),
+        })
+    })
+
+    stockBatches.slice(0, 10).forEach((item, idx) => {
+        pushEvent({
+            entityType: 'stockBatches',
+            entityId: item.id,
+            action: idx % 3 === 0 ? 'stock_batch_created' : 'stock_batch_updated',
+            operatorId: operators[idx % operators.length],
+            ts: isoDateDaysAgo(now, 6 - (idx % 5), 11, idx),
+        })
+    })
+
+    therapies.forEach((item, idx) => {
+        pushEvent({
+            entityType: 'therapies',
+            entityId: item.id,
+            action: idx % 4 === 0 ? 'therapy_updated' : 'therapy_created',
+            operatorId: operators[(idx + 1) % operators.length],
+            ts: isoDateDaysAgo(now, idx % 7, 12, idx),
+        })
+    })
+
+    movements.slice(0, 18).forEach((item, idx) => {
+        pushEvent({
+            entityType: 'movements',
+            entityId: item.id,
+            action: 'movement_recorded',
+            operatorId: operators[(idx + 2) % operators.length],
+            ts: item.dataMovimento || isoDateDaysAgo(now, idx % 7, 13, idx),
+        })
+    })
+
+    reminders.slice(0, 22).forEach((item, idx) => {
+        const statusAction = {
+            ESEGUITO: 'reminder_eseguito',
+            SALTATO: 'reminder_saltato',
+            POSTICIPATO: 'reminder_posticipato',
+            DA_ESEGUIRE: 'reminder_pending',
+        }
+        pushEvent({
+            entityType: 'reminders',
+            entityId: item.id,
+            action: statusAction[item.stato] || 'reminder_pending',
+            operatorId: item.operatore || operators[(idx + 3) % operators.length],
+            ts: item.updatedAt || item.scheduledAt || isoDateDaysAgo(now, idx % 7, 14, idx),
+        })
+    })
+
+    return events
 }
 
 /**
@@ -731,6 +857,16 @@ export function generateRealisticSeedData() {
     const therapies = generateRealisticTherapies(hosts, drugs, batches, now)
     const movements = generateRealisticMovements(therapies, batches, now)
     const reminders = generateRealisticReminders(therapies, now)
+    const activityLog = generateRealisticAuditEvents({
+        rooms,
+        beds,
+        hosts,
+        drugs,
+        stockBatches: batches,
+        therapies,
+        movements,
+        reminders,
+    })
 
     return {
         hosts,
@@ -741,6 +877,7 @@ export function generateRealisticSeedData() {
         therapies,
         movements,
         reminders,
+        activityLog,
     }
 }
 
@@ -766,7 +903,10 @@ export async function loadRealisticSeedData(options = {}) {
         availableStores.has('therapies') ? db.therapies : null,
         availableStores.has('movements') ? db.movements : null,
         availableStores.has('reminders') ? db.reminders : null,
+        availableStores.has('activityLog') ? db.activityLog : null,
     ].filter(Boolean)
+
+    const insertedActivityLogIds = []
 
     if (transactionTables.length > 0) {
         await db.transaction('rw', transactionTables, async () => {
@@ -778,6 +918,12 @@ export async function loadRealisticSeedData(options = {}) {
             if (availableStores.has('therapies')) for (const record of bundle.therapies) await db.therapies.put(record)
             if (availableStores.has('movements')) for (const record of bundle.movements) await db.movements.put(record)
             if (availableStores.has('reminders')) for (const record of bundle.reminders) await db.reminders.put(record)
+            if (availableStores.has('activityLog')) {
+                for (const event of bundle.activityLog) {
+                    const insertedId = await db.activityLog.add(event)
+                    insertedActivityLogIds.push(insertedId)
+                }
+            }
         })
     }
 
@@ -790,6 +936,7 @@ export async function loadRealisticSeedData(options = {}) {
         therapies: availableStores.has('therapies') ? bundle.therapies.map(r => r.id) : [],
         movements: availableStores.has('movements') ? bundle.movements.map(r => r.id) : [],
         reminders: availableStores.has('reminders') ? bundle.reminders.map(r => r.id) : [],
+        activityLog: availableStores.has('activityLog') ? insertedActivityLogIds : [],
     }
 
     await setSetting(REALISTIC_SEED_KEY, manifest)
@@ -804,6 +951,7 @@ export async function loadRealisticSeedData(options = {}) {
         therapies: bundle.therapies.length,
         movements: bundle.movements.length,
         reminders: bundle.reminders.length,
+        activityLog: bundle.activityLog.length,
         operators: operatorStats.total,
     }
 }
@@ -832,6 +980,7 @@ export async function clearRealisticSeedData(options = {}) {
         availableStores.has('therapies') ? db.therapies : null,
         availableStores.has('movements') ? db.movements : null,
         availableStores.has('reminders') ? db.reminders : null,
+        availableStores.has('activityLog') ? db.activityLog : null,
     ].filter(Boolean)
 
     if (transactionTables.length > 0) {
@@ -844,6 +993,7 @@ export async function clearRealisticSeedData(options = {}) {
             if (availableStores.has('therapies')) for (const id of (manifest.therapies ?? [])) await db.therapies.delete(id)
             if (availableStores.has('movements')) for (const id of (manifest.movements ?? [])) await db.movements.delete(id)
             if (availableStores.has('reminders')) for (const id of (manifest.reminders ?? [])) await db.reminders.delete(id)
+            if (availableStores.has('activityLog')) for (const id of (manifest.activityLog ?? [])) await db.activityLog.delete(id)
         })
     }
 
