@@ -1,0 +1,3 @@
+stock_item_id,drug_id,nome_commerciale,dosaggio,forma,unita_misura,lotto,scadenza,quantita_iniziale,quantita_attuale,soglia_riordino,copertura_settimane,stato_scorta,updated_at,deleted_at
+batch_demo_001,drug_demo_001,Tachipirina 500mg,500mg,compressa,cp,LOT-PA-001,2027-06-30,100,60,15,6,ok,2026-04-13T08:05:00.000Z,
+batch_demo_002,drug_demo_002,Aricept 10mg,10mg,compressa,cp,LOT-DO-002,2027-04-15,60,18,12,3,attenzione,2026-04-13T08:05:00.000Z,

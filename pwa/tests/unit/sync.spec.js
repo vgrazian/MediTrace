@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { fullSync } from '../../src/services/sync'
+import { fullSync, importBackupJson } from '../../src/services/sync'
 import { SyncError } from '../../src/services/errorHandling'
 
 // ── Mock db and gist service ───────────────────────────────────────────────────
@@ -8,46 +8,49 @@ const activityLogRows = []
 const syncQueueRows = []
 const settingsMap = new Map()
 const datasetVersionSettings = new Map()
+const tableRows = {
+    hosts: [],
+    drugs: [],
+    stockBatches: [],
+    therapies: [],
+    movements: [],
+    reminders: [],
+}
+
+function buildTableMock(tableName) {
+    return {
+        filter() {
+            return { toArray: async () => tableRows[tableName].filter(row => !row.deletedAt) }
+        },
+        async clear() {
+            tableRows[tableName] = []
+        },
+        async bulkPut(rows) {
+            tableRows[tableName] = Array.isArray(rows) ? rows.map(item => ({ ...item })) : []
+        },
+    }
+}
 
 vi.mock('../../src/db', () => ({
     db: {
+        settings: {},
+        syncState: {},
         syncQueue: {
             async count() { return syncQueueRows.length },
             async clear() { syncQueueRows.length = 0 },
+            async bulkAdd(rows) {
+                syncQueueRows.push(...rows)
+            },
         },
         activityLog: {
             async add(row) { activityLogRows.push(row) },
         },
-        drugs: {
-            async filter() {
-                return { toArray: async () => [] }
-            },
-        },
-        hosts: {
-            async filter() {
-                return { toArray: async () => [] }
-            },
-        },
-        stockBatches: {
-            async filter() {
-                return { toArray: async () => [] }
-            },
-        },
-        therapies: {
-            async filter() {
-                return { toArray: async () => [] }
-            },
-        },
-        movements: {
-            async filter() {
-                return { toArray: async () => [] }
-            },
-        },
-        reminders: {
-            async filter() {
-                return { toArray: async () => [] }
-            },
-        },
+        drugs: buildTableMock('drugs'),
+        hosts: buildTableMock('hosts'),
+        stockBatches: buildTableMock('stockBatches'),
+        therapies: buildTableMock('therapies'),
+        movements: buildTableMock('movements'),
+        reminders: buildTableMock('reminders'),
         async transaction(_mode, ...args) {
             const callback = args.at(-1)
             await callback()
@@ -91,6 +94,12 @@ function resetState() {
     syncQueueRows.length = 0
     settingsMap.clear()
     datasetVersionSettings.clear()
+    tableRows.hosts = []
+    tableRows.drugs = []
+    tableRows.stockBatches = []
+    tableRows.therapies = []
+    tableRows.movements = []
+    tableRows.reminders = []
 }
 
 // ── fullSync ───────────────────────────────────────────────────────────────────
@@ -191,5 +200,58 @@ describe('fullSync', () => {
         // For this test, we verify the structure is correct when called
         expect(result).toBeDefined()
         expect(result.bootstrapped || result.upToDate).toBe(true)
+    })
+})
+
+describe('importBackupJson', () => {
+    beforeEach(() => {
+        resetState()
+    })
+
+    it('restores all dataset tables and enqueues sync operations', async () => {
+        const backup = {
+            schemaVersion: 1,
+            datasetVersion: 7,
+            exportedAt: '2026-04-13T10:00:00.000Z',
+            hosts: [{ id: 'h1', nome: 'Mario' }],
+            drugs: [{ id: 'd1', principioAttivo: 'Paracetamolo' }],
+            stockBatches: [{ id: 'sb1', drugId: 'd1' }],
+            therapies: [{ id: 't1', hostId: 'h1', drugId: 'd1' }],
+            movements: [{ id: 'm1', stockBatchId: 'sb1' }],
+            reminders: [{ id: 'r1', hostId: 'h1', therapyId: 't1', scheduledAt: '2026-04-13T10:00:00.000Z' }],
+        }
+
+        const result = await importBackupJson(JSON.stringify(backup), { operatorId: 'admin' })
+
+        expect(result.sourceDatasetVersion).toBe(7)
+        expect(tableRows.hosts).toHaveLength(1)
+        expect(tableRows.drugs).toHaveLength(1)
+        expect(tableRows.stockBatches).toHaveLength(1)
+        expect(tableRows.therapies).toHaveLength(1)
+        expect(tableRows.movements).toHaveLength(1)
+        expect(tableRows.reminders).toHaveLength(1)
+        expect(syncQueueRows.length).toBe(6)
+
+        const restoreEvent = activityLogRows.find(item => item.action === 'backup_restored')
+        expect(restoreEvent).toBeDefined()
+        expect(restoreEvent.operatorId).toBe('admin')
+    })
+
+    it('rejects malformed backup JSON', async () => {
+        await expect(importBackupJson('{bad json}', { operatorId: 'admin' })).rejects.toThrow('JSON malformato')
+    })
+
+    it('rejects backup with missing required table', async () => {
+        const backup = {
+            schemaVersion: 1,
+            datasetVersion: 1,
+            hosts: [],
+            drugs: [],
+            stockBatches: [],
+            therapies: [],
+            movements: [],
+        }
+
+        await expect(importBackupJson(JSON.stringify(backup), { operatorId: 'admin' })).rejects.toThrow('tabella reminders')
     })
 })

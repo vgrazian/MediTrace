@@ -15,7 +15,7 @@ function formatDateTime(value) {
   if (!value) return '—'
   const parsed = new Date(value)
   if (Number.isNaN(parsed.getTime())) return String(value)
-  return parsed.toLocaleString()
+  return parsed.toLocaleString('it-IT', { hour12: false })
 }
 
 async function refreshHomeKpi() {
@@ -85,7 +85,7 @@ onMounted(async () => {
           <p class="muted">Promemoria somministrazioni e notifiche pendenti.</p>
         </div>
         <div class="dashboard-nav-item">
-          <RouterLink class="quick-link" to="/movimenti" aria-label="Shortcut cruscotto 7">Movimenti Magazzino</RouterLink>
+          <RouterLink class="quick-link" to="/movimenti" aria-label="Shortcut cruscotto 7">Movimenti</RouterLink>
           <p class="muted">Storico movimenti di magazzino: carichi, scarichi e rettifiche.</p>
         </div>
         <div class="dashboard-nav-item">

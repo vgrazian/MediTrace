@@ -159,7 +159,7 @@ export const helpContent = {
     },
 
     movimenti: {
-        titolo: 'Movimenti Magazzino — Guida',
+        titolo: 'Movimenti — Guida',
         intro:
             'Qui registri ogni entrata e uscita di farmaci dal magazzino. Ogni movimento aggiorna automaticamente la quantità in Scorte.',
         sezioni: [
@@ -298,7 +298,7 @@ export const helpContent = {
             {
                 titolo: 'Importare dati da CSV',
                 testo:
-                    'Se devi caricare dati in blocco (ospiti, farmaci, terapie), usa la funzione "Importa CSV". Scarica il modello, compila il file con i dati e caricalo. L\'applicazione ti mostrerà un\'anteprima prima di salvare.',
+                    'Se devi caricare dati in blocco (ospiti, farmaci, terapie), usa la funzione "Importa CSV". Nel Manuale completo trovi file CSV di esempio scaricabili per ogni sorgente supportata. L\'applicazione mostra sempre un\'anteprima prima di salvare.',
             },
             {
                 titolo: 'Sincronizzazione',

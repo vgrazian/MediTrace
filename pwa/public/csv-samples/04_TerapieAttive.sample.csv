@@ -1,0 +1,3 @@
+therapy_id,guest_id,drug_id,stock_item_id_preferito,dose_per_somministrazione,unita_dose,somministrazioni_giornaliere,consumo_medio_settimanale,data_inizio,data_fine,attiva,note,updated_at
+therapy_demo_001,host_demo_001,drug_demo_001,batch_demo_001,1,compressa,3,21,2026-04-01,,true,Dopo i pasti,2026-04-13T08:15:00.000Z
+therapy_demo_002,host_demo_002,drug_demo_002,batch_demo_002,1,compressa,1,7,2026-04-01,,true,Somministrare al mattino,2026-04-13T08:15:00.000Z

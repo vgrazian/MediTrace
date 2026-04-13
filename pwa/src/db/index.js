@@ -92,6 +92,63 @@ db.version(3).stores({
     })
 })
 
+db.version(4).stores({
+    settings: '&key',
+    rooms: 'id, codice, updatedAt, syncStatus',
+    beds: 'id, roomId, numero, updatedAt, syncStatus',
+    hosts: 'id, codiceInterno, cognome, nome, roomId, bedId, attivo, updatedAt, syncStatus',
+    drugs: 'id, nomeFarmaco, principioAttivo, classeTerapeutica, updatedAt, syncStatus',
+    stockBatches: 'id, drugId, nomeCommerciale, scadenza, updatedAt, syncStatus',
+    therapies: 'id, hostId, drugId, stockBatchId, dataInizio, dataFine, updatedAt, syncStatus',
+    movements: 'id, stockBatchId, hostId, therapyId, type, updatedAt, syncStatus',
+    reminders: 'id, hostId, therapyId, scheduledAt, stato, updatedAt, syncStatus',
+    syncQueue: '++id, entityType, entityId, operation, createdAt',
+    syncState: '&key',
+    activityLog: '++id, entityType, entityId, action, deviceId, operatorId, ts',
+}).upgrade(async tx => {
+    await tx.table('rooms').toCollection().modify(room => {
+        room.reparto = room.reparto ?? ''
+        room.piano = room.piano ?? ''
+        room.metadata = room.metadata ?? {}
+    })
+
+    await tx.table('hosts').toCollection().modify(host => {
+        host.contattoEmergenza = host.contattoEmergenza ?? ''
+        host.noteCliniche = host.noteCliniche ?? ''
+        host.metadata = host.metadata ?? {}
+    })
+
+    await tx.table('drugs').toCollection().modify(drug => {
+        drug.codiceAIC = drug.codiceAIC ?? ''
+        drug.formaFarmaceutica = drug.formaFarmaceutica ?? ''
+        drug.metadata = drug.metadata ?? {}
+    })
+
+    await tx.table('stockBatches').toCollection().modify(batch => {
+        batch.fornitore = batch.fornitore ?? ''
+        batch.unitaMisura = batch.unitaMisura ?? batch.unita_misura ?? ''
+        batch.metadata = batch.metadata ?? {}
+    })
+
+    await tx.table('therapies').toCollection().modify(therapy => {
+        therapy.viaSomministrazione = therapy.viaSomministrazione ?? ''
+        therapy.prioritaClinica = therapy.prioritaClinica ?? ''
+        therapy.metadata = therapy.metadata ?? {}
+    })
+
+    await tx.table('movements').toCollection().modify(movement => {
+        movement.causale = movement.causale ?? ''
+        movement.referenceId = movement.referenceId ?? ''
+        movement.metadata = movement.metadata ?? {}
+    })
+
+    await tx.table('reminders').toCollection().modify(reminder => {
+        reminder.channel = reminder.channel ?? ''
+        reminder.priority = reminder.priority ?? ''
+        reminder.metadata = reminder.metadata ?? {}
+    })
+})
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 export async function getSetting(key, fallback = null) {

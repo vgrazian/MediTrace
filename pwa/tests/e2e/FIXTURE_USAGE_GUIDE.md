@@ -86,7 +86,7 @@ test('csv import with realistic fixture data', async ({ page }) => {
   
   // Carica il file CSV nei fixtures
   const buffer = Buffer.from(csvContent, 'utf-8')
-  await page.locator('input[type="file"]').setInputFiles({
+  await page.locator('input[type="file"][accept=".csv,text/csv"]').setInputFiles({
     name: 'persone_test_sanitarie.csv',
     mimeType: 'text/csv',
     buffer: buffer,

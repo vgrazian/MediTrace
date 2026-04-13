@@ -448,6 +448,7 @@ details.add-panel[open] > div {
 .state-skip    { background: #fee2e2; color: #991b1b; }
 .state-warn    { background: #fef3c7; color: #92400e; }
 .state-pending { background: #e0e7ef; color: #1e3a5f; }
+.state-cancel  { background: #fee2e2; color: #991b1b; }
 
 /* ── responsive ── */
 @media (max-width: 600px) {

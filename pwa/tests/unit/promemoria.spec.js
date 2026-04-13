@@ -1,9 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { buildReminderRows, reminderStateBadge, startOfDay, endOfDay, REMINDER_OUTCOMES } from '../../src/services/promemoria'
+import { buildReminderRows, reminderStateBadge, startOfDay, endOfDay, REMINDER_OUTCOMES, reminderActionButtonColor } from '../../src/services/promemoria'
 
 // ── Mock db — needed for markReminder side-effect tests ──────────────────────
 
 const dbReminders = new Map()
+const dbTherapies = new Map()
+const dbStockBatches = new Map()
+const dbMovements = new Map()
+const dbDrugs = new Map()
 const activityLogRows = []
 const enqueueCalls = []
 
@@ -12,6 +16,32 @@ vi.mock('../../src/db', () => ({
         reminders: {
             async get(id) { return dbReminders.get(id) ?? undefined },
             async put(row) { dbReminders.set(row.id, row) },
+        },
+        therapies: {
+            async get(id) { return dbTherapies.get(id) ?? undefined },
+            async put(row) { dbTherapies.set(row.id, row) },
+        },
+        stockBatches: {
+            async get(id) { return dbStockBatches.get(id) ?? undefined },
+            async put(row) { dbStockBatches.set(row.id, row) },
+            where(field) {
+                return {
+                    equals: (value) => ({
+                        toArray: async () => {
+                            return Array.from(dbStockBatches.values()).filter(batch => batch[field] === value)
+                        }
+                    })
+                }
+            },
+        },
+        movements: {
+            async get(id) { return dbMovements.get(id) ?? undefined },
+            async put(row) { dbMovements.set(row.id, row) },
+            async toArray() { return Array.from(dbMovements.values()) },
+        },
+        drugs: {
+            async get(id) { return dbDrugs.get(id) ?? undefined },
+            async put(row) { dbDrugs.set(row.id, row) },
         },
         syncQueue: { async add() { } },
         activityLog: { async add(row) { activityLogRows.push(row) } },
@@ -61,6 +91,10 @@ const ALL_REMINDERS = [...REMINDERS_TODAY, ...REMINDERS_TOMORROW]
 
 function resetState() {
     dbReminders.clear()
+    dbTherapies.clear()
+    dbStockBatches.clear()
+    dbMovements.clear()
+    dbDrugs.clear()
     activityLogRows.length = 0
     enqueueCalls.length = 0
 }
@@ -134,10 +168,40 @@ describe('reminderStateBadge', () => {
         ['ESEGUITO', 'state-ok'],
         ['SALTATO', 'state-skip'],
         ['POSTICIPATO', 'state-warn'],
+        ['ANNULLATO', 'state-cancel'],
         ['DA_ESEGUIRE', 'state-pending'],
         ['UNKNOWN', 'state-pending'],
     ])('maps %s → %s', (stato, expected) => {
         expect(reminderStateBadge(stato)).toBe(expected)
+    })
+})
+
+// ── reminderActionButtonColor ─────────────────────────────────────────────────
+
+describe('reminderActionButtonColor', () => {
+    it('returns green colors for ESEGUITO', () => {
+        const color = reminderActionButtonColor('ESEGUITO')
+        expect(color).toEqual({ bg: '#d1fae5', text: '#065f46' })
+    })
+
+    it('returns yellow colors for POSTICIPATO', () => {
+        const color = reminderActionButtonColor('POSTICIPATO')
+        expect(color).toEqual({ bg: '#fef3c7', text: '#92400e' })
+    })
+
+    it('returns orange colors for SALTATO', () => {
+        const color = reminderActionButtonColor('SALTATO')
+        expect(color).toEqual({ bg: '#fed7aa', text: '#9a3412' })
+    })
+
+    it('returns red colors for ANNULLATO', () => {
+        const color = reminderActionButtonColor('ANNULLATO')
+        expect(color).toEqual({ bg: '#fee2e2', text: '#991b1b' })
+    })
+
+    it('returns gray colors for unknown outcome', () => {
+        const color = reminderActionButtonColor('UNKNOWN')
+        expect(color).toEqual({ bg: '#e5e7eb', text: '#1f2937' })
     })
 })
 
@@ -162,10 +226,12 @@ describe('startOfDay / endOfDay', () => {
 // ── REMINDER_OUTCOMES ─────────────────────────────────────────────────────────
 
 describe('REMINDER_OUTCOMES', () => {
-    it('includes ESEGUITO, SALTATO, POSTICIPATO', () => {
+    it('includes ESEGUITO, SALTATO, POSTICIPATO, ANNULLATO', () => {
         expect(REMINDER_OUTCOMES).toContain('ESEGUITO')
         expect(REMINDER_OUTCOMES).toContain('SALTATO')
         expect(REMINDER_OUTCOMES).toContain('POSTICIPATO')
+        expect(REMINDER_OUTCOMES).toContain('ANNULLATO')
+        expect(REMINDER_OUTCOMES).toHaveLength(4)
     })
 })
 
@@ -239,8 +305,25 @@ describe('markReminder', () => {
         expect(typeof audit.ts).toBe('string')
     })
 
+    it('records standard audit fields for reminder annullato', async () => {
+        await markReminder({ reminderId: 'r-test', outcome: 'ANNULLATO', operatorId: 'op-admin' })
+        expect(activityLogRows.length).toBe(1)
+        const audit = activityLogRows[0]
+        expect(audit.entityType).toBe('reminders')
+        expect(audit.entityId).toBe('r-test')
+        expect(audit.action).toBe('reminder_annullato')
+        expect(audit.operatorId).toBe('op-admin')
+        expect(audit.deviceId).toBe('unknown')
+        expect(typeof audit.ts).toBe('string')
+    })
+
     it('does not overwrite eseguitoAt when marking SALTATO', async () => {
         const result = await markReminder({ reminderId: 'r-test', outcome: 'SALTATO' })
+        expect(result.eseguitoAt).toBeNull()
+    })
+
+    it('does not overwrite eseguitoAt when marking ANNULLATO', async () => {
+        const result = await markReminder({ reminderId: 'r-test', outcome: 'ANNULLATO' })
         expect(result.eseguitoAt).toBeNull()
     })
 
@@ -252,3 +335,185 @@ describe('markReminder', () => {
         await expect(markReminder({ reminderId: 'nonexistent', outcome: 'ESEGUITO' })).rejects.toThrow('non trovato')
     })
 })
+
+// ── Stock Batch & Movement Integration Tests ──────────────────────────────────
+
+describe('markReminder with stock batch deduction', () => {
+    beforeEach(() => {
+        resetState()
+        dbReminders.set('r-sb1', {
+            id: 'r-sb1',
+            hostId: 'h1',
+            therapyId: 't1',
+            drugId: 'd1',
+            scheduledAt: '2026-04-04T08:00:00.000Z',
+            stato: 'DA_ESEGUIRE',
+            eseguitoAt: null,
+            updatedAt: '2026-04-04T07:00:00.000Z',
+        })
+        dbTherapies.set('t1', {
+            id: 't1',
+            drugId: 'd1',
+            dosePerSomministrazione: 2,
+            somministrazioniGiornaliere: 3,
+            deletedAt: null,
+        })
+        dbStockBatches.set('sb1', {
+            id: 'sb1',
+            drugId: 'd1',
+            quantitaAttuale: 100,
+            quantitaIniziale: 100,
+            sogliaRiordino: 20,
+            updatedAt: '2026-04-04T00:00:00.000Z',
+            syncStatus: 'synced',
+            deletedAt: null,
+        })
+    })
+
+    it('deducts dose from stock batch when reminder marked ESEGUITO', async () => {
+        await markReminder({ reminderId: 'r-sb1', outcome: 'ESEGUITO', operatorId: 'op-1' })
+        const updatedBatch = dbStockBatches.get('sb1')
+        expect(updatedBatch.quantitaAttuale).toBe(98) // 100 - 2
+        expect(updatedBatch.syncStatus).toBe('pending')
+    })
+
+    it('enqueues stock batch for sync after deduction', async () => {
+        await markReminder({ reminderId: 'r-sb1', outcome: 'ESEGUITO', operatorId: 'op-1' })
+        const batchSyncCalls = enqueueCalls.filter(call => call.entityType === 'stockBatches' && call.entityId === 'sb1')
+        expect(batchSyncCalls.length).toBeGreaterThan(0)
+    })
+
+    it('does NOT deduct dose when reminder marked SALTATO', async () => {
+        const initialQty = dbStockBatches.get('sb1').quantitaAttuale
+        await markReminder({ reminderId: 'r-sb1', outcome: 'SALTATO', operatorId: 'op-1' })
+        const batch = dbStockBatches.get('sb1')
+        expect(batch.quantitaAttuale).toBe(initialQty)
+    })
+
+    it('does NOT deduct dose when reminder marked POSTICIPATO', async () => {
+        const initialQty = dbStockBatches.get('sb1').quantitaAttuale
+        await markReminder({ reminderId: 'r-sb1', outcome: 'POSTICIPATO', operatorId: 'op-1' })
+        const batch = dbStockBatches.get('sb1')
+        expect(batch.quantitaAttuale).toBe(initialQty)
+    })
+
+    it('does NOT deduct dose when reminder marked ANNULLATO', async () => {
+        const initialQty = dbStockBatches.get('sb1').quantitaAttuale
+        await markReminder({ reminderId: 'r-sb1', outcome: 'ANNULLATO', operatorId: 'op-1' })
+        const batch = dbStockBatches.get('sb1')
+        expect(batch.quantitaAttuale).toBe(initialQty)
+    })
+
+    it('does not let quantity go below zero', async () => {
+        dbStockBatches.set('sb1', {
+            ...dbStockBatches.get('sb1'),
+            quantitaAttuale: 1, // Less than dose
+        })
+        await markReminder({ reminderId: 'r-sb1', outcome: 'ESEGUITO', operatorId: 'op-1' })
+        const updatedBatch = dbStockBatches.get('sb1')
+        expect(updatedBatch.quantitaAttuale).toBe(0) // max(0, 1 - 2)
+    })
+
+    it('selects first available batch with quantity > 0', async () => {
+        dbStockBatches.set('sb2', {
+            id: 'sb2',
+            drugId: 'd1',
+            quantitaAttuale: 0,
+            quantitaIniziale: 100,
+            sogliaRiordino: 20,
+            updatedAt: '2026-04-04T00:00:00.000Z',
+            syncStatus: 'synced',
+            deletedAt: null,
+        })
+        await markReminder({ reminderId: 'r-sb1', outcome: 'ESEGUITO', operatorId: 'op-1' })
+        const sb1 = dbStockBatches.get('sb1')
+        const sb2 = dbStockBatches.get('sb2')
+        // Should have deducted from sb1 (first one with qty > 0)
+        expect(sb1.quantitaAttuale).toBeLessThan(100)
+        expect(sb2.quantitaAttuale).toBe(0)
+    })
+
+    it('skips deleted batches', async () => {
+        dbStockBatches.set('sb1', {
+            ...dbStockBatches.get('sb1'),
+            deletedAt: '2026-04-04T10:00:00.000Z',
+        })
+        // No non-deleted batch available — should not crash
+        await markReminder({ reminderId: 'r-sb1', outcome: 'ESEGUITO', operatorId: 'op-1' })
+        const reminder = dbReminders.get('r-sb1')
+        expect(reminder.stato).toBe('ESEGUITO') // Still marked as executed, just no deduction
+    })
+})
+
+// ── Movement Creation Integration Tests ────────────────────────────────────────
+
+describe('markReminder with movement creation', () => {
+    beforeEach(() => {
+        resetState()
+        dbReminders.set('r-mv1', {
+            id: 'r-mv1',
+            hostId: 'h1',
+            therapyId: 't1',
+            drugId: 'd1',
+            scheduledAt: '2026-04-04T08:00:00.000Z',
+            stato: 'DA_ESEGUIRE',
+            note: 'Prima colazione',
+            updatedAt: '2026-04-04T07:00:00.000Z',
+        })
+        dbTherapies.set('t1', {
+            id: 't1',
+            drugId: 'd1',
+            dosePerSomministrazione: 1.5,
+            deletedAt: null,
+        })
+        dbStockBatches.set('sb1', {
+            id: 'sb1',
+            drugId: 'd1',
+            quantitaAttuale: 50,
+            deletedAt: null,
+        })
+    })
+
+    it('creates SOMMINISTRAZIONE movement on ESEGUITO', async () => {
+        await markReminder({ reminderId: 'r-mv1', outcome: 'ESEGUITO', operatorId: 'op-1' })
+        const movements = Array.from(dbMovements.values())
+        expect(movements.length).toBe(1)
+        expect(movements[0].type).toBe('SOMMINISTRAZIONE')
+    })
+
+    it('movement includes correct fields from reminder and therapy', async () => {
+        await markReminder({ reminderId: 'r-mv1', outcome: 'ESEGUITO', operatorId: 'op-1' })
+        const movement = Array.from(dbMovements.values())[0]
+        expect(movement.reminderId).toBe('r-mv1')
+        expect(movement.therapyId).toBe('t1')
+        expect(movement.hostId).toBe('h1')
+        expect(movement.drugId).toBe('d1')
+        expect(movement.batchId).toBe('sb1')
+        expect(movement.quantita).toBe(1.5)
+    })
+
+    it('movement includes note from reminder', async () => {
+        await markReminder({ reminderId: 'r-mv1', outcome: 'ESEGUITO', operatorId: 'op-1' })
+        const movement = Array.from(dbMovements.values())[0]
+        expect(movement.note).toContain('Prima colazione')
+    })
+
+    it('enqueues movement for sync', async () => {
+        await markReminder({ reminderId: 'r-mv1', outcome: 'ESEGUITO', operatorId: 'op-1' })
+        const movementSyncCalls = enqueueCalls.filter(call => call.entityType === 'movements')
+        expect(movementSyncCalls.length).toBeGreaterThan(0)
+    })
+
+    it('does NOT create movement on SALTATO', async () => {
+        await markReminder({ reminderId: 'r-mv1', outcome: 'SALTATO', operatorId: 'op-1' })
+        const movements = Array.from(dbMovements.values())
+        expect(movements.length).toBe(0)
+    })
+
+    it('does NOT create movement on ANNULLATO', async () => {
+        await markReminder({ reminderId: 'r-mv1', outcome: 'ANNULLATO', operatorId: 'op-1' })
+        const movements = Array.from(dbMovements.values())
+        expect(movements.length).toBe(0)
+    })
+})
+

@@ -52,7 +52,7 @@ test('audit smoke records structured events in CI', async ({ page }) => {
     if (await dryRunCheckbox.isChecked()) await dryRunCheckbox.uncheck()
 
     await page.getByLabel('Sorgente').selectOption('03_Ospiti.csv')
-    await page.locator('input[type="file"]').setInputFiles({
+    await page.locator('input[type="file"][accept=".csv,text/csv"]').setInputFiles({
         name: '03_Ospiti.csv',
         mimeType: 'text/csv',
         buffer: Buffer.from('guest_id,codice_interno,attivo\nHOST-AUD-1,AUD-01,si\n'),
@@ -62,7 +62,7 @@ test('audit smoke records structured events in CI', async ({ page }) => {
 
     // 2) Import drug
     await page.getByLabel('Sorgente').selectOption('01_CatalogoFarmaci.csv')
-    await page.locator('input[type="file"]').setInputFiles({
+    await page.locator('input[type="file"][accept=".csv,text/csv"]').setInputFiles({
         name: '01_CatalogoFarmaci.csv',
         mimeType: 'text/csv',
         buffer: Buffer.from('drug_id,principio_attivo\nDRUG-AUD-1,Amoxicillina AUD\n'),
@@ -72,7 +72,7 @@ test('audit smoke records structured events in CI', async ({ page }) => {
 
     // 3) Import therapy
     await page.getByLabel('Sorgente').selectOption('04_TerapieAttive.csv')
-    await page.locator('input[type="file"]').setInputFiles({
+    await page.locator('input[type="file"][accept=".csv,text/csv"]').setInputFiles({
         name: '04_TerapieAttive.csv',
         mimeType: 'text/csv',
         buffer: Buffer.from('therapy_id,guest_id,drug_id,attiva\nTHERAPY-AUD-1,HOST-AUD-1,DRUG-AUD-1,true\n'),
@@ -83,7 +83,7 @@ test('audit smoke records structured events in CI', async ({ page }) => {
     // 4) Import reminder for today
     const today = new Date().toISOString().slice(0, 10)
     await page.getByLabel('Sorgente').selectOption('09_PromemoriaSomministrazioni.csv')
-    await page.locator('input[type="file"]').setInputFiles({
+    await page.locator('input[type="file"][accept=".csv,text/csv"]').setInputFiles({
         name: '09_PromemoriaSomministrazioni.csv',
         mimeType: 'text/csv',
         buffer: Buffer.from(

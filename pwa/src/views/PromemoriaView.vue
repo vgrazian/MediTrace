@@ -3,7 +3,7 @@ import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { db, enqueue, getSetting } from '../db'
 import { useAuth } from '../services/auth'
-import { buildReminderRows, markReminder, reminderStateBadge, REMINDER_OUTCOMES } from '../services/promemoria'
+import { buildReminderRows, markReminder, reminderStateBadge, reminderActionButtonColor, REMINDER_OUTCOMES } from '../services/promemoria'
 import { confirmDeleteReminder } from '../services/confirmations'
 import { useFormValidation } from '../services/formValidation'
 import ValidatedInput from '../components/ValidatedInput.vue'
@@ -65,7 +65,7 @@ function isHighlighted(reminderId) {
 function formatSchedule(value) {
   const date = new Date(value)
   if (Number.isNaN(date.getTime())) return '—'
-  return date.toLocaleString()
+  return date.toLocaleString('it-IT', { hour12: false })
 }
 
 function toLocalDateTimeInput(value) {
@@ -256,6 +256,7 @@ watch(() => route.fullPath, () => void loadData())
             <option value="ESEGUITO">Eseguito</option>
             <option value="SALTATO">Saltato</option>
             <option value="POSTICIPATO">Posticipato</option>
+            <option value="ANNULLATO">Annullato</option>
           </select>
         </label>
       </div>
@@ -281,6 +282,7 @@ watch(() => route.fullPath, () => void loadData())
             <th>Freq./giorno</th>
             <th>Consumo sett.</th>
             <th>Stato</th>
+            <th>Erogazione</th>
             <th>Azioni</th>
           </tr>
         </thead>
@@ -303,29 +305,42 @@ watch(() => route.fullPath, () => void loadData())
               </span>
             </td>
             <td>
-              <div v-if="reminder.stato === 'DA_ESEGUIRE' || reminder.stato === 'POSTICIPATO'" style="display:flex;gap:.4rem;flex-wrap:wrap;margin-bottom:.35rem">
+              <div v-if="reminder.stato === 'DA_ESEGUIRE' || reminder.stato === 'POSTICIPATO'" style="display:flex;gap:.3rem;flex-wrap:wrap;margin-bottom:.35rem">
                 <button
                   :disabled="markingId === reminder.id"
-                  style="padding:.2rem .55rem;font-size:.8rem"
+                  :style="{ padding: '.2rem .45rem', fontSize: '.75rem', backgroundColor: reminderActionButtonColor('ESEGUITO').bg, color: reminderActionButtonColor('ESEGUITO').text, border: 'none', borderRadius: '0.25rem', cursor: markingId === reminder.id ? 'not-allowed' : 'pointer' }"
+                  title="Somministrazione eseguita"
                   @click="applyOutcome(reminder.id, 'ESEGUITO')"
                 >
-                  Eseguito
+                  ✓ Eseguito
                 </button>
                 <button
                   :disabled="markingId === reminder.id"
-                  style="padding:.2rem .55rem;font-size:.8rem;background:#e6a817;color:#111"
-                  @click="applyOutcome(reminder.id, 'SALTATO')"
-                >
-                  Saltato
-                </button>
-                <button
-                  :disabled="markingId === reminder.id"
-                  style="padding:.2rem .55rem;font-size:.8rem;background:#e6a817;color:#111"
+                  :style="{ padding: '.2rem .45rem', fontSize: '.75rem', backgroundColor: reminderActionButtonColor('POSTICIPATO').bg, color: reminderActionButtonColor('POSTICIPATO').text, border: 'none', borderRadius: '0.25rem', cursor: markingId === reminder.id ? 'not-allowed' : 'pointer' }"
+                  title="Somministrazione posticipata"
                   @click="applyOutcome(reminder.id, 'POSTICIPATO')"
                 >
-                  Posticipa
+                  ⏱ Posticipa
+                </button>
+                <button
+                  :disabled="markingId === reminder.id"
+                  :style="{ padding: '.2rem .45rem', fontSize: '.75rem', backgroundColor: reminderActionButtonColor('SALTATO').bg, color: reminderActionButtonColor('SALTATO').text, border: 'none', borderRadius: '0.25rem', cursor: markingId === reminder.id ? 'not-allowed' : 'pointer' }"
+                  title="Somministrazione saltata"
+                  @click="applyOutcome(reminder.id, 'SALTATO')"
+                >
+                  ✕ Saltato
+                </button>
+                <button
+                  :disabled="markingId === reminder.id"
+                  :style="{ padding: '.2rem .45rem', fontSize: '.75rem', backgroundColor: reminderActionButtonColor('ANNULLATO').bg, color: reminderActionButtonColor('ANNULLATO').text, border: 'none', borderRadius: '0.25rem', cursor: markingId === reminder.id ? 'not-allowed' : 'pointer' }"
+                  title="Somministrazione annullata"
+                  @click="applyOutcome(reminder.id, 'ANNULLATO')"
+                >
+                  ⊘ Annullato
                 </button>
               </div>
+            </td>
+            <td>
               <div style="display:flex;gap:.4rem;flex-wrap:wrap">
                 <button :disabled="markingId === reminder.id || savingEdit" @click="startEdit(reminder)">Modifica</button>
                 <button :disabled="markingId === reminder.id || savingEdit" style="background:#d35f55" @click="deleteReminder(reminder.id)">Elimina</button>
@@ -333,7 +348,7 @@ watch(() => route.fullPath, () => void loadData())
             </td>
           </tr>
           <tr v-if="rows.length === 0 && !loading">
-            <td colspan="9" class="muted">Nessun promemoria per il filtro selezionato.</td>
+            <td colspan="10" class="muted">Nessun promemoria per il filtro selezionato.</td>
           </tr>
         </tbody>
       </table>

@@ -217,6 +217,121 @@ export async function exportBackupJson() {
     return JSON.stringify(dataset, null, 2)
 }
 
+function ensureArrayTable(payload, tableName) {
+    const rows = payload?.[tableName]
+    if (!Array.isArray(rows)) {
+        throw new Error(`Backup non valido: tabella ${tableName} mancante o non valida`)
+    }
+    return rows
+}
+
+function normalizeBackupRow(row) {
+    if (!row || typeof row !== 'object') return null
+    const id = String(row.id || '').trim()
+    if (!id) return null
+    return {
+        ...row,
+        id,
+        syncStatus: 'pending',
+    }
+}
+
+/**
+ * Restore a local backup JSON file.
+ * The restore fully replaces current local dataset tables and re-queues rows for sync.
+ */
+export async function importBackupJson(jsonText, { operatorId = null } = {}) {
+    let payload
+    try {
+        payload = JSON.parse(String(jsonText || ''))
+    } catch {
+        throw new Error('Backup non valido: JSON malformato')
+    }
+
+    if (!payload || typeof payload !== 'object') {
+        throw new Error('Backup non valido: contenuto assente')
+    }
+
+    const sourceVersion = Number.isFinite(Number(payload.datasetVersion))
+        ? Number(payload.datasetVersion)
+        : 0
+
+    const tablesData = Object.fromEntries(
+        ALL_DATA_TABLES.map(tableName => {
+            const rows = ensureArrayTable(payload, tableName)
+            return [tableName, rows.map(normalizeBackupRow).filter(Boolean)]
+        }),
+    )
+
+    const deviceId = (await getSetting('deviceId')) ?? 'unknown'
+    const now = new Date().toISOString()
+
+    await db.transaction(
+        'rw',
+        db.settings,
+        db.syncState,
+        db.syncQueue,
+        db.activityLog,
+        db.hosts,
+        db.drugs,
+        db.stockBatches,
+        db.therapies,
+        db.movements,
+        db.reminders,
+        async () => {
+            for (const tableName of ALL_DATA_TABLES) {
+                await db[tableName].clear()
+                if (tablesData[tableName].length > 0) {
+                    await db[tableName].bulkPut(tablesData[tableName])
+                }
+            }
+
+            await db.syncQueue.clear()
+
+            const queueEntries = []
+            for (const tableName of ALL_DATA_TABLES) {
+                for (const row of tablesData[tableName]) {
+                    queueEntries.push({
+                        entityType: tableName,
+                        entityId: row.id,
+                        operation: 'upsert',
+                        createdAt: now,
+                    })
+                }
+            }
+            if (queueEntries.length > 0) {
+                await db.syncQueue.bulkAdd(queueEntries)
+            }
+
+            await setSetting('datasetVersion', sourceVersion)
+            await setSetting(PENDING_CONFLICTS_KEY, [])
+
+            await db.activityLog.add({
+                entityType: 'backup',
+                entityId: `restore:${now}`,
+                action: 'backup_restored',
+                deviceId,
+                operatorId,
+                ts: now,
+                details: {
+                    sourceDatasetVersion: sourceVersion,
+                    restoredRows: Object.fromEntries(
+                        ALL_DATA_TABLES.map(tableName => [tableName, tablesData[tableName].length]),
+                    ),
+                },
+            })
+        },
+    )
+
+    return {
+        restoredAt: now,
+        sourceDatasetVersion: sourceVersion,
+        restoredRows: Object.fromEntries(
+            ALL_DATA_TABLES.map(tableName => [tableName, tablesData[tableName].length]),
+        ),
+    }
+}
+
 export async function listPendingConflicts() {
     const conflicts = await getSetting(PENDING_CONFLICTS_KEY, [])
     return Array.isArray(conflicts) ? conflicts : []

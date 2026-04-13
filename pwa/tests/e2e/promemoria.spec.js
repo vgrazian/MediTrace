@@ -29,7 +29,7 @@ test('promemoria view shows reminders with labels and supports mark as eseguito/
 
     // Import ospite
     await page.getByLabel('Sorgente').selectOption('03_Ospiti.csv')
-    await page.locator('input[type="file"]').setInputFiles({
+    await page.locator('input[type="file"][accept=".csv,text/csv"]').setInputFiles({
         name: '03_Ospiti.csv',
         mimeType: 'text/csv',
         buffer: Buffer.from('guest_id,codice_interno,attivo\nHOST-PROM-1,PROM-01,si\n'),
@@ -39,7 +39,7 @@ test('promemoria view shows reminders with labels and supports mark as eseguito/
 
     // Import farmaco
     await page.getByLabel('Sorgente').selectOption('01_CatalogoFarmaci.csv')
-    await page.locator('input[type="file"]').setInputFiles({
+    await page.locator('input[type="file"][accept=".csv,text/csv"]').setInputFiles({
         name: '01_CatalogoFarmaci.csv',
         mimeType: 'text/csv',
         buffer: Buffer.from('drug_id,principio_attivo\nDRUG-PROM-1,Ramipril E2E\n'),
@@ -49,7 +49,7 @@ test('promemoria view shows reminders with labels and supports mark as eseguito/
 
     // Import terapia
     await page.getByLabel('Sorgente').selectOption('04_TerapieAttive.csv')
-    await page.locator('input[type="file"]').setInputFiles({
+    await page.locator('input[type="file"][accept=".csv,text/csv"]').setInputFiles({
         name: '04_TerapieAttive.csv',
         mimeType: 'text/csv',
         buffer: Buffer.from('therapy_id,guest_id,drug_id,attiva\nTHERAPY-PROM-1,HOST-PROM-1,DRUG-PROM-1,true\n'),
@@ -60,7 +60,7 @@ test('promemoria view shows reminders with labels and supports mark as eseguito/
     // Import promemoria per oggi
     const today = new Date().toISOString().slice(0, 10)
     await page.getByLabel('Sorgente').selectOption('09_PromemoriaSomministrazioni.csv')
-    await page.locator('input[type="file"]').setInputFiles({
+    await page.locator('input[type="file"][accept=".csv,text/csv"]').setInputFiles({
         name: '09_PromemoriaSomministrazioni.csv',
         mimeType: 'text/csv',
         buffer: Buffer.from(
@@ -109,7 +109,7 @@ test('promemoria view date filter hides reminders outside selected day', async (
     if (await dryRunCheckbox.isChecked()) await dryRunCheckbox.uncheck()
 
     await page.getByLabel('Sorgente').selectOption('03_Ospiti.csv')
-    await page.locator('input[type="file"]').setInputFiles({
+    await page.locator('input[type="file"][accept=".csv,text/csv"]').setInputFiles({
         name: '03_Ospiti.csv',
         mimeType: 'text/csv',
         buffer: Buffer.from('guest_id,codice_interno,attivo\nHOST-FILTER-1,FILT-01,si\n'),
@@ -118,7 +118,7 @@ test('promemoria view date filter hides reminders outside selected day', async (
     await expect(page.getByText('Accettate: 1')).toBeVisible()
 
     await page.getByLabel('Sorgente').selectOption('01_CatalogoFarmaci.csv')
-    await page.locator('input[type="file"]').setInputFiles({
+    await page.locator('input[type="file"][accept=".csv,text/csv"]').setInputFiles({
         name: '01_CatalogoFarmaci.csv',
         mimeType: 'text/csv',
         buffer: Buffer.from('drug_id,principio_attivo\nDRUG-FILTER-1,Metformina E2E\n'),
@@ -127,7 +127,7 @@ test('promemoria view date filter hides reminders outside selected day', async (
     await expect(page.getByText('Accettate: 1')).toBeVisible()
 
     await page.getByLabel('Sorgente').selectOption('04_TerapieAttive.csv')
-    await page.locator('input[type="file"]').setInputFiles({
+    await page.locator('input[type="file"][accept=".csv,text/csv"]').setInputFiles({
         name: '04_TerapieAttive.csv',
         mimeType: 'text/csv',
         buffer: Buffer.from('therapy_id,guest_id,drug_id,attiva\nTHERAPY-FILTER-1,HOST-FILTER-1,DRUG-FILTER-1,true\n'),
@@ -136,7 +136,7 @@ test('promemoria view date filter hides reminders outside selected day', async (
     await expect(page.getByText('Accettate: 1')).toBeVisible()
 
     await page.getByLabel('Sorgente').selectOption('09_PromemoriaSomministrazioni.csv')
-    await page.locator('input[type="file"]').setInputFiles({
+    await page.locator('input[type="file"][accept=".csv,text/csv"]').setInputFiles({
         name: '09_PromemoriaSomministrazioni.csv',
         mimeType: 'text/csv',
         buffer: Buffer.from(
@@ -180,7 +180,7 @@ test('promemoria view supports edit/delete and handles Arabic host names', async
 
     // Arabic host label hardening: codice_interno with Arabic characters
     await page.getByLabel('Sorgente').selectOption('03_Ospiti.csv')
-    await page.locator('input[type="file"]').setInputFiles({
+    await page.locator('input[type="file"][accept=".csv,text/csv"]').setInputFiles({
         name: '03_Ospiti.csv',
         mimeType: 'text/csv',
         buffer: Buffer.from('guest_id,codice_interno,attivo\nHOST-AR-1,أحمد علي,si\n'),
@@ -189,7 +189,7 @@ test('promemoria view supports edit/delete and handles Arabic host names', async
     await expect(page.getByText('Accettate: 1')).toBeVisible()
 
     await page.getByLabel('Sorgente').selectOption('01_CatalogoFarmaci.csv')
-    await page.locator('input[type="file"]').setInputFiles({
+    await page.locator('input[type="file"][accept=".csv,text/csv"]').setInputFiles({
         name: '01_CatalogoFarmaci.csv',
         mimeType: 'text/csv',
         buffer: Buffer.from('drug_id,principio_attivo\nDRUG-AR-1,Omeprazolo E2E\n'),
@@ -198,7 +198,7 @@ test('promemoria view supports edit/delete and handles Arabic host names', async
     await expect(page.getByText('Accettate: 1')).toBeVisible()
 
     await page.getByLabel('Sorgente').selectOption('04_TerapieAttive.csv')
-    await page.locator('input[type="file"]').setInputFiles({
+    await page.locator('input[type="file"][accept=".csv,text/csv"]').setInputFiles({
         name: '04_TerapieAttive.csv',
         mimeType: 'text/csv',
         buffer: Buffer.from('therapy_id,guest_id,drug_id,attiva\nTHERAPY-AR-1,HOST-AR-1,DRUG-AR-1,true\n'),
@@ -208,7 +208,7 @@ test('promemoria view supports edit/delete and handles Arabic host names', async
 
     const today = new Date().toISOString().slice(0, 10)
     await page.getByLabel('Sorgente').selectOption('09_PromemoriaSomministrazioni.csv')
-    await page.locator('input[type="file"]').setInputFiles({
+    await page.locator('input[type="file"][accept=".csv,text/csv"]').setInputFiles({
         name: '09_PromemoriaSomministrazioni.csv',
         mimeType: 'text/csv',
         buffer: Buffer.from(

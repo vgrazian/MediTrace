@@ -2,7 +2,7 @@
 import { computed, ref, onMounted, watch } from 'vue'
 import { useAuth } from '../services/auth'
 import { canRole } from '../services/rbac'
-import { fullSync, exportBackupJson, listPendingConflicts, resolveConflict } from '../services/sync'
+import { fullSync, exportBackupJson, importBackupJson, listPendingConflicts, resolveConflict } from '../services/sync'
 import { formatUserError } from '../services/errorHandling'
 import { confirmDeleteUser } from '../services/confirmations'
 import {
@@ -16,7 +16,7 @@ import {
   listUpcomingReminderNotifications24h,
 } from '../services/notifications'
 import { listSupportedImportSources, importCsv } from '../services/csvImport'
-import { getSetting } from '../db'
+import { db, getSetting, enqueue } from '../db'
 import {
   loadSeedData,
   clearSeedData,
@@ -103,6 +103,9 @@ const seedActionMode = ref('load')
 const seedBusy = ref(false)
 const seedMessage = ref('')
 const seedStats = getSeedStats()
+const backupRestoreBusy = ref(false)
+const backupRestoreMessage = ref('')
+const selectedBackupFile = ref(null)
 
 const passwordPolicyState = computed(() => getPasswordPolicy(pwdNext.value))
 const canManageUsers = computed(() => canRole(currentUser.value?.role, 'users:read'))
@@ -176,7 +179,7 @@ async function refreshInvitedProfiles() {
 function formatScheduledAt(value) {
   const date = new Date(value)
   if (Number.isNaN(date.getTime())) return '—'
-  return date.toLocaleString()
+  return date.toLocaleString('it-IT', { hour12: false })
 }
 
 async function refreshSecurityInfo() {
@@ -196,7 +199,9 @@ async function refreshPushStatus() {
 function pushReasonLabel() {
   if (pushStatus.value.reason === 'subscribed') return 'Sottoscrizione push attiva su questo device.'
   if (pushStatus.value.reason === 'subscription-required') return 'Sottoscrizione non ancora attiva.'
-  if (pushStatus.value.reason === 'missing-vapid-public-key') return 'Manca VITE_VAPID_PUBLIC_KEY in configurazione ambiente.'
+  if (pushStatus.value.reason === 'missing-vapid-public-key') {
+    return 'Manca VITE_VAPID_PUBLIC_KEY: configurala in pwa/.env.local e nelle GitHub Variables (deploy) con pwa/scripts/setup-production-deploy.sh --set-gh.'
+  }
   return 'Push API non supportata in questo ambiente.'
 }
 
@@ -341,7 +346,9 @@ async function handleToggleTestData() {
   if (!canManageTestData.value) return
 
   const shouldClear = seedActionMode.value === 'clear'
-  const confirmed = shouldClear
+  
+  // First confirmation dialog: operation to perform
+  const confirmed1 = shouldClear
     ? await openConfirmDialog({
       title: 'Conferma rimozione dati di test',
       message: 'Rimuovere tutti i dati di test dal database locale?',
@@ -358,12 +365,28 @@ async function handleToggleTestData() {
       cancelText: 'Annulla',
       tone: 'primary',
     })
-  if (!confirmed) return
+  if (!confirmed1) return
+
+  // Second confirmation dialog: production environment warning (only if loading data)
+  if (!shouldClear) {
+    const confirmed2 = await openConfirmDialog({
+      title: '⚠️ ATTENZIONE: Ambiente di produzione?',
+      message: 'I dati archiviati verranno danneggiati se si procede in produzione.',
+      details: 'I dati di test sostituiranno i dati effettivi. Utilizzare SOLO in ambiente di sviluppo/test. I dati di produzione saranno PERDUTI.',
+      confirmText: 'Proceedi comunque (Sviluppo)',
+      cancelText: 'Annulla (Salva produzione)',
+      tone: 'danger',
+    })
+    if (!confirmed2) return
+  }
 
   seedBusy.value = true
   seedMessage.value = ''
 
   try {
+    const now = new Date().toISOString()
+    const deviceId = await getSetting('deviceId', 'unknown')
+
     if (shouldClear) {
       const [legacyResult, realisticResult] = await Promise.all([
         clearSeedData({ allowInProduction: true }),
@@ -376,6 +399,19 @@ async function handleToggleTestData() {
         ? 'Dati di test rimossi.'
         : 'Nessun dato di test presente da rimuovere.'
       if (!cleared) await refreshSeedStatus()
+      
+      // Log the removal to audit log
+      if (cleared) {
+        await db.activityLog.add({
+          entityType: 'seeds',
+          entityId: 'seed_data',
+          action: 'seed_data_cleared',
+          deviceId,
+          operatorId: currentUser.value?.login ?? null,
+          ts: now,
+          details: 'Dati di test rimossi manualmente',
+        })
+      }
     } else {
       await Promise.all([
         clearSeedData({ allowInProduction: true }),
@@ -385,6 +421,17 @@ async function handleToggleTestData() {
       seedLoaded.value = true
       seedActionMode.value = 'clear'
       seedMessage.value = `Importati dati di test: ${stats.drugs} farmaci, ${stats.hosts} ospiti, ${stats.stockBatches} confezioni, ${stats.therapies} terapie, ${stats.movements ?? 0} movimenti, ${stats.reminders ?? 0} promemoria, ${stats.activityLog ?? 0} eventi audit, ${stats.rooms} stanze, ${stats.beds} letti, ${stats.operators ?? 0} operatori demo.`
+      
+      // Log the generation to audit log
+      await db.activityLog.add({
+        entityType: 'seeds',
+        entityId: 'seed_data',
+        action: 'seed_data_loaded',
+        deviceId,
+        operatorId: currentUser.value?.login ?? null,
+        ts: now,
+        details: `Dati di test caricati: ${stats.drugs} farmaci, ${stats.hosts} ospiti, ${stats.stockBatches} confezioni, ${stats.therapies} terapie, ${stats.reminders ?? 0} promemoria`,
+      })
     }
   } catch (err) {
     seedMessage.value = `Errore gestione dati di test: ${err.message}`
@@ -462,6 +509,49 @@ async function downloadBackup() {
   a.href = URL.createObjectURL(new Blob([json], { type: 'application/json' }))
   a.download = `meditrace-backup-${date}.json`
   a.click()
+}
+
+function onBackupFileChange(event) {
+  selectedBackupFile.value = event.target?.files?.[0] ?? null
+}
+
+async function restoreBackup() {
+  backupRestoreMessage.value = ''
+  if (!selectedBackupFile.value) {
+    backupRestoreMessage.value = 'Seleziona prima un file backup JSON.'
+    return
+  }
+
+  const confirmed = await openConfirmDialog({
+    title: 'Conferma restore backup',
+    message: 'Il restore sovrascrive i dati locali correnti. Procedere?',
+    details: 'Usa questa funzione solo per recovery o upgrade controllato. Dopo il restore esegui una sincronizzazione manuale.',
+    confirmText: 'Ripristina backup',
+    cancelText: 'Annulla',
+    tone: 'danger',
+  })
+  if (!confirmed) return
+
+  backupRestoreBusy.value = true
+  try {
+    const jsonText = await selectedBackupFile.value.text()
+    const result = await importBackupJson(jsonText, {
+      operatorId: currentUser.value?.login ?? null,
+    })
+    await Promise.all([
+      refreshPendingConflicts(),
+      refreshUsers(),
+      refreshInvitedProfiles(),
+      refreshUpcomingReminderRows(),
+    ])
+    datasetVersion.value = await getSetting('datasetVersion')
+    backupRestoreMessage.value = `Restore completato: versione ${result.sourceDatasetVersion}, record ripristinati ${Object.values(result.restoredRows).reduce((a, b) => a + b, 0)}.`
+    selectedBackupFile.value = null
+  } catch (err) {
+    backupRestoreMessage.value = `Errore restore: ${err.message}`
+  } finally {
+    backupRestoreBusy.value = false
+  }
 }
 
 async function submitPasswordChange() {
@@ -681,54 +771,56 @@ async function handleInviteUser() {
         Il tuo account non ha privilegi amministratore: puoi visualizzare solo il tuo profilo.
       </p>
 
-      <table v-if="canManageUsers" class="conflict-table" style="margin-top:.75rem">
-        <thead>
-          <tr>
-            <th>Username</th>
-            <th>Nome</th>
-            <th>Cognome</th>
-            <th>Telefono</th>
-            <th>Email</th>
-            <th>GitHub</th>
-            <th>Ruolo</th>
-            <th>Tipo</th>
-            <th>Stato</th>
-            <th>Azione</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="user in users" :key="user.username">
-            <td>{{ user.username }}<span v-if="user.isCurrent"> (sessione attiva)</span></td>
-            <td>{{ user.firstName || '—' }}</td>
-            <td>{{ user.lastName || '—' }}</td>
-            <td>{{ user.phone || '—' }}</td>
-            <td>{{ user.email || '—' }}</td>
-            <td>@{{ user.login }}</td>
-            <td>{{ user.role }}</td>
-            <td>{{ user.isSeeded ? 'prova' : 'standard' }}</td>
-            <td>{{ user.disabled ? 'disattivato' : 'attivo' }}</td>
-            <td>
-              <template v-if="user.isSeeded">
-                <button
-                  v-if="user.disabled"
-                  :disabled="usersBusy"
-                  @click="handleReactivateSeeded(user.username)"
-                >
-                  Riattiva
-                </button>
-                <button
-                  style="margin-left:.35rem;background:#dc2626"
-                  :disabled="usersBusy"
-                  @click="handleDeleteSeeded(user.username)"
-                >
-                  Elimina
-                </button>
-              </template>
-              <span v-else class="muted">—</span>
-            </td>
-          </tr>
-        </tbody>
-      </table>
+      <div v-if="canManageUsers" class="dataset-frame" style="margin-top:.75rem;max-height:18rem">
+        <table class="conflict-table" style="min-width:980px">
+          <thead>
+            <tr>
+              <th>Username</th>
+              <th>Nome</th>
+              <th>Cognome</th>
+              <th>Telefono</th>
+              <th>Email</th>
+              <th>GitHub</th>
+              <th>Ruolo</th>
+              <th>Tipo</th>
+              <th>Stato</th>
+              <th>Azione</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="user in users" :key="user.username">
+              <td>{{ user.username }}<span v-if="user.isCurrent"> (sessione attiva)</span></td>
+              <td>{{ user.firstName || '—' }}</td>
+              <td>{{ user.lastName || '—' }}</td>
+              <td>{{ user.phone || '—' }}</td>
+              <td>{{ user.email || '—' }}</td>
+              <td>@{{ user.login }}</td>
+              <td>{{ user.role }}</td>
+              <td>{{ user.isSeeded ? 'prova' : 'standard' }}</td>
+              <td>{{ user.disabled ? 'disattivato' : 'attivo' }}</td>
+              <td>
+                <template v-if="user.isSeeded">
+                  <button
+                    v-if="user.disabled"
+                    :disabled="usersBusy"
+                    @click="handleReactivateSeeded(user.username)"
+                  >
+                    Riattiva
+                  </button>
+                  <button
+                    style="margin-left:.35rem;background:#dc2626"
+                    :disabled="usersBusy"
+                    @click="handleDeleteSeeded(user.username)"
+                  >
+                    Elimina
+                  </button>
+                </template>
+                <span v-else class="muted">—</span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
 
       <div v-if="canManageInvites" class="import-form" style="margin-top:.75rem">
         <p><strong>Invita nuovo utente via email</strong></p>
@@ -987,8 +1079,18 @@ async function handleInviteUser() {
 
     <div class="card">
       <p><strong>Backup locale</strong></p>
-      <p class="muted">Scarica tutti i dati come file JSON.</p>
-      <button style="margin-top:.75rem" @click="downloadBackup">Scarica backup JSON</button>
+      <p class="muted">Scarica tutti i dati come file JSON oppure ripristina un backup per upgrade sicuri.</p>
+      <div style="margin-top:.75rem;display:flex;gap:.5rem;flex-wrap:wrap">
+        <button @click="downloadBackup">Scarica backup JSON</button>
+        <input type="file" accept="application/json,.json" @change="onBackupFileChange" />
+        <button :disabled="backupRestoreBusy || !selectedBackupFile" @click="restoreBackup">
+          {{ backupRestoreBusy ? 'Restore in corso…' : 'Ripristina backup da file' }}
+        </button>
+      </div>
+      <p class="muted" style="margin-top:.5rem;font-size:.8rem">
+        Best practice: esegui prima "Scarica backup JSON", poi restore, poi "Sincronizza ora".
+      </p>
+      <p v-if="backupRestoreMessage" class="muted" style="margin-top:.5rem;font-size:.8rem">{{ backupRestoreMessage }}</p>
     </div>
 
     <div class="card">

@@ -34,7 +34,7 @@ const routes = [
     {
         path: '/movimenti',
         component: () => import('../views/MovimentiView.vue'),
-        meta: { title: 'Movimenti Magazzino' },
+        meta: { title: 'Movimenti' },
     },
     {
         path: '/terapie',

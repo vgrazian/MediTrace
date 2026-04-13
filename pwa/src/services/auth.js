@@ -1,6 +1,6 @@
 import { reactive, readonly, toRefs } from 'vue'
 import { db, getSetting, setSetting } from '../db'
-import { getSupabaseRedirectTo, isSupabaseConfigured, supabase } from './supabaseClient'
+import { getSupabaseConfigStatus, getSupabaseRedirectTo, isSupabaseConfigured, supabase } from './supabaseClient'
 
 const AUTH_USERS_KEY = 'authUsers'
 const AUTH_INVITED_PROFILES_KEY = 'authInvitedProfiles'
@@ -842,7 +842,8 @@ export function useAuth() {
         async requestPasswordResetByEmail(email, { redirectTo } = {}) {
             const normalizedEmail = assertValidEmail(email)
             if (!isSupabaseConfigured || !supabase) {
-                throw new Error('Reset email non disponibile: configura Supabase in pwa/.env.local oppure accedi con l\'account admin di emergenza')
+                const config = getSupabaseConfigStatus()
+                throw new Error(`Reset email non disponibile: configura ${config.missingVars.join(', ')} in pwa/.env.local e nelle GitHub Variables`)
             }
 
             const targetRedirect = redirectTo || getSupabaseRedirectTo('/#/impostazioni')
@@ -859,7 +860,8 @@ export function useAuth() {
 
         async completePasswordRecovery({ newPassword, confirmPassword }) {
             if (!isSupabaseConfigured || !supabase) {
-                throw new Error('Recupero password non disponibile: configura Supabase in .env.local')
+                const config = getSupabaseConfigStatus()
+                throw new Error(`Recupero password non disponibile: configura ${config.missingVars.join(', ')} in pwa/.env.local e nelle GitHub Variables`)
             }
 
             const passwordPolicyError = getPasswordPolicyErrorMessage(newPassword)
@@ -920,7 +922,8 @@ export function useAuth() {
                 throw new Error('Nome e cognome invitato sono obbligatori')
             }
             if (!isSupabaseConfigured || !supabase) {
-                throw new Error('Inviti email non disponibili: configura Supabase in .env.local')
+                const config = getSupabaseConfigStatus()
+                throw new Error(`Inviti email non disponibili: configura ${config.missingVars.join(', ')} in pwa/.env.local e nelle GitHub Variables`)
             }
 
             const targetRedirect = redirectTo || getSupabaseRedirectTo('/#/impostazioni')

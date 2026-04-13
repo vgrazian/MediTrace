@@ -1,0 +1,3 @@
+drug_id,principio_attivo,classe_terapeutica,scorta_minima_default,fornitore_preferito,note,updated_at,deleted_at
+drug_demo_001,Paracetamolo,Analgesico,10,Fornitore Centrale,Esempio farmaco demo,2026-04-13T08:00:00.000Z,
+drug_demo_002,Donepezil,Neurologico,8,Fornitore Centrale,Esempio farmaco demenza,2026-04-13T08:00:00.000Z,

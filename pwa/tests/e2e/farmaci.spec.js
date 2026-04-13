@@ -104,7 +104,7 @@ test('farmaci view blocks delete when drug is used by active therapy', async ({ 
     }
 
     await page.getByLabel('Sorgente').selectOption('03_Ospiti.csv')
-    await page.locator('input[type="file"]').setInputFiles({
+    await page.locator('input[type="file"][accept=".csv,text/csv"]').setInputFiles({
         name: '03_Ospiti.csv',
         mimeType: 'text/csv',
         buffer: Buffer.from('guest_id,codice_interno\nHOST-BLOCK,OSP-BLOCK\n'),
@@ -113,7 +113,7 @@ test('farmaci view blocks delete when drug is used by active therapy', async ({ 
     await expect(page.getByText('Accettate: 1')).toBeVisible()
 
     await page.getByLabel('Sorgente').selectOption('01_CatalogoFarmaci.csv')
-    await page.locator('input[type="file"]').setInputFiles({
+    await page.locator('input[type="file"][accept=".csv,text/csv"]').setInputFiles({
         name: '01_CatalogoFarmaci.csv',
         mimeType: 'text/csv',
         buffer: Buffer.from('drug_id,principio_attivo\nDRUG-BLOCK,Farmaco Bloccato\n'),

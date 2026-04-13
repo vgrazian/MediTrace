@@ -67,6 +67,12 @@ La sezione Gestione ospiti deve offrire tre azioni:
 - Un utente admin deve poter inviare un **link di invito** a nuovo operatore tramite email.
 - Il payload invito deve includere nome/cognome/email del destinatario.
 - Il flusso invito deve appoggiarsi a Supabase Auth (magic link / OTP) senza esporre chiavi privilegiate lato client.
+- In assenza configurazione Supabase, l'app deve mostrare un messaggio esplicito con variabili mancanti (`VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY`).
+
+### 1.3d Web Push API base
+
+- Il pannello Impostazioni deve mostrare chiaramente stato Push API, presenza VAPID key e stato sottoscrizione.
+- In assenza VAPID key, il messaggio deve indicare che manca `VITE_VAPID_PUBLIC_KEY` sia in `.env.local` sia nelle GitHub Variables di deploy.
 
 ### 1.4 Inizializzazione storage
 
@@ -89,6 +95,16 @@ La sezione Gestione ospiti deve offrire tre azioni:
 ### 1.8 Esportazione manuale
 
 - L'utente può scaricare i dati in formato JSON localmente come misura di backup aggiuntiva.
+
+### 1.8a Restore manuale da file backup
+
+- L'utente admin deve poter ripristinare un backup JSON da file locale.
+- Il restore deve richiedere conferma esplicita, sovrascrivere il dataset locale e riaccodare i record alla sync queue.
+- Il restore deve registrare evento audit dedicato (`backup_restored`).
+
+### 1.8b CSV d'esempio per import guidato
+
+- Il Manuale Utente deve rendere scaricabili CSV di esempio per tutte le sorgenti supportate (`01`, `02`, `03`, `04`, `05`, `09`).
 
 ### 1.9 Preparazione testo ordine farmaci (requisito pianificato)
 
@@ -125,6 +141,7 @@ La sezione Gestione ospiti deve offrire tre azioni:
 - Architettura compatibile con crittografia client-side (zero-knowledge opzionale).
 - Le chiavi Supabase privilegiate (service role, DB password) non devono mai essere inserite nel frontend PWA.
 - In frontend deve essere usata solo chiave publishable/anon.
+- Le variabili build-time per Supabase e VAPID devono essere allineate tra `pwa/.env.local`, `pwa/.env.production.local` e GitHub Variables usate dal workflow deploy.
 
 ### 2.3 Disponibilità offline
 
@@ -148,6 +165,7 @@ La sezione Gestione ospiti deve offrire tre azioni:
 - La pipeline CI deve eseguire almeno: test unitari, test end-to-end browser e build produzione.
 - Nessuna release su `main` e' considerata valida se i quality gate automatici falliscono.
 - I test devono coprire almeno autenticazione, navigazione principale, impostazioni utente e import/export dati.
+- I test devono coprire anche restore backup JSON e stato configurazione Push API/Supabase nel pannello Impostazioni.
 
 ---
 

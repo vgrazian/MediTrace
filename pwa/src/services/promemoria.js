@@ -8,7 +8,7 @@
  */
 import { db, enqueue, getSetting } from '../db'
 
-export const REMINDER_OUTCOMES = ['ESEGUITO', 'SALTATO', 'POSTICIPATO']
+export const REMINDER_OUTCOMES = ['ESEGUITO', 'SALTATO', 'POSTICIPATO', 'ANNULLATO']
 
 // ── Pure helpers (testable) ────────────────────────────────────────────────────
 
@@ -78,7 +78,19 @@ export function reminderStateBadge(stato) {
     if (stato === 'ESEGUITO') return 'state-ok'
     if (stato === 'SALTATO') return 'state-skip'
     if (stato === 'POSTICIPATO') return 'state-warn'
+    if (stato === 'ANNULLATO') return 'state-cancel'
     return 'state-pending'
+}
+
+/**
+ * Mappa stato promemoria a colore/stile per il pulsante.
+ */
+export function reminderActionButtonColor(outcome) {
+    if (outcome === 'ESEGUITO') return { bg: '#d1fae5', text: '#065f46' }
+    if (outcome === 'POSTICIPATO') return { bg: '#fef3c7', text: '#92400e' }
+    if (outcome === 'SALTATO') return { bg: '#fed7aa', text: '#9a3412' }
+    if (outcome === 'ANNULLATO') return { bg: '#fee2e2', text: '#991b1b' }
+    return { bg: '#e5e7eb', text: '#1f2937' }
 }
 
 export function startOfDay(date = new Date()) {
@@ -92,7 +104,8 @@ export function endOfDay(date = new Date()) {
 // ── Side-effecting operations ──────────────────────────────────────────────────
 
 /**
- * Registra l'esito di un promemoria (ESEGUITO | SALTATO | POSTICIPATO).
+ * Registra l'esito di un promemoria (ESEGUITO | SALTATO | POSTICIPATO | ANNULLATO).
+ * Se ESEGUITO, deducere la dose dalla terapia e creare movimento in scorte.
  * Aggiorna il record reminder, enquea sync, registra audit log.
  */
 export async function markReminder({ reminderId, outcome, operatorId = null, note = '' }) {
@@ -116,9 +129,55 @@ export async function markReminder({ reminderId, outcome, operatorId = null, not
         syncStatus: 'pending',
     }
 
-    await db.transaction('rw', db.reminders, db.syncQueue, db.activityLog, async () => {
+    await db.transaction('rw', db.reminders, db.syncQueue, db.activityLog, db.movements, db.stockBatches, db.therapies, async () => {
         await db.reminders.put(updated)
         await enqueue('reminders', reminderId, 'upsert')
+
+        // Se ESEGUITO, deducere dal magazzino
+        if (outcome === 'ESEGUITO') {
+            const therapy = await db.therapies.get(existing.therapyId)
+            if (therapy && !therapy.deletedAt) {
+                const dosePerSomministrazione = therapy.dosePerSomministrazione ?? 1
+
+                // Trovare batch di magazzino per il farmaco
+                const batches = await db.stockBatches
+                    .where('drugId')
+                    .equals(therapy.drugId)
+                    .toArray()
+                const batchDaScarico = batches.find(b => !b.deletedAt && b.quantitaAttuale > 0)
+
+                if (batchDaScarico) {
+                    const newQty = Math.max(0, batchDaScarico.quantitaAttuale - dosePerSomministrazione)
+                    const updatedBatch = {
+                        ...batchDaScarico,
+                        quantitaAttuale: newQty,
+                        updatedAt: now,
+                        syncStatus: 'pending',
+                    }
+                    await db.stockBatches.put(updatedBatch)
+                    await enqueue('stockBatches', batchDaScarico.id, 'upsert')
+
+                    // Creare movimento SOMMINISTRAZIONE
+                    const movement = {
+                        id: `__movement_${reminderId}_${now.replace(/[^0-9]/g, '')}`,
+                        type: 'SOMMINISTRAZIONE',
+                        drugId: therapy.drugId,
+                        batchId: batchDaScarico.id,
+                        quantita: dosePerSomministrazione,
+                        hostId: existing.hostId,
+                        therapyId: existing.therapyId,
+                        reminderId: reminderId,
+                        note: `Somministrazione registrata: ${existing.note || 'somministrazione'}`,
+                        createdAt: now,
+                        createdBy: operatorId ?? 'system',
+                        syncStatus: 'pending',
+                    }
+                    await db.movements.put(movement)
+                    await enqueue('movements', movement.id, 'upsert')
+                }
+            }
+        }
+
         await db.activityLog.add({
             entityType: 'reminders',
             entityId: reminderId,

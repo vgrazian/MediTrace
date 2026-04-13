@@ -9,6 +9,20 @@ const appVersion = pkg.version
 
 const route = useRoute()
 const router = useRouter()
+const baseUrl = String(import.meta.env.BASE_URL || '/')
+
+const csvImportSamples = [
+  { label: '01_CatalogoFarmaci.sample.csv', file: '01_CatalogoFarmaci.sample.csv' },
+  { label: '02_ConfezioniMagazzino.sample.csv', file: '02_ConfezioniMagazzino.sample.csv' },
+  { label: '03_Ospiti.sample.csv', file: '03_Ospiti.sample.csv' },
+  { label: '04_TerapieAttive.sample.csv', file: '04_TerapieAttive.sample.csv' },
+  { label: '05_Movimenti.sample.csv', file: '05_Movimenti.sample.csv' },
+  { label: '09_PromemoriaSomministrazioni.sample.csv', file: '09_PromemoriaSomministrazioni.sample.csv' },
+]
+
+function csvSampleHref(fileName) {
+  return `${baseUrl}csv-samples/${fileName}`
+}
 
 const returnPath = computed(() => {
   const from = route.query.from
@@ -102,6 +116,16 @@ function toggle(key) {
             <dd class="manuale-dd">{{ item.testo }}</dd>
           </template>
         </dl>
+
+        <div v-if="sezione.key === 'impostazioni'" style="margin-top:1rem">
+          <p><strong>CSV di esempio per Import CSV guidato</strong></p>
+          <p class="muted" style="margin-top:.25rem">Scarica i file campione e usali come base per compilare i tuoi dataset.</p>
+          <ul class="info-list" style="margin-top:.5rem">
+            <li v-for="sample in csvImportSamples" :key="sample.file">
+              <a :href="csvSampleHref(sample.file)" :download="sample.file">{{ sample.label }}</a>
+            </li>
+          </ul>
+        </div>
       </div>
     </section>
   </div>

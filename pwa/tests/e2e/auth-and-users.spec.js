@@ -65,7 +65,7 @@ test('seeded account login, sync, profile update, password change and users sect
     await expect(page.getByText(/sincronizzazione inizializzata con successo/i)).toBeVisible()
 
     await page.getByLabel('Sorgente').selectOption('01_CatalogoFarmaci.csv')
-    await page.locator('input[type="file"]').setInputFiles({
+    await page.locator('input[type="file"][accept=".csv,text/csv"]').setInputFiles({
         name: '01_CatalogoFarmaci.csv',
         mimeType: 'text/csv',
         buffer: Buffer.from('drug_id,principio_attivo\nDRUG-1,Paracetamolo\n'),

@@ -59,6 +59,23 @@ const filteredReportRows = computed(() => {
   })
 })
 
+const lowStockDrugs = computed(() => {
+  const low = []
+  stockBatches.value.forEach(batch => {
+    if (batch.quantitaAttuale < batch.sogliaRiordino && !low.find(b => b.drugId === batch.drugId)) {
+      const drug = drugs.value.find(d => d.id === batch.drugId)
+      low.push({
+        drugId: batch.drugId,
+        drugName: drug?.nomeFarmaco || drug?.principioAttivo || batch.drugId,
+        currentStock: batch.quantitaAttuale,
+        threshold: batch.sogliaRiordino,
+        urgency: batch.quantitaAttuale > 0 ? 'alta' : 'critica',
+      })
+    }
+  })
+  return low.sort((a, b) => a.currentStock - b.currentStock)
+})
+
 function drugLabel(drugId) {
   const drug = drugs.value.find(d => d.id === drugId)
   if (!drug) return 'Farmaco non disponibile'
@@ -384,6 +401,83 @@ function exportReportCsv() {
   anchor.click()
 }
 
+function exportReportPdf() {
+  if (!report.value) return
+
+  const date = new Date().toISOString().slice(0, 10)
+  const timestamp = new Date().toLocaleString('it-IT', { hour12: false })
+  
+  // Generate simple HTML report
+  let html = `<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MediTrace Report Scorte</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; }
+    h1 { color: #333; margin-bottom: 10px; }
+    .metadata { color: #666; font-size: 0.9em; margin-bottom: 20px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+    th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
+    th { background-color: #f5f5f5; font-weight: bold; }
+    tr:nth-child(even) { background-color: #fafafa; }
+    .summary { margin-top: 20px; padding: 10px; background-color: #f0f0f0; border-radius: 4px; }
+  </style>
+</head>
+<body>
+  <h1>MediTrace - Report Scorte Farmaci</h1>
+  <div class="metadata">
+    <p><strong>Data Generazione:</strong> ${timestamp}</p>
+    <p><strong>Farmaci Monitorati:</strong> ${report.value.summary.totalDrugs}</p>
+    <p><strong>Priorità Critica:</strong> ${report.value.summary.critical} | <strong>Alta:</strong> ${report.value.summary.high} | <strong>Media:</strong> ${report.value.summary.medium} | <strong>OK:</strong> ${report.value.summary.ok}</p>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Farmaco</th>
+        <th>Scorta Attuale</th>
+        <th>Consumo Settimanale</th>
+        <th>Copertura (gg)</th>
+        <th>Soglia Riordino</th>
+        <th>Priorità</th>
+        <th>Motivo</th>
+      </tr>
+    </thead>
+    <tbody>`
+  
+  report.value.rows.forEach(row => {
+    html += `<tr>
+      <td>${row.principioAttivo}</td>
+      <td>${row.stockCurrent}</td>
+      <td>${row.weeklyConsumption}</td>
+      <td>${row.coverageDays}</td>
+      <td>${row.reorderThreshold}</td>
+      <td>${row.priority}</td>
+      <td>${row.reason}</td>
+    </tr>`
+  })
+  
+  html += `    </tbody>
+  </table>
+
+  <div class="summary">
+    <p><strong>Nota:</strong> Questo report include tutti i farmaci con le relative scorte, consumo stimato e priorità di riordino.</p>
+  </div>
+</body>
+</html>`
+
+  // Export as HTML (can be printed to PDF from browser)
+  const blob = new Blob([html], { type: 'text/html;charset=utf-8' })
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = `meditrace-report-scorte-${date}.html`
+  link.click()
+  URL.revokeObjectURL(url)
+}
+
 function copyTextFallback(text) {
   const textarea = document.createElement('textarea')
   textarea.value = text
@@ -474,6 +568,37 @@ onMounted(() => {
       <button class="help-btn" @click="goToHelpSection('scorte')">Aiuto</button>
     </div>
 
+    <div v-if="lowStockDrugs.length > 0" class="card" style="border-left: 3px solid #ff6b6b">
+      <p><strong>⚠️ Farmaci in esaurimento</strong></p>
+      <p class="muted" style="margin-top:.25rem">
+        {{ lowStockDrugs.length }} {{ lowStockDrugs.length === 1 ? 'farmaco' : 'farmaci' }} con scorta sotto soglia riordino
+      </p>
+      <div class="dataset-frame" style="margin-top:.75rem;max-height:15rem;overflow:auto">
+        <table class="conflict-table" style="font-size:0.9em">
+          <thead>
+            <tr>
+              <th>Farmaco</th>
+              <th>Scorta Attuale</th>
+              <th>Soglia</th>
+              <th>Urgenza</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="drug in lowStockDrugs" :key="drug.drugId" :style="{ background: drug.urgency === 'critica' ? '#fee2e2' : '#fff3cd' }">
+              <td>{{ drug.drugName }}</td>
+              <td style="text-align:center">{{ drug.currentStock }}</td>
+              <td style="text-align:center">{{ drug.threshold }}</td>
+              <td style="text-align:center">
+                <span :style="{ color: drug.urgency === 'critica' ? '#991b1b' : '#856404', fontWeight: 'bold' }">
+                  {{ drug.urgency === 'critica' ? 'CRITICA' : 'Alta' }}
+                </span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
     <div class="card">
       <p><strong>Report operativo (consumi/scorte)</strong></p>
       <p class="muted" style="margin-top:.25rem">
@@ -485,7 +610,10 @@ onMounted(() => {
           {{ reportLoading ? 'Aggiornamento...' : 'Aggiorna report' }}
         </button>
         <button :disabled="!report" @click="exportReportCsv">
-          Esporta CSV report
+          Esporta report CSV
+        </button>
+        <button :disabled="!report" @click="exportReportPdf">
+          Esporta report PDF
         </button>
         <button :disabled="!report" @click="prepareOrderDraft">
           Prepara testo ordine farmaci
