@@ -38,12 +38,53 @@ require_cmd() {
   fi
 }
 
+read_value_from_env_file() {
+  local file="$1"
+  local key="$2"
+  if [[ ! -f "$file" ]]; then
+    return
+  fi
+  awk -F= -v target="$key" '$1 == target {print substr($0, index($0, "=") + 1)}' "$file" | tail -n 1
+}
+
+resolve_value() {
+  local fallback_file="$1"
+  shift
+  local key=""
+  local value=""
+  for key in "$@"; do
+    value="${!key:-}"
+    if [[ -n "$value" ]]; then
+      echo "$value"
+      return
+    fi
+  done
+  for key in "$@"; do
+    value="$(read_value_from_env_file "$fallback_file" "$key")"
+    if [[ -n "$value" ]]; then
+      echo "$value"
+      return
+    fi
+  done
+}
+
 set_repo_variable() {
   local name="$1"
   local value="$2"
   if [[ -z "$value" ]]; then
     echo "[skip] Variable $name empty"
     return
+  fi
+  gh variable set "$name" --body "$value"
+  echo "[ok] Variable $name configured"
+}
+
+set_required_repo_variable() {
+  local name="$1"
+  local value="$2"
+  if [[ -z "$value" ]]; then
+    echo "[error] Required variable $name is empty"
+    exit 1
   fi
   gh variable set "$name" --body "$value"
   echo "[ok] Variable $name configured"
@@ -108,10 +149,10 @@ source "$ENV_FILE"
 set +a
 
 VITE_BASE_URL_VALUE="${VITE_BASE_URL:-/MediTrace/}"
-VITE_SUPABASE_URL_VALUE="${VITE_SUPABASE_URL:-}"
-VITE_SUPABASE_PUBLISHABLE_KEY_VALUE="${VITE_SUPABASE_PUBLISHABLE_KEY:-}"
-VITE_SUPABASE_REDIRECT_TO_VALUE="${VITE_SUPABASE_REDIRECT_TO:-}"
-VITE_VAPID_PUBLIC_KEY_VALUE="${VITE_VAPID_PUBLIC_KEY:-}"
+VITE_SUPABASE_URL_VALUE="$(resolve_value "$LOCAL_ENV_FILE" "VITE_SUPABASE_URL" "SUPABASE_URL" "NEXT_PUBLIC_SUPABASE_URL")"
+VITE_SUPABASE_PUBLISHABLE_KEY_VALUE="$(resolve_value "$LOCAL_ENV_FILE" "VITE_SUPABASE_PUBLISHABLE_KEY" "SUPABASE_PUBLISHABLE_KEY" "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY")"
+VITE_SUPABASE_REDIRECT_TO_VALUE="$(resolve_value "$LOCAL_ENV_FILE" "VITE_SUPABASE_REDIRECT_TO")"
+VITE_VAPID_PUBLIC_KEY_VALUE="$(resolve_value "$LOCAL_ENV_FILE" "VITE_VAPID_PUBLIC_KEY")"
 
 VITE_EMERGENCY_ADMIN_ENABLED_VALUE="${VITE_EMERGENCY_ADMIN_ENABLED:-0}"
 VITE_EMERGENCY_ADMIN_USERNAME_VALUE="${VITE_EMERGENCY_ADMIN_USERNAME:-${MEDITRACE_EMERGENCY_ADMIN_USERNAME:-}}"
@@ -160,8 +201,8 @@ if [[ "$SET_GH" == "1" ]]; then
 
   echo "[info] Syncing GitHub Variables/Secrets for production deploy..."
   set_repo_variable "VITE_BASE_URL" "$VITE_BASE_URL_VALUE"
-  set_repo_variable "VITE_SUPABASE_URL" "$VITE_SUPABASE_URL_VALUE"
-  set_repo_variable "VITE_SUPABASE_PUBLISHABLE_KEY" "$VITE_SUPABASE_PUBLISHABLE_KEY_VALUE"
+  set_required_repo_variable "VITE_SUPABASE_URL" "$VITE_SUPABASE_URL_VALUE"
+  set_required_repo_variable "VITE_SUPABASE_PUBLISHABLE_KEY" "$VITE_SUPABASE_PUBLISHABLE_KEY_VALUE"
   set_repo_variable "VITE_SUPABASE_REDIRECT_TO" "$VITE_SUPABASE_REDIRECT_TO_VALUE"
   set_repo_variable "VITE_VAPID_PUBLIC_KEY" "$VITE_VAPID_PUBLIC_KEY_VALUE"
   set_repo_variable "VITE_EMERGENCY_ADMIN_ENABLED" "$VITE_EMERGENCY_ADMIN_ENABLED_VALUE"
