@@ -3,7 +3,7 @@ import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { db, enqueue, getSetting } from '../db'
 import { useAuth } from '../services/auth'
-import { buildReminderRows, markReminder, reminderStateBadge, reminderActionButtonColor, REMINDER_OUTCOMES } from '../services/promemoria'
+import { BED_SEQUENCE_SETTING_KEY, buildReminderRows, markReminder, reminderStateBadge, reminderActionButtonColor, REMINDER_OUTCOMES } from '../services/promemoria'
 import { confirmDeleteReminder } from '../services/confirmations'
 import { useFormValidation } from '../services/formValidation'
 import ValidatedInput from '../components/ValidatedInput.vue'
@@ -23,6 +23,9 @@ const allReminders = ref([])
 const hosts = ref([])
 const drugs = ref([])
 const therapies = ref([])
+const beds = ref([])
+const rooms = ref([])
+const bedSequence = ref([])
 
 const dateFilter = ref('today')
 const stateFilter = ref('')
@@ -54,6 +57,9 @@ const rows = computed(() => buildReminderRows({
   hosts: hosts.value,
   drugs: drugs.value,
   therapies: therapies.value,
+  beds: beds.value,
+  rooms: rooms.value,
+  bedSequence: bedSequence.value,
   dateFilter: dateFilter.value,
   stateFilter: stateFilter.value,
 }))
@@ -79,16 +85,22 @@ async function loadData() {
   loading.value = true
   errorMessage.value = ''
   try {
-    const [rawReminders, rawHosts, rawDrugs, rawTherapies] = await Promise.all([
+    const [rawReminders, rawHosts, rawDrugs, rawTherapies, rawBeds, rawRooms, savedBedSequence] = await Promise.all([
       db.reminders.toArray(),
       db.hosts.toArray(),
       db.drugs.toArray(),
       db.therapies.toArray(),
+      db.beds.toArray(),
+      db.rooms.toArray(),
+      getSetting(BED_SEQUENCE_SETTING_KEY, []),
     ])
     allReminders.value = rawReminders
     hosts.value = rawHosts.filter(h => !h.deletedAt)
     drugs.value = rawDrugs.filter(d => !d.deletedAt)
     therapies.value = rawTherapies.filter(t => !t.deletedAt)
+    beds.value = rawBeds.filter(b => !b.deletedAt)
+    rooms.value = rawRooms.filter(r => !r.deletedAt)
+    bedSequence.value = Array.isArray(savedBedSequence) ? savedBedSequence : []
   } catch (err) {
     errorMessage.value = `Errore caricamento: ${err.message}`
   } finally {

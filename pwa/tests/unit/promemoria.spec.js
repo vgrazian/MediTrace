@@ -133,6 +133,61 @@ describe('buildReminderRows', () => {
         expect(times).toEqual([...times].sort((a, b) => a - b))
     })
 
+    it('sorts by configured bed sequence when scheduledAt is equal', () => {
+        const hosts = [
+            { id: 'h1', codiceInterno: 'OSP-01', roomId: 'room-a', bedId: 'bed-1', deletedAt: null },
+            { id: 'h2', codiceInterno: 'OSP-02', roomId: 'room-a', bedId: 'bed-2', deletedAt: null },
+        ]
+        const beds = [
+            { id: 'bed-1', roomId: 'room-a', numero: 1, deletedAt: null },
+            { id: 'bed-2', roomId: 'room-a', numero: 2, deletedAt: null },
+        ]
+        const rooms = [
+            { id: 'room-a', codice: 'A', deletedAt: null },
+        ]
+        const reminders = [
+            { id: 'r1', hostId: 'h1', therapyId: 't1', drugId: 'd1', scheduledAt: '2026-04-04T09:00:00.000Z', stato: 'DA_ESEGUIRE', deletedAt: null },
+            { id: 'r2', hostId: 'h2', therapyId: 't2', drugId: 'd2', scheduledAt: '2026-04-04T09:00:00.000Z', stato: 'DA_ESEGUIRE', deletedAt: null },
+        ]
+
+        const rows = buildReminderRows({
+            reminders,
+            hosts,
+            drugs: DRUGS,
+            therapies: THERAPIES,
+            beds,
+            rooms,
+            bedSequence: ['bed-2', 'bed-1'],
+            dateFilter: 'all',
+            now: NOW,
+        })
+
+        expect(rows.map(row => row.id)).toEqual(['r2', 'r1'])
+    })
+
+    it('falls back to stable room and bed ordering without configured sequence', () => {
+        const hosts = [
+            { id: 'h1', codiceInterno: 'OSP-01', roomId: 'room-b', bedId: 'bed-9', deletedAt: null },
+            { id: 'h2', codiceInterno: 'OSP-02', roomId: 'room-a', bedId: 'bed-2', deletedAt: null },
+        ]
+        const beds = [
+            { id: 'bed-9', roomId: 'room-b', numero: 9, deletedAt: null },
+            { id: 'bed-2', roomId: 'room-a', numero: 2, deletedAt: null },
+        ]
+        const rooms = [
+            { id: 'room-a', codice: 'A', deletedAt: null },
+            { id: 'room-b', codice: 'B', deletedAt: null },
+        ]
+        const reminders = [
+            { id: 'r1', hostId: 'h1', therapyId: 't1', drugId: 'd1', scheduledAt: '2026-04-04T09:00:00.000Z', stato: 'DA_ESEGUIRE', deletedAt: null },
+            { id: 'r2', hostId: 'h2', therapyId: 't2', drugId: 'd2', scheduledAt: '2026-04-04T09:00:00.000Z', stato: 'DA_ESEGUIRE', deletedAt: null },
+        ]
+
+        const rows = buildReminderRows({ reminders, hosts, drugs: DRUGS, therapies: THERAPIES, beds, rooms, dateFilter: 'all', now: NOW })
+        expect(rows.map(row => row.id)).toEqual(['r2', 'r1'])
+        expect(rows[0].stanzaLetto).toBe('A/2')
+    })
+
     it('filters by stato', () => {
         const rows = buildReminderRows({ reminders: REMINDERS_TODAY, hosts: HOSTS, drugs: DRUGS, therapies: THERAPIES, dateFilter: 'all', stateFilter: 'DA_ESEGUIRE', now: NOW })
         expect(rows.every(r => r.stato === 'DA_ESEGUIRE')).toBe(true)

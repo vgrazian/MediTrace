@@ -531,7 +531,10 @@ export function buildOrderDraftText(reportOrRows) {
         : (reportOrRows?.rows ?? [])
 
     const actionableRows = rows
-        .filter(row => (row?.warningPriority ?? 'ok') !== 'ok')
+        .filter(row => {
+            const priority = String(row?.warningPriority ?? 'ok').toLowerCase()
+            return priority !== 'ok' || row?.forceInOrder === true
+        })
         .sort((a, b) => {
             const bySeverity = (SEVERITY_ORDER[a.warningPriority] ?? 99) - (SEVERITY_ORDER[b.warningPriority] ?? 99)
             if (bySeverity !== 0) return bySeverity
@@ -550,8 +553,12 @@ export function buildOrderDraftText(reportOrRows) {
 
     for (const row of actionableRows) {
         const suggestedQty = suggestedOrderQuantity(row)
+        const priorityLabel = String(row?.warningPriority || 'media').toLowerCase() === 'ok'
+            ? 'media'
+            : String(row?.warningPriority || 'media').toLowerCase()
+        const note = row?.warningReason || (row?.forceInOrder ? 'sotto soglia riordino confezione' : 'verifica scorta')
         lines.push(
-            `- ${row.principioAttivo || row.drugId || 'Farmaco'} | qta suggerita: ${suggestedQty.toFixed(2)} | priorita': ${row.warningPriority} | note: ${row.warningReason || 'verifica scorta'}`
+            `- ${row.principioAttivo || row.drugId || 'Farmaco'} | qta suggerita: ${suggestedQty.toFixed(2)} | priorita': ${priorityLabel} | note: ${note}`
         )
     }
 

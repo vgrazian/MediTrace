@@ -11,6 +11,7 @@ import { useSelection } from '../composables/useSelection'
 import { useHelpNavigation } from '../composables/useHelpNavigation'
 import { useUnsavedChangesGuard } from '../composables/useUnsavedChangesGuard'
 import { useUndoDelete } from '../composables/useUndoDelete'
+import { canRole } from '../services/rbac'
 
 const { currentUser } = useAuth()
 const { goToHelpSection } = useHelpNavigation()
@@ -63,6 +64,8 @@ const {
 const canCreateMovement = computed(() => {
   return stockBatches.value.length > 0 && Number(form.value.quantita || 0) > 0
 })
+
+const canDeleteMovements = computed(() => canRole(currentUser.value?.role, 'movements:delete'))
 
 const normalizedFilter = computed(() => filterQuery.value.trim().toLowerCase())
 
@@ -320,6 +323,10 @@ function resetForm() {
 }
 
 async function deleteMovement(movement) {
+  if (!canDeleteMovements.value) {
+    errorMessage.value = 'Eliminazione movimenti consentita solo agli amministratori.'
+    return
+  }
   const batch = stockBatches.value.find(b => b.id === movement.stockBatchId)
   const movementLabel = `${movement.tipoMovimento || movement.type} - ${batchLabel(batch)} (${formatDateTime(movement.dataMovimento)})`
   
@@ -354,6 +361,10 @@ async function deleteMovement(movement) {
 }
 
 async function deleteSelectedMovements() {
+  if (!canDeleteMovements.value) {
+    errorMessage.value = 'Eliminazione movimenti consentita solo agli amministratori.'
+    return
+  }
   if (selectedCount.value === 0) return
 
   const selectedMovements = getSelectedItems()
@@ -438,7 +449,7 @@ onMounted(() => {
         <button @click="openAddForm">Aggiungi</button>
         <button :disabled="selectedCount !== 1" @click="openEditForm">Modifica</button>
         <button
-          :disabled="selectedCount === 0"
+          :disabled="selectedCount === 0 || !canDeleteMovements"
           style="background:#d35f55"
           @click="deleteSelectedMovements"
         >
@@ -449,6 +460,9 @@ onMounted(() => {
       <p v-if="selectedCount > 0" class="muted" style="margin-top:.55rem">
         {{ selectedCount }} moviment{{ selectedCount > 1 ? 'i' : 'o' }} selezionat{{ selectedCount > 1 ? 'i' : 'o' }}.
         <button type="button" style="margin-left:.4rem" @click="clearSelection">Deseleziona tutto</button>
+      </p>
+      <p v-if="!canDeleteMovements" class="muted" style="margin-top:.35rem">
+        Solo gli amministratori possono eliminare i movimenti.
       </p>
 
       <div class="dataset-frame" style="margin-top:.75rem">
@@ -495,7 +509,7 @@ onMounted(() => {
             <td>{{ movement.note || '—' }}</td>
             <td>
               <button style="margin-right:.35rem" @click="startEditMovement(movement)">Modifica</button>
-              <button style="background:#d35f55" @click="deleteMovement(movement)">Elimina</button>
+              <button v-if="canDeleteMovements" style="background:#d35f55" @click="deleteMovement(movement)">Elimina</button>
             </td>
           </tr>
           <tr v-if="filteredMovements.length === 0">

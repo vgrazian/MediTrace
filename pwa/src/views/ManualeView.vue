@@ -48,6 +48,13 @@ const expanded = ref(Object.fromEntries(manualeSezioni.map((s, i) => [s.key, i =
 function toggle(key) {
   expanded.value[key] = !expanded.value[key]
 }
+
+function goToManualSection(key) {
+  const target = document.getElementById(key)
+  if (!target) return
+  expanded.value[key] = true
+  target.scrollIntoView({ behavior: 'smooth', block: 'start' })
+}
 </script>
 
 <template>
@@ -82,7 +89,13 @@ function toggle(key) {
       <p><strong>Indice</strong></p>
       <ol class="manuale-toc-list">
         <li v-for="sezione in manualeSezioni" :key="sezione.key">
-          <a :href="'#' + sezione.key">{{ sezione.etichetta }}</a>
+          <button
+            type="button"
+            class="manuale-toc-link"
+            @click="goToManualSection(sezione.key)"
+          >
+            {{ sezione.etichetta }}
+          </button>
         </li>
       </ol>
     </nav>

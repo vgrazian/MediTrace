@@ -9,6 +9,7 @@
 import { db, enqueue, getSetting } from '../db'
 
 export const REMINDER_OUTCOMES = ['ESEGUITO', 'SALTATO', 'POSTICIPATO', 'ANNULLATO']
+export const BED_SEQUENCE_SETTING_KEY = 'promemoriaBedSequence'
 
 // ── Pure helpers (testable) ────────────────────────────────────────────────────
 
@@ -25,10 +26,76 @@ export const REMINDER_OUTCOMES = ['ESEGUITO', 'SALTATO', 'POSTICIPATO', 'ANNULLA
  * @param {Date}   params.now         — riferimento temporale
  * @returns {Array} reminders arricchiti, ordinati per scheduledAt asc
  */
-export function buildReminderRows({ reminders, hosts, drugs, therapies, dateFilter = 'today', stateFilter = '', now = new Date() }) {
+function toSafeDate(value) {
+    const parsed = new Date(value)
+    return Number.isNaN(parsed.getTime()) ? null : parsed
+}
+
+function toNaturalNumber(value, fallback = Number.MAX_SAFE_INTEGER) {
+    const parsed = Number(value)
+    return Number.isFinite(parsed) ? parsed : fallback
+}
+
+export function buildBedSequenceIndex({ beds = [], rooms = [], bedSequence = [] }) {
+    const activeBeds = beds.filter(bed => !bed?.deletedAt)
+    const roomById = new Map(rooms.filter(room => !room?.deletedAt).map(room => [room.id, room]))
+    const configuredIds = Array.isArray(bedSequence) ? bedSequence : []
+
+    const fallbackSortedBeds = [...activeBeds].sort((a, b) => {
+        const roomA = roomById.get(a.roomId)
+        const roomB = roomById.get(b.roomId)
+        const roomCodeCompare = String(roomA?.codice || roomA?.id || '').localeCompare(String(roomB?.codice || roomB?.id || ''))
+        if (roomCodeCompare !== 0) return roomCodeCompare
+
+        const bedNumberCompare = toNaturalNumber(a.numero) - toNaturalNumber(b.numero)
+        if (bedNumberCompare !== 0) return bedNumberCompare
+
+        return String(a.id || '').localeCompare(String(b.id || ''))
+    })
+
+    const orderedIds = [
+        ...configuredIds.filter(id => fallbackSortedBeds.some(bed => bed.id === id)),
+        ...fallbackSortedBeds.map(bed => bed.id).filter(id => !configuredIds.includes(id)),
+    ]
+
+    return new Map(orderedIds.map((id, index) => [id, index]))
+}
+
+function buildStanzaLettoLabel(host, bed, room) {
+    const roomLabel = room?.codice || host?.stanza || host?.roomId || '—'
+    const bedLabel = bed?.numero || host?.letto || host?.bedId || '—'
+    return `${roomLabel}/${bedLabel}`
+}
+
+function compareReminderRows(a, b, bedSequenceIndex) {
+    const dateA = toSafeDate(a.scheduledAt)
+    const dateB = toSafeDate(b.scheduledAt)
+    const timeCompare = (dateA?.getTime() ?? Number.MAX_SAFE_INTEGER) - (dateB?.getTime() ?? Number.MAX_SAFE_INTEGER)
+    if (timeCompare !== 0) return timeCompare
+
+    const bedOrderA = bedSequenceIndex.get(a.bedId) ?? Number.MAX_SAFE_INTEGER
+    const bedOrderB = bedSequenceIndex.get(b.bedId) ?? Number.MAX_SAFE_INTEGER
+    if (bedOrderA !== bedOrderB) return bedOrderA - bedOrderB
+
+    const roomCompare = String(a.roomSortKey || '').localeCompare(String(b.roomSortKey || ''))
+    if (roomCompare !== 0) return roomCompare
+
+    const bedCompare = toNaturalNumber(a.bedSortKey) - toNaturalNumber(b.bedSortKey)
+    if (bedCompare !== 0) return bedCompare
+
+    const hostCompare = String(a.hostLabel || '').localeCompare(String(b.hostLabel || ''))
+    if (hostCompare !== 0) return hostCompare
+
+    return String(a.id || '').localeCompare(String(b.id || ''))
+}
+
+export function buildReminderRows({ reminders, hosts, drugs, therapies, beds = [], rooms = [], bedSequence = [], dateFilter = 'today', stateFilter = '', now = new Date() }) {
     const hostsById = new Map(hosts.map(h => [h.id, h]))
     const drugsById = new Map(drugs.map(d => [d.id, d]))
     const therapiesById = new Map(therapies.map(t => [t.id, t]))
+    const bedsById = new Map(beds.map(b => [b.id, b]))
+    const roomsById = new Map(rooms.map(r => [r.id, r]))
+    const bedSequenceIndex = buildBedSequenceIndex({ beds, rooms, bedSequence })
 
     const dayStart = startOfDay(now)
     const dayEnd = endOfDay(now)
@@ -53,12 +120,16 @@ export function buildReminderRows({ reminders, hosts, drugs, therapies, dateFilt
             const therapy = therapiesById.get(r.therapyId)
             const host = hostsById.get(r.hostId)
             const drug = drugsById.get(r.drugId ?? therapy?.drugId)
+            const bed = bedsById.get(host?.bedId)
+            const room = roomsById.get(host?.roomId ?? bed?.roomId)
             const fullName = host ? [host.cognome, host.nome].filter(Boolean).join(' ').trim() : ''
             const hostName = fullName || host?.iniziali || host?.codiceInterno || r.hostId
             return {
                 ...r,
+                bedId: host?.bedId ?? null,
+                roomId: host?.roomId ?? bed?.roomId ?? null,
                 hostLabel: hostName,
-                stanzaLetto: host ? `${host.roomId || '—'}/${host.bedId || '—'}` : '—',
+                stanzaLetto: host ? buildStanzaLettoLabel(host, bed, room) : '—',
                 drugLabel: drug?.principioAttivo ?? (r.drugId ?? '—'),
                 stato: r.stato ?? 'DA_ESEGUIRE',
                 dosePerSomministrazione: therapy?.dosePerSomministrazione ?? null,
@@ -66,9 +137,11 @@ export function buildReminderRows({ reminders, hosts, drugs, therapies, dateFilt
                 consumoMedioSettimanale: therapy?.consumoMedioSettimanale ?? null,
                 dataInizio: therapy?.dataInizio ?? null,
                 dataFine: therapy?.dataFine ?? null,
+                roomSortKey: room?.codice || host?.stanza || host?.roomId || '',
+                bedSortKey: bed?.numero || host?.letto || host?.bedId || '',
             }
         })
-        .sort((a, b) => new Date(a.scheduledAt) - new Date(b.scheduledAt))
+        .sort((a, b) => compareReminderRows(a, b, bedSequenceIndex))
 }
 
 /**
@@ -193,7 +266,9 @@ export async function markReminder({ reminderId, outcome, operatorId = null, not
 
 export const promemoriaTestUtils = {
     buildReminderRows,
+    buildBedSequenceIndex,
     reminderStateBadge,
+    compareReminderRows,
     startOfDay,
     endOfDay,
 }
