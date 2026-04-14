@@ -58,7 +58,7 @@ test('daily operations scenario covers therapy edits, executions, stock checks a
     expect(pendingCount).toBeGreaterThanOrEqual(4)
 
     for (let i = 0; i < 4; i += 1) {
-        await page.getByRole('button', { name: 'Eseguito' }).first().click()
+        await page.locator('td button.reminder-action-btn:not([disabled])', { hasText: 'Eseguito' }).first().click()
         await expect(page.getByText('Promemoria contrassegnato: ESEGUITO.')).toBeVisible()
     }
 

@@ -220,14 +220,14 @@ test('expanded workflow scenario: multi-drug catalog, batch management, and ther
     await page.getByLabel('Data').selectOption('all')
     await page.getByLabel('Stato').first().selectOption('DA_ESEGUIRE')
 
-    const eseguiButtons = page.getByRole('button', { name: 'Eseguito' })
-    const pendingReminders = await eseguiButtons.count()
+    const rowEseguiButtons = page.locator('td button.reminder-action-btn:not([disabled])', { hasText: 'Eseguito' })
+    const pendingReminders = await rowEseguiButtons.count()
 
     const remindersToExecute = Math.min(pendingReminders, 6)
     console.log(`  Executing ${remindersToExecute} reminders out of ${pendingReminders} pending`)
 
     for (let i = 0; i < remindersToExecute; i += 1) {
-        await page.getByRole('button', { name: 'Eseguito' }).first().click()
+        await rowEseguiButtons.first().click()
         await expect(page.getByText('Promemoria contrassegnato: ESEGUITO.')).toBeVisible({ timeout: 5000 })
         await page.waitForTimeout(200)
     }
