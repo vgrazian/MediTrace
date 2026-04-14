@@ -236,8 +236,9 @@ export function enrichAuditEvents(events = [], refs = null) {
             }
         }
 
+        let therapy = null
         if (enriched.therapyId) {
-            const therapy = refs.therapyById.get(enriched.therapyId)
+            therapy = refs.therapyById.get(enriched.therapyId)
             if (therapy) {
                 enriched.hostId = enriched.hostId || therapy.hostId || null
                 enriched.drugId = enriched.drugId || therapy.drugId || null
@@ -249,7 +250,8 @@ export function enrichAuditEvents(events = [], refs = null) {
 
         enriched.hostLabel = labelHost(host)
         enriched.drugLabel = labelDrug(drug)
-        enriched.therapyLabel = enriched.therapyId || ''
+        const therapyNote = String(therapy?.nomeTerapia || therapy?.notaTerapia || therapy?.note || '').trim()
+        enriched.therapyLabel = therapyNote || enriched.therapyId || ''
 
         return enriched
     })

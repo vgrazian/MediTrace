@@ -181,4 +181,20 @@ describe('seedDataRealistic mapping', () => {
         expect(reminderStates.has('POSTICIPATO')).toBe(true)
         expect(reminderStates.has('SALTATO')).toBe(true)
     })
+
+    it('generates at least 12 reminders for today and human-readable therapy labels', () => {
+        const generated = generateRealisticSeedData()
+        const now = new Date()
+        const todayKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+
+        const todayReminders = generated.reminders.filter((item) => String(item.scheduledAt || '').slice(0, 10) === todayKey)
+        expect(todayReminders.length).toBeGreaterThanOrEqual(12)
+
+        const realisticLabels = generated.therapies
+            .map((item) => String(item.nomeTerapia || item.note || '').toLowerCase())
+            .filter(Boolean)
+
+        expect(realisticLabels.some((label) => label.includes('controllo') || label.includes('supporto') || label.includes('terapia'))).toBe(true)
+        expect(realisticLabels.some((label) => label.includes('__realistic__therapy-'))).toBe(false)
+    })
 })

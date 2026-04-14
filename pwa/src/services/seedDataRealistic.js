@@ -28,9 +28,10 @@ const REALISTIC_HOST_IDENTITIES = [
     { nome: 'Nadia', cognome: 'Serafini' },
     { nome: 'Pietro', cognome: 'Campolmi' },
     { nome: 'Giulia', cognome: 'Ventresca' },
+    { nome: 'José', cognome: 'Álvarez' },
     { nome: 'Dario', cognome: 'Nervetti' },
     { nome: 'Chiara', cognome: 'Roventi' },
-    { nome: 'Fabio', cognome: 'Serralta' },
+    { nome: 'Zoë', cognome: 'Serralta' },
     { nome: 'Marta', cognome: 'Bellinati' },
 ]
 
@@ -41,6 +42,16 @@ const THERAPY_DETAIL_NOTES = [
     'Somministrare dopo controllo pressione',
     'Preferibilmente entro le 09:00',
     'Diluire in acqua e monitorare tolleranza',
+]
+
+const PATHOLOGY_THERAPY_LABELS = [
+    { match: /(ipertension|cardi|scompenso|pressione)/i, label: 'Controllo cardiovascolare' },
+    { match: /(bronco|asma|copd|respirat)/i, label: 'Supporto respiratorio' },
+    { match: /(diabet|glicem)/i, label: 'Controllo glicemico' },
+    { match: /(alzheimer|demenza|cognitiv)/i, label: 'Supporto cognitivo' },
+    { match: /(parkinson|neurolog|neuropat)/i, label: 'Stabilizzazione neurologica' },
+    { match: /(dolore|algic|oncolog)/i, label: 'Terapia analgesica' },
+    { match: /(insufficienza renale|renale|edema)/i, label: 'Bilancio idro-elettrolitico' },
 ]
 
 const DATASET_REQUIRED_ARRAY_KEYS = ['rooms', 'beds', 'hosts', 'therapies']
@@ -606,6 +617,9 @@ function generateRealisticTherapies(hosts, drugs, batches, now) {
         const somministrazioniGiornaliere = Number(freq)
         const consumoMedioSettimanale = dosePerSomministrazione * somministrazioniGiornaliere * 7
         const detailNote = THERAPY_DETAIL_NOTES[idx % THERAPY_DETAIL_NOTES.length]
+        const hostPatologie = String(host?.patologie || '').trim()
+        const pathologyLabel = PATHOLOGY_THERAPY_LABELS.find((item) => item.match.test(hostPatologie))?.label || 'Piano terapeutico personalizzato'
+        const therapyLabel = `${pathologyLabel} - ${drug.principioAttivo}`
 
         return {
             id: `__realistic__therapy-${idx + 1}`,
@@ -620,8 +634,9 @@ function generateRealisticTherapies(hosts, drugs, batches, now) {
             consumoMedioSettimanale,
             dosaggio: `${dosePerSomministrazione} compressa`,
             frequenza: `${somministrazioniGiornaliere} volta/die`,
+            nomeTerapia: therapyLabel,
             notaTerapia: detailNote,
-            note: detailNote,
+            note: `${therapyLabel}. ${detailNote}`,
             attiva: true,
             updatedAt: now,
             deletedAt: null,
@@ -703,8 +718,10 @@ function generateRealisticReminders(therapies, now) {
 
     for (let i = 0; i < therapies.length; i += 1) {
         const therapy = therapies[i]
-        const morningAt = isoDateDaysAgo(now, i % 7, 8, 0)
-        const eveningAt = isoDateDaysAgo(now, i % 7, 20, 0)
+        // Keep at least half of reminders on the current day to guarantee a rich operational view.
+        const dayOffset = i % 2
+        const morningAt = isoDateDaysAgo(now, dayOffset, 8 + (i % 3), 0)
+        const eveningAt = isoDateDaysAgo(now, dayOffset, 18 + (i % 3), 0)
         const stateCycle = ['ESEGUITO', 'DA_ESEGUIRE', 'POSTICIPATO', 'SALTATO']
         const morningState = stateCycle[i % stateCycle.length]
         const eveningState = stateCycle[(i + 1) % stateCycle.length]

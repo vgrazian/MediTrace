@@ -16,8 +16,10 @@ const { goToHelpSection } = useHelpNavigation()
 const loading = ref(false)
 const markingId = ref(null)
 const savingEdit = ref(false)
+const bulkBusy = ref(false)
 const message = ref('')
 const errorMessage = ref('')
+const selectedReminderIds = ref([])
 
 const allReminders = ref([])
 const hosts = ref([])
@@ -64,6 +66,29 @@ const rows = computed(() => buildReminderRows({
   stateFilter: stateFilter.value,
 }))
 
+const actionableRows = computed(() => rows.value.filter((item) => item.stato === 'DA_ESEGUIRE' || item.stato === 'POSTICIPATO'))
+
+const selectedActionableIds = computed(() => {
+  const allowed = new Set(actionableRows.value.map((item) => item.id))
+  return selectedReminderIds.value.filter((id) => allowed.has(id))
+})
+
+const allActionableSelected = computed({
+  get() {
+    if (actionableRows.value.length === 0) return false
+    return selectedActionableIds.value.length === actionableRows.value.length
+  },
+  set(value) {
+    if (!value) {
+      selectedReminderIds.value = []
+      return
+    }
+    selectedReminderIds.value = actionableRows.value.map((item) => item.id)
+  },
+})
+
+const canRunBulkActions = computed(() => selectedActionableIds.value.length > 0 && !bulkBusy.value && !savingEdit.value)
+
 function isHighlighted(reminderId) {
   return highlightedReminderId.value && highlightedReminderId.value === reminderId
 }
@@ -101,11 +126,31 @@ async function loadData() {
     beds.value = rawBeds.filter(b => !b.deletedAt)
     rooms.value = rawRooms.filter(r => !r.deletedAt)
     bedSequence.value = Array.isArray(savedBedSequence) ? savedBedSequence : []
+    const validIds = new Set(rawReminders.filter(item => !item.deletedAt).map(item => item.id))
+    selectedReminderIds.value = selectedReminderIds.value.filter((id) => validIds.has(id))
   } catch (err) {
     errorMessage.value = `Errore caricamento: ${err.message}`
   } finally {
     loading.value = false
   }
+}
+
+function toggleReminderSelection(reminderId, checked) {
+  if (!checked) {
+    selectedReminderIds.value = selectedReminderIds.value.filter((id) => id !== reminderId)
+    return
+  }
+  if (!selectedReminderIds.value.includes(reminderId)) {
+    selectedReminderIds.value = [...selectedReminderIds.value, reminderId]
+  }
+}
+
+function isReminderSelected(reminderId) {
+  return selectedReminderIds.value.includes(reminderId)
+}
+
+function isReminderActionable(reminder) {
+  return reminder.stato === 'DA_ESEGUIRE' || reminder.stato === 'POSTICIPATO'
 }
 
 async function applyOutcome(reminderId, outcome) {
@@ -124,6 +169,109 @@ async function applyOutcome(reminderId, outcome) {
     errorMessage.value = `Errore: ${err.message}`
   } finally {
     markingId.value = null
+  }
+}
+
+async function setReminderPending(reminderId) {
+  message.value = ''
+  errorMessage.value = ''
+  markingId.value = reminderId
+  try {
+    const existing = await db.reminders.get(reminderId)
+    if (!existing || existing.deletedAt) throw new Error('Promemoria non trovato')
+
+    const now = new Date().toISOString()
+    const deviceId = await getSetting('deviceId', 'unknown')
+    await db.transaction('rw', db.reminders, db.syncQueue, db.activityLog, async () => {
+      await db.reminders.put({
+        ...existing,
+        stato: 'DA_ESEGUIRE',
+        eseguitoAt: null,
+        operatore: null,
+        updatedAt: now,
+        syncStatus: 'pending',
+      })
+      await enqueue('reminders', reminderId, 'upsert')
+      await db.activityLog.add({
+        entityType: 'reminders',
+        entityId: reminderId,
+        action: 'reminder_reset_pending',
+        deviceId,
+        operatorId: currentUser.value?.login ?? null,
+        ts: now,
+      })
+    })
+    message.value = 'Promemoria riportato a Da eseguire.'
+    await loadData()
+  } catch (err) {
+    errorMessage.value = `Errore: ${err.message}`
+  } finally {
+    markingId.value = null
+  }
+}
+
+async function applyOutcomeBulk(outcome) {
+  if (!canRunBulkActions.value) return
+  message.value = ''
+  errorMessage.value = ''
+  bulkBusy.value = true
+  try {
+    for (const reminderId of selectedActionableIds.value) {
+      await markReminder({
+        reminderId,
+        outcome,
+        operatorId: currentUser.value?.login ?? null,
+      })
+    }
+    message.value = `Somministrazioni aggiornate: ${selectedActionableIds.value.length} → ${outcome}.`
+    selectedReminderIds.value = []
+    await loadData()
+  } catch (err) {
+    errorMessage.value = `Errore operazione multipla: ${err.message}`
+  } finally {
+    bulkBusy.value = false
+  }
+}
+
+async function setPendingBulk() {
+  if (!canRunBulkActions.value) return
+  message.value = ''
+  errorMessage.value = ''
+  bulkBusy.value = true
+  try {
+    const now = new Date().toISOString()
+    const deviceId = await getSetting('deviceId', 'unknown')
+    const selectedIds = [...selectedActionableIds.value]
+    await db.transaction('rw', db.reminders, db.syncQueue, db.activityLog, async () => {
+      for (const reminderId of selectedIds) {
+        const existing = await db.reminders.get(reminderId)
+        if (!existing || existing.deletedAt) continue
+        await db.reminders.put({
+          ...existing,
+          stato: 'DA_ESEGUIRE',
+          eseguitoAt: null,
+          operatore: null,
+          updatedAt: now,
+          syncStatus: 'pending',
+        })
+        await enqueue('reminders', reminderId, 'upsert')
+        await db.activityLog.add({
+          entityType: 'reminders',
+          entityId: reminderId,
+          action: 'reminder_reset_pending',
+          deviceId,
+          operatorId: currentUser.value?.login ?? null,
+          ts: now,
+        })
+      }
+    })
+    message.value = `Somministrazioni aggiornate: ${selectedIds.length} → DA_ESEGUIRE.`
+    selectedReminderIds.value = []
+    await loadData()
+  } catch (err) {
+    errorMessage.value = `Errore operazione multipla: ${err.message}`
+  } finally {
+    bulkBusy.value = false
   }
 }
 
@@ -283,9 +431,28 @@ watch(() => route.fullPath, () => void loadData())
         Evidenziato da notifica: {{ highlightedReminderId }}
       </p>
 
-      <table class="conflict-table" style="margin-top:.75rem">
+      <div style="margin-top:.65rem;display:flex;gap:.5rem;flex-wrap:wrap;align-items:center">
+        <button class="reminder-action-btn" :disabled="!canRunBulkActions" @click="applyOutcomeBulk('ESEGUITO')">Eseguito</button>
+        <button class="reminder-action-btn" :disabled="!canRunBulkActions" @click="applyOutcomeBulk('POSTICIPATO')">Posticipato</button>
+        <button class="reminder-action-btn" :disabled="!canRunBulkActions" @click="applyOutcomeBulk('SALTATO')">Saltato</button>
+        <button class="reminder-action-btn" :disabled="!canRunBulkActions" @click="setPendingBulk">Da eseguire</button>
+        <span class="muted" style="font-size:.82rem">
+          Selezionati: {{ selectedActionableIds.length }} / {{ actionableRows.length }}
+        </span>
+      </div>
+
+      <div class="dataset-frame" style="margin-top:.75rem">
+      <table class="conflict-table" style="min-width:1100px">
         <thead>
           <tr>
+            <th>
+              <input
+                type="checkbox"
+                :checked="allActionableSelected"
+                :disabled="actionableRows.length === 0"
+                @change="allActionableSelected = $event.target.checked"
+              />
+            </th>
             <th>Orario</th>
             <th>Ospite</th>
             <th>Stanza/Letto</th>
@@ -304,6 +471,14 @@ watch(() => route.fullPath, () => void loadData())
             :key="reminder.id"
             :class="{ 'reminder-highlight': isHighlighted(reminder.id) }"
           >
+            <td>
+              <input
+                type="checkbox"
+                :checked="isReminderSelected(reminder.id)"
+                :disabled="!isReminderActionable(reminder)"
+                @change="toggleReminderSelection(reminder.id, $event.target.checked)"
+              />
+            </td>
             <td>{{ formatSchedule(reminder.scheduledAt) }}</td>
             <td>{{ reminder.hostLabel }}</td>
             <td>{{ reminder.stanzaLetto }}</td>
@@ -319,51 +494,65 @@ watch(() => route.fullPath, () => void loadData())
             <td>
               <div v-if="reminder.stato === 'DA_ESEGUIRE' || reminder.stato === 'POSTICIPATO'" style="display:flex;gap:.3rem;flex-wrap:wrap;margin-bottom:.35rem">
                 <button
+                  class="reminder-action-btn"
                   :disabled="markingId === reminder.id"
-                  :style="{ padding: '.2rem .45rem', fontSize: '.75rem', backgroundColor: reminderActionButtonColor('ESEGUITO').bg, color: reminderActionButtonColor('ESEGUITO').text, border: 'none', borderRadius: '0.25rem', cursor: markingId === reminder.id ? 'not-allowed' : 'pointer' }"
+                  :style="{ backgroundColor: reminderActionButtonColor('ESEGUITO').bg, color: reminderActionButtonColor('ESEGUITO').text, border: 'none', borderRadius: '0.25rem', cursor: markingId === reminder.id ? 'not-allowed' : 'pointer' }"
                   title="Somministrazione eseguita"
                   @click="applyOutcome(reminder.id, 'ESEGUITO')"
                 >
-                  ✓ Eseguito
+                  Eseguito
                 </button>
                 <button
+                  class="reminder-action-btn"
                   :disabled="markingId === reminder.id"
-                  :style="{ padding: '.2rem .45rem', fontSize: '.75rem', backgroundColor: reminderActionButtonColor('POSTICIPATO').bg, color: reminderActionButtonColor('POSTICIPATO').text, border: 'none', borderRadius: '0.25rem', cursor: markingId === reminder.id ? 'not-allowed' : 'pointer' }"
+                  :style="{ backgroundColor: reminderActionButtonColor('POSTICIPATO').bg, color: reminderActionButtonColor('POSTICIPATO').text, border: 'none', borderRadius: '0.25rem', cursor: markingId === reminder.id ? 'not-allowed' : 'pointer' }"
                   title="Somministrazione posticipata"
                   @click="applyOutcome(reminder.id, 'POSTICIPATO')"
                 >
-                  ⏱ Posticipa
+                  Posticipato
                 </button>
                 <button
+                  class="reminder-action-btn"
                   :disabled="markingId === reminder.id"
-                  :style="{ padding: '.2rem .45rem', fontSize: '.75rem', backgroundColor: reminderActionButtonColor('SALTATO').bg, color: reminderActionButtonColor('SALTATO').text, border: 'none', borderRadius: '0.25rem', cursor: markingId === reminder.id ? 'not-allowed' : 'pointer' }"
+                  :style="{ backgroundColor: reminderActionButtonColor('SALTATO').bg, color: reminderActionButtonColor('SALTATO').text, border: 'none', borderRadius: '0.25rem', cursor: markingId === reminder.id ? 'not-allowed' : 'pointer' }"
                   title="Somministrazione saltata"
                   @click="applyOutcome(reminder.id, 'SALTATO')"
                 >
-                  ✕ Saltato
+                  Saltato
                 </button>
                 <button
+                  class="reminder-action-btn"
                   :disabled="markingId === reminder.id"
-                  :style="{ padding: '.2rem .45rem', fontSize: '.75rem', backgroundColor: reminderActionButtonColor('ANNULLATO').bg, color: reminderActionButtonColor('ANNULLATO').text, border: 'none', borderRadius: '0.25rem', cursor: markingId === reminder.id ? 'not-allowed' : 'pointer' }"
+                  :style="{ backgroundColor: reminderActionButtonColor('ANNULLATO').bg, color: reminderActionButtonColor('ANNULLATO').text, border: 'none', borderRadius: '0.25rem', cursor: markingId === reminder.id ? 'not-allowed' : 'pointer' }"
                   title="Somministrazione annullata"
                   @click="applyOutcome(reminder.id, 'ANNULLATO')"
                 >
-                  ⊘ Annullato
+                  Annullato
                 </button>
               </div>
+              <button
+                v-if="reminder.stato !== 'DA_ESEGUIRE'"
+                class="reminder-action-btn"
+                :disabled="markingId === reminder.id"
+                style="margin-top:.2rem"
+                @click="setReminderPending(reminder.id)"
+              >
+                Da eseguire
+              </button>
             </td>
             <td>
               <div style="display:flex;gap:.4rem;flex-wrap:wrap">
-                <button :disabled="markingId === reminder.id || savingEdit" @click="startEdit(reminder)">Modifica</button>
-                <button :disabled="markingId === reminder.id || savingEdit" style="background:#d35f55" @click="deleteReminder(reminder.id)">Elimina</button>
+                <button class="reminder-secondary-btn" :disabled="markingId === reminder.id || savingEdit" @click="startEdit(reminder)">Modifica</button>
+                <button class="reminder-secondary-btn" :disabled="markingId === reminder.id || savingEdit" style="background:#d35f55" @click="deleteReminder(reminder.id)">Elimina</button>
               </div>
             </td>
           </tr>
           <tr v-if="rows.length === 0 && !loading">
-            <td colspan="10" class="muted">Nessun promemoria per il filtro selezionato.</td>
+            <td colspan="11" class="muted">Nessun promemoria per il filtro selezionato.</td>
           </tr>
         </tbody>
       </table>
+      </div>
 
       <p v-if="loading" class="muted" style="margin-top:.55rem">Caricamento...</p>
       <p v-if="message" class="muted" style="margin-top:.55rem">{{ message }}</p>
