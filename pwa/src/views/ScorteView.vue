@@ -406,76 +406,57 @@ function exportReportPdf() {
 
   const date = new Date().toISOString().slice(0, 10)
   const timestamp = new Date().toLocaleString('it-IT', { hour12: false })
-  
-  // Generate simple HTML report
-  let html = `<!DOCTYPE html>
-<html lang="it">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>MediTrace Report Scorte</title>
-  <style>
-    body { font-family: Arial, sans-serif; padding: 20px; }
-    h1 { color: #333; margin-bottom: 10px; }
-    .metadata { color: #666; font-size: 0.9em; margin-bottom: 20px; }
-    table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-    th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
-    th { background-color: #f5f5f5; font-weight: bold; }
-    tr:nth-child(even) { background-color: #fafafa; }
-    .summary { margin-top: 20px; padding: 10px; background-color: #f0f0f0; border-radius: 4px; }
-  </style>
-</head>
-<body>
-  <h1>MediTrace - Report Scorte Farmaci</h1>
-  <div class="metadata">
-    <p><strong>Data Generazione:</strong> ${timestamp}</p>
-    <p><strong>Farmaci Monitorati:</strong> ${report.value.summary.totalDrugs}</p>
-    <p><strong>Priorità Critica:</strong> ${report.value.summary.critical} | <strong>Alta:</strong> ${report.value.summary.high} | <strong>Media:</strong> ${report.value.summary.medium} | <strong>OK:</strong> ${report.value.summary.ok}</p>
-  </div>
 
-  <table>
-    <thead>
-      <tr>
-        <th>Farmaco</th>
-        <th>Scorta Attuale</th>
-        <th>Consumo Settimanale</th>
-        <th>Copertura (gg)</th>
-        <th>Soglia Riordino</th>
-        <th>Priorità</th>
-        <th>Motivo</th>
-      </tr>
-    </thead>
-    <tbody>`
-  
-  report.value.rows.forEach(row => {
-    html += `<tr>
-      <td>${row.principioAttivo}</td>
-      <td>${row.stockCurrent}</td>
-      <td>${row.weeklyConsumption}</td>
-      <td>${row.coverageDays}</td>
-      <td>${row.reorderThreshold}</td>
-      <td>${row.priority}</td>
-      <td>${row.reason}</td>
-    </tr>`
-  })
-  
-  html += `    </tbody>
-  </table>
+  Promise.all([
+    import('jspdf'),
+    import('jspdf-autotable'),
+  ])
+    .then(([jspdfModule, autotableModule]) => {
+      const JsPdfCtor = jspdfModule.jsPDF
+      const autoTable = autotableModule.default
+      const doc = new JsPdfCtor({ orientation: 'landscape', unit: 'pt', format: 'a4' })
 
-  <div class="summary">
-    <p><strong>Nota:</strong> Questo report include tutti i farmaci con le relative scorte, consumo stimato e priorità di riordino.</p>
-  </div>
-</body>
-</html>`
+      doc.setFontSize(16)
+      doc.text('MediTrace - Report Scorte Farmaci', 40, 40)
+      doc.setFontSize(10)
+      doc.text(`Generato: ${timestamp}`, 40, 58)
+      doc.text(
+        `Monitorati: ${report.value.summary.totalDrugs} | Critica: ${report.value.summary.critical} | Alta: ${report.value.summary.high} | Media: ${report.value.summary.medium} | OK: ${report.value.summary.ok}`,
+        40,
+        74,
+      )
 
-  // Export as HTML (can be printed to PDF from browser)
-  const blob = new Blob([html], { type: 'text/html;charset=utf-8' })
-  const url = URL.createObjectURL(blob)
-  const link = document.createElement('a')
-  link.href = url
-  link.download = `meditrace-report-scorte-${date}.html`
-  link.click()
-  URL.revokeObjectURL(url)
+      const body = (report.value.rows || []).map((row) => [
+        row.principioAttivo,
+        formatNumber(row.stockCurrent),
+        formatNumber(row.weeklyConsumption),
+        formatCoverage(row.coverageWeeks),
+        formatNumber(row.reorderThreshold),
+        row.warningPriority,
+        row.warningReason,
+      ])
+
+      autoTable(doc, {
+        startY: 90,
+        head: [[
+          'Farmaco',
+          'Scorta attuale',
+          'Consumo sett.',
+          'Copertura',
+          'Soglia',
+          'Priorita',
+          'Motivo',
+        ]],
+        body,
+        styles: { fontSize: 9, cellPadding: 4 },
+        headStyles: { fillColor: [32, 67, 133] },
+      })
+
+      doc.save(`meditrace-report-scorte-${date}.pdf`)
+    })
+    .catch((err) => {
+      reportActionError.value = `Errore esportazione PDF: ${err.message}`
+    })
 }
 
 function copyTextFallback(text) {
@@ -504,11 +485,33 @@ async function prepareOrderDraft() {
     return
   }
 
-  const draftText = buildOrderDraftText(report.value)
+  const lowStockByDrug = new Map(
+    lowStockDrugs.value.map((item) => [
+      item.drugId,
+      {
+        warningReason: `sotto soglia riordino confezione (${item.currentStock}/${item.threshold})`,
+        warningPriority: item.urgency === 'critica' ? 'critica' : 'media',
+      },
+    ]),
+  )
+
+  const orderRows = (report.value.rows || []).map((row) => {
+    const lowStock = lowStockByDrug.get(row.drugId)
+    if (!lowStock) return row
+    if (row.warningPriority !== 'ok') return row
+    return {
+      ...row,
+      warningPriority: lowStock.warningPriority,
+      warningReason: lowStock.warningReason,
+      forceInOrder: true,
+    }
+  })
+
+  const draftText = buildOrderDraftText(orderRows)
   if (!draftText) {
     isOrderDraftOpen.value = false
     orderDraftText.value = ''
-    reportActionError.value = 'Nessun farmaco con priorita\' critica/alta/media da includere nell\'ordine.'
+    reportActionError.value = 'Nessun farmaco con priorita\' critica/alta/media o in esaurimento da includere nell\'ordine.'
     return
   }
 
@@ -730,7 +733,7 @@ onMounted(() => {
       <p><strong>Aderenza terapie (ultimi {{ report.adherence?.windowDays || 7 }} giorni)</strong></p>
       <p class="muted" style="margin-top:.25rem">
         Somministrazioni pianificate: {{ report.adherence?.totalScheduled || 0 }}<br />
-        Eseguite: {{ report.adherence?.executed || 0 }} · Saltate: {{ report.adherence?.skipped || 0 }} · Posticipate: {{ report.adherence?.postponed || 0 }} · Pending: {{ report.adherence?.pending || 0 }}<br />
+        Eseguite: {{ report.adherence?.executed || 0 }} · Saltate: {{ report.adherence?.skipped || 0 }} · Posticipate: {{ report.adherence?.postponed || 0 }} · Da eseguire: {{ report.adherence?.pending || 0 }}<br />
         Aderenza complessiva: {{ formatPercent(report.adherence?.adherenceRate) }}
       </p>
 
@@ -743,7 +746,7 @@ onMounted(() => {
             <th>Eseguite</th>
             <th>Saltate</th>
             <th>Posticipate</th>
-            <th>Pending</th>
+            <th>Da eseguire</th>
             <th>Aderenza</th>
           </tr>
         </thead>

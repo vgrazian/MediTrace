@@ -12,10 +12,12 @@ describe('rbac lightweight permissions', () => {
         expect(canRole('admin', 'users:read')).toBe(true)
         expect(canRole('admin', 'invites:send')).toBe(true)
         expect(canRole('admin', 'testData:manage')).toBe(true)
+        expect(canRole('admin', 'movements:delete')).toBe(true)
 
         expect(canRole('operator', 'users:read')).toBe(false)
         expect(canRole('operator', 'invites:send')).toBe(false)
         expect(canRole('operator', 'testData:manage')).toBe(false)
+        expect(canRole('operator', 'movements:delete')).toBe(false)
     })
 
     it('keeps sync/security actions available for operators', () => {

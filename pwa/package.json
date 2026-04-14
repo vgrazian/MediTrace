@@ -17,6 +17,8 @@
     "dependencies": {
         "@supabase/supabase-js": "^2.101.1",
         "dexie": "^3.2.7",
+        "jspdf": "^4.2.1",
+        "jspdf-autotable": "^5.0.7",
         "papaparse": "^5.5.3",
         "vue": "^3.4.21",
         "vue-router": "^4.3.0"

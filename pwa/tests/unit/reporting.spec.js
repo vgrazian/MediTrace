@@ -195,6 +195,24 @@ describe('operational reporting', () => {
         expect(text).not.toContain('Ibuprofene')
     })
 
+    it('includes low-stock forced rows even when report priority is ok', () => {
+        const text = buildOrderDraftText([
+            {
+                drugId: 'drug-x',
+                principioAttivo: 'Amoxicillina',
+                stockCurrent: 4,
+                weeklyConsumption: 0,
+                reorderThreshold: 3,
+                warningPriority: 'ok',
+                warningReason: 'copertura regolare',
+                forceInOrder: true,
+            },
+        ])
+
+        expect(text).toContain('Amoxicillina')
+        expect(text).toContain("priorita': media")
+    })
+
     it('handles therapy activity windows and weekly estimation helpers', () => {
         const now = new Date('2026-04-04T12:00:00.000Z')
 

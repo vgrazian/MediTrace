@@ -88,6 +88,13 @@ La sezione Gestione ospiti deve offrire tre azioni:
 - **Upload:** i dati locali vengono caricati sul Gist privato al salvataggio o al ripristino della connessione.
 - **Download:** all'apertura dell'app su un secondo dispositivo (es. da PC a smartphone), l'app verifica la presenza di una versione più recente sul Gist e la scarica.
 
+### 1.6a Sequenza letti per Promemoria
+
+- Deve essere configurabile una **sequenza letti** (ordinamento operativo) impostabile dall'utente.
+- La vista **Promemoria** deve ordinare gli interventi prima per **ora pianificata** e, a parita' di orario, per **sequenza letto** configurata.
+- In assenza di sequenza personalizzata, deve essere applicato un ordinamento di fallback stabile e prevedibile.
+- Obiettivo operativo: agevolare il giro di somministrazione dell'operatore sul campo.
+
 ### 1.7 Installazione su dispositivo
 
 - L'app può essere aggiunta alla home dello smartphone o al desktop del PC come applicazione nativa tramite meccanismo PWA.
@@ -106,11 +113,16 @@ La sezione Gestione ospiti deve offrire tre azioni:
 
 - Il Manuale Utente deve rendere scaricabili CSV di esempio per tutte le sorgenti supportate (`01`, `02`, `03`, `04`, `05`, `09`).
 
-### 1.9 Preparazione testo ordine farmaci (requisito pianificato)
+### 1.9 Preparazione testo ordine farmaci
 
 - Deve essere presente un pulsante che prepari automaticamente un testo di ordine farmaci pronto da copiare/incollare in email o altri canali.
 - Il testo deve includere almeno: farmaco, quantità da ordinare, priorità e note operative.
-- Questo requisito è approvato ma **fuori dallo sviluppo corrente**: implementazione rimandata a una milestone successiva.
+- La bozza deve includere anche i farmaci in esaurimento (confezioni sotto soglia riordino), anche quando la priorita' aggregata del report risulta `ok`.
+
+### 1.11 Permessi eliminazione movimenti
+
+- L'eliminazione dei movimenti di magazzino deve essere consentita solo agli utenti con ruolo `admin`.
+- Gli operatori standard possono creare/modificare movimenti ma non eliminarli.
 
 ### 1.10 Pannello audit operativo (sola lettura)
 

@@ -10,6 +10,7 @@ const PERMISSION_MATRIX = {
         'profiles:read',
         'testData:manage',
         'security:read',
+        'movements:delete',
     ]),
     [ROLE_OPERATOR]: new Set([
         'sync:run',
