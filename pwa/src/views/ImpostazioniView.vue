@@ -922,7 +922,8 @@ async function handleInviteUser() {
           Elenco profili acquisiti dal session recovery/invite flow e salvati localmente.
         </p>
 
-        <table class="conflict-table" style="margin-top:.5rem">
+        <div class="dataset-frame" style="margin-top:.5rem">
+        <table class="conflict-table" style="min-width:860px">
           <thead>
             <tr>
               <th>Email</th>
@@ -945,6 +946,7 @@ async function handleInviteUser() {
             </tr>
           </tbody>
         </table>
+        </div>
         <button style="margin-top:.5rem" :disabled="usersBusy || inviteBusy" @click="refreshInvitedProfiles">
           Aggiorna profili invitati
         </button>
@@ -1026,7 +1028,8 @@ async function handleInviteUser() {
         Aggiorna lista 24h
       </button>
 
-      <table class="conflict-table" style="margin-top:.75rem">
+      <div class="dataset-frame" style="margin-top:.75rem">
+      <table class="conflict-table" style="min-width:700px">
         <thead>
           <tr>
             <th>Orario</th>
@@ -1047,6 +1050,7 @@ async function handleInviteUser() {
           </tr>
         </tbody>
       </table>
+      </div>
 
       <p style="margin-top:.95rem"><strong>Sequenza letti per Promemoria</strong></p>
       <p class="muted" style="margin-top:.25rem">
@@ -1071,8 +1075,8 @@ async function handleInviteUser() {
               <td>{{ index + 1 }}</td>
               <td>{{ formatBedSequenceLabel(item) }}</td>
               <td>
-                <button type="button" style="margin-right:.35rem" :disabled="index === 0" @click="moveBedSequence(index, -1)">Su</button>
-                <button type="button" :disabled="index === bedSequenceRows.length - 1" @click="moveBedSequence(index, 1)">Giù</button>
+                <button type="button" style="margin-right:.35rem" :disabled="index === 0" @click="moveBedSequence(index, -1)" aria-label="Sposta su" title="Sposta su">▲</button>
+                <button type="button" :disabled="index === bedSequenceRows.length - 1" @click="moveBedSequence(index, 1)" aria-label="Sposta giu" title="Sposta giu">▼</button>
               </td>
             </tr>
             <tr v-if="bedSequenceRows.length === 0">
@@ -1105,7 +1109,8 @@ async function handleInviteUser() {
         <button @click="applyAuthEventFilter">Applica filtro</button>
       </div>
 
-      <table class="conflict-table" style="margin-top:.75rem">
+      <div class="dataset-frame" style="margin-top:.75rem">
+      <table class="conflict-table" style="min-width:620px">
         <thead>
           <tr>
             <th>Timestamp</th>
@@ -1124,6 +1129,7 @@ async function handleInviteUser() {
           </tr>
         </tbody>
       </table>
+      </div>
     </div>
 
     <div class="card">

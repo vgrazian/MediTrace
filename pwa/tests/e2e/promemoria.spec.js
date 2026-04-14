@@ -83,12 +83,13 @@ test('promemoria view shows reminders with labels and supports mark as eseguito/
     await expect(page.getByText('DA_ESEGUIRE')).toBeVisible()
 
     // Mark as ESEGUITO
-    await page.getByRole('button', { name: 'Eseguito' }).first().click()
+    const reminderRow = page.locator('tr', { hasText: 'PROM-01' }).first()
+    await reminderRow.getByRole('button', { name: 'Eseguito' }).click()
     await expect(page.getByText('Promemoria contrassegnato: ESEGUITO.')).toBeVisible()
     await expect(page.getByText('ESEGUITO', { exact: true })).toBeVisible()
 
-    // Azioni column should show no buttons after marking
-    await expect(page.getByRole('button', { name: 'Eseguito' })).toHaveCount(0)
+    // Erogazione row actions should disappear after marking completed
+    await expect(reminderRow.getByRole('button', { name: 'Eseguito' })).toHaveCount(0)
 })
 
 test('promemoria view date filter hides reminders outside selected day', async ({ page }) => {

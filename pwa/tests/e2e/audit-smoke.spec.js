@@ -98,7 +98,8 @@ test('audit smoke records structured events in CI', async ({ page }) => {
     await page.getByRole('link', { name: 'Promemoria' }).click()
     await expect(page.getByRole('heading', { name: 'Promemoria' })).toBeVisible()
     await expect(page.getByRole('cell', { name: 'AUD-01' })).toBeVisible()
-    await page.getByRole('button', { name: 'Eseguito' }).first().click()
+    const reminderRow = page.locator('tr', { hasText: 'AUD-01' }).first()
+    await reminderRow.getByRole('button', { name: 'Eseguito' }).click()
     await expect(page.getByText('Promemoria contrassegnato: ESEGUITO.')).toBeVisible()
 
     // Read activityLog directly from IndexedDB

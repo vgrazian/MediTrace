@@ -337,12 +337,33 @@ details.add-panel[open] > div {
   border-radius: .5rem;
   background: #fff;
   max-height: 24rem;
-  overflow: auto;
+  overflow-x: auto;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .dataset-frame .conflict-table {
   margin-top: 0;
   border: none;
+  min-width: 100%;
+  width: max-content;
+}
+
+.reminder-action-btn {
+  min-width: 7.1rem;
+  padding: .3rem .45rem;
+  font-size: .75rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
+}
+
+.reminder-secondary-btn {
+  min-width: 6.4rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .undo-banner {
@@ -698,12 +719,13 @@ details[open] .help-section-title::before { content: '▼ '; }
   }
 
   .dataset-frame {
-    overflow: auto;
-    -webkit-overflow-scrolling: touch;
+    overflow-x: auto;
+    overflow-y: auto;
   }
 
   .dataset-frame .conflict-table {
-    min-width: 760px;
+    min-width: max(760px, 100%);
+    width: max-content;
   }
 
   .card button,
