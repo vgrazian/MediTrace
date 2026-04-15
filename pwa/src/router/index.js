@@ -22,9 +22,13 @@ const routes = [
         meta: { title: 'Ospiti' },
     },
     {
+        path: '/residenze',
+        component: () => import('../views/ResidenzeView.vue'),
+        meta: { title: 'Residenze' },
+    },
+    {
         path: '/stanze',
-        component: () => import('../views/StanzeView.vue'),
-        meta: { title: 'Stanze e Letti' },
+        redirect: '/residenze',
     },
     {
         path: '/scorte',

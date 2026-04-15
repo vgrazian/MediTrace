@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test'
 import { loginOrRegisterSeededUser } from './helpers/login'
 import { runWithAcceptedConfirmation } from './helpers/confirm'
 
-test('stanze view supports creating a room', async ({ page }) => {
+test('residenze view supports creating a residence', async ({ page }) => {
     await page.route('https://api.github.com/user', async route => {
         await route.fulfill({
             status: 200,
@@ -18,32 +18,24 @@ test('stanze view supports creating a room', async ({ page }) => {
     await page.goto('/')
     await loginOrRegisterSeededUser(page)
 
-    // Navigate to Stanze view
-    await page.getByRole('link', { name: 'Stanze', exact: true }).click()
-    await expect(page.getByRole('heading', { name: 'Stanze e Letti' })).toBeVisible()
+    await page.getByRole('link', { name: 'Residenze', exact: true }).click()
+    await expect(page.getByRole('heading', { name: 'Residenze' })).toBeVisible()
 
-    // Open Gestione panel for room creation
-    const details = page.locator('details:has(summary:has-text("Gestione Stanze e Letti"))')
+    const details = page.locator('details:has(summary:has-text("Gestione Residenze"))')
     await expect(details).toBeVisible({ timeout: 5000 })
     await details.locator('summary').click()
-    await page.waitForTimeout(500)
 
-    // Create a new room
-    await page.getByLabel('Codice').fill('E2E Test Room')
-    const noteInputs = page.getByLabel('Note')
-    await noteInputs.first().fill('Created via E2E test')
-    const saveButton = page.getByRole('button', { name: /Salva stanza/ })
-    await expect(saveButton).toBeEnabled({ timeout: 5000 })
-    await saveButton.click()
+    await page.getByLabel('Nome residenza').fill('Residenza E2E')
+    await page.getByLabel('Max ospiti').fill('10')
+    await page.getByLabel('Note').fill('Creata da test E2E')
 
-    // Verify success message
-    await expect(page.getByText(/Stanza.*creata/i)).toBeVisible({ timeout: 5000 })
+    await page.getByRole('button', { name: /Salva residenza/ }).click()
 
-    // Verify the new room appears in the list
-    await expect(page.getByRole('cell', { name: 'E2E Test Room' })).toBeVisible()
+    await expect(page.getByText('Residenza creata.')).toBeVisible({ timeout: 5000 })
+    await expect(page.getByRole('cell', { name: 'Residenza E2E' })).toBeVisible({ timeout: 5000 })
 })
 
-test('stanze view supports creating beds in a room', async ({ page }) => {
+test('residenze view supports editing and deleting a residence', async ({ page }) => {
     await page.route('https://api.github.com/user', async route => {
         await route.fulfill({
             status: 200,
@@ -59,132 +51,31 @@ test('stanze view supports creating beds in a room', async ({ page }) => {
     await page.goto('/')
     await loginOrRegisterSeededUser(page)
 
-    await page.getByRole('link', { name: 'Stanze', exact: true }).click()
-    await expect(page.getByRole('heading', { name: 'Stanze e Letti' })).toBeVisible()
+    await page.getByRole('link', { name: 'Residenze', exact: true }).click()
+    await expect(page.getByRole('heading', { name: 'Residenze' })).toBeVisible()
 
-    // Open Gestione panel
-    const details = page.locator('details:has(summary:has-text("Gestione Stanze e Letti"))')
+    const details = page.locator('details:has(summary:has-text("Gestione Residenze"))')
     await details.locator('summary').click()
-    await page.waitForTimeout(500)
 
-    // First, create a test room
-    await page.getByLabel('Codice').fill('Beds Test')
-    const noteInputs = page.getByLabel('Note')
-    await noteInputs.first().fill('For bed testing')
-    await page.getByRole('button', { name: /Salva stanza/ }).click()
+    await page.getByLabel('Nome residenza').fill('Residenza Deactivate Test')
+    await page.getByLabel('Max ospiti').fill('9')
+    await page.getByLabel('Note').fill('da aggiornare e poi eliminare')
+    await page.getByRole('button', { name: /Salva residenza/ }).click()
+    await expect(page.getByRole('cell', { name: 'Residenza Deactivate Test' })).toBeVisible({ timeout: 5000 })
 
-    await expect(page.getByText(/Stanza.*creata/i)).toBeVisible({ timeout: 5000 })
-    await page.waitForTimeout(700)
+    const row = page.locator('tbody tr', { has: page.getByRole('cell', { name: 'Residenza Deactivate Test' }) }).first()
+    await row.getByRole('button', { name: 'Modifica' }).click()
 
-    // Now create a bed in the room
-    const roomSelect = page.locator('select').first()
-    await expect(roomSelect).toBeEnabled({ timeout: 5000 })
-    const bedsRoomOption = roomSelect.locator('option', { hasText: 'Beds Test' }).first()
-    const bedsRoomId = await bedsRoomOption.getAttribute('value')
-    if (!bedsRoomId) throw new Error('Unable to select room for bed creation')
-    await roomSelect.selectOption(bedsRoomId)
-    await page.getByLabel('Numero letto').fill('1')
-    const bedsNoteInputs = page.getByLabel('Note')
-    await bedsNoteInputs.last().fill('Test bed 1')
+    await page.getByLabel('Max ospiti').fill('10')
+    await page.getByRole('button', { name: /Salva modifica/ }).click()
+    await expect(page.getByText('Residenza aggiornata.')).toBeVisible({ timeout: 5000 })
 
-    const saveBedButton = page.getByRole('button', { name: /Salva letto/ })
-    await expect(saveBedButton).toBeEnabled({ timeout: 5000 })
-    await saveBedButton.click()
-
-    // Verify success message
-    await expect(page.getByText(/Letto.*creato/i)).toBeVisible({ timeout: 5000 })
-})
-
-test('stanze view deletes rooms correctly', async ({ page }) => {
-    await page.route('https://api.github.com/user', async route => {
-        await route.fulfill({
-            status: 200,
-            contentType: 'application/json',
-            body: JSON.stringify({
-                login: 'seeded-gh-user',
-                name: 'Seeded User',
-                avatar_url: 'https://avatars.githubusercontent.com/u/1?v=4',
-            }),
-        })
-    })
-
-    await page.goto('/')
-    await loginOrRegisterSeededUser(page)
-
-    await page.getByRole('link', { name: 'Stanze', exact: true }).click()
-    await expect(page.getByRole('heading', { name: 'Stanze e Letti' })).toBeVisible()
-
-    // Open Gestione panel to create room
-    const details = page.locator('details:has(summary:has-text("Gestione Stanze e Letti"))')
-    await details.locator('summary').click()
-    await page.waitForTimeout(500)
-
-    // Create a test room
-    await page.getByLabel('Codice').fill('Deactivate Test')
-    const noteInputs = page.getByLabel('Note')
-    await noteInputs.first().fill('This room will be deactivated')
-    await page.getByRole('button', { name: /Salva stanza/ }).click()
-
-    await expect(page.getByText(/Stanza.*creata/i)).toBeVisible({ timeout: 5000 })
-    await expect(page.getByRole('cell', { name: 'Deactivate Test' })).toBeVisible({ timeout: 5000 })
-
-    // Test delete
-    const rowToDeactivate = page.locator('tbody tr', { has: page.getByRole('cell', { name: 'Deactivate Test' }) }).first()
-    const disactivateButton = rowToDeactivate.getByRole('button', { name: 'Elimina' })
     await runWithAcceptedConfirmation(page, async () => {
-        await disactivateButton.click()
+        await row.getByRole('button', { name: 'Elimina' }).click()
     })
 
-    // Verify success message
-    await expect(page.getByText(/Stanza eliminata/i)).toBeVisible({ timeout: 5000 })
-    await expect(page.locator('.undo-banner')).toContainText('Stanza')
+    await expect(page.getByText('Residenza eliminata.')).toBeVisible({ timeout: 5000 })
+    await expect(page.locator('.undo-banner')).toContainText('Residenza "Residenza Deactivate Test" eliminata.')
     await page.locator('.undo-banner').getByRole('button', { name: 'Annulla eliminazione' }).click()
-    await expect(page.getByText(/Eliminazione annullata: stanza ripristinata/i)).toBeVisible({ timeout: 5000 })
-    await expect(page.getByRole('cell', { name: 'Deactivate Test' })).toBeVisible({ timeout: 5000 })
-})
-
-test('stanze view blocks room delete when room contains beds', async ({ page }) => {
-    await page.route('https://api.github.com/user', async route => {
-        await route.fulfill({
-            status: 200,
-            contentType: 'application/json',
-            body: JSON.stringify({
-                login: 'seeded-gh-user',
-                name: 'Seeded User',
-                avatar_url: 'https://avatars.githubusercontent.com/u/1?v=4',
-            }),
-        })
-    })
-
-    await page.goto('/')
-    await loginOrRegisterSeededUser(page)
-
-    await page.getByRole('link', { name: 'Stanze', exact: true }).click()
-    await expect(page.getByRole('heading', { name: 'Stanze e Letti' })).toBeVisible()
-
-    const details = page.locator('details:has(summary:has-text("Gestione Stanze e Letti"))')
-    await details.locator('summary').click()
-    await page.waitForTimeout(500)
-
-    await page.getByLabel('Codice').fill('Room With Bed Test')
-    await page.getByLabel('Note').first().fill('Room must not be deletable with active beds')
-    await page.getByRole('button', { name: /Salva stanza/ }).click()
-    await expect(page.getByText(/Stanza.*creata/i)).toBeVisible({ timeout: 5000 })
-
-    const roomSelect = page.locator('select').first()
-    const roomOption = roomSelect.locator('option', { hasText: 'Room With Bed Test' }).first()
-    const roomId = await roomOption.getAttribute('value')
-    if (!roomId) throw new Error('Unable to select test room for bed creation')
-    await roomSelect.selectOption(roomId)
-    await page.getByLabel('Numero letto').fill('1')
-    await page.getByLabel('Note').last().fill('Blocking bed')
-    await page.getByRole('button', { name: /Salva letto/ }).click()
-    await expect(page.getByText(/Letto.*creato/i)).toBeVisible({ timeout: 5000 })
-
-    const roomRow = page.locator('tbody tr', { has: page.getByRole('cell', { name: 'Room With Bed Test' }) }).first()
-    await roomRow.getByRole('button', { name: 'Elimina' }).click()
-
-    await expect(page.getByText(/Non e' possibile eliminare la stanza/i)).toBeVisible({ timeout: 5000 })
-    await expect(page.getByText(/contiene ancora oggetti di tipo letto/i)).toBeVisible({ timeout: 5000 })
-    await expect(roomRow).toBeVisible({ timeout: 5000 })
+    await expect(page.getByText('Eliminazione annullata: residenza ripristinata.')).toBeVisible({ timeout: 5000 })
 })

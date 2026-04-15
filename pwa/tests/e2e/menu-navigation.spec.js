@@ -23,6 +23,9 @@ test('menu navigation opens major sections', async ({ page }) => {
     await page.getByRole('link', { name: 'Ospiti', exact: true }).click()
     await expect(page.getByRole('heading', { name: 'Ospiti' })).toBeVisible()
 
+    await page.getByRole('link', { name: 'Residenze', exact: true }).click()
+    await expect(page.getByRole('heading', { name: 'Residenze' })).toBeVisible()
+
     await page.getByRole('link', { name: 'Terapie' }).click()
     await expect(page.getByRole('heading', { name: 'Terapie Attive' })).toBeVisible()
 

@@ -1,9 +1,9 @@
 <script setup>
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
-import { db, enqueue, getSetting } from '../db'
+import { db, enqueue, getSetting, setSetting } from '../db'
 import { useAuth } from '../services/auth'
-import { BED_SEQUENCE_SETTING_KEY, buildReminderRows, markReminder, reminderStateBadge, reminderActionButtonColor, REMINDER_OUTCOMES } from '../services/promemoria'
+import { BED_SEQUENCE_SETTING_KEY, CURRENT_RESIDENZA_SETTING_KEY, buildReminderRows, markReminder, reminderStateBadge, reminderActionButtonColor, REMINDER_OUTCOMES } from '../services/promemoria'
 import { confirmDeleteReminder } from '../services/confirmations'
 import { useFormValidation } from '../services/formValidation'
 import ValidatedInput from '../components/ValidatedInput.vue'
@@ -31,6 +31,7 @@ const bedSequence = ref([])
 
 const dateFilter = ref('today')
 const stateFilter = ref('')
+const residenzaFilter = ref('')
 const editingReminderId = ref('')
 const form = ref({
   scheduledAt: '',
@@ -64,7 +65,13 @@ const rows = computed(() => buildReminderRows({
   bedSequence: bedSequence.value,
   dateFilter: dateFilter.value,
   stateFilter: stateFilter.value,
+  residenzaFilter: residenzaFilter.value,
 }))
+
+const residenzaOptions = computed(() => {
+  const sorted = [...rooms.value].sort((a, b) => String(a.codice || '').localeCompare(String(b.codice || '')))
+  return sorted.map(room => ({ id: room.id, label: room.codice || room.id }))
+})
 
 const actionableRows = computed(() => rows.value.filter((item) => item.stato === 'DA_ESEGUIRE' || item.stato === 'POSTICIPATO'))
 
@@ -128,6 +135,14 @@ async function loadData() {
     bedSequence.value = Array.isArray(savedBedSequence) ? savedBedSequence : []
     const validIds = new Set(rawReminders.filter(item => !item.deletedAt).map(item => item.id))
     selectedReminderIds.value = selectedReminderIds.value.filter((id) => validIds.has(id))
+
+    const savedResidenza = await getSetting(CURRENT_RESIDENZA_SETTING_KEY, '')
+    const validResidenza = String(savedResidenza || '')
+    if (!validResidenza || rooms.value.some(room => room.id === validResidenza)) {
+      residenzaFilter.value = validResidenza
+    } else {
+      residenzaFilter.value = ''
+    }
   } catch (err) {
     errorMessage.value = `Errore caricamento: ${err.message}`
   } finally {
@@ -389,6 +404,10 @@ async function deleteReminder(reminderId) {
 onMounted(() => void loadData())
 
 watch(() => route.fullPath, () => void loadData())
+
+watch(residenzaFilter, async (value) => {
+  await setSetting(CURRENT_RESIDENZA_SETTING_KEY, String(value || ''))
+})
 </script>
 
 <template>
@@ -417,6 +436,15 @@ watch(() => route.fullPath, () => void loadData())
             <option value="SALTATO">Saltato</option>
             <option value="POSTICIPATO">Posticipato</option>
             <option value="ANNULLATO">Annullato</option>
+          </select>
+        </label>
+        <label>
+          Residenza operativa
+          <select v-model="residenzaFilter">
+            <option value="">Tutte le residenze</option>
+            <option v-for="residenza in residenzaOptions" :key="residenza.id" :value="residenza.id">
+              {{ residenza.label }}
+            </option>
           </select>
         </label>
       </div>
@@ -455,6 +483,7 @@ watch(() => route.fullPath, () => void loadData())
             </th>
             <th>Orario</th>
             <th>Ospite</th>
+            <th>Residenza</th>
             <th>Stanza/Letto</th>
             <th>Farmaco</th>
             <th>Dose</th>
@@ -481,6 +510,7 @@ watch(() => route.fullPath, () => void loadData())
             </td>
             <td>{{ formatSchedule(reminder.scheduledAt) }}</td>
             <td>{{ reminder.hostLabel }}</td>
+            <td>{{ reminder.residenzaLabel }}</td>
             <td>{{ reminder.stanzaLetto }}</td>
             <td>{{ reminder.drugLabel }}</td>
             <td>{{ reminder.dosePerSomministrazione ?? '—' }}</td>
@@ -548,7 +578,7 @@ watch(() => route.fullPath, () => void loadData())
             </td>
           </tr>
           <tr v-if="rows.length === 0 && !loading">
-            <td colspan="11" class="muted">Nessun promemoria per il filtro selezionato.</td>
+            <td colspan="12" class="muted">Nessun promemoria per il filtro selezionato.</td>
           </tr>
         </tbody>
       </table>

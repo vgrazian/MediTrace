@@ -8,7 +8,15 @@ Data: 2026-04-05
 
 ### 1.1 Contesto operativo
 
-L'app gestisce le terapie farmacologiche degli ospiti di due case alloggio, per un totale di 12 persone. Le terapie attive riguardano attualmente 7 ospiti.
+L'app gestisce le terapie farmacologiche degli ospiti in piu residenze operative. Al momento le sedi attive sono due (`Il Rifugio`, `Via Bellani`) con predisposizione per almeno altre due residenze (`Residenza 3`, `Residenza 4`).
+
+### 1.1b Gestione Residenze
+
+- La sezione **Residenze** sostituisce la precedente gestione Stanze/Letti.
+- Ogni residenza deve avere almeno: **nome**, **capienza max ospiti** (default 10), **note**.
+- Le residenze predefinite devono essere disponibili al primo avvio: `Il Rifugio`, `Via Bellani`, `Residenza 3`, `Residenza 4`.
+- La UI deve mostrare capienza, ospiti attivi assegnati e posti disponibili per ogni residenza.
+- I test legacy su Stanze/Letti devono essere rimossi o convertiti in test Residenze.
 
 ### 1.1a Anagrafica ospiti
 
@@ -88,7 +96,13 @@ La sezione Gestione ospiti deve offrire tre azioni:
 - **Upload:** i dati locali vengono caricati sul Gist privato al salvataggio o al ripristino della connessione.
 - **Download:** all'apertura dell'app su un secondo dispositivo (es. da PC a smartphone), l'app verifica la presenza di una versione più recente sul Gist e la scarica.
 
-### 1.6a Sequenza letti per Promemoria
+### 1.6a Filtro operativo Promemoria per Residenza
+
+- La vista **Promemoria** deve includere un dropdown **Residenza operativa** per filtrare i promemoria della sede corrente.
+- Il filtro residenza deve essere persistito localmente sul dispositivo.
+- Deve rimanere disponibile anche il filtraggio per data e stato.
+
+### 1.6b Sequenza letti per Promemoria
 
 - Deve essere configurabile una **sequenza letti** (ordinamento operativo) impostabile dall'utente.
 - La vista **Promemoria** deve ordinare gli interventi prima per **ora pianificata** e, a parita' di orario, per **sequenza letto** configurata.
@@ -178,6 +192,11 @@ La sezione Gestione ospiti deve offrire tre azioni:
 - Nessuna release su `main` e' considerata valida se i quality gate automatici falliscono.
 - I test devono coprire almeno autenticazione, navigazione principale, impostazioni utente e import/export dati.
 - I test devono coprire anche restore backup JSON e stato configurazione Push API/Supabase nel pannello Impostazioni.
+
+### 2.8 Verifica multi-user su deploy online
+
+- Deve essere previsto un test multi-utente eseguito su deployment online (GitHub Pages) per validare che dati e stato applicativo siano coerenti tra dispositivi e utenti diversi.
+- La verifica deve includere almeno autenticazione, aggiornamento dati condivisi e riscontro cross-device.
 
 ---
 

@@ -77,6 +77,11 @@ const THERAPIES = [
     { id: 't2', hostId: 'h2', drugId: 'd2', deletedAt: null },
 ]
 
+const ROOMS = [
+    { id: 1, codice: 'Il Rifugio', deletedAt: null },
+    { id: 2, codice: 'Via Bellani', deletedAt: null },
+]
+
 const REMINDERS_TODAY = [
     { id: 'r1', hostId: 'h1', therapyId: 't1', drugId: 'd1', scheduledAt: '2026-04-04T08:00:00.000Z', stato: 'ESEGUITO', deletedAt: null },
     { id: 'r2', hostId: 'h1', therapyId: 't1', drugId: 'd1', scheduledAt: '2026-04-04T20:00:00.000Z', stato: 'DA_ESEGUIRE', deletedAt: null },
@@ -192,6 +197,23 @@ describe('buildReminderRows', () => {
         const rows = buildReminderRows({ reminders: REMINDERS_TODAY, hosts: HOSTS, drugs: DRUGS, therapies: THERAPIES, dateFilter: 'all', stateFilter: 'DA_ESEGUIRE', now: NOW })
         expect(rows.every(r => r.stato === 'DA_ESEGUIRE')).toBe(true)
         expect(rows.some(r => r.id === 'r1')).toBe(false)
+    })
+
+    it('filters by selected residenza', () => {
+        const rows = buildReminderRows({
+            reminders: REMINDERS_TODAY,
+            hosts: HOSTS,
+            drugs: DRUGS,
+            therapies: THERAPIES,
+            rooms: ROOMS,
+            dateFilter: 'all',
+            residenzaFilter: 2,
+            now: NOW,
+        })
+
+        expect(rows).toHaveLength(1)
+        expect(rows[0].id).toBe('r3')
+        expect(rows[0].residenzaLabel).toBe('Via Bellani')
     })
 
     it('excludes soft-deleted reminders', () => {

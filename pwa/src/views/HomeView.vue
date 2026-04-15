@@ -69,11 +69,11 @@ onMounted(async () => {
         </div>
         <div class="dashboard-nav-item">
           <RouterLink class="quick-link" to="/ospiti" aria-label="Shortcut cruscotto 2">Ospiti</RouterLink>
-          <p class="muted">Registro ospiti con assegnazione stanze, letti e terapie attive.</p>
+          <p class="muted">Registro ospiti con assegnazione residenza e terapie attive.</p>
         </div>
         <div class="dashboard-nav-item">
-          <RouterLink class="quick-link" to="/stanze" aria-label="Shortcut cruscotto 3">Stanze e Letti</RouterLink>
-          <p class="muted">Struttura della residenza: stanze, letti e occupazione corrente.</p>
+          <RouterLink class="quick-link" to="/residenze" aria-label="Shortcut cruscotto 3">Residenze</RouterLink>
+          <p class="muted">Gestione residenze operative e capienza ospiti per sede.</p>
         </div>
         <div class="dashboard-nav-item">
           <RouterLink class="quick-link" to="/terapie" aria-label="Shortcut cruscotto 4">Terapie</RouterLink>
