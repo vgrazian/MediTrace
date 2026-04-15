@@ -78,7 +78,7 @@ test('operatori management: add, list, reactivate, delete users with audit loggi
     // 1. Check current user info is visible
     const currentUserInfo = page.locator('div.card').filter({ has: page.locator('strong', { hasText: 'Account operatore' }) }).first()
     await expect(currentUserInfo).toContainText('Username:')
-    await expect(currentUserInfo).toContainText('@seeded-gh-user')
+    await expect(currentUserInfo).toContainText('Username: prova')
 
     // 2. List current users - verify seeded user is in the list
     const usersTable = page.locator('table.conflict-table').filter({ hasText: 'Username' }).first()
@@ -302,7 +302,7 @@ test('operatori view: password change and session invalidation', async ({ page }
     await page.getByRole('link', { name: '⚙' }).click()
     await expect(page.getByRole('heading', { name: 'Impostazioni' })).toBeVisible()
 
-    await page.locator('input[autocomplete="current-password"]').fill('Prova123!')
+    await page.locator('input[autocomplete="current-password"]').fill('Prova1234!')
     await page.locator('input[autocomplete="new-password"]').first().fill('NuovaPassword123!')
     await page.locator('input[autocomplete="new-password"]').nth(1).fill('NuovaPassword123!')
 
