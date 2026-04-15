@@ -31,17 +31,22 @@ on:
       signup_rate_limit_wait_ms:
         description: 'Attesa tra retry signup Supabase in ms'
         required: false
-        default: '70000'
+        default: '300000'
         type: string
       inter_account_signup_wait_ms:
         description: 'Attesa tra creazione account A e B in ms'
         required: false
-        default: '70000'
+        default: '300000'
+        type: string
+      initial_signup_cooldown_ms:
+        description: 'Attesa iniziale prima del primo signup sintetico in ms'
+        required: false
+        default: '300000'
         type: string
       signup_retry_attempts:
         description: 'Numero massimo retry signup per rate limit'
         required: false
-        default: '3'
+        default: '4'
         type: string
 
 permissions:
@@ -96,6 +101,7 @@ jobs:
           SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
           SUPABASE_PUBLISHABLE_KEY: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY }}
           ONLINE_TEST_SEED: gha-${{ github.run_id }}-${{ github.run_attempt }}
+          INITIAL_SIGNUP_COOLDOWN_MS: ${{ inputs.initial_signup_cooldown_ms }}
           SIGNUP_RATE_LIMIT_WAIT_MS: ${{ inputs.signup_rate_limit_wait_ms }}
           INTER_ACCOUNT_SIGNUP_WAIT_MS: ${{ inputs.inter_account_signup_wait_ms }}
           SIGNUP_RETRY_ATTEMPTS: ${{ inputs.signup_retry_attempts }}
