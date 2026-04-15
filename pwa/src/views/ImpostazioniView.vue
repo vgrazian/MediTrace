@@ -17,6 +17,7 @@ import {
 } from '../services/notifications'
 import { listSupportedImportSources, importCsv } from '../services/csvImport'
 import { db, getSetting, enqueue, setSetting } from '../db'
+import { isSupabaseConfigured } from '../services/supabaseClient'
 import { BED_SEQUENCE_SETTING_KEY, buildBedSequenceIndex } from '../services/promemoria'
 import {
   loadSeedData,
@@ -51,7 +52,6 @@ const { goToHelpSection } = useHelpNavigation()
 const deviceId = ref(null)
 const datasetVersion = ref(null)
 const syncMessage = ref('')
-const gistId = ref(null)
 const pendingConflicts = ref([])
 const resolvingConflictId = ref(null)
 const importSources = listSupportedImportSources()
@@ -116,6 +116,7 @@ const canManageUsers = computed(() => canRole(currentUser.value?.role, 'users:re
 const canManageInvites = computed(() => canRole(currentUser.value?.role, 'invites:send'))
 const canManageProfiles = computed(() => canRole(currentUser.value?.role, 'profiles:read'))
 const canManageTestData = computed(() => canRole(currentUser.value?.role, 'testData:manage'))
+const syncBackendLabel = computed(() => (isSupabaseConfigured ? 'Supabase' : 'GitHub Gist (legacy)'))
 const testDataActionLabel = computed(() => {
   if (seedBusy.value) return seedActionMode.value === 'clear' ? 'Rimozione in corso…' : 'Generazione in corso…'
   return seedActionMode.value === 'clear' ? 'Rimuovi dati di test' : 'Genera dati di test'
@@ -399,7 +400,6 @@ async function runCsvImport() {
 onMounted(async () => {
   deviceId.value = await getSetting('deviceId')
   datasetVersion.value = await getSetting('datasetVersion')
-  gistId.value = await getSetting('gistId')
   await refreshPendingConflicts()
   await refreshUsers()
   await refreshInvitedProfiles()
@@ -523,7 +523,6 @@ async function runSync() {
   try {
     const result = await fullSync(accessToken.value)
     datasetVersion.value = await getSetting('datasetVersion')
-    gistId.value = await getSetting('gistId')
     await refreshPendingConflicts()
     
     // Format success message based on result
@@ -754,11 +753,7 @@ async function handleInviteUser() {
       <p class="muted">Telefono: {{ currentUser?.phone || '—' }}</p>
       <p class="muted">Email: {{ currentUser?.email || '—' }}</p>
       <p class="muted">Ruolo: {{ currentUser?.role === 'admin' ? 'amministratore' : 'operatore' }}</p>
-      <p class="muted">Sincronizzazione GitHub: @{{ currentUser?.login }}<span v-if="currentUser?.name !== currentUser?.login"> ({{ currentUser?.name }})</span></p>
-      <p class="muted" style="font-size:.8rem;margin-top:.25rem">
-        Gist ID: <code v-if="gistId"><a :href="'https://gist.github.com/' + gistId" target="_blank" rel="noopener">{{ gistId.slice(0, 12) }}…</a></code>
-        <span v-else>— (nessun gist ancora creato)</span>
-      </p>
+      <p class="muted">Backend sincronizzazione: {{ syncBackendLabel }}</p>
       <button style="margin-top:.75rem" @click="signOut">Esci</button>
 
       <template v-if="currentUser?.isSeeded">

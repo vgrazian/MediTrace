@@ -87,6 +87,25 @@ vi.mock('../../src/services/gist', () => ({
     },
 }))
 
+vi.mock('../../src/services/syncBackend', () => ({
+    listAppFiles: async () => [],
+    downloadFile: async () => ({}),
+    uploadFile: async () => { },
+    bootstrapDriveFiles: async () => ({
+        manifest: { datasetVersion: 1 },
+        gistId: 'test-gist-id',
+    }),
+    FILE_NAMES: {
+        MANIFEST: 'manifest.json',
+        DATA: 'data.json',
+    },
+}))
+
+vi.mock('../../src/services/supabaseClient', () => ({
+    isSupabaseConfigured: false,
+    supabase: null,
+}))
+
 // ── Fixtures ──────────────────────────────────────────────────────────────────
 
 function resetState() {
@@ -111,14 +130,14 @@ describe('fullSync', () => {
 
     it('throws SyncError when token is missing', async () => {
         await expect(fullSync(null)).rejects.toThrow(SyncError)
-        await expect(fullSync(null)).rejects.toThrow('Token GitHub mancante')
+        await expect(fullSync(null)).rejects.toThrow('Sincronizzazione non configurata')
 
         try {
             await fullSync(null)
         } catch (error) {
             expect(error).toBeInstanceOf(SyncError)
-            expect(error.code).toBe('TOKEN_MISSING')
-            expect(error.suggestedActions).toContain('Vai in Impostazioni e configura il token GitHub')
+            expect(error.code).toBe('NOT_CONFIGURED')
+            expect(error.suggestedActions).toContain('Configura VITE_SUPABASE_URL e VITE_SUPABASE_PUBLISHABLE_KEY nelle GitHub Variables')
         }
 
         expect(activityLogRows.length).toBe(0)

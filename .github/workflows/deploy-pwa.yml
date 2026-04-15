@@ -54,6 +54,13 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Validate required Supabase config
+        run: |
+          if [ -z "${{ vars.VITE_SUPABASE_URL }}" ] || [ -z "${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY }}" ]; then
+            echo "ERROR: VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY are required for shared multi-device deployment."
+            exit 1
+          fi
+
       - name: Build
         run: npm run build
         env:

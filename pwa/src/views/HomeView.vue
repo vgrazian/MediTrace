@@ -4,12 +4,15 @@ import { ref, onMounted } from 'vue'
 import { RouterLink } from 'vue-router'
 import { buildHomeDashboardKpis } from '../services/homeDashboard'
 import { useHelpNavigation } from '../composables/useHelpNavigation'
+import { formatBuildTimestamp, getBuildTimestampIso } from '../services/buildInfo'
 
 const { currentUser } = useAuth()
 const { goToHelpSection } = useHelpNavigation()
 const datasetVersion = ref(null)
 const syncStatus = ref('—')
 const homeKpi = ref(null)
+const buildTimestampLabel = formatBuildTimestamp('it-IT')
+const buildTimestampIso = getBuildTimestampIso()
 
 function formatDateTime(value) {
   if (!value) return '—'
@@ -101,6 +104,13 @@ onMounted(async () => {
           <p class="muted">Guida utente con istruzioni su ogni sezione dell'applicazione.</p>
         </div>
       </div>
+    </div>
+
+    <div class="card">
+      <p><strong>Versione build</strong></p>
+      <p class="muted" :title="`Build ISO: ${buildTimestampIso}`">
+        Data/ora build: {{ buildTimestampLabel }}
+      </p>
     </div>
   </div>
 </template>

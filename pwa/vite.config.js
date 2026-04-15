@@ -12,6 +12,10 @@ export default defineConfig({
         hmr: process.env.NO_HMR !== '1',
     },
 
+    define: {
+        __BUILD_TIMESTAMP__: JSON.stringify(new Date().toISOString()),
+    },
+
     plugins: [
         vue(),
         VitePWA({

@@ -605,32 +605,123 @@ async function ensureEmergencyAdminAccount(users) {
 
 // ── Public API ────────────────────────────────────────────────────────────────
 
+// ── Supabase Auth helpers ─────────────────────────────────────────────────────
+
+const SUPABASE_PROFILE_CACHE_KEY = 'supabaseProfileCache'
+const SUPABASE_HAS_USERS_KEY = 'supabaseHasUsers'
+
+function buildCurrentUserFromProfile(profile) {
+    const firstName = String(profile.first_name ?? '').trim()
+    const lastName = String(profile.last_name ?? '').trim()
+    return {
+        username: profile.username,
+        login: profile.username,     // reuse as operatorId / audit log field
+        name: [firstName, lastName].filter(Boolean).join(' ') || profile.username,
+        firstName,
+        lastName,
+        email: normalizeEmail(profile.email),
+        phone: normalizePhone(profile.phone ?? ''),
+        role: normalizeRole(profile.role),
+        avatarUrl: null,
+        isSeeded: Boolean(profile.is_seeded),
+        supabaseId: profile.id,
+    }
+}
+
+async function loadCachedProfile() {
+    return getSetting(SUPABASE_PROFILE_CACHE_KEY, null)
+}
+
+async function saveCachedProfile(profile) {
+    await setSetting(SUPABASE_PROFILE_CACHE_KEY, profile)
+}
+
+async function fetchSupabaseProfile(userId) {
+    const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .single()
+    if (error || !data) return null
+    return data
+}
+
+async function checkSupabaseHasUsers() {
+    try {
+        const { count, error } = await supabase
+            .from('profiles')
+            .select('id', { count: 'exact', head: true })
+            .eq('disabled', false)
+        if (error) throw error
+        const hasUsers = (count ?? 0) > 0
+        if (hasUsers) await setSetting(SUPABASE_HAS_USERS_KEY, true)
+        return hasUsers
+    } catch {
+        // Offline or Supabase unavailable — use cached value
+        return Boolean(await getSetting(SUPABASE_HAS_USERS_KEY, false))
+    }
+}
+
+async function initAuthSupabase() {
+    // Determine whether any users exist (for showing login vs create-account form)
+    state.hasUsers = await checkSupabaseHasUsers()
+
+    // Restore existing session from localStorage (works offline)
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+    if (sessionError || !session) return
+
+    // Load profile — prefer live Supabase, fall back to IndexedDB cache when offline
+    let profile = null
+    try {
+        profile = await fetchSupabaseProfile(session.user.id)
+        if (profile) await saveCachedProfile(profile)
+    } catch {
+        profile = await loadCachedProfile()
+    }
+
+    if (!profile || profile.disabled) {
+        await supabase.auth.signOut().catch(() => null)
+        return
+    }
+
+    // Restore reactive state
+    state.currentUser = buildCurrentUserFromProfile(profile)
+    state.accessToken = null  // Supabase session handles auth; no GitHub token
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+
 export async function initAuth() {
     try {
-        let users = await loadUsers()
-        users = await ensureDevSeedAccount(users)
-        users = await ensureEmergencyAdminAccount(users)
-        state.hasUsers = users.some(u => !u.disabled)
+        if (isSupabaseConfigured && supabase) {
+            await initAuthSupabase()
+        } else {
+            // ── Local auth fallback (no Supabase configured) ──────────────────
+            let users = await loadUsers()
+            users = await ensureDevSeedAccount(users)
+            users = await ensureEmergencyAdminAccount(users)
+            state.hasUsers = users.some(u => !u.disabled)
 
-        try {
-            await persistInvitedProfileFromSupabaseSession()
-        } catch (err) {
-            console.warn('[auth] invited profile sync error:', err.message)
-        }
+            try {
+                await persistInvitedProfileFromSupabaseSession()
+            } catch (err) {
+                console.warn('[auth] invited profile sync error:', err.message)
+            }
 
-        const storedSession = await readSession()
-        const sessionUsername = normalizeUsername(storedSession?.username)
-        if (sessionUsername) {
-            const activeUser = users.find(u => !u.disabled && u.username === sessionUsername)
-            if (!activeUser) {
-                await invalidateSession({ reason: 'user-missing', username: sessionUsername })
-            } else if (isSessionExpired(storedSession)) {
-                await invalidateSession({ reason: 'expired', username: sessionUsername, auditAction: 'auth_session_expired' })
-            } else if (storedSession?.userUpdatedAt && storedSession.userUpdatedAt !== activeUser.updatedAt) {
-                await invalidateSession({ reason: 'credentials-updated', username: sessionUsername })
-            } else {
-                applySession(activeUser)
-                await writeSession(activeUser, storedSession)
+            const storedSession = await readSession()
+            const sessionUsername = normalizeUsername(storedSession?.username)
+            if (sessionUsername) {
+                const activeUser = users.find(u => !u.disabled && u.username === sessionUsername)
+                if (!activeUser) {
+                    await invalidateSession({ reason: 'user-missing', username: sessionUsername })
+                } else if (isSessionExpired(storedSession)) {
+                    await invalidateSession({ reason: 'expired', username: sessionUsername, auditAction: 'auth_session_expired' })
+                } else if (storedSession?.userUpdatedAt && storedSession.userUpdatedAt !== activeUser.updatedAt) {
+                    await invalidateSession({ reason: 'credentials-updated', username: sessionUsername })
+                } else {
+                    applySession(activeUser)
+                    await writeSession(activeUser, storedSession)
+                }
             }
         }
     } catch (err) {
@@ -647,6 +738,77 @@ export function useAuth() {
         ...toRefs(readonly(state)),
 
         async register({ username, password, confirmPassword, githubToken, firstName, lastName, email, phone = '' }) {
+            if (isSupabaseConfigured && supabase) {
+                const normalized = assertValidUsername(username)
+                const normalizedEmail = assertValidEmail(email)
+                const normalizedFirstName = String(firstName ?? '').trim()
+                const normalizedLastName = String(lastName ?? '').trim()
+                const normalizedPhone = assertValidPhone(phone)
+                if (!normalizedFirstName || !normalizedLastName) {
+                    throw new Error('Nome e cognome sono obbligatori')
+                }
+
+                const passwordPolicyError = getPasswordPolicyErrorMessage(password)
+                if (passwordPolicyError) throw new Error(passwordPolicyError)
+                if (password !== confirmPassword) throw new Error('Le password non coincidono')
+
+                const { count, error: countError } = await supabase
+                    .from('profiles')
+                    .select('id', { count: 'exact', head: true })
+                    .eq('disabled', false)
+                if (countError) throw new Error(countError.message)
+
+                const role = (count ?? 0) > 0 ? 'operator' : 'admin'
+
+                const { error: signUpError } = await supabase.auth.signUp({
+                    email: normalizedEmail,
+                    password,
+                    options: {
+                        emailRedirectTo: getSupabaseRedirectTo('/#/impostazioni'),
+                        data: {
+                            username: normalized,
+                            firstName: normalizedFirstName,
+                            lastName: normalizedLastName,
+                            role,
+                        },
+                    },
+                })
+                if (signUpError) throw new Error(signUpError.message)
+
+                // Ensure profile row has desired values (trigger also inserts baseline row)
+                const { data: userData, error: userError } = await supabase.auth.getUser()
+                if (userError || !userData?.user?.id) throw new Error(userError?.message || 'Sessione Supabase non valida')
+
+                const { error: profileError } = await supabase
+                    .from('profiles')
+                    .upsert({
+                        id: userData.user.id,
+                        email: normalizedEmail,
+                        username: normalized,
+                        role,
+                        first_name: normalizedFirstName,
+                        last_name: normalizedLastName,
+                        phone: normalizedPhone,
+                        disabled: false,
+                    })
+                if (profileError) throw new Error(profileError.message)
+
+                const profile = await fetchSupabaseProfile(userData.user.id)
+                if (!profile) throw new Error('Impossibile leggere il profilo operatore')
+
+                state.currentUser = buildCurrentUserFromProfile(profile)
+                state.accessToken = null
+                state.hasUsers = true
+                await setSetting(SUPABASE_HAS_USERS_KEY, true)
+                await saveCachedProfile(profile)
+
+                await appendAuthAudit('auth_register', profile.username, {
+                    provider: 'supabase',
+                    role,
+                })
+                return
+            }
+
             const normalized = assertValidUsername(username)
             const normalizedEmail = assertValidEmail(email)
             const normalizedFirstName = String(firstName ?? '').trim()
@@ -692,6 +854,34 @@ export function useAuth() {
         },
 
         async signIn({ username, password }) {
+            if (isSupabaseConfigured && supabase) {
+                const normalized = normalizeUsername(username)
+                if (!normalized || !password) throw new Error('Inserisci username e password')
+                if (!USERNAME_PATTERN.test(normalized)) {
+                    throw new Error('Username non valido: usa 3-32 caratteri [a-z0-9._-]')
+                }
+
+                const { data: profile, error: profileError } = await supabase
+                    .from('profiles')
+                    .select('*')
+                    .eq('username', normalized)
+                    .single()
+                if (profileError || !profile) throw new Error('Utente non trovato')
+                if (profile.disabled) throw new Error('Utente disabilitato')
+
+                const { error: signInError } = await supabase.auth.signInWithPassword({
+                    email: profile.email,
+                    password,
+                })
+                if (signInError) throw new Error('Password non valida')
+
+                state.currentUser = buildCurrentUserFromProfile(profile)
+                state.accessToken = null
+                await saveCachedProfile(profile)
+                await appendAuthAudit('auth_signin_success', profile.username, { provider: 'supabase' })
+                return
+            }
+
             const normalized = normalizeUsername(username)
             if (!normalized || !password) throw new Error('Inserisci username e password')
             if (!USERNAME_PATTERN.test(normalized)) {
@@ -719,6 +909,31 @@ export function useAuth() {
         },
 
         async changePassword({ currentPassword, newPassword, confirmPassword }) {
+            if (isSupabaseConfigured && supabase) {
+                if (!state.currentUser) throw new Error('Sessione non attiva')
+
+                const passwordPolicyError = getPasswordPolicyErrorMessage(newPassword)
+                if (passwordPolicyError) throw new Error(passwordPolicyError)
+                if (newPassword !== confirmPassword) throw new Error('Le nuove password non coincidono')
+
+                // Re-authenticate before changing password
+                const email = normalizeEmail(state.currentUser.email)
+                const { error: reauthError } = await supabase.auth.signInWithPassword({
+                    email,
+                    password: currentPassword,
+                })
+                if (reauthError) throw new Error('Password corrente non valida')
+
+                const { error: updateError } = await supabase.auth.updateUser({ password: newPassword })
+                if (updateError) throw new Error(updateError.message)
+
+                await appendAuthAudit('auth_password_changed', state.currentUser.username, { provider: 'supabase' })
+                await supabase.auth.signOut().catch(() => null)
+                state.currentUser = null
+                state.accessToken = null
+                return
+            }
+
             const activeUser = await requireActiveSession()
             const passwordPolicyError = getPasswordPolicyErrorMessage(newPassword)
             if (passwordPolicyError) throw new Error(passwordPolicyError)
@@ -745,6 +960,58 @@ export function useAuth() {
         },
 
         async updateCurrentProfile({ firstName, lastName, phone = '', email }) {
+            if (isSupabaseConfigured && supabase) {
+                if (!state.currentUser) throw new Error('Sessione non attiva')
+
+                const normalizedFirstName = String(firstName ?? '').trim()
+                const normalizedLastName = String(lastName ?? '').trim()
+                const normalizedPhone = assertValidPhone(phone)
+                const normalizedEmail = assertValidEmail(email)
+
+                if (!normalizedFirstName || !normalizedLastName) {
+                    throw new Error('Nome e cognome sono obbligatori')
+                }
+
+                const { data: userData, error: userError } = await supabase.auth.getUser()
+                if (userError || !userData?.user?.id) throw new Error(userError?.message || 'Sessione non valida')
+
+                const { error: updateProfileError } = await supabase
+                    .from('profiles')
+                    .update({
+                        first_name: normalizedFirstName,
+                        last_name: normalizedLastName,
+                        phone: normalizedPhone,
+                        email: normalizedEmail,
+                    })
+                    .eq('id', userData.user.id)
+                if (updateProfileError) throw new Error(updateProfileError.message)
+
+                const { error: updateAuthError } = await supabase.auth.updateUser({
+                    email: normalizedEmail,
+                    data: {
+                        firstName: normalizedFirstName,
+                        lastName: normalizedLastName,
+                        phone: normalizedPhone,
+                    },
+                })
+                if (updateAuthError) throw new Error(updateAuthError.message)
+
+                const profile = await fetchSupabaseProfile(userData.user.id)
+                if (!profile) throw new Error('Profilo non disponibile dopo aggiornamento')
+
+                const previousEmail = normalizeEmail(state.currentUser?.email)
+                state.currentUser = buildCurrentUserFromProfile(profile)
+                await saveCachedProfile(profile)
+
+                await appendAuthAudit('auth_profile_updated', profile.username, {
+                    emailChanged: previousEmail !== normalizedEmail,
+                    phoneUpdated: Boolean(normalizedPhone),
+                    provider: 'supabase',
+                })
+
+                return state.currentUser
+            }
+
             const activeUser = await requireActiveSession()
             const normalizedFirstName = String(firstName ?? '').trim()
             const normalizedLastName = String(lastName ?? '').trim()
@@ -810,10 +1077,39 @@ export function useAuth() {
         },
 
         async signOut() {
+            if (isSupabaseConfigured && supabase) {
+                const username = state.currentUser?.username ?? null
+                await supabase.auth.signOut().catch(() => null)
+                state.currentUser = null
+                state.accessToken = null
+                await appendAuthAudit('auth_signout', username, { provider: 'supabase' })
+                return
+            }
+
             await invalidateSession({ reason: 'manual-signout', auditAction: 'auth_signout' })
         },
 
         async disableCurrentTestUser() {
+            if (isSupabaseConfigured && supabase) {
+                if (!state.currentUser) throw new Error('Sessione non attiva')
+                if (!state.currentUser.isSeeded) throw new Error('Solo gli account di prova possono essere disattivati qui')
+
+                const { data: userData, error: userError } = await supabase.auth.getUser()
+                if (userError || !userData?.user?.id) throw new Error(userError?.message || 'Sessione non valida')
+
+                const { error } = await supabase
+                    .from('profiles')
+                    .update({ disabled: true })
+                    .eq('id', userData.user.id)
+                if (error) throw new Error(error.message)
+
+                await appendAuthAudit('auth_seed_user_disabled', state.currentUser.username, { provider: 'supabase' })
+                await supabase.auth.signOut().catch(() => null)
+                state.currentUser = null
+                state.accessToken = null
+                return
+            }
+
             const activeUser = await requireActiveSession()
 
             const users = await loadUsers()
@@ -832,6 +1128,37 @@ export function useAuth() {
         },
 
         async listUsers() {
+            if (isSupabaseConfigured && supabase) {
+                if (!state.currentUser || state.currentUser.role !== 'admin') {
+                    throw new Error('Permesso negato: solo admin')
+                }
+
+                const { data, error } = await supabase
+                    .from('profiles')
+                    .select('*')
+                    .order('username', { ascending: true })
+                if (error) throw new Error(error.message)
+
+                return (data ?? []).map(item => ({
+                    username: item.username,
+                    displayName: [item.first_name, item.last_name].filter(Boolean).join(' ') || item.username,
+                    role: normalizeRole(item.role),
+                    email: item.email,
+                    phone: item.phone || '',
+                    githubLogin: item.username,
+                    disabled: Boolean(item.disabled),
+                    isSeeded: Boolean(item.is_seeded),
+                    createdAt: item.created_at,
+                    updatedAt: item.updated_at,
+                    credentialStatus: {
+                        expiresAt: null,
+                        daysRemaining: null,
+                        status: 'unknown',
+                        warning: 'Gestione password demandata a Supabase Auth',
+                    },
+                }))
+            }
+
             await requireAdminSession()
             const users = await loadUsers()
             return users
@@ -914,7 +1241,6 @@ export function useAuth() {
         },
 
         async sendInviteLink({ email, firstName, lastName, redirectTo }) {
-            const adminUser = await requireAdminSession()
             const normalizedEmail = assertValidEmail(email)
             const normalizedFirstName = String(firstName ?? '').trim()
             const normalizedLastName = String(lastName ?? '').trim()
@@ -926,6 +1252,17 @@ export function useAuth() {
                 throw new Error(`Inviti email non disponibili: configura ${config.missingVars.join(', ')} in pwa/.env.local e nelle GitHub Variables`)
             }
 
+            let adminUsername = null
+            if (state.currentUser?.role === 'admin') {
+                adminUsername = state.currentUser.username
+            } else {
+                const localAdmin = await requireAdminSession().catch(() => null)
+                adminUsername = localAdmin?.username ?? null
+            }
+            if (!adminUsername) {
+                throw new Error('Permesso negato: solo admin')
+            }
+
             const targetRedirect = redirectTo || getSupabaseRedirectTo('/#/impostazioni')
             const { error } = await supabase.auth.signInWithOtp({
                 email: normalizedEmail,
@@ -935,14 +1272,14 @@ export function useAuth() {
                     data: {
                         firstName: normalizedFirstName,
                         lastName: normalizedLastName,
-                        invitedBy: adminUser.username,
+                        invitedBy: adminUsername,
                         inviteFlow: 'meditrace-admin',
                     },
                 },
             })
             if (error) throw new Error(error.message)
 
-            await appendAuthAudit('auth_invite_email_sent', adminUser.username, {
+            await appendAuthAudit('auth_invite_email_sent', adminUsername, {
                 targetEmail: normalizedEmail,
                 targetName: `${normalizedFirstName} ${normalizedLastName}`,
                 provider: 'supabase',
@@ -950,12 +1287,59 @@ export function useAuth() {
         },
 
         async listInvitedProfiles() {
+            if (isSupabaseConfigured && supabase) {
+                if (!state.currentUser || state.currentUser.role !== 'admin') {
+                    throw new Error('Permesso negato: solo admin')
+                }
+                const { data, error } = await supabase
+                    .from('profiles')
+                    .select('email, first_name, last_name, updated_at')
+                    .order('email', { ascending: true })
+                if (error) throw new Error(error.message)
+
+                return (data ?? []).map(item => ({
+                    email: normalizeEmail(item.email),
+                    firstName: item.first_name ?? '',
+                    lastName: item.last_name ?? '',
+                    invitedBy: '',
+                    acceptedAt: item.updated_at,
+                    lastSeenAt: item.updated_at,
+                }))
+            }
+
             await requireAdminSession()
             const profiles = await loadInvitedProfiles()
             return profiles.sort((a, b) => a.email.localeCompare(b.email))
         },
 
         async reactivateSeededUser(username) {
+            if (isSupabaseConfigured && supabase) {
+                if (!state.currentUser || state.currentUser.role !== 'admin') {
+                    throw new Error('Permesso negato: solo admin')
+                }
+
+                const normalized = normalizeUsername(username)
+                const { data: target, error: fetchError } = await supabase
+                    .from('profiles')
+                    .select('id, is_seeded')
+                    .eq('username', normalized)
+                    .single()
+                if (fetchError || !target) throw new Error('Utente non trovato')
+                if (!target.is_seeded) throw new Error('Solo utenti di prova')
+
+                const { error } = await supabase
+                    .from('profiles')
+                    .update({ disabled: false })
+                    .eq('id', target.id)
+                if (error) throw new Error(error.message)
+
+                await appendAuthAudit('auth_seed_user_reactivated', state.currentUser.username, {
+                    targetUser: normalized,
+                    provider: 'supabase',
+                })
+                return
+            }
+
             const adminUser = await requireAdminSession()
             const normalized = normalizeUsername(username)
             const users = await loadUsers()
@@ -974,6 +1358,33 @@ export function useAuth() {
         },
 
         async deleteSeededUser(username) {
+            if (isSupabaseConfigured && supabase) {
+                if (!state.currentUser || state.currentUser.role !== 'admin') {
+                    throw new Error('Permesso negato: solo admin')
+                }
+
+                const normalized = normalizeUsername(username)
+                const { data: target, error: fetchError } = await supabase
+                    .from('profiles')
+                    .select('id, is_seeded')
+                    .eq('username', normalized)
+                    .single()
+                if (fetchError || !target) throw new Error('Utente non trovato')
+                if (!target.is_seeded) throw new Error('Solo utenti di prova')
+
+                const { error } = await supabase
+                    .from('profiles')
+                    .delete()
+                    .eq('id', target.id)
+                if (error) throw new Error(error.message)
+
+                await appendAuthAudit('auth_seed_user_deleted', state.currentUser.username, {
+                    targetUser: normalized,
+                    provider: 'supabase',
+                })
+                return
+            }
+
             const adminUser = await requireAdminSession()
             const normalized = normalizeUsername(username)
             const users = await loadUsers()
@@ -993,6 +1404,21 @@ export function useAuth() {
         },
 
         async getSessionInfo() {
+            if (isSupabaseConfigured && supabase) {
+                const { data, error } = await supabase.auth.getSession()
+                if (error) throw new Error(error.message)
+                const session = data?.session
+                return {
+                    ttlMinutes: null,
+                    sessionId: session?.access_token ? 'supabase-session' : null,
+                    username: state.currentUser?.username ?? null,
+                    createdAt: session ? new Date(session.expires_at ? (session.expires_at * 1000) : Date.now()).toISOString() : null,
+                    lastActivityAt: null,
+                    expiresAt: session?.expires_at ? new Date(session.expires_at * 1000).toISOString() : null,
+                    isExpired: !session,
+                }
+            }
+
             const session = await readSession()
             const expired = isSessionExpired(session)
             return {
@@ -1007,6 +1433,23 @@ export function useAuth() {
         },
 
         async getCredentialPolicyStatus() {
+            if (isSupabaseConfigured && supabase) {
+                if (!state.currentUser) {
+                    return {
+                        expiresAt: null,
+                        daysRemaining: null,
+                        status: 'unknown',
+                        warning: 'Sessione non attiva.',
+                    }
+                }
+                return {
+                    expiresAt: null,
+                    daysRemaining: null,
+                    status: 'ok',
+                    warning: 'Policy password gestita da Supabase Auth.',
+                }
+            }
+
             if (!state.currentUser) {
                 return {
                     expiresAt: null,

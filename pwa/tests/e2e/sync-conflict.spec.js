@@ -14,13 +14,20 @@ async function loginAsSeededUser(page) {
 
     if (await usernameInput.isVisible()) {
         await usernameInput.fill('prova')
-        await page.locator('#password-input').fill('Prova123!')
+        await page.locator('#password-input').fill('Prova1234!')
         await page.getByRole('button', { name: 'Accedi' }).click()
     } else if (await registerUsernameInput.isVisible()) {
         await registerUsernameInput.fill('prova')
-        await page.locator('#reg-password').fill('Prova123!')
-        await page.locator('#reg-confirm-password').fill('Prova123!')
-        await page.locator('#reg-gh-token').fill('github_pat_seeded')
+        await page.locator('#reg-first-name').fill('Test')
+        await page.locator('#reg-last-name').fill('Operator')
+        await page.locator('#reg-email').fill('prova@example.com')
+        await page.locator('#reg-password').fill('Prova1234!')
+        await page.locator('#reg-confirm-password').fill('Prova1234!')
+        const githubTokenInput = page.locator('#reg-gh-token')
+        const tokenDisabled = await githubTokenInput.isDisabled().catch(() => false)
+        if (!tokenDisabled) {
+            await githubTokenInput.fill('github_pat_seeded')
+        }
         await page.getByRole('button', { name: 'Crea account e accedi' }).click()
     }
 

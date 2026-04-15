@@ -1,5 +1,5 @@
 /**
- * sync.js — Snapshot-based sync between IndexedDB and GitHub Gist
+ * sync.js — Snapshot-based sync between IndexedDB and remote backend
  *
  * Strategy (see docs/architecture.md):
  *  1. Read remote manifest — compare datasetVersion with local
@@ -7,11 +7,13 @@
  *  3. If local has pending changes → export snapshot, upload, update manifest
  *  4. Movements and reminders are append-only (never overwrite existing IDs)
  *
- * Storage backend: GitHub Gist (gist.js) — replaces Google Drive appDataFolder.
- * All other sync logic is unchanged.
+ * Storage backend is selected by syncBackend.js:
+ *  - Supabase table (preferred) when Supabase config is present
+ *  - GitHub Gist legacy mode otherwise
  */
 import { db, getSetting, setSetting, getSyncState, setSyncState } from '../db'
-import { listAppFiles, downloadFile, uploadFile, bootstrapDriveFiles, FILE_NAMES } from './gist'
+import { listAppFiles, downloadFile, uploadFile, bootstrapDriveFiles, FILE_NAMES } from './syncBackend'
+import { isSupabaseConfigured, supabase } from './supabaseClient'
 import { SyncError, handleAsync } from './errorHandling'
 
 const LAST_WRITE_WINS_TABLES = ['hosts', 'drugs', 'stockBatches', 'therapies']
@@ -44,12 +46,12 @@ const PENDING_CONFLICTS_KEY = 'pendingConflicts'
  * Returns a result object describing what happened.
  */
 export async function fullSync(token) {
-    if (!token) {
-        throw new SyncError('TOKEN_MISSING', 'Token GitHub mancante', {
+    const usingSupabase = isSupabaseConfigured && supabase
+    if (!usingSupabase && !token) {
+        throw new SyncError('NOT_CONFIGURED', 'Sincronizzazione non configurata', {
             suggestedActions: [
-                'Vai in Impostazioni e configura il token GitHub',
-                'Assicurati di aver copiato correttamente il token',
-                'Verifica che il token abbia i permessi necessari (gist)'
+                'Configura VITE_SUPABASE_URL e VITE_SUPABASE_PUBLISHABLE_KEY nelle GitHub Variables',
+                'Oppure imposta un token GitHub nell\'account operatore per la sincronizzazione legacy',
             ]
         })
     }
