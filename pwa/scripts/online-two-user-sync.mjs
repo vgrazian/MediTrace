@@ -18,9 +18,10 @@ const SUPABASE_URL = String(process.env.SUPABASE_URL || process.env.VITE_SUPABAS
 const SUPABASE_PUBLISHABLE_KEY = String(process.env.SUPABASE_PUBLISHABLE_KEY || process.env.VITE_SUPABASE_PUBLISHABLE_KEY || '').trim()
 const REPORT_FILE = String(process.env.REPORT_FILE || '').trim()
 const HEADLESS = String(process.env.HEADLESS || '1') !== '0'
-const SIGNUP_RATE_LIMIT_WAIT_MS = Number.parseInt(process.env.SIGNUP_RATE_LIMIT_WAIT_MS || '70000', 10)
-const INTER_ACCOUNT_SIGNUP_WAIT_MS = Number.parseInt(process.env.INTER_ACCOUNT_SIGNUP_WAIT_MS || '70000', 10)
-const SIGNUP_RETRY_ATTEMPTS = Number.parseInt(process.env.SIGNUP_RETRY_ATTEMPTS || '3', 10)
+const INITIAL_SIGNUP_COOLDOWN_MS = Number.parseInt(process.env.INITIAL_SIGNUP_COOLDOWN_MS || '300000', 10)
+const SIGNUP_RATE_LIMIT_WAIT_MS = Number.parseInt(process.env.SIGNUP_RATE_LIMIT_WAIT_MS || '300000', 10)
+const INTER_ACCOUNT_SIGNUP_WAIT_MS = Number.parseInt(process.env.INTER_ACCOUNT_SIGNUP_WAIT_MS || '300000', 10)
+const SIGNUP_RETRY_ATTEMPTS = Number.parseInt(process.env.SIGNUP_RETRY_ATTEMPTS || '4', 10)
 
 if (!SITE_URL) {
     throw new Error('SITE_URL obbligatorio. Esempio: SITE_URL=https://vgrazian.github.io/MediTrace/ npm run test:online-main')
@@ -264,6 +265,7 @@ async function main() {
         siteUrl: SITE_URL,
         accountMode,
         signupPolicy: {
+            initialSignupCooldownMs: INITIAL_SIGNUP_COOLDOWN_MS,
             signupRateLimitWaitMs: SIGNUP_RATE_LIMIT_WAIT_MS,
             interAccountSignupWaitMs: INTER_ACCOUNT_SIGNUP_WAIT_MS,
             signupRetryAttempts: SIGNUP_RETRY_ATTEMPTS,
@@ -277,6 +279,11 @@ async function main() {
 
     try {
         if (!providedUsers) {
+            if (INITIAL_SIGNUP_COOLDOWN_MS > 0) {
+                console.log(`[online-main] Attendo ${INITIAL_SIGNUP_COOLDOWN_MS}ms prima di iniziare il provisioning per raffreddare il rate limit Supabase`)
+                await waitMs(INITIAL_SIGNUP_COOLDOWN_MS)
+            }
+
             for (const [index, user] of users.entries()) {
                 const startedAt = new Date().toISOString()
                 await provisionUser(user)
