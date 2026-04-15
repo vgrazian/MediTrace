@@ -1,0 +1,45 @@
+name: Online Chaos Test
+
+on:
+  workflow_dispatch:
+    inputs:
+      site_url:
+        description: 'GitHub Pages URL da testare (default: repo Pages URL)'
+        required: false
+        default: ''
+        type: string
+      rounds:
+        description: 'Numero round chaos'
+        required: false
+        default: '5'
+        type: string
+      concurrency:
+        description: 'Fetch concorrenti per round'
+        required: false
+        default: '4'
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  chaos:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Derive site URL
+        id: derive_url
+        run: |
+          DEFAULT_URL="https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/"
+          INPUT_URL="${{ inputs.site_url }}"
+          if [ -n "$INPUT_URL" ]; then
+            echo "site_url=$INPUT_URL" >> "$GITHUB_OUTPUT"
+          else
+            echo "site_url=$DEFAULT_URL" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Run online chaos script
+        run: |
+          chmod +x pwa/scripts/chaos-pages.sh
+          pwa/scripts/chaos-pages.sh "${{ steps.derive_url.outputs.site_url }}" "${{ inputs.rounds }}" "${{ inputs.concurrency }}"

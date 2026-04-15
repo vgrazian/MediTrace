@@ -1,7 +1,7 @@
 # MediTrace Operationalization Playbook
 
 Data: 2026-03-31
-Ambito: stabilizzazione operativa dopo rilascio PWA + sync GitHub Gist + deploy GitHub Pages
+Ambito: stabilizzazione operativa dopo rilascio PWA + sync Supabase + deploy GitHub Pages
 
 ## Obiettivo
 
@@ -16,7 +16,7 @@ Passare da implementazione funzionante a esercizio operativo ripetibile e contro
 
 - Deploy GitHub Pages attivo e accessibile.
 - Utenza/password operatore attive e funzionanti.
-- Segreto tecnico GitHub per sync Gist disponibile e non scaduto.
+- Variabili GitHub Pages / Supabase configurate (`VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY`, `VITE_SUPABASE_REDIRECT_TO`).
 - Workflow GitHub presente per build e smoke test PWA.
 
 ## Fase 1: Attivazione CI Build + Smoke
@@ -27,7 +27,8 @@ Passare da implementazione funzionante a esercizio operativo ripetibile e contro
 4. Lanciare workflow manuale build + smoke test PWA.
 5. Verificare esito positivo su build, lint e smoke di bootstrap app.
 6. Lanciare smoke test multi-device simulato, se disponibile.
-7. Verificare quality gate automatico (`test`) su branch protetto `main`.
+7. Lanciare chaos test online non distruttivo sul deployment principale, se disponibile.
+8. Verificare quality gate automatico (`test`) su branch protetto `main`.
 
 Criterio di uscita:
 
@@ -37,10 +38,10 @@ Criterio di uscita:
 
 ## Fase 2: Igiene Segreti e Credenziali Operative
 
-1. Verificare che il segreto tecnico GitHub per sync abbia solo scope `gists` e non scada a breve.
+1. Verificare che le chiavi pubbliche Supabase e il redirect URL di reset password siano corretti per il dominio Pages corrente.
 2. Verificare policy password operative (complessita', cambio periodico, revoca account dismessi).
 3. Ruotare i segreti tecnici almeno ogni 90 giorni o immediatamente in caso di sospetta compromissione.
-4. Aggiornare le configurazioni ambiente in GitHub se la repo o l'owner del Gist cambiano.
+4. Aggiornare le configurazioni ambiente in GitHub se cambiano owner/repository Pages o progetto Supabase.
 5. Rieseguire smoke build e bootstrap login.
 6. Revocare segreti obsoleti o non piu' utilizzati.
 
@@ -64,8 +65,8 @@ Criterio di uscita:
 ## Fase 4: Allineamento Deploy E Sync
 
 1. Verificare differenze tra documentazione e implementazione PWA reale.
-2. Confermare che il bootstrap crei correttamente `meditrace-manifest.json` e `meditrace-data.json` nel Gist privato.
-3. Confermare che il resume dell'app scarichi un dataset remoto piu' recente.
+2. Confermare che il bundle pubblico includa configurazione Supabase pubblica valida e non esponga chiavi privilegiate.
+3. Confermare che il resume dell'app scarichi un dataset remoto piu' recente da Supabase.
 4. Rieseguire smoke e aggiornare evidenze.
 
 Criterio di uscita:
@@ -110,7 +111,8 @@ Checklist minima pre-rilascio:
 
 - build green
 - smoke multi-device green oppure rischio documentato
-- credenziali operative e segreto tecnico di sync verificati
+- smoke online / chaos online green oppure rischio documentato
+- credenziali operative e configurazione Supabase verificati
 - branch protection attiva
 - documentazione architetturale aggiornata
 - evidenze test archiviate in docs

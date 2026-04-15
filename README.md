@@ -1,19 +1,19 @@
 # MediTrace
 
-MediTrace è un'applicazione **offline-first** per la gestione farmacologica in contesto socio-sanitario. Permette la tracciatura di ospiti, farmaci, terapie, scorte, movimenti di magazzino e promemoria di somministrazione, con sincronizzazione cloud bidirezionale su GitHub Gist privato, supporto multi-dispositivo e piena operatività anche in assenza di connessione.
+MediTrace è un'applicazione **offline-first** per la gestione farmacologica in contesto socio-sanitario. Permette la tracciatura di ospiti, farmaci, terapie, scorte, movimenti di magazzino, promemoria di somministrazione e residenze operative, con sincronizzazione cloud bidirezionale su Supabase, supporto multi-dispositivo e piena operatività anche in assenza di connessione.
 
 ## Cosa fa l'applicazione
 
 | Area | Funzionalità |
 | --- | --- |
-| **Ospiti** | Anagrafica (nome, cognome, dati anagrafici, patologie), codice interno, assegnazione stanza/letto |
+| **Ospiti** | Anagrafica (nome, cognome, dati anagrafici, patologie), codice interno, assegnazione residenza |
 | **Farmaci** | Catalogo farmaci con principio attivo, classe terapeutica, scorta minima |
 | **Scorte** | Confezioni di magazzino per farmaco: quantità, soglia riordino, scadenza; riepilogo segnalazioni |
 | **Terapie** | Assegnazione farmaci agli ospiti con posologia, frequenza e date inizio/fine |
 | **Movimenti** | Registrazione carico/scarico magazzino con tracciabilità ospite e terapia |
-| **Promemoria** | Agenda somministrazioni con esito (eseguito/saltato), filtri per data e ospite |
-| **Stanze & Letti** | Gestione unità fisiche e assegnazione letti agli ospiti |
-| **Sync** | Caricamento e scaricamento dati da Gist GitHub privato |
+| **Promemoria** | Agenda somministrazioni con esito (eseguito/saltato), filtri per data, stato e residenza operativa |
+| **Residenze** | Gestione sedi operative, capienza e posti disponibili |
+| **Sync** | Caricamento e scaricamento dati da Supabase Postgres |
 | **Audit Log** | Registro operazioni in sola lettura con filtri per operatore, ospite, farmaco, terapia e periodo |
 | **Impostazioni account** | Aggiornamento profilo personale (nome, cognome, telefono, email) e cambio password |
 | **Import CSV** | Bulk import da file CSV strutturati secondo i template inclusi |
@@ -22,11 +22,11 @@ MediTrace è un'applicazione **offline-first** per la gestione farmacologica in 
 ## Architettura
 
 ```text
-Dispositivo A                     GitHub Gist (privato)
+Dispositivo A                     Supabase (Auth + Postgres)
 ┌────────────────────────┐         ┌──────────────────────────┐
-│  Vue 3 PWA             │ ──────► │  meditrace-manifest.json │
-│  ┌──────────────────┐  │         │  meditrace-data.json     │
-│  │ Views (Vue SFC)  │  │ ◄────── │  meditrace-backup-*.json │
+│  Vue 3 PWA             │ ──────► │  auth.users              │
+│  ┌──────────────────┐  │         │  public.profiles         │
+│  │ Views (Vue SFC)  │  │ ◄────── │  public.sync_files       │
 │  └────────┬─────────┘  │         └──────────────────────────┘
 │           │ Dexie.js   │
 │  ┌────────▼─────────┐  │
@@ -42,8 +42,8 @@ Dispositivo A                     GitHub Gist (privato)
 | --- | --- |
 | **Frontend** | Vue.js 3 + Vite 5 (PWA, installabile) |
 | **Storage locale** | IndexedDB via Dexie.js 3.2.7 |
-| **Autenticazione** | Username + password locale con hash/salt; Supabase Auth opzionale per reset/inviti email |
-| **Sync cloud** | GitHub Gist privato (manifest JSON + snapshot dati) |
+| **Autenticazione** | Supabase Auth + cache offline locale |
+| **Sync cloud** | Supabase Postgres (`sync_files`) |
 | **Hosting** | GitHub Pages + Service Worker (offline cache) |
 | **Test** | Vitest 3 (unit + coverage v8) + Playwright (E2E, Chromium + WebKit + Android phone emulation smoke) |
 | **Build** | Vite 5 — ~70 kb gzip |
@@ -70,10 +70,13 @@ pwa/
     services/
       auth.js                    Utenti, credenziali, sessioni, audit
       ids.js                     Generazione ID entità (prefixed UUID)
-      sync.js                    Sync bidirezionale GitHub Gist
+      sync.js                    Sync bidirezionale backend condiviso
+      supabaseSync.js            Backend sync Supabase
+      syncBackend.js             Selettore backend sync
       farmaci.js                 CRUD farmaci e confezioni
       ospiti.js                  CRUD ospiti con audit trail
       stanze.js                  CRUD stanze e letti
+      residenze.js               CRUD residenze operative
       terapie.js                 CRUD terapie attive
       movimenti.js               CRUD movimenti magazzino
       promemoria.js              Scheduling promemoria
@@ -101,8 +104,7 @@ templates/csv-import/            Template CSV per import iniziale
 ### Prerequisiti
 
 - Node.js ≥ 18
-- Un account GitHub con possibilità di creare Gist privati
-- (Opzionale) Account Supabase per reset password e inviti via email
+- Un progetto Supabase con URL e chiave publishable/anon
 
 ### Sviluppo
 
@@ -117,11 +119,11 @@ npm --prefix pwa run dev
 
 Al primo avvio:
 
-1. Registrati con username, password e un GitHub Personal Access Token (scope `gist`)
-2. L'app crea automaticamente un Gist privato e lo usa come backend di sync
-3. Accedi su altri dispositivi con le stesse credenziali — la sync porta i dati
+1. Configura `VITE_SUPABASE_URL` e `VITE_SUPABASE_PUBLISHABLE_KEY`
+2. Registrati con username, password, nome, cognome ed email
+3. Accedi su altri dispositivi con le stesse credenziali: la sync condivisa Supabase mantiene il dataset allineato
 
-Per abilitare reset password / inviti email (opzionale, richiede Supabase):
+Per abilitare auth condivisa, reset password e inviti email:
 
 ```bash
 # Copia il file di esempio e imposta le chiavi Supabase
@@ -164,9 +166,9 @@ npm --prefix pwa run preview
 Le variabili applicative usate dal build sono:
 
 - `VITE_BASE_URL` (default `/MediTrace/`)
-- `VITE_SUPABASE_URL` (opzionale)
-- `VITE_SUPABASE_PUBLISHABLE_KEY` (opzionale)
-- `VITE_SUPABASE_REDIRECT_TO` (opzionale)
+- `VITE_SUPABASE_URL` (obbligatoria per deployment condiviso)
+- `VITE_SUPABASE_PUBLISHABLE_KEY` (obbligatoria per deployment condiviso)
+- `VITE_SUPABASE_REDIRECT_TO` (opzionale; se assente viene derivata verso `#/auth/reset-password`)
 - `VITE_VAPID_PUBLIC_KEY` (opzionale, richiesto per Web Push API)
 - `VITE_EMERGENCY_ADMIN_ENABLED` (consigliato `0` in produzione)
 - `VITE_EMERGENCY_ADMIN_USERNAME` (opzionale)
@@ -206,6 +208,12 @@ bash pwa/scripts/setup-production-deploy.sh --set-gh --build
 
 # setup + build + trigger deploy GitHub Pages
 bash pwa/scripts/setup-production-deploy.sh --build --trigger-deploy
+
+# smoke online sul sito già deployato
+SITE_URL="https://vgrazian.github.io/MediTrace/" npm --prefix pwa run test:online-smoke
+
+# chaos test online non distruttivo
+SITE_URL="https://vgrazian.github.io/MediTrace/" npm --prefix pwa run test:online-chaos
 ```
 
 ### Backup/Restore locale e CSV d'esempio
@@ -221,6 +229,7 @@ Deploy operativo:
 2. Push su `main` (oppure avvia manualmente workflow `Deploy PWA su GitHub Pages`)
 3. Verifica URL pubblicato dal job `Deploy to GitHub Pages`
 4. Verifica smoke check (`Smoke test deployed Pages`)
+5. Opzionale: avvia workflow `Online Chaos Test` oppure `npm --prefix pwa run test:online-chaos`
 
 ## Qualità e copertura
 
