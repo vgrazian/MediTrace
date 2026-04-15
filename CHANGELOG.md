@@ -5,6 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.0] - 2026-04-15
+### Added
+- Added new **Residenze** module ([`ResidenzeView.vue`](pwa/src/views/ResidenzeView.vue), [`residenze.js`](pwa/src/services/residenze.js)) replacing the legacy Stanze route in primary navigation.
+- Added `/stanze → /residenze` redirect in the Vue Router so existing bookmarks and legacy links continue to work without breaking.
+- Added persisted **Residenza operativa** dropdown filter in [`PromemoriaView.vue`](pwa/src/views/PromemoriaView.vue), saved via `CURRENT_RESIDENZA_SETTING_KEY` and restored on next load.
+
+### Changed
+- Updated primary navigation in [`AppNav.vue`](pwa/src/components/AppNav.vue) to link to `/residenze` instead of `/stanze`.
+- Updated [`HomeView.vue`](pwa/src/views/HomeView.vue) quick-access card to point to `/residenze`.
+- Updated contextual help entries in [`helpContent.js`](pwa/src/data/helpContent.js) for the Residenze section.
+- Renamed/updated [`stanze.spec.js`](pwa/tests/e2e/stanze.spec.js) to cover Residenze CRUD and redirect behaviour.
+- Updated [`menu-navigation.spec.js`](pwa/tests/e2e/menu-navigation.spec.js) to assert the Residenze nav link.
+- Updated [`promemoria.spec.js`](pwa/tests/unit/promemoria.spec.js) with unit coverage for the Residenza filter persistence.
+- Updated [`docs/requisiti-tecnici.md`](docs/requisiti-tecnici.md) and [`docs/_DEV-NOTES.md`](docs/_DEV-NOTES.md) to reflect the Residenze module and routing decisions.
+
+### Verified
+- Full unit suite passes locally: `303/303`.
+- Full Playwright suite passes locally: `52/52`.
+
 ## [0.5.1] - 2026-04-13
 ### Added
 - Added seeded demo operator auth accounts (`rosa`, `margherita`, `giglio`) through [`seedAuthUsers.js`](pwa/src/services/seedAuthUsers.js), integrated in both legacy and realistic seed flows.
