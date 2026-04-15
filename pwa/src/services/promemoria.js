@@ -10,6 +10,7 @@ import { db, enqueue, getSetting } from '../db'
 
 export const REMINDER_OUTCOMES = ['ESEGUITO', 'SALTATO', 'POSTICIPATO', 'ANNULLATO']
 export const BED_SEQUENCE_SETTING_KEY = 'promemoriaBedSequence'
+export const CURRENT_RESIDENZA_SETTING_KEY = 'promemoriaCurrentResidenzaId'
 
 // ── Pure helpers (testable) ────────────────────────────────────────────────────
 
@@ -89,7 +90,7 @@ function compareReminderRows(a, b, bedSequenceIndex) {
     return String(a.id || '').localeCompare(String(b.id || ''))
 }
 
-export function buildReminderRows({ reminders, hosts, drugs, therapies, beds = [], rooms = [], bedSequence = [], dateFilter = 'today', stateFilter = '', now = new Date() }) {
+export function buildReminderRows({ reminders, hosts, drugs, therapies, beds = [], rooms = [], bedSequence = [], dateFilter = 'today', stateFilter = '', residenzaFilter = '', now = new Date() }) {
     const hostsById = new Map(hosts.map(h => [h.id, h]))
     const drugsById = new Map(drugs.map(d => [d.id, d]))
     const therapiesById = new Map(therapies.map(t => [t.id, t]))
@@ -105,6 +106,13 @@ export function buildReminderRows({ reminders, hosts, drugs, therapies, beds = [
         .filter(r => {
             if (!stateFilter) return true
             return (r.stato ?? 'DA_ESEGUIRE') === stateFilter
+        })
+        .filter(r => {
+            if (!residenzaFilter) return true
+            const host = hostsById.get(r.hostId)
+            const bed = bedsById.get(host?.bedId)
+            const roomId = host?.roomId ?? bed?.roomId ?? null
+            return roomId === residenzaFilter
         })
         .filter(r => {
             const when = new Date(r.scheduledAt)
@@ -139,6 +147,8 @@ export function buildReminderRows({ reminders, hosts, drugs, therapies, beds = [
                 dataFine: therapy?.dataFine ?? null,
                 roomSortKey: room?.codice || host?.stanza || host?.roomId || '',
                 bedSortKey: bed?.numero || host?.letto || host?.bedId || '',
+                residenzaId: room?.id ?? host?.roomId ?? null,
+                residenzaLabel: room?.codice || host?.stanza || '—',
             }
         })
         .sort((a, b) => compareReminderRows(a, b, bedSequenceIndex))

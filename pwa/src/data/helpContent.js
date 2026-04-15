@@ -16,7 +16,7 @@ export const helpContent = {
             {
                 titolo: 'Azioni rapide',
                 testo:
-                    'Pulsanti di collegamento diretto alle sezioni più usate: Catalogo farmaci, Stanze, Ospiti, Scorte, Terapie. Cliccane uno per aprire direttamente quella sezione.',
+                    'Pulsanti di collegamento diretto alle sezioni più usate: Catalogo farmaci, Residenze, Ospiti, Scorte, Terapie. Cliccane uno per aprire direttamente quella sezione.',
             },
             {
                 titolo: 'Indicatori KPI',
@@ -103,29 +103,29 @@ export const helpContent = {
     },
 
     stanze: {
-        titolo: 'Stanze e Letti — Guida',
+        titolo: 'Residenze — Guida',
         intro:
-            'Questa sezione permette di gestire la mappa della struttura: edifici, stanze e posti letto. Ogni ospite viene assegnato a un letto specifico.',
+            'Questa sezione permette di gestire le residenze operative in cui lavorano gli operatori e monitorare capienza e posti disponibili.',
         sezioni: [
             {
-                titolo: 'Struttura gerarchica',
+                titolo: 'Anagrafica residenze',
                 testo:
-                    'L\'organizzazione è: Edificio → Stanza → Letto. Devi creare prima l\'edificio, poi la stanza, poi il letto. Solo dopo potrai assegnare un ospite a quel letto.',
+                    'Ogni residenza contiene nome, capienza massima e note operative. In avvio sono preconfigurate: Il Rifugio, Via Bellani, Residenza 3 e Residenza 4.',
             },
             {
-                titolo: 'Come aggiungere una stanza',
+                titolo: 'Come aggiungere una residenza',
                 testo:
-                    'Premi "Aggiungi stanza", inserisci il nome e seleziona l\'edificio, poi salva. Ripeti per ogni stanza necessaria.',
+                    'Apri il pannello "Gestione Residenze", inserisci Nome residenza e Max ospiti, poi salva. La residenza sarà disponibile anche nel filtro Promemoria.',
             },
             {
-                titolo: 'Come aggiungere un letto',
+                titolo: 'Capienza ospiti',
                 testo:
-                    'Seleziona la stanza dall\'elenco, premi "Aggiungi letto" e inserisci il numero o codice del letto.',
+                    'La tabella mostra capienza e posti disponibili in tempo reale, calcolati sugli ospiti attivi assegnati alla residenza.',
             },
             {
-                titolo: 'Letto occupato o libero',
+                titolo: 'Eliminazione e ripristino',
                 testo:
-                    'Un letto con un ospite assegnato viene mostrato come "occupato". Non è possibile assegnare due ospiti allo stesso letto.',
+                    'Le residenze possono essere disattivate con conferma; in caso di errore è disponibile il comando di annullamento immediato.',
             },
         ],
     },
@@ -238,6 +238,11 @@ export const helpContent = {
                 titolo: 'Segnare un promemoria come completato',
                 testo:
                     'Spunta la casellina a sinistra del promemoria, poi premi "Segna completato". Il promemoria sparirà dalla lista attiva e verrà archiviato.',
+            },
+            {
+                titolo: 'Residenza operativa',
+                testo:
+                    'Usa il filtro "Residenza operativa" per mostrare solo i promemoria della sede in cui stai lavorando. La scelta viene memorizzata sul dispositivo.',
             },
             {
                 titolo: 'Aggiungere un promemoria manuale',
