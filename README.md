@@ -214,7 +214,18 @@ SITE_URL="https://vgrazian.github.io/MediTrace/" npm --prefix pwa run test:onlin
 
 # chaos test online non distruttivo
 SITE_URL="https://vgrazian.github.io/MediTrace/" npm --prefix pwa run test:online-chaos
+
+# performance budget sul deployment live
+SITE_URL="https://vgrazian.github.io/MediTrace/" npm --prefix pwa run test:online-performance
+
+# validazione live a 2 utenti concorrenti
+SITE_URL="https://vgrazian.github.io/MediTrace/" \
+SUPABASE_URL="$VITE_SUPABASE_URL" \
+SUPABASE_PUBLISHABLE_KEY="$VITE_SUPABASE_PUBLISHABLE_KEY" \
+npm --prefix pwa run test:online-main
 ```
+
+Le verifiche online usano dati sintetici e tracciabili: namespace per esecuzione, nomi deterministici quando viene passato un seed, nessun dato reale o derivato dalla produzione. Se sono disponibili credenziali dedicate (`ONLINE_USER_A_*`, `ONLINE_USER_B_*`), lo script le usa; in alternativa prova a creare utenti operatore temporanei via Supabase con la chiave publishable.
 
 ### Backup/Restore locale e CSV d'esempio
 
@@ -230,6 +241,7 @@ Deploy operativo:
 3. Verifica URL pubblicato dal job `Deploy to GitHub Pages`
 4. Verifica smoke check (`Smoke test deployed Pages`)
 5. Opzionale: avvia workflow `Online Chaos Test` oppure `npm --prefix pwa run test:online-chaos`
+6. Opzionale consigliato: avvia workflow `Online Main Validation` per controllo live multi-utente + performance budget
 
 ## Qualità e copertura
 

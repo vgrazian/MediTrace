@@ -28,12 +28,14 @@ Passare da implementazione funzionante a esercizio operativo ripetibile e contro
 5. Verificare esito positivo su build, lint e smoke di bootstrap app.
 6. Lanciare smoke test multi-device simulato, se disponibile.
 7. Lanciare chaos test online non distruttivo sul deployment principale, se disponibile.
-8. Verificare quality gate automatico (`test`) su branch protetto `main`.
+8. Lanciare la validazione online browser-based a 2 utenti concorrenti con budget performance, se disponibile.
+9. Verificare quality gate automatico (`test`) su branch protetto `main`.
 
 Criterio di uscita:
 
 - build green
 - smoke green
+- validazione online multi-utente green oppure rischio documentato
 - deploy preview raggiungibile
 
 ## Fase 2: Igiene Segreti e Credenziali Operative
@@ -112,6 +114,7 @@ Checklist minima pre-rilascio:
 - build green
 - smoke multi-device green oppure rischio documentato
 - smoke online / chaos online green oppure rischio documentato
+- validazione 2 utenti concorrenti + performance budget green oppure rischio documentato
 - credenziali operative e configurazione Supabase verificati
 - branch protection attiva
 - documentazione architetturale aggiornata
@@ -140,6 +143,7 @@ Rollback:
 - Responsabile tecnico: configurazioni GitHub e policy branch
 - Operazioni: gestione credenziali operative, segreti tecnici e accessi
 - QA/validazione: esecuzione smoke e raccolta evidenze
+- QA/validazione: esecuzione scenario concorrente a 2 utenti e snapshot performance del deployment live
 
 ## Frequenza operativa consigliata
 

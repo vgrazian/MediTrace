@@ -1,0 +1,112 @@
+name: Online Main Validation
+
+on:
+  workflow_dispatch:
+    inputs:
+      site_url:
+        description: 'GitHub Pages URL da testare (default: repo Pages URL)'
+        required: false
+        default: ''
+        type: string
+      max_dom_content_loaded_ms:
+        description: 'Budget DCL in ms'
+        required: false
+        default: '3000'
+        type: string
+      max_load_event_ms:
+        description: 'Budget load event in ms'
+        required: false
+        default: '5000'
+        type: string
+      max_first_contentful_paint_ms:
+        description: 'Budget FCP in ms'
+        required: false
+        default: '2500'
+        type: string
+      max_total_transfer_kb:
+        description: 'Budget trasferimento totale in KB'
+        required: false
+        default: '1500'
+        type: string
+      signup_rate_limit_wait_ms:
+        description: 'Attesa tra retry signup Supabase in ms'
+        required: false
+        default: '70000'
+        type: string
+      inter_account_signup_wait_ms:
+        description: 'Attesa tra creazione account A e B in ms'
+        required: false
+        default: '70000'
+        type: string
+      signup_retry_attempts:
+        description: 'Numero massimo retry signup per rate limit'
+        required: false
+        default: '3'
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: pwa/package-lock.json
+
+      - name: Derive site URL
+        id: derive_url
+        run: |
+          DEFAULT_URL="https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/"
+          INPUT_URL="${{ inputs.site_url }}"
+          if [ -n "$INPUT_URL" ]; then
+            echo "site_url=$INPUT_URL" >> "$GITHUB_OUTPUT"
+          else
+            echo "site_url=$DEFAULT_URL" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Install dependencies
+        working-directory: pwa
+        run: npm ci
+
+      - name: Install Playwright Chromium
+        working-directory: pwa
+        run: npx playwright install --with-deps chromium
+
+      - name: Run online performance budget check
+        working-directory: pwa
+        env:
+          SITE_URL: ${{ steps.derive_url.outputs.site_url }}
+          REPORT_FILE: test-results/online-performance.json
+          MAX_DOM_CONTENT_LOADED_MS: ${{ inputs.max_dom_content_loaded_ms }}
+          MAX_LOAD_EVENT_MS: ${{ inputs.max_load_event_ms }}
+          MAX_FIRST_CONTENTFUL_PAINT_MS: ${{ inputs.max_first_contentful_paint_ms }}
+          MAX_TOTAL_TRANSFER_KB: ${{ inputs.max_total_transfer_kb }}
+        run: npm run test:online-performance
+
+      - name: Run two-user online sync validation
+        working-directory: pwa
+        env:
+          SITE_URL: ${{ steps.derive_url.outputs.site_url }}
+          SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
+          SUPABASE_PUBLISHABLE_KEY: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY }}
+          ONLINE_TEST_SEED: gha-${{ github.run_id }}-${{ github.run_attempt }}
+          SIGNUP_RATE_LIMIT_WAIT_MS: ${{ inputs.signup_rate_limit_wait_ms }}
+          INTER_ACCOUNT_SIGNUP_WAIT_MS: ${{ inputs.inter_account_signup_wait_ms }}
+          SIGNUP_RETRY_ATTEMPTS: ${{ inputs.signup_retry_attempts }}
+          REPORT_FILE: test-results/online-two-user-sync.json
+        run: npm run test:online-main
+
+      - name: Upload online validation reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: online-main-validation-reports
+          path: |
+            pwa/test-results/online-performance.json
+            pwa/test-results/online-two-user-sync.json
