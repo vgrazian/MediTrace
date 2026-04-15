@@ -31,6 +31,36 @@ Examples:
 EOF
 }
 
+derive_pages_site_url() {
+  local remote_url
+  remote_url="$(git -C "$ROOT_DIR" remote get-url origin 2>/dev/null || true)"
+  if [[ -z "$remote_url" ]]; then
+    return
+  fi
+
+  local slug=""
+  case "$remote_url" in
+    git@github.com:*)
+      slug="${remote_url#git@github.com:}"
+      ;;
+    https://github.com/*)
+      slug="${remote_url#https://github.com/}"
+      ;;
+    *)
+      return
+      ;;
+  esac
+
+  slug="${slug%.git}"
+  local owner="${slug%%/*}"
+  local repo="${slug##*/}"
+  if [[ -z "$owner" || -z "$repo" ]]; then
+    return
+  fi
+
+  printf "https://%s.github.io/%s/" "$owner" "$repo"
+}
+
 require_cmd() {
   if ! command -v "$1" >/dev/null 2>&1; then
     echo "[error] Missing required command: $1"
@@ -153,6 +183,11 @@ VITE_SUPABASE_URL_VALUE="$(resolve_value "$LOCAL_ENV_FILE" "VITE_SUPABASE_URL" "
 VITE_SUPABASE_PUBLISHABLE_KEY_VALUE="$(resolve_value "$LOCAL_ENV_FILE" "VITE_SUPABASE_PUBLISHABLE_KEY" "SUPABASE_PUBLISHABLE_KEY" "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY")"
 VITE_SUPABASE_REDIRECT_TO_VALUE="$(resolve_value "$LOCAL_ENV_FILE" "VITE_SUPABASE_REDIRECT_TO")"
 VITE_VAPID_PUBLIC_KEY_VALUE="$(resolve_value "$LOCAL_ENV_FILE" "VITE_VAPID_PUBLIC_KEY")"
+PAGES_SITE_URL_VALUE="$(derive_pages_site_url)"
+
+if [[ -z "$VITE_SUPABASE_REDIRECT_TO_VALUE" && -n "$PAGES_SITE_URL_VALUE" ]]; then
+  VITE_SUPABASE_REDIRECT_TO_VALUE="${PAGES_SITE_URL_VALUE%/}/#/auth/reset-password"
+fi
 
 VITE_EMERGENCY_ADMIN_ENABLED_VALUE="${VITE_EMERGENCY_ADMIN_ENABLED:-0}"
 VITE_EMERGENCY_ADMIN_USERNAME_VALUE="${VITE_EMERGENCY_ADMIN_USERNAME:-${MEDITRACE_EMERGENCY_ADMIN_USERNAME:-}}"
@@ -186,6 +221,7 @@ EOF
 
 echo "[ok] Wrote $OUTPUT_FILE"
 echo "[info] Emergency admin enabled: $VITE_EMERGENCY_ADMIN_ENABLED_VALUE"
+echo "[info] Supabase redirect URL: ${VITE_SUPABASE_REDIRECT_TO_VALUE:-<not set>}"
 
 if [[ "$SYNC_LOCAL_ENV" == "1" ]]; then
   cp "$OUTPUT_FILE" "$LOCAL_ENV_FILE"
