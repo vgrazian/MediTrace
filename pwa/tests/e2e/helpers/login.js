@@ -1,6 +1,6 @@
 export async function loginOrRegisterSeededUser(page, {
     username = 'prova',
-    password = 'Prova123!',
+    password = 'Prova1234!',
     githubToken = 'github_pat_seeded',
 } = {}) {
     const usernameInput = page.locator('#username-input')
@@ -54,9 +54,16 @@ export async function loginOrRegisterSeededUser(page, {
     } else if (await registerUsernameInput.isVisible()) {
         for (let attempt = 0; attempt < 2; attempt += 1) {
             await registerUsernameInput.fill(username)
+            await page.locator('#reg-first-name').fill('Test')
+            await page.locator('#reg-last-name').fill('Operator')
+            await page.locator('#reg-email').fill(`${username}@example.com`)
             await page.locator('#reg-password').fill(password)
             await page.locator('#reg-confirm-password').fill(password)
-            await page.locator('#reg-gh-token').fill(githubToken)
+            const githubTokenInput = page.locator('#reg-gh-token')
+            const tokenDisabled = await githubTokenInput.isDisabled().catch(() => false)
+            if (!tokenDisabled) {
+                await githubTokenInput.fill(githubToken)
+            }
             await page.getByRole('button', { name: 'Crea account e accedi' }).click()
             await page.waitForLoadState('load')
             await awaitAuthenticated(9000)

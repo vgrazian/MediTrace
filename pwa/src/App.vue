@@ -5,6 +5,8 @@ import AppNav from './components/AppNav.vue'
 import HelpDrawer from './components/HelpDrawer.vue'
 import ConfirmDialog from './components/ConfirmDialog.vue'
 import { initAuth, sanitizeEmailInput, sanitizeUsernameInput, useAuth } from './services/auth'
+import { isSupabaseConfigured } from './services/supabaseClient'
+import { formatBuildTimestamp, getBuildTimestampIso } from './services/buildInfo'
 
 const { currentUser, hasUsers, isInitialized, signIn, register, requestPasswordResetByEmail } = useAuth()
 const route = useRoute()
@@ -26,6 +28,9 @@ const regGithubToken = ref('')
 
 const loginError = ref('')
 const loginBusy = ref(false)
+const requiresLegacyGithubToken = !isSupabaseConfigured
+const buildTimestampLabel = formatBuildTimestamp('it-IT')
+const buildTimestampIso = getBuildTimestampIso()
 
 onMounted(() => initAuth())
 
@@ -69,7 +74,7 @@ async function handleRegister() {
     || !regEmail.value.trim()
     || !regPassword.value
     || !regConfirmPassword.value
-    || !regGithubToken.value.trim()
+    || (requiresLegacyGithubToken && !regGithubToken.value.trim())
   ) return
 
   loginBusy.value = true
@@ -163,9 +168,16 @@ async function handlePasswordResetEmail() {
           <input id="reg-confirm-password" v-model="regConfirmPassword" type="password" placeholder="Ripeti password" autocomplete="new-password" @keyup.enter="handleRegister" />
 
           <label for="reg-gh-token">Token GitHub (solo configurazione iniziale sincronizzazione)</label>
-          <input id="reg-gh-token" v-model="regGithubToken" type="password" placeholder="github_pat_..." autocomplete="off" />
+          <input
+            id="reg-gh-token"
+            v-model="regGithubToken"
+            type="password"
+            placeholder="github_pat_..."
+            autocomplete="off"
+            :disabled="!requiresLegacyGithubToken"
+          />
 
-          <button :disabled="loginBusy || !regUsername.trim() || !regFirstName.trim() || !regLastName.trim() || !regEmail.trim() || !regPassword || !regConfirmPassword || !regGithubToken.trim()" @click="handleRegister">
+          <button :disabled="loginBusy || !regUsername.trim() || !regFirstName.trim() || !regLastName.trim() || !regEmail.trim() || !regPassword || !regConfirmPassword || (requiresLegacyGithubToken && !regGithubToken.trim())" @click="handleRegister">
             {{ loginBusy ? 'Creazione account…' : 'Crea account e accedi' }}
           </button>
         </div>
@@ -212,6 +224,9 @@ async function handlePasswordResetEmail() {
 
         <p class="auth-help">
           Al primo avvio crea un account operatore. I successivi accessi useranno solo username e password.
+        </p>
+        <p class="build-meta" :title="`Build ISO: ${buildTimestampIso}`">
+          Build: {{ buildTimestampLabel }}
         </p>
       </div>
     </template>

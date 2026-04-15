@@ -82,17 +82,17 @@ test('seeded account login, sync, profile update, password change and users sect
     await expect(page.getByText('Telefono: +39 333 1234567')).toBeVisible()
     await expect(page.getByText('Email: mario.rossi+seed@example.com')).toBeVisible()
 
-    await page.getByLabel('Password corrente').fill('Prova123!')
-    await page.getByLabel('Nuova password', { exact: true }).fill('Prova4567!')
-    await page.getByLabel('Conferma nuova password').fill('Prova4567!')
+    await page.getByLabel('Password corrente').fill('Prova1234!')
+    await page.getByLabel('Nuova password', { exact: true }).fill('Prova45678!')
+    await page.getByLabel('Conferma nuova password').fill('Prova45678!')
     await page.getByRole('button', { name: 'Aggiorna password' }).click()
-    await loginOrRegisterSeededUser(page, { password: 'Prova4567!' })
+    await loginOrRegisterSeededUser(page, { password: 'Prova45678!' })
 
     // CI-safe: after password change, route directly through navbar to avoid hash-state race.
     const settingsHeading = page.getByRole('heading', { name: 'Impostazioni' })
     const settingsLink = page.getByRole('link', { name: '⚙' })
     if (!(await settingsLink.isVisible().catch(() => false))) {
-        await loginOrRegisterSeededUser(page, { password: 'Prova4567!' })
+        await loginOrRegisterSeededUser(page, { password: 'Prova45678!' })
     }
     if (await settingsLink.isVisible().catch(() => false)) {
         await settingsLink.click()
@@ -101,7 +101,7 @@ test('seeded account login, sync, profile update, password change and users sect
     }
     if (!(await settingsHeading.isVisible().catch(() => false))) {
         // Fallback: auth state may still be settling in CI, re-login and retry once.
-        await loginOrRegisterSeededUser(page, { password: 'Prova4567!' })
+        await loginOrRegisterSeededUser(page, { password: 'Prova45678!' })
         if (await settingsLink.isVisible().catch(() => false)) {
             await settingsLink.click()
         } else {

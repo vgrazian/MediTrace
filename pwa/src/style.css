@@ -436,6 +436,12 @@ details.add-panel[open] > div {
 .auth-help { font-size: .8rem; color: #94a3b8; max-width: 360px; }
 .auth-help a { color: var(--brand-700); }
 
+.build-meta {
+  font-size: .78rem;
+  color: #6b7f98;
+  margin-top: .25rem;
+}
+
 .info-panel {
   border-left: 4px solid #3d68c7;
 }
