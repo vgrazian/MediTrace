@@ -58,9 +58,9 @@ describe('seedDataRealistic mapping', () => {
     it('maps dataset entities and preserves cardinality', () => {
         const generated = generateRealisticSeedData()
 
-        expect(generated.rooms).toHaveLength(4)
+        expect(generated.rooms).toHaveLength(2)
         expect(generated.beds).toHaveLength(12)
-        expect(generated.hosts).toHaveLength(9)
+        expect(generated.hosts).toHaveLength(12)
         expect(generated.drugs).toHaveLength(12)
         expect(generated.stockBatches.length).toBeGreaterThanOrEqual(12)
         expect(generated.therapies.length).toBeGreaterThanOrEqual(12)
@@ -142,6 +142,23 @@ describe('seedDataRealistic mapping', () => {
         const bedIds = generated.hosts.map(host => host.bedId).filter(Boolean)
         const uniqueBedIds = new Set(bedIds)
         expect(uniqueBedIds.size).toBe(bedIds.length)
+    })
+
+    it('uses only requested residenze and keeps 5/7 ospiti split', () => {
+        const generated = generateRealisticSeedData()
+
+        const roomCodes = generated.rooms.map(room => room.codice)
+        expect(roomCodes).toEqual(['Il Rifugio', 'Via Bellani'])
+
+        const byRoomCode = generated.hosts.reduce((acc, host) => {
+            const code = host.stanza || 'N/D'
+            acc[code] = (acc[code] || 0) + 1
+            return acc
+        }, {})
+
+        expect(byRoomCode['Il Rifugio']).toBe(5)
+        expect(byRoomCode['Via Bellani']).toBe(7)
+        expect(Object.keys(byRoomCode)).toEqual(['Il Rifugio', 'Via Bellani'])
     })
 
     it('generates stock batches with non-zero and variable active quantities', () => {

@@ -390,7 +390,7 @@ onMounted(() => {
       <CrudFilterBar
         v-model="filterQuery"
         label="Filtra ospiti"
-        placeholder="Cerca per nome, cognome, codice, iniziali o stanza"
+        placeholder="Cerca per nome, cognome, codice, iniziali o residenza"
         :visible-count="filteredRows.length"
         :total-count="rows.length"
       />
@@ -434,7 +434,7 @@ onMounted(() => {
             <th>Iniziali</th>
             <th>Nome</th>
             <th>Cognome</th>
-            <th>Stanza/Letto</th>
+            <th>Residenza</th>
             <th>Terapie attive</th>
             <th>Azioni</th>
           </tr>
@@ -458,7 +458,7 @@ onMounted(() => {
             <td>{{ host.iniziali || '—' }}</td>
             <td>{{ host.nome || '—' }}</td>
             <td>{{ host.cognome || '—' }}</td>
-            <td>{{ host.stanza }}{{ host.letto ? '/' + host.letto : '' }}</td>
+            <td>{{ host.stanza || '—' }}</td>
             <td>{{ host.activeTherapies }}</td>
             <td>
               <button

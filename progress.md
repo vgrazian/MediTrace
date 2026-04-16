@@ -110,6 +110,9 @@ PR #70 (`feat(seed): demo operators + android phone smoke`) merged to `main`; re
 2. Add matching E2E and unit coverage for recovery and save-state paths
 3. Keep docs/changelog aligned for each release slice
 
+## Technical Debt (CI/CD)
+1. Update GitHub Actions usage of `actions/upload-artifact@v4` (Node 20 deprecation annotation) to a Node 24-compatible path/version before platform enforcement windows.
+
 ## E2E Coverage Follow-up (2026-04-16)
 1. [P1] Implement full reset-password online E2E with Supabase profile (request email, consume token, login with new password).
 2. [P1] Stabilize and automate online two-user sync scenario in Playwright (seed remote users + deterministic cooldown/rate-limit handling).
