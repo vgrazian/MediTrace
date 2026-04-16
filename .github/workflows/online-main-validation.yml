@@ -60,7 +60,7 @@ jobs:
 
       - uses: actions/setup-node@v5
         with:
-          node-version: '20'
+          node-version: '24'
           cache: 'npm'
           cache-dependency-path: pwa/package-lock.json
 
@@ -113,7 +113,7 @@ jobs:
 
       - name: Upload online validation reports
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: online-main-validation-reports
           path: |

@@ -26,6 +26,13 @@
 import { test, expect } from '@playwright/test'
 import { loginOrRegisterSeededUser } from './helpers/login'
 
+function toLocalDateString(date = new Date()) {
+    const year = date.getFullYear()
+    const month = String(date.getMonth() + 1).padStart(2, '0')
+    const day = String(date.getDate()).padStart(2, '0')
+    return `${year}-${month}-${day}`
+}
+
 test('audit smoke records structured events in CI', async ({ page }) => {
     test.setTimeout(90_000)
 
@@ -81,7 +88,7 @@ test('audit smoke records structured events in CI', async ({ page }) => {
     await expect(page.getByText('Accettate: 1')).toBeVisible()
 
     // 4) Import reminder for today
-    const today = new Date().toISOString().slice(0, 10)
+    const today = toLocalDateString()
     await page.getByLabel('Sorgente').selectOption('09_PromemoriaSomministrazioni.csv')
     await page.locator('input[type="file"][accept=".csv,text/csv"]').setInputFiles({
         name: '09_PromemoriaSomministrazioni.csv',

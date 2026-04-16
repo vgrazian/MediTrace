@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.3] - 2026-04-17
+### Changed
+- Updated CI artifact upload steps from `actions/upload-artifact@v4` to `actions/upload-artifact@v5` in quality gate and operational workflows for Node 24-compatible action runtime.
+- Aligned `online-main-validation.yml` Node runtime from `20` to `24` for consistency with repository CI baseline.
+- Stabilized date-sensitive validation and reminder E2E fixtures by switching from UTC date slicing (`toISOString`) to local day formatting to avoid timezone-dependent flakes.
+
+### Notes
+- This release is governance/reliability-only and does not change application runtime behavior.
+
 ## [0.5.2] - 2026-04-16
 ### Added
 - Added E2E route coverage matrix in [`docs/e2e-route-coverage-matrix.md`](docs/e2e-route-coverage-matrix.md) with explicit mapping `route -> spec` and P1/P2 priorities.

@@ -113,13 +113,131 @@ PR #70 (`feat(seed): demo operators + android phone smoke`) merged to `main`; re
 ## Technical Debt (CI/CD)
 1. Update GitHub Actions usage of `actions/upload-artifact@v4` (Node 20 deprecation annotation) to a Node 24-compatible path/version before platform enforcement windows.
 
+## Auth/Sync Mode Reality Check (2026-04-17)
+1. Current implementation uses Supabase table-auth + Supabase sync backend when `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY` are configured.
+2. Default Playwright smoke suite runs in deterministic local mode by design (`playwright.config.js` forces empty Supabase env vars), so local E2E must keep guard-path assertions.
+3. Planning and PR clustering must therefore split: local deterministic regression coverage vs dedicated online Supabase flows.
+
 ## E2E Coverage Follow-up (2026-04-16)
-1. [P1] Implement full reset-password online E2E with Supabase profile (request email, consume token, login with new password).
-2. [P1] Stabilize and automate online two-user sync scenario in Playwright (seed remote users + deterministic cooldown/rate-limit handling).
-3. [P2] Add cross-browser parity flow (Chromium + Firefox + WebKit) for one critical care workflow.
-4. [P2] Add Playwright-driven JS coverage instrumentation for E2E line/branch metrics.
+1. [P1] Keep and harden local guard-path E2E for password recovery route (`/#/auth/reset-password`) in deterministic local mode.
+2. [P1] Implement full online reset-password E2E on Supabase table-auth flow (request email, consume token, login with new password) as a dedicated online suite.
+3. [P1] Stabilize and automate online two-user sync scenario in Playwright (seed remote users + deterministic cooldown/rate-limit handling).
+4. [P2] Add cross-browser parity flow (Chromium + Firefox + WebKit) for one critical workflow in local deterministic suite first, then mirror in online suite where stable.
+5. [P2] Add Playwright-driven JS coverage instrumentation for E2E line/branch metrics.
 
 ## Current Priority
 - HIGH: Preserve green CI/deploy baseline after PR #70 merge
 - HIGH: Continue CRUD UX follow-up wave 2 from refreshed main baseline
 - MEDIUM: Keep changelog/docs aligned with each rollout increment
+
+## 3-PR Execution Checklist (Concrete)
+
+### PR-1: Baseline Reliability + Governance
+
+Scope (in-scope)
+1. Resolve CI/CD technical debt on artifact action version compatibility (Node 24 alignment).
+2. Align operational docs and release notes (`CHANGELOG.md`, `progress.md`, affected docs pages).
+3. Keep behavior unchanged in app features (no product UX refactor in this PR).
+
+Out of scope
+1. CRUD UX behavior changes.
+2. Online Supabase flow additions.
+
+Acceptance criteria
+1. Workflows complete green on `main` for test/build/deploy/smoke.
+2. No regressions in local deterministic E2E baseline.
+3. Documentation reflects merged technical debt action and current auth/sync mode reality.
+
+Validation commands
+1. Local deterministic mode:
+1. `npm --prefix pwa run test:unit`
+1. `npm --prefix pwa run test:e2e`
+1. `npm --prefix pwa run build`
+1. Online mode (if credentials/site configured):
+1. `npm --prefix pwa run test:online-smoke`
+
+Checklist
+1. [x] CI action/version updates applied.
+2. [x] Changelog/progress/docs updated in same PR.
+3. [x] Local deterministic validation passed.
+4. [x] Deployed smoke check passed.
+
+PR-1 completion notes (2026-04-17)
+1. Local deterministic gate completed successfully: `test:unit`, `test:e2e`, `build` all green.
+2. Prior flaky date mismatch (UTC `toISOString()` vs local day filters) triaged and fixed in test fixtures for form validation and promemoria/audit E2E setup.
+3. Online validation bundle completed successfully: `test:online-main`, `test:online-performance`, `test:online-smoke`, `test:online-chaos` all PASS.
+
+### PR-2: CRUD UX Wave 2 Consolidation
+
+Scope (in-scope)
+1. Complete wave-2 UX consistency for undo/recovery/save-state/sorting/filter persistence.
+2. Apply shared behavior consistently across:
+3. `pwa/src/views/OspitiView.vue`
+4. `pwa/src/views/FarmaciView.vue`
+5. `pwa/src/views/TerapieView.vue`
+6. `pwa/src/views/MovimentiView.vue`
+7. Add/adjust matching unit + E2E coverage for recovery and save-state paths.
+
+Out of scope
+1. Online Supabase scenario orchestration.
+2. CI architecture changes unrelated to UX wave-2.
+
+Acceptance criteria
+1. UX actions and persistence behavior are consistent across target views.
+2. Undo/recovery flows are deterministic and covered by tests.
+3. No cross-view regressions in desktop and small-form-factor smoke tests.
+
+Validation commands
+1. Local deterministic mode:
+1. `npm --prefix pwa run test:unit`
+1. `npm --prefix pwa run test:e2e`
+1. Focused smoke reruns (fast gate):
+1. `npm --prefix pwa run test:e2e -- tests/e2e/android-phone-smoke.spec.js`
+1. `npm --prefix pwa run test:e2e -- tests/e2e/ospiti.spec.js`
+1. `npm --prefix pwa run test:e2e -- tests/e2e/farmaci.spec.js`
+1. `npm --prefix pwa run build`
+
+Checklist
+1. [ ] Undo/recovery coverage complete for wave-2 targets.
+2. [ ] Save-state and sort/filter persistence validated.
+3. [ ] Small-form-factor checks green.
+4. [ ] Docs/changelog updated for UX behavior changes.
+
+### PR-3: E2E Hardening by Mode (Local + Online)
+
+Scope (in-scope)
+1. Local deterministic suite hardening:
+1. keep guard-path assertions for auth reset route in local mode.
+1. stabilize critical deterministic workflows.
+1. Online Supabase suite additions:
+1. full reset-password flow (request email, consume token, login with new password).
+1. two-user sync scenario stabilization with deterministic setup/cooldown handling.
+1. Cross-browser parity (Chromium + Firefox + WebKit) for one critical workflow.
+1. Playwright-driven JS coverage instrumentation for E2E metrics.
+
+Out of scope
+1. Core CRUD feature redesign.
+2. Non-test product refactors.
+
+Acceptance criteria
+1. Local deterministic suite remains stable and green.
+2. Online Supabase scenarios are runnable and documented with environment preconditions.
+3. Cross-browser parity flow passes on selected critical path.
+4. E2E coverage artifact generated and inspectable in CI.
+
+Validation commands
+1. Local deterministic mode:
+1. `npm --prefix pwa run test:e2e`
+1. `npm --prefix pwa run test:e2e -- tests/e2e/reset-password-route.spec.js`
+1. Online Supabase mode (requires configured env/site):
+1. `npm --prefix pwa run test:online-main`
+1. `npm --prefix pwa run test:online-performance`
+1. `npm --prefix pwa run test:online-smoke`
+1. `npm --prefix pwa run test:online-chaos`
+
+Checklist
+1. [ ] Local guard-path and deterministic regression suite green.
+2. [ ] Online reset-password E2E implemented and stable.
+3. [ ] Online two-user sync E2E stabilized.
+4. [ ] Cross-browser parity flow enabled and passing.
+5. [ ] E2E coverage instrumentation integrated and published.
