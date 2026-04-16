@@ -1,6 +1,6 @@
 <script setup>
 import { computed, ref, onMounted, watch } from 'vue'
-import { useAuth } from '../services/auth'
+import { suggestUsernameFromName, useAuth } from '../services/auth'
 import { canRole } from '../services/rbac'
 import { fullSync, exportBackupJson, importBackupJson, listPendingConflicts, resolveConflict } from '../services/sync'
 import { formatUserError } from '../services/errorHandling'
@@ -43,10 +43,9 @@ const {
   getPasswordPolicy,
   disableCurrentTestUser,
   listUsers,
-  listInvitedProfiles,
-  sendInviteLink,
-  reactivateSeededUser,
-  deleteSeededUser,
+  createUser,
+  setUserDisabled,
+  deleteUser,
 } = useAuth()
 const { goToHelpSection } = useHelpNavigation()
 const deviceId = ref(null)
@@ -66,6 +65,7 @@ const pwdNext = ref('')
 const pwdConfirm = ref('')
 const passwordMessage = ref('')
 const passwordBusy = ref(false)
+const profileUsername = ref('')
 const profileFirstName = ref('')
 const profileLastName = ref('')
 const profilePhone = ref('')
@@ -77,13 +77,17 @@ const testUserMessage = ref('')
 const users = ref([])
 const usersBusy = ref(false)
 const usersMessage = ref('')
-const invitedProfiles = ref([])
-const invitedProfilesMessage = ref('')
-const inviteFirstName = ref('')
-const inviteLastName = ref('')
-const inviteEmail = ref('')
-const inviteBusy = ref(false)
-const inviteMessage = ref('')
+const newUserUsername = ref('')
+const newUserFirstName = ref('')
+const newUserLastName = ref('')
+const newUserEmail = ref('')
+const newUserPhone = ref('')
+const newUserPassword = ref('')
+const newUserRole = ref('operator')
+const newUserIsSeeded = ref(false)
+const newUserBusy = ref(false)
+const newUserMessage = ref('')
+const newUserUsernameTouched = ref(false)
 const sessionInfo = ref(null)
 const credentialPolicy = ref(null)
 const authEvents = ref([])
@@ -112,9 +116,9 @@ const bedSequenceBusy = ref(false)
 const bedSequenceMessage = ref('')
 
 const passwordPolicyState = computed(() => getPasswordPolicy(pwdNext.value))
+const newUserPasswordPolicyState = computed(() => getPasswordPolicy(newUserPassword.value))
+const suggestedUsername = computed(() => suggestUsernameFromName(newUserFirstName.value, newUserLastName.value))
 const canManageUsers = computed(() => canRole(currentUser.value?.role, 'users:read'))
-const canManageInvites = computed(() => canRole(currentUser.value?.role, 'invites:send'))
-const canManageProfiles = computed(() => canRole(currentUser.value?.role, 'profiles:read'))
 const canManageTestData = computed(() => canRole(currentUser.value?.role, 'testData:manage'))
 const syncBackendLabel = computed(() => (isSupabaseConfigured ? 'Supabase' : 'GitHub Gist (legacy)'))
 const testDataActionLabel = computed(() => {
@@ -123,10 +127,21 @@ const testDataActionLabel = computed(() => {
 })
 
 function hydrateProfileForm() {
+  profileUsername.value = currentUser.value?.username ?? ''
   profileFirstName.value = currentUser.value?.firstName ?? ''
   profileLastName.value = currentUser.value?.lastName ?? ''
   profilePhone.value = currentUser.value?.phone ?? ''
   profileEmail.value = currentUser.value?.email ?? ''
+}
+
+function syncSuggestedUsername() {
+  if (newUserUsernameTouched.value) return
+  newUserUsername.value = suggestedUsername.value
+}
+
+function handleNewUserUsernameInput(event) {
+  newUserUsernameTouched.value = true
+  newUserUsername.value = String(event?.target?.value ?? '').trim().toLowerCase()
 }
 
 async function refreshSeedStatus() {
@@ -163,21 +178,6 @@ async function refreshUsers() {
   } catch (err) {
     users.value = []
     usersMessage.value = `Errore utenti: ${err.message}`
-  }
-}
-
-async function refreshInvitedProfiles() {
-  invitedProfilesMessage.value = ''
-  if (!canManageProfiles.value) {
-    invitedProfiles.value = []
-    return
-  }
-
-  try {
-    invitedProfiles.value = await listInvitedProfiles()
-  } catch (err) {
-    invitedProfiles.value = []
-    invitedProfilesMessage.value = `Errore profili invitati: ${err.message}`
   }
 }
 
@@ -402,7 +402,6 @@ onMounted(async () => {
   datasetVersion.value = await getSetting('datasetVersion')
   await refreshPendingConflicts()
   await refreshUsers()
-  await refreshInvitedProfiles()
   await refreshSecurityInfo()
   refreshNotificationStatus()
   await refreshPushStatus()
@@ -410,10 +409,15 @@ onMounted(async () => {
   await refreshBedSequenceSettings()
   await refreshSeedStatus()
   hydrateProfileForm()
+  syncSuggestedUsername()
 })
 
 watch(currentUser, () => {
   hydrateProfileForm()
+})
+
+watch([newUserFirstName, newUserLastName], () => {
+  syncSuggestedUsername()
 })
 
 async function handleToggleTestData() {
@@ -614,7 +618,6 @@ async function restoreBackup() {
     await Promise.all([
       refreshPendingConflicts(),
       refreshUsers(),
-      refreshInvitedProfiles(),
       refreshUpcomingReminderRows(),
     ])
     datasetVersion.value = await getSetting('datasetVersion')
@@ -655,6 +658,7 @@ async function submitProfileUpdate() {
 
   try {
     await updateCurrentProfile({
+      username: profileUsername.value,
       firstName: profileFirstName.value,
       lastName: profileLastName.value,
       phone: profilePhone.value,
@@ -683,11 +687,11 @@ async function disableTestUser() {
   }
 }
 
-async function handleReactivateSeeded(username) {
+async function handleEnableUser(username) {
   usersBusy.value = true
   usersMessage.value = ''
   try {
-    await reactivateSeededUser(username)
+    await setUserDisabled({ username, disabled: false })
     await refreshUsers()
     usersMessage.value = `Utente ${username} riattivato.`
   } catch (err) {
@@ -697,14 +701,28 @@ async function handleReactivateSeeded(username) {
   }
 }
 
-async function handleDeleteSeeded(username) {
+async function handleDisableUser(username) {
+  usersBusy.value = true
+  usersMessage.value = ''
+  try {
+    await setUserDisabled({ username, disabled: true })
+    await refreshUsers()
+    usersMessage.value = `Utente ${username} disattivato.`
+  } catch (err) {
+    usersMessage.value = `Errore disattivazione: ${err.message}`
+  } finally {
+    usersBusy.value = false
+  }
+}
+
+async function handleDeleteUser(username) {
   const confirmed = await confirmDeleteUser(username)
   if (!confirmed) return
 
   usersBusy.value = true
   usersMessage.value = ''
   try {
-    await deleteSeededUser(username)
+    await deleteUser(username)
     await refreshUsers()
     usersMessage.value = `Utente ${username} eliminato definitivamente.`
   } catch (err) {
@@ -714,27 +732,39 @@ async function handleDeleteSeeded(username) {
   }
 }
 
-async function handleInviteUser() {
-  if (!canManageInvites.value) return
-  if (!inviteFirstName.value.trim() || !inviteLastName.value.trim() || !inviteEmail.value.trim()) return
+async function handleCreateUser() {
+  if (!canManageUsers.value) return
+  if (!newUserUsername.value.trim() || !newUserFirstName.value.trim() || !newUserLastName.value.trim() || !newUserEmail.value.trim() || !newUserPassword.value) return
 
-  inviteBusy.value = true
-  inviteMessage.value = ''
+  newUserBusy.value = true
+  newUserMessage.value = ''
   try {
-    await sendInviteLink({
-      firstName: inviteFirstName.value.trim(),
-      lastName: inviteLastName.value.trim(),
-      email: inviteEmail.value.trim(),
+    await createUser({
+      username: newUserUsername.value.trim(),
+      firstName: newUserFirstName.value.trim(),
+      lastName: newUserLastName.value.trim(),
+      email: newUserEmail.value.trim(),
+      phone: newUserPhone.value.trim(),
+      password: newUserPassword.value,
+      role: newUserRole.value,
+      isSeeded: newUserIsSeeded.value,
     })
-    await refreshInvitedProfiles()
-    inviteMessage.value = `Invito inviato a ${inviteEmail.value.trim()}.`
-    inviteFirstName.value = ''
-    inviteLastName.value = ''
-    inviteEmail.value = ''
+    await refreshUsers()
+    newUserMessage.value = `Utente ${newUserUsername.value.trim()} creato.`
+    newUserUsername.value = ''
+    newUserFirstName.value = ''
+    newUserLastName.value = ''
+    newUserEmail.value = ''
+    newUserPhone.value = ''
+    newUserPassword.value = ''
+    newUserRole.value = 'operator'
+    newUserIsSeeded.value = false
+    newUserUsernameTouched.value = false
+    syncSuggestedUsername()
   } catch (err) {
-    inviteMessage.value = `Errore invito: ${err.message}`
+    newUserMessage.value = `Errore creazione utente: ${err.message}`
   } finally {
-    inviteBusy.value = false
+    newUserBusy.value = false
   }
 }
 </script>
@@ -772,6 +802,11 @@ async function handleInviteUser() {
       <p><strong>Profilo personale</strong></p>
       <div class="import-form" style="margin-top:.5rem">
         <label>
+          Username accesso
+          <input v-model="profileUsername" type="text" autocomplete="username" />
+        </label>
+
+        <label>
           Nome profilo
           <input v-model="profileFirstName" type="text" autocomplete="given-name" />
         </label>
@@ -791,7 +826,7 @@ async function handleInviteUser() {
           <input v-model="profileEmail" type="email" autocomplete="email" />
         </label>
 
-        <button :disabled="profileBusy || !profileFirstName || !profileLastName || !profileEmail" @click="submitProfileUpdate">
+        <button :disabled="profileBusy || !profileUsername || !profileFirstName || !profileLastName || !profileEmail" @click="submitProfileUpdate">
           {{ profileBusy ? 'Aggiornamento profilo...' : 'Aggiorna profilo' }}
         </button>
       </div>
@@ -834,14 +869,65 @@ async function handleInviteUser() {
 
     <div class="card">
       <p><strong>Utenti</strong></p>
-      <p class="muted" style="margin-top:.25rem">Gestione utenti consentita solo ad account amministratore. Azioni disponibili per utenti di prova.</p>
+      <p class="muted" style="margin-top:.25rem">Gestione utenti consentita solo ad account amministratore. Gli operatori vengono creati direttamente da questo pannello.</p>
 
       <p v-if="!canManageUsers" class="muted" style="margin-top:.5rem">
         Il tuo account non ha privilegi amministratore: puoi visualizzare solo il tuo profilo.
       </p>
 
+      <div v-if="canManageUsers" class="import-form" style="margin-top:.75rem">
+        <p><strong>Crea nuovo utente</strong></p>
+        <label>
+          Nome
+          <input v-model="newUserFirstName" type="text" autocomplete="given-name" />
+        </label>
+        <label>
+          Cognome
+          <input v-model="newUserLastName" type="text" autocomplete="family-name" />
+        </label>
+        <label>
+          Username suggerito
+          <input :value="newUserUsername" type="text" autocomplete="username" @input="handleNewUserUsernameInput" />
+        </label>
+        <p class="muted" style="margin-top:-.25rem;font-size:.8rem">Suggerimento: prime 8 lettere del nome + prime 7 del cognome, modificabile manualmente.</p>
+        <label>
+          Email
+          <input v-model="newUserEmail" type="email" autocomplete="email" />
+        </label>
+        <label>
+          Telefono
+          <input v-model="newUserPhone" type="tel" autocomplete="tel" placeholder="+39 333 1234567" />
+        </label>
+        <label>
+          Password iniziale
+          <input v-model="newUserPassword" type="password" autocomplete="new-password" />
+        </label>
+        <p class="muted" style="font-size:.8rem">
+          Regole password: {{ newUserPasswordPolicyState.minLength ? 'ok' : 'no' }} lunghezza ·
+          {{ newUserPasswordPolicyState.hasUppercase ? 'ok' : 'no' }} maiuscola ·
+          {{ newUserPasswordPolicyState.hasLowercase ? 'ok' : 'no' }} minuscola ·
+          {{ newUserPasswordPolicyState.hasDigit ? 'ok' : 'no' }} numero ·
+          {{ newUserPasswordPolicyState.hasSymbol ? 'ok' : 'no' }} simbolo
+        </p>
+        <label>
+          Ruolo
+          <select v-model="newUserRole">
+            <option value="operator">Operatore</option>
+            <option value="admin">Amministratore</option>
+          </select>
+        </label>
+        <label style="display:flex;align-items:center;gap:.5rem">
+          <input v-model="newUserIsSeeded" type="checkbox" />
+          Marca come utente di prova
+        </label>
+        <button :disabled="newUserBusy || !newUserUsername || !newUserFirstName || !newUserLastName || !newUserEmail || !newUserPassword" @click="handleCreateUser">
+          {{ newUserBusy ? 'Creazione utente…' : 'Crea utente' }}
+        </button>
+        <p v-if="newUserMessage" class="muted" style="margin-top:.5rem;font-size:.8rem">{{ newUserMessage }}</p>
+      </div>
+
       <div v-if="canManageUsers" class="dataset-frame" style="margin-top:.75rem;max-height:18rem">
-        <table class="conflict-table" style="min-width:980px">
+        <table class="conflict-table" style="min-width:940px">
           <thead>
             <tr>
               <th>Username</th>
@@ -849,7 +935,6 @@ async function handleInviteUser() {
               <th>Cognome</th>
               <th>Telefono</th>
               <th>Email</th>
-              <th>GitHub</th>
               <th>Ruolo</th>
               <th>Tipo</th>
               <th>Stato</th>
@@ -863,89 +948,37 @@ async function handleInviteUser() {
               <td>{{ user.lastName || '—' }}</td>
               <td>{{ user.phone || '—' }}</td>
               <td>{{ user.email || '—' }}</td>
-              <td>@{{ user.login }}</td>
               <td>{{ user.role }}</td>
               <td>{{ user.isSeeded ? 'prova' : 'standard' }}</td>
               <td>{{ user.disabled ? 'disattivato' : 'attivo' }}</td>
               <td>
-                <template v-if="user.isSeeded">
-                  <button
-                    v-if="user.disabled"
-                    :disabled="usersBusy"
-                    @click="handleReactivateSeeded(user.username)"
-                  >
-                    Riattiva
-                  </button>
-                  <button
-                    style="margin-left:.35rem;background:#dc2626"
-                    :disabled="usersBusy"
-                    @click="handleDeleteSeeded(user.username)"
-                  >
-                    Elimina
-                  </button>
-                </template>
+                <button
+                  v-if="user.disabled"
+                  :disabled="usersBusy"
+                  @click="handleEnableUser(user.username)"
+                >
+                  Riattiva
+                </button>
+                <button
+                  v-else-if="!user.isCurrent"
+                  :disabled="usersBusy"
+                  @click="handleDisableUser(user.username)"
+                >
+                  Disattiva
+                </button>
                 <span v-else class="muted">—</span>
+                <button
+                  v-if="!user.isCurrent"
+                  style="margin-left:.35rem;background:#dc2626"
+                  :disabled="usersBusy"
+                  @click="handleDeleteUser(user.username)"
+                >
+                  Elimina
+                </button>
               </td>
             </tr>
           </tbody>
         </table>
-      </div>
-
-      <div v-if="canManageInvites" class="import-form" style="margin-top:.75rem">
-        <p><strong>Invita nuovo utente via email</strong></p>
-        <label>
-          Nome
-          <input v-model="inviteFirstName" type="text" autocomplete="given-name" />
-        </label>
-        <label>
-          Cognome
-          <input v-model="inviteLastName" type="text" autocomplete="family-name" />
-        </label>
-        <label>
-          Email
-          <input v-model="inviteEmail" type="email" autocomplete="email" />
-        </label>
-        <button :disabled="inviteBusy || !inviteFirstName || !inviteLastName || !inviteEmail" @click="handleInviteUser">
-          {{ inviteBusy ? 'Invio invito…' : 'Invia link di invito' }}
-        </button>
-        <p v-if="inviteMessage" class="muted" style="margin-top:.5rem;font-size:.8rem">{{ inviteMessage }}</p>
-      </div>
-
-      <div v-if="canManageProfiles" style="margin-top:.85rem">
-        <p><strong>Profili invitati (Supabase)</strong></p>
-        <p class="muted" style="margin-top:.25rem;font-size:.85rem">
-          Elenco profili acquisiti dal session recovery/invite flow e salvati localmente.
-        </p>
-
-        <div class="dataset-frame" style="margin-top:.5rem">
-        <table class="conflict-table" style="min-width:860px">
-          <thead>
-            <tr>
-              <th>Email</th>
-              <th>Nome</th>
-              <th>Cognome</th>
-              <th>Invitato da</th>
-              <th>Ultimo accesso</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="profile in invitedProfiles" :key="profile.email">
-              <td>{{ profile.email }}</td>
-              <td>{{ profile.firstName || '—' }}</td>
-              <td>{{ profile.lastName || '—' }}</td>
-              <td>{{ profile.invitedBy || '—' }}</td>
-              <td>{{ profile.lastSeenAt || profile.acceptedAt || '—' }}</td>
-            </tr>
-            <tr v-if="invitedProfiles.length === 0">
-              <td colspan="5" class="muted">Nessun profilo invitato acquisito localmente.</td>
-            </tr>
-          </tbody>
-        </table>
-        </div>
-        <button style="margin-top:.5rem" :disabled="usersBusy || inviteBusy" @click="refreshInvitedProfiles">
-          Aggiorna profili invitati
-        </button>
-        <p v-if="invitedProfilesMessage" class="muted" style="margin-top:.5rem;font-size:.8rem">{{ invitedProfilesMessage }}</p>
       </div>
 
       <div v-if="canManageTestData" style="margin-top:.85rem;padding:.75rem;border:1px dashed #d8b154;border-radius:.55rem">
