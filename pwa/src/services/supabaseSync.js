@@ -1,4 +1,5 @@
 /**
+/**
  * supabaseSync.js — Supabase-backed sync storage
  *
  * Drop-in replacement for gist.js with an identical public API surface
@@ -6,16 +7,17 @@
  * so sync.js only needs a single import-path change.
  *
  * Data lives in the public.sync_files Postgres table (see supabase/migrations/001_initial.sql).
- * Row-level security ensures only authenticated users can read/write.
+ * All access goes through SECURITY DEFINER RPCs (app_list_sync_files,
+ * app_download_sync_file, app_upload_sync_file) that validate the table-auth
+ * session token, so the anon Supabase client key is sufficient.
  *
  * Token parameters are kept for API compatibility but are NOT used — the
- * Supabase JS client handles auth via the persisted session automatically.
+ * table-auth session token is read from IndexedDB automatically.
  */
 import { isSupabaseConfigured, supabase } from './supabaseClient'
 import { getSetting, setSetting } from '../db'
+import { readStoredSession } from './supabaseTableAuth'
 import { NetworkError } from './errorHandling'
-
-const TABLE = 'sync_files'
 
 export const FILE_NAMES = {
     MANIFEST: 'meditrace-manifest.json',
@@ -30,6 +32,12 @@ function assertConfigured() {
                 'Aggiungi le stesse variabili in pwa/.env.local per lo sviluppo locale',
             ],
         })
+
+        async function requireSessionToken() {
+            const session = await readStoredSession()
+            if (!session?.token) throw new NetworkError('Sessione non attiva — accedi prima di sincronizzare', 401)
+            return session.token
+        }
     }
 }
 
@@ -42,15 +50,9 @@ function assertConfigured() {
 export async function listAppFiles(_token) {
     assertConfigured()
 
-    const { data, error } = await supabase
-        .from(TABLE)
-        .select('name')
-        .in('name', [FILE_NAMES.MANIFEST, FILE_NAMES.DATA])
-
-    if (error) {
-        throw new NetworkError(`Errore lettura sync_files: ${error.message}`, 500)
-    }
-
+    const token = await requireSessionToken()
+    const { data, error } = await supabase.rpc('app_list_sync_files', { p_token: token })
+    if (error) throw new NetworkError(`Errore lettura sync_files: ${error.message}`, 500)
     return (data ?? []).map(row => ({ id: row.name, name: row.name }))
 }
 
@@ -61,23 +63,17 @@ export async function listAppFiles(_token) {
 export async function downloadFile(_token, _gistId, fileName) {
     assertConfigured()
 
-    const { data, error } = await supabase
-        .from(TABLE)
-        .select('content')
-        .eq('name', fileName)
-        .single()
-
-    if (error || !data) {
-        throw new NetworkError(`File ${fileName} non trovato nel database di sincronizzazione`, 404, {
-            suggestedActions: [
-                'Esegui una prima sincronizzazione per inizializzare il dataset condiviso',
-                'Verifica che la tabella sync_files esista nel progetto Supabase',
-            ],
-        })
-    }
-
-    // content is stored as JSONB → Supabase JS client returns it already parsed
-    return data.content
+    const token = await requireSessionToken()
+    const { data, error } = await supabase.rpc('app_download_sync_file', { p_token: token, p_name: fileName })
+    if (error) throw new NetworkError(`File ${fileName} non trovato nel database di sincronizzazione`, 404, {
+        suggestedActions: [
+            'Esegui una prima sincronizzazione per inizializzare il dataset condiviso',
+            'Verifica che la tabella sync_files esista nel progetto Supabase',
+        ],
+    })
+    if (data == null) throw new NetworkError(`File ${fileName} non trovato nel database di sincronizzazione`, 404)
+    // The RPC returns JSONB cast to TEXT; parse it back to an object
+    return typeof data === 'string' ? JSON.parse(data) : data
 }
 
 /**
@@ -87,17 +83,16 @@ export async function downloadFile(_token, _gistId, fileName) {
 export async function uploadFile(_token, name, content, _existingId = null) {
     assertConfigured()
 
-    const now = new Date().toISOString()
-    const { error } = await supabase
-        .from(TABLE)
-        .upsert({ name, content, updated_at: now }, { onConflict: 'name' })
-
-    if (error) {
-        throw new NetworkError(`Errore scrittura sync_files (${name}): ${error.message}`, 500)
-    }
-
+    const token = await requireSessionToken()
+    const { data, error } = await supabase.rpc('app_upload_sync_file', {
+        p_token: token,
+        p_name: name,
+        p_content: typeof content === 'string' ? content : JSON.stringify(content),
+    })
+    if (error) throw new NetworkError(`Errore scrittura sync_files (${name}): ${error.message}`, 500)
+    const updatedAt = data ?? new Date().toISOString()
     await setSetting('syncBackend', 'supabase')
-    return { id: name, name, updatedAt: now }
+    return { id: name, name, updatedAt }
 }
 
 /**
@@ -123,31 +118,14 @@ export async function bootstrapDriveFiles(_token) {
         therapies: [], movements: [], reminders: [],
     }
 
-    const { data: existing, error: selectError } = await supabase
-        .from(TABLE)
-        .select('name')
-        .in('name', [FILE_NAMES.MANIFEST, FILE_NAMES.DATA])
-
-    if (selectError) {
-        throw new NetworkError(`Errore bootstrap sync_files: ${selectError.message}`, 500)
-    }
-
-    const existingNames = new Set((existing ?? []).map(r => r.name))
-    const now = new Date().toISOString()
-    const toInsert = []
+    const existingFiles = await listAppFiles(null)
+    const existingNames = new Set(existingFiles.map(f => f.name))
 
     if (!existingNames.has(FILE_NAMES.MANIFEST)) {
-        toInsert.push({ name: FILE_NAMES.MANIFEST, content: emptyManifest, updated_at: now })
+        await uploadFile(null, FILE_NAMES.MANIFEST, emptyManifest)
     }
     if (!existingNames.has(FILE_NAMES.DATA)) {
-        toInsert.push({ name: FILE_NAMES.DATA, content: emptyDataset, updated_at: now })
-    }
-
-    if (toInsert.length > 0) {
-        const { error: insertError } = await supabase.from(TABLE).insert(toInsert)
-        if (insertError) {
-            throw new NetworkError(`Errore creazione file iniziali: ${insertError.message}`, 500)
-        }
+        await uploadFile(null, FILE_NAMES.DATA, emptyDataset)
     }
 
     await setSetting('syncBackend', 'supabase')
