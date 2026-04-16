@@ -290,6 +290,51 @@ async function assertResidenzeVisible(page, residenze) {
     }
 }
 
+async function collectMissingResidenze(page, residenze, timeoutMs = 4000) {
+    await openResidenze(page)
+    const missing = []
+    for (const residenza of residenze) {
+        const byCellRole = await page
+            .getByRole('cell', { name: residenza.codice, exact: true })
+            .isVisible({ timeout: timeoutMs })
+            .catch(() => false)
+        const byRowText = byCellRole
+            ? true
+            : await page
+                .locator('tbody tr', { hasText: residenza.codice })
+                .first()
+                .isVisible({ timeout: Math.floor(timeoutMs / 2) })
+                .catch(() => false)
+
+        if (!byCellRole && !byRowText) missing.push(residenza.codice)
+    }
+    return missing
+}
+
+async function assertResidenzeVisibleWithRetry({
+    page,
+    residenze,
+    reconcilePage,
+    reconcileLabel,
+    report,
+    maxAttempts = 6,
+    waitBetweenAttemptsMs = 1500,
+}) {
+    let missing = []
+    for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+        missing = await collectMissingResidenze(page, residenze)
+        if (missing.length === 0) return
+
+        if (attempt < maxAttempts) {
+            const syncMessage = await runManualSync(reconcilePage)
+            report.syncMessages[`${reconcileLabel}Retry${attempt}`] = syncMessage
+            await page.waitForTimeout(waitBetweenAttemptsMs)
+        }
+    }
+
+    throw new Error(`Residenze non visibili dopo ${maxAttempts} tentativi: ${missing.join(', ')}`)
+}
+
 async function bestEffortDeleteResidenza(page, codice) {
     try {
         await openResidenze(page)
@@ -374,8 +419,20 @@ async function main() {
         report.syncMessages.reconcileA = await runManualSync(pageA)
 
         await Promise.all([
-            assertResidenzeVisible(pageA, residenze),
-            assertResidenzeVisible(pageB, residenze),
+            assertResidenzeVisibleWithRetry({
+                page: pageA,
+                residenze,
+                reconcilePage: pageA,
+                reconcileLabel: 'visibilityA',
+                report,
+            }),
+            assertResidenzeVisibleWithRetry({
+                page: pageB,
+                residenze,
+                reconcilePage: pageB,
+                reconcileLabel: 'visibilityB',
+                report,
+            }),
         ])
 
         report.success = true
