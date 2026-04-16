@@ -86,7 +86,7 @@ export async function uploadFile(_token, name, content, _existingId = null) {
     const { data, error } = await supabase.rpc('app_upload_sync_file', {
         p_token: token,
         p_name: name,
-        p_content: typeof content === 'string' ? content : JSON.stringify(content),
+        p_content: typeof content === 'string' ? JSON.parse(content) : content,
     })
     if (error) throw new NetworkError(`Errore scrittura sync_files (${name}): ${error.message}`, 500)
     const updatedAt = data ?? new Date().toISOString()
