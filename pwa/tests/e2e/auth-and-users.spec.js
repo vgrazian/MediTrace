@@ -75,6 +75,7 @@ test('seeded account login, sync, profile update, password change and users sect
 
     await page.getByLabel('Nome profilo', { exact: true }).fill('Mario')
     await page.getByLabel('Cognome profilo', { exact: true }).fill('Rossi')
+    await page.getByLabel('Username accesso', { exact: true }).fill('prova')
     await page.getByLabel('Telefono profilo', { exact: true }).fill('+39 333 1234567')
     await page.getByLabel('Email profilo', { exact: true }).fill('mario.rossi+seed@example.com')
     await page.getByRole('button', { name: 'Aggiorna profilo' }).click()
@@ -110,11 +111,8 @@ test('seeded account login, sync, profile update, password change and users sect
     }
     await expect(settingsHeading).toBeVisible({ timeout: 15000 })
 
-    // Validate seeded user row and destructive flow guard
-    await expect(page.getByText('prova (sessione attiva)')).toBeVisible()
-    page.once('dialog', dialog => dialog.dismiss())
-    await page.getByRole('button', { name: 'Elimina' }).first().click()
-
-    // User is still present because deletion confirmation was dismissed
-    await expect(page.getByText('prova (sessione attiva)')).toBeVisible()
+    // Validate seeded user row and guard on current session user actions
+    const currentUserRow = page.locator('table.conflict-table tbody tr').filter({ hasText: 'prova (sessione attiva)' }).first()
+    await expect(currentUserRow).toBeVisible()
+    await expect(currentUserRow.getByRole('button', { name: 'Elimina' })).toHaveCount(0)
 })

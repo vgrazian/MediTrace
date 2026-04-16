@@ -8,6 +8,7 @@
         "build": "vite build",
         "preview": "vite preview",
         "check:palette": "bash ./scripts/check-palette.sh",
+        "provision:default-users": "node ./scripts/provision-default-online-users.mjs",
         "test:online-main": "node ./scripts/online-two-user-sync.mjs \"$SITE_URL\"",
         "test:online-performance": "node ./scripts/online-performance-check.mjs \"$SITE_URL\"",
         "test:online-smoke": "bash ./scripts/smoke-pages.sh \"$SITE_URL\"",

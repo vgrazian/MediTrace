@@ -84,19 +84,42 @@ test('operatori management: add, list, reactivate, delete users with audit loggi
     const usersTable = page.locator('table.conflict-table').filter({ hasText: 'Username' }).first()
     await expect(usersTable.locator('tbody tr').first()).toBeVisible()
 
-    // 3. Invite a new operator (add user)
-    const inviteSection = page.locator('div.card').filter({ has: page.locator('strong', { hasText: 'Invita nuovo utente via email' }) }).first()
-    await inviteSection.locator('input[autocomplete="given-name"]').fill('Mario')
-    await inviteSection.locator('input[autocomplete="family-name"]').fill('Rossi')
-    await inviteSection.locator('input[autocomplete="email"]').fill('mario.rossi+test@example.com')
+    // 3. Create a new operator directly from admin panel
+    const suffix = Date.now().toString().slice(-6)
+    const managedUsername = `mariorossi${suffix}`
+    const managedEmail = `mario.rossi+${suffix}@example.com`
+    const createUserSection = page.locator('div.import-form').filter({ has: page.locator('p strong', { hasText: 'Crea nuovo utente' }) }).first()
 
-    const inviteButton = inviteSection.locator('button:has-text("Invia link di invito")')
-    await inviteButton.click()
+    await createUserSection.locator('input[autocomplete="given-name"]').fill('Mario')
+    await createUserSection.locator('input[autocomplete="family-name"]').fill('Rossi')
+    await createUserSection.locator('input[autocomplete="username"]').fill(managedUsername)
+    await createUserSection.locator('input[autocomplete="email"]').fill(managedEmail)
+    await createUserSection.locator('input[autocomplete="new-password"]').fill('NuovaPassword123!')
+    await createUserSection.getByRole('button', { name: 'Crea utente' }).click()
 
-    // Verify invite action produced a feedback message
-    await expect(inviteSection.locator('p').filter({ hasText: /Invito|Errore invito/i }).first()).toBeVisible()
+    await expect(page.getByText(`Utente ${managedUsername} creato.`)).toBeVisible()
 
-    // 4. Verify audit log records the invite action
+    const usersTableNew = page.locator('table.conflict-table').filter({ hasText: 'Username' }).first()
+    const managedRow = usersTableNew.locator('tbody tr').filter({ hasText: managedUsername }).first()
+    await expect(managedRow).toBeVisible()
+
+    // Disable and re-enable the created user
+    await managedRow.getByRole('button', { name: 'Disattiva' }).click()
+    await expect(page.getByText(`Utente ${managedUsername} disattivato.`)).toBeVisible()
+    await expect(managedRow.getByRole('button', { name: 'Riattiva' })).toBeVisible()
+
+    await managedRow.getByRole('button', { name: 'Riattiva' }).click()
+    await expect(page.getByText(`Utente ${managedUsername} riattivato.`)).toBeVisible()
+    await expect(managedRow.getByRole('button', { name: 'Disattiva' })).toBeVisible()
+
+    // Delete user with confirmation
+    await managedRow.getByRole('button', { name: 'Elimina' }).click()
+    await page.getByText('Elimina Utente').first().waitFor({ state: 'visible', timeout: 10000 })
+    await page.getByRole('button', { name: 'Elimina Utente' }).click()
+    await expect(page.getByText(`Utente ${managedUsername} eliminato definitivamente.`)).toBeVisible()
+    await expect(usersTableNew.locator('tbody tr').filter({ hasText: managedUsername })).toHaveCount(0)
+
+    // 4. Verify audit log section remains available after user management actions
     await page.getByRole('link', { name: 'Audit' }).click()
     await expect(page.getByRole('heading', { name: /Audit/ })).toBeVisible()
 
@@ -104,12 +127,11 @@ test('operatori management: add, list, reactivate, delete users with audit loggi
     const auditTable = page.locator('table[aria-label="Registro operazioni"]').first()
     await expect(auditTable).toBeVisible()
 
-    // 5. Return to settings to test user deactivation/reactivation
+    // 5. Return to settings and ensure seeded row is still present
     await page.getByRole('link', { name: '⚙' }).click()
     await expect(page.getByRole('heading', { name: 'Impostazioni' })).toBeVisible()
 
-    // Test data management - ensure we can toggle seeded users
-    const usersTableNew = page.locator('table.conflict-table').filter({ hasText: 'Username' }).first()
+    // Test data management - ensure seeded current user row remains visible
     const provaRow = usersTableNew.locator('tbody tr').filter({ hasText: 'prova' })
 
     // If there's a Disattiva button, that means the user is active/seeded
@@ -209,6 +231,7 @@ test('operatori view: profile update creates audit entries', async ({ page }) =>
     // Update profile fields
     await page.getByLabel('Nome profilo', { exact: true }).fill('Giovanni')
     await page.getByLabel('Cognome profilo', { exact: true }).fill('Bianchi')
+    await page.getByLabel('Username accesso', { exact: true }).fill('prova')
     await page.getByLabel('Telefono profilo', { exact: true }).fill('+39 333 9999999')
     await page.getByLabel('Email profilo', { exact: true }).fill('giovanni.bianchi+test@example.com')
 
