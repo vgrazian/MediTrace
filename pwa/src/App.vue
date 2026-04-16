@@ -5,18 +5,14 @@ import AppNav from './components/AppNav.vue'
 import HelpDrawer from './components/HelpDrawer.vue'
 import ConfirmDialog from './components/ConfirmDialog.vue'
 import { initAuth, sanitizeEmailInput, sanitizeUsernameInput, useAuth } from './services/auth'
-import { isSupabaseConfigured } from './services/supabaseClient'
 import { formatBuildTimestamp, getBuildTimestampIso } from './services/buildInfo'
 
-const { currentUser, hasUsers, isInitialized, signIn, register, requestPasswordResetByEmail } = useAuth()
+const { currentUser, hasUsers, isInitialized, signIn, register } = useAuth()
 const route = useRoute()
 const isAuthRecoveryRoute = computed(() => route.path === '/auth/reset-password')
 
 const username = ref('')
 const password = ref('')
-const resetEmail = ref('')
-const resetBusy = ref(false)
-const resetMessage = ref('')
 
 const regUsername = ref('')
 const regFirstName = ref('')
@@ -24,11 +20,9 @@ const regLastName = ref('')
 const regEmail = ref('')
 const regPassword = ref('')
 const regConfirmPassword = ref('')
-const regGithubToken = ref('')
 
 const loginError = ref('')
 const loginBusy = ref(false)
-const requiresLegacyGithubToken = !isSupabaseConfigured
 const buildTimestampLabel = formatBuildTimestamp('it-IT')
 const buildTimestampIso = getBuildTimestampIso()
 
@@ -44,10 +38,6 @@ function handleRegUsernameInput(event) {
 
 function handleRegEmailInput(event) {
   regEmail.value = sanitizeEmailInput(event.target.value)
-}
-
-function handleResetEmailInput(event) {
-  resetEmail.value = sanitizeEmailInput(event.target.value)
 }
 
 async function handleLogin() {
@@ -74,7 +64,6 @@ async function handleRegister() {
     || !regEmail.value.trim()
     || !regPassword.value
     || !regConfirmPassword.value
-    || (requiresLegacyGithubToken && !regGithubToken.value.trim())
   ) return
 
   loginBusy.value = true
@@ -87,7 +76,6 @@ async function handleRegister() {
       email: regEmail.value.trim(),
       password: regPassword.value,
       confirmPassword: regConfirmPassword.value,
-      githubToken: regGithubToken.value.trim(),
     })
 
     regFirstName.value = ''
@@ -95,7 +83,6 @@ async function handleRegister() {
     regEmail.value = ''
     regPassword.value = ''
     regConfirmPassword.value = ''
-    regGithubToken.value = ''
   } catch (err) {
     loginError.value = err.message
   } finally {
@@ -103,20 +90,6 @@ async function handleRegister() {
   }
 }
 
-async function handlePasswordResetEmail() {
-  if (!resetEmail.value.trim()) return
-
-  resetBusy.value = true
-  resetMessage.value = ''
-  try {
-    await requestPasswordResetByEmail(resetEmail.value.trim())
-    resetMessage.value = 'Email di reset inviata. Controlla la casella di posta.'
-  } catch (err) {
-    resetMessage.value = err.message
-  } finally {
-    resetBusy.value = false
-  }
-}
 </script>
 
 <template>
@@ -162,23 +135,13 @@ async function handlePasswordResetEmail() {
           />
 
           <label for="reg-password">Password</label>
-          <input id="reg-password" v-model="regPassword" type="password" placeholder="Minimo 8 caratteri" autocomplete="new-password" />
+          <input id="reg-password" v-model="regPassword" type="password" placeholder="Minimo 10 caratteri" autocomplete="new-password" />
 
           <label for="reg-confirm-password">Conferma password</label>
           <input id="reg-confirm-password" v-model="regConfirmPassword" type="password" placeholder="Ripeti password" autocomplete="new-password" @keyup.enter="handleRegister" />
 
-          <label for="reg-gh-token">Token GitHub (solo configurazione iniziale sincronizzazione)</label>
-          <input
-            id="reg-gh-token"
-            v-model="regGithubToken"
-            type="password"
-            placeholder="github_pat_..."
-            autocomplete="off"
-            :disabled="!requiresLegacyGithubToken"
-          />
-
-          <button :disabled="loginBusy || !regUsername.trim() || !regFirstName.trim() || !regLastName.trim() || !regEmail.trim() || !regPassword || !regConfirmPassword || (requiresLegacyGithubToken && !regGithubToken.trim())" @click="handleRegister">
-            {{ loginBusy ? 'Creazione account…' : 'Crea account e accedi' }}
+          <button :disabled="loginBusy || !regUsername.trim() || !regFirstName.trim() || !regLastName.trim() || !regEmail.trim() || !regPassword || !regConfirmPassword" @click="handleRegister">
+            {{ loginBusy ? 'Creazione account…' : 'Crea account admin e accedi' }}
           </button>
         </div>
 
@@ -202,28 +165,12 @@ async function handlePasswordResetEmail() {
             {{ loginBusy ? 'Accesso in corso…' : 'Accedi' }}
           </button>
 
-          <hr style="border:none;border-top:1px solid #e5e7eb;margin:.25rem 0 .5rem" />
-
-          <label for="reset-email">Reset password via email</label>
-          <input
-            id="reset-email"
-            v-model="resetEmail"
-            type="email"
-            placeholder="utente@example.com"
-            autocomplete="email"
-            @input="handleResetEmailInput"
-          />
-
-          <button :disabled="resetBusy || !resetEmail.trim()" @click="handlePasswordResetEmail">
-            {{ resetBusy ? 'Invio in corso…' : 'Invia email reset password' }}
-          </button>
-          <p v-if="resetMessage" class="auth-help" style="margin-top:.25rem">{{ resetMessage }}</p>
         </div>
 
         <p v-if="loginError" class="login-error">{{ loginError }}</p>
 
         <p class="auth-help">
-          Al primo avvio crea un account operatore. I successivi accessi useranno solo username e password.
+          Al primo avvio crea l'account amministratore. Gli altri utenti verranno creati dal pannello impostazioni e accederanno con username e password.
         </p>
         <p class="build-meta" :title="`Build ISO: ${buildTimestampIso}`">
           Build: {{ buildTimestampLabel }}
