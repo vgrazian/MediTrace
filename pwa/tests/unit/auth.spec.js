@@ -4,12 +4,19 @@ const settings = new Map()
 const authEvents = []
 const supabaseProfiles = []
 const supabasePasswords = new Map()
+const supabaseSessions = new Map()
 let supabaseCurrentUserId = null
 let supabaseUserSeq = 0
+let supabaseSessionSeq = 0
 
 function nextSupabaseUserId() {
     supabaseUserSeq += 1
     return `supabase-user-${supabaseUserSeq}`
+}
+
+function nextSupabaseSessionToken() {
+    supabaseSessionSeq += 1
+    return `supabase-session-${supabaseSessionSeq}`
 }
 
 function cloneProfile(profile) {
@@ -23,6 +30,260 @@ function findSupabaseProfileById(id) {
 function findSupabaseProfileByEmail(email) {
     const normalized = String(email ?? '').trim().toLowerCase()
     return supabaseProfiles.find(profile => String(profile.email ?? '').trim().toLowerCase() === normalized) ?? null
+}
+
+function findSupabaseProfileByUsername(username) {
+    const normalized = String(username ?? '').trim().toLowerCase()
+    return supabaseProfiles.find(profile => String(profile.username ?? '').trim().toLowerCase() === normalized) ?? null
+}
+
+function normalizeUserPayload(profile) {
+    return {
+        id: profile.id,
+        username: profile.username,
+        email: profile.email,
+        role: profile.role,
+        first_name: profile.first_name,
+        last_name: profile.last_name,
+        phone: profile.phone,
+        disabled: profile.disabled,
+        is_seeded: profile.is_seeded,
+        created_at: profile.created_at,
+        updated_at: profile.updated_at,
+    }
+}
+
+function createSupabaseSession(userId) {
+    const now = new Date()
+    const session = {
+        token: nextSupabaseSessionToken(),
+        user_id: userId,
+        created_at: now.toISOString(),
+        last_activity_at: now.toISOString(),
+        expires_at: new Date(now.getTime() + (8 * 60 * 60 * 1000)).toISOString(),
+        revoked_at: null,
+    }
+    supabaseSessions.set(session.token, session)
+    return session
+}
+
+function normalizeSessionPayload(session) {
+    return {
+        token: session.token,
+        created_at: session.created_at,
+        last_activity_at: session.last_activity_at,
+        expires_at: session.expires_at,
+    }
+}
+
+function requireSupabaseSession(token, requireAdmin = false) {
+    const session = supabaseSessions.get(token)
+    if (!session || session.revoked_at) {
+        throw new Error('Sessione non attiva')
+    }
+
+    const profile = findSupabaseProfileById(session.user_id)
+    if (!profile || profile.disabled) {
+        throw new Error('Utente non disponibile')
+    }
+
+    if (requireAdmin && profile.role !== 'admin') {
+        throw new Error('Permesso negato: solo admin')
+    }
+
+    session.last_activity_at = new Date().toISOString()
+    return { session, profile }
+}
+
+async function supabaseRpc(name, params = {}) {
+    try {
+        switch (name) {
+            case 'app_has_users':
+                return { data: supabaseProfiles.some(profile => !profile.disabled), error: null }
+            case 'app_register_first_admin': {
+                if (supabaseProfiles.some(profile => !profile.disabled)) {
+                    return { data: null, error: { message: 'Bootstrap admin non disponibile: esistono gia utenti attivi' } }
+                }
+                if (findSupabaseProfileByUsername(params.p_username) || findSupabaseProfileByEmail(params.p_email)) {
+                    return { data: null, error: { message: 'Username o email gia esistenti' } }
+                }
+                const id = nextSupabaseUserId()
+                const now = new Date().toISOString()
+                const profile = {
+                    id,
+                    username: String(params.p_username).trim().toLowerCase(),
+                    email: String(params.p_email).trim().toLowerCase(),
+                    role: 'admin',
+                    first_name: params.p_first_name ?? '',
+                    last_name: params.p_last_name ?? '',
+                    phone: params.p_phone ?? '',
+                    disabled: false,
+                    is_seeded: false,
+                    created_at: now,
+                    updated_at: now,
+                }
+                supabaseProfiles.push(profile)
+                supabasePasswords.set(id, params.p_password)
+                const session = createSupabaseSession(id)
+                supabaseCurrentUserId = id
+                return { data: { user: normalizeUserPayload(profile), session: normalizeSessionPayload(session) }, error: null }
+            }
+            case 'app_sign_in': {
+                const profile = findSupabaseProfileByUsername(params.p_username)
+                if (!profile || profile.disabled) {
+                    return { data: null, error: { message: 'Utente non trovato' } }
+                }
+                if (supabasePasswords.get(profile.id) !== params.p_password) {
+                    return { data: null, error: { message: 'Password non valida' } }
+                }
+                const session = createSupabaseSession(profile.id)
+                supabaseCurrentUserId = profile.id
+                return { data: { user: normalizeUserPayload(profile), session: normalizeSessionPayload(session) }, error: null }
+            }
+            case 'app_validate_session': {
+                const { session, profile } = requireSupabaseSession(params.p_token, false)
+                return { data: { user: normalizeUserPayload(profile), session: normalizeSessionPayload(session) }, error: null }
+            }
+            case 'app_sign_out': {
+                const session = supabaseSessions.get(params.p_token)
+                if (session && !session.revoked_at) {
+                    session.revoked_at = new Date().toISOString()
+                    if (supabaseCurrentUserId === session.user_id) supabaseCurrentUserId = null
+                }
+                return { data: true, error: null }
+            }
+            case 'app_change_password': {
+                const { profile } = requireSupabaseSession(params.p_token, false)
+                if (supabasePasswords.get(profile.id) !== params.p_current_password) {
+                    return { data: null, error: { message: 'Password corrente non valida' } }
+                }
+                supabasePasswords.set(profile.id, params.p_new_password)
+                profile.updated_at = new Date().toISOString()
+                for (const session of supabaseSessions.values()) {
+                    if (session.user_id === profile.id && !session.revoked_at) {
+                        session.revoked_at = new Date().toISOString()
+                    }
+                }
+                supabaseCurrentUserId = null
+                return { data: normalizeUserPayload(profile), error: null }
+            }
+            case 'app_update_profile': {
+                const { session, profile } = requireSupabaseSession(params.p_token, false)
+                const username = String(params.p_username ?? '').trim().toLowerCase()
+                const email = String(params.p_email ?? '').trim().toLowerCase()
+                if (supabaseProfiles.some(candidate => candidate.id !== profile.id && candidate.username === username)) {
+                    return { data: null, error: { message: 'Username gia esistente' } }
+                }
+                if (supabaseProfiles.some(candidate => candidate.id !== profile.id && String(candidate.email).toLowerCase() === email)) {
+                    return { data: null, error: { message: 'Email gia esistente' } }
+                }
+                profile.username = username
+                profile.first_name = params.p_first_name ?? ''
+                profile.last_name = params.p_last_name ?? ''
+                profile.email = email
+                profile.phone = params.p_phone ?? ''
+                profile.updated_at = new Date().toISOString()
+                return { data: { user: normalizeUserPayload(profile), session: normalizeSessionPayload(session) }, error: null }
+            }
+            case 'app_list_users': {
+                requireSupabaseSession(params.p_token, true)
+                const data = [...supabaseProfiles]
+                    .sort((left, right) => left.username.localeCompare(right.username))
+                    .map(normalizeUserPayload)
+                return { data, error: null }
+            }
+            case 'app_create_user': {
+                requireSupabaseSession(params.p_token, true)
+                const username = String(params.p_username ?? '').trim().toLowerCase()
+                const email = String(params.p_email ?? '').trim().toLowerCase()
+                if (findSupabaseProfileByUsername(username) || findSupabaseProfileByEmail(email)) {
+                    return { data: null, error: { message: 'Username o email gia esistenti' } }
+                }
+                const id = nextSupabaseUserId()
+                const now = new Date().toISOString()
+                const profile = {
+                    id,
+                    username,
+                    email,
+                    role: params.p_role === 'admin' ? 'admin' : 'operator',
+                    first_name: params.p_first_name ?? '',
+                    last_name: params.p_last_name ?? '',
+                    phone: params.p_phone ?? '',
+                    disabled: false,
+                    is_seeded: Boolean(params.p_is_seeded),
+                    created_at: now,
+                    updated_at: now,
+                }
+                supabaseProfiles.push(profile)
+                supabasePasswords.set(id, params.p_password)
+                return { data: normalizeUserPayload(profile), error: null }
+            }
+            case 'app_set_user_disabled': {
+                const { profile: actor } = requireSupabaseSession(params.p_token, true)
+                const target = findSupabaseProfileByUsername(params.p_username)
+                if (!target) {
+                    return { data: null, error: { message: 'Utente non trovato' } }
+                }
+                if (target.role === 'admin' && params.p_disabled) {
+                    const otherAdmins = supabaseProfiles.filter(profile => profile.role === 'admin' && !profile.disabled && profile.id !== target.id)
+                    if (otherAdmins.length === 0) {
+                        return { data: null, error: { message: 'Almeno un admin attivo e obbligatorio' } }
+                    }
+                }
+                target.disabled = Boolean(params.p_disabled)
+                target.updated_at = new Date().toISOString()
+                for (const session of supabaseSessions.values()) {
+                    if (session.user_id === target.id && !session.revoked_at) {
+                        session.revoked_at = new Date().toISOString()
+                    }
+                }
+                if (actor.id === target.id && target.disabled) supabaseCurrentUserId = null
+                return { data: normalizeUserPayload(target), error: null }
+            }
+            case 'app_delete_user': {
+                const { profile: actor } = requireSupabaseSession(params.p_token, true)
+                const target = findSupabaseProfileByUsername(params.p_username)
+                if (!target) {
+                    return { data: null, error: { message: 'Utente non trovato' } }
+                }
+                if (actor.id === target.id) {
+                    return { data: null, error: { message: 'Non puoi eliminare la tua utenza dalla sessione corrente' } }
+                }
+                if (target.role === 'admin' && !target.disabled) {
+                    const otherAdmins = supabaseProfiles.filter(profile => profile.role === 'admin' && !profile.disabled && profile.id !== target.id)
+                    if (otherAdmins.length === 0) {
+                        return { data: null, error: { message: 'Almeno un admin attivo e obbligatorio' } }
+                    }
+                }
+                const idx = supabaseProfiles.findIndex(profile => profile.id === target.id)
+                supabaseProfiles.splice(idx, 1)
+                supabasePasswords.delete(target.id)
+                for (const [token, session] of supabaseSessions.entries()) {
+                    if (session.user_id === target.id) supabaseSessions.delete(token)
+                }
+                return { data: true, error: null }
+            }
+            case 'app_disable_self_seeded': {
+                const { profile } = requireSupabaseSession(params.p_token, false)
+                if (!profile.is_seeded) {
+                    return { data: null, error: { message: 'Solo gli account di prova possono essere disattivati qui' } }
+                }
+                profile.disabled = true
+                profile.updated_at = new Date().toISOString()
+                for (const session of supabaseSessions.values()) {
+                    if (session.user_id === profile.id && !session.revoked_at) {
+                        session.revoked_at = new Date().toISOString()
+                    }
+                }
+                if (supabaseCurrentUserId === profile.id) supabaseCurrentUserId = null
+                return { data: true, error: null }
+            }
+            default:
+                return { data: null, error: { message: `Unsupported rpc in test mock: ${name}` } }
+        }
+    } catch (error) {
+        return { data: null, error: { message: error.message } }
+    }
 }
 
 function createProfilesQueryBuilder() {
@@ -178,6 +439,7 @@ vi.mock('../../src/services/supabaseClient', () => ({
     isSupabaseConfigured: true,
     getSupabaseRedirectTo: vi.fn(() => 'http://localhost:5173/#/auth/reset-password'),
     supabase: {
+        rpc: vi.fn((name, params) => supabaseRpc(name, params)),
         auth: supabaseAuth,
         from(tableName) {
             if (tableName !== 'profiles') {
@@ -260,8 +522,10 @@ describe('auth service', () => {
 
         supabaseProfiles.length = 0
         supabasePasswords.clear()
+        supabaseSessions.clear()
         supabaseCurrentUserId = null
         supabaseUserSeq = 0
+        supabaseSessionSeq = 0
 
         supabaseAuth.resetPasswordForEmail.mockResolvedValue({ error: null })
         supabaseAuth.signInWithOtp.mockResolvedValue({ error: null })
@@ -464,14 +728,12 @@ describe('auth service', () => {
             githubToken: 'github_pat_any_value',
         })
 
-        await auth.register({
+        await auth.createUser({
             username: 'operatore2',
             firstName: 'Secondo',
             lastName: 'Operatore',
             email: 'operatore2@example.com',
             password: 'Password123!',
-            confirmPassword: 'Password123!',
-            githubToken: 'github_pat_any_value',
         })
 
         await auth.signOut()
@@ -568,23 +830,18 @@ describe('auth service', () => {
         expect(authTestUtils.sanitizeUsernameInput('  Operatore<script>!  ')).toBe('operatorescript')
     })
 
-    it('requests password reset email via Supabase', async () => {
+    it('rejects password reset email flow in table-auth mode', async () => {
         const authModule = await import('../../src/services/auth')
         const { initAuth, useAuth } = authModule
         const auth = useAuth()
 
         await initAuth()
-        await auth.requestPasswordResetByEmail('  User.Email@Example.com  ', {
+        await expect(auth.requestPasswordResetByEmail('  User.Email@Example.com  ', {
             redirectTo: 'http://localhost:5173/#/auth/reset-password',
-        })
-
-        expect(supabaseAuth.resetPasswordForEmail).toHaveBeenCalledWith(
-            'user.email@example.com',
-            { redirectTo: 'http://localhost:5173/#/auth/reset-password' },
-        )
+        })).rejects.toThrow('Reset password via email non disponibile')
     })
 
-    it('sends invite link via Supabase for admin user', async () => {
+    it('rejects invite email flow in table-auth mode', async () => {
         const authModule = await import('../../src/services/auth')
         const { initAuth, useAuth } = authModule
         const auth = useAuth()
@@ -604,29 +861,15 @@ describe('auth service', () => {
         await auth.signOut()
         await auth.signIn({ username: 'inviter', password: 'Password123!' })
 
-        await auth.sendInviteLink({
+        await expect(auth.sendInviteLink({
             email: 'new.operator@example.com',
             firstName: 'New',
             lastName: 'Operator',
             redirectTo: 'http://localhost:5173/#/auth/reset-password',
-        })
-
-        expect(supabaseAuth.signInWithOtp).toHaveBeenCalledWith({
-            email: 'new.operator@example.com',
-            options: {
-                shouldCreateUser: true,
-                emailRedirectTo: 'http://localhost:5173/#/auth/reset-password',
-                data: {
-                    firstName: 'New',
-                    lastName: 'Operator',
-                    invitedBy: 'inviter',
-                    inviteFlow: 'meditrace-admin',
-                },
-            },
-        })
+        })).rejects.toThrow('Inviti email non ancora implementati')
     })
 
-    it('completes password recovery and updates local password hash', async () => {
+    it('rejects password recovery completion in table-auth mode', async () => {
         const authModule = await import('../../src/services/auth')
         const { initAuth, useAuth } = authModule
         const auth = useAuth()
@@ -642,53 +885,10 @@ describe('auth service', () => {
             githubToken: 'github_pat_any_value',
         })
 
-        const now = new Date().toISOString()
-        settings.set('authUsers', [{
-            id: 'local-recoverme',
-            username: 'recoverme',
-            githubLogin: 'recoverme',
-            githubName: 'Recover Me',
-            githubAvatarUrl: '',
-            firstName: 'Recover',
-            lastName: 'Me',
-            email: 'recover.me@example.com',
-            phone: '',
-            role: 'operator',
-            disabled: false,
-            isSeeded: false,
-            passwordSalt: 'test-salt',
-            passwordHash: 'test-hash',
-            createdAt: now,
-            updatedAt: now,
-        }])
-
-        supabaseAuth.getUser.mockResolvedValue({
-            data: {
-                user: {
-                    email: 'recover.me@example.com',
-                },
-            },
-            error: null,
-        })
-
-        const result = await auth.completePasswordRecovery({
+        await expect(auth.completePasswordRecovery({
             newPassword: 'Recovery123!#',
             confirmPassword: 'Recovery123!#',
-        })
-
-        expect(result).toEqual({
-            username: 'recoverme',
-            email: 'recover.me@example.com',
-        })
-
-        expect(supabaseAuth.updateUser).toHaveBeenCalledWith({
-            password: 'Recovery123!#',
-        })
-        expect(supabaseAuth.signOut).toHaveBeenCalled()
-
-        await expect(auth.signIn({ username: 'recoverme', password: 'Password123!' })).rejects.toThrow('Password non valida')
-        await auth.signIn({ username: 'recoverme', password: 'Recovery123!#' })
-        expect(auth.currentUser.value?.username).toBe('recoverme')
+        })).rejects.toThrow('Recupero password via link email non disponibile')
     })
 
     it('records core auth audit events for checklist coverage', async () => {
@@ -712,16 +912,16 @@ describe('auth service', () => {
 
         await expect(auth.signIn({ username: 'auditadmin', password: 'wrong-password' })).rejects.toThrow('Password non valida')
 
-        await auth.requestPasswordResetByEmail('audit.admin@example.com', {
+        await expect(auth.requestPasswordResetByEmail('audit.admin@example.com', {
             redirectTo: 'http://localhost:5173/#/auth/reset-password',
-        })
+        })).rejects.toThrow('Reset password via email non disponibile')
 
-        await auth.sendInviteLink({
+        await expect(auth.sendInviteLink({
             email: 'invite.target@example.com',
             firstName: 'Invite',
             lastName: 'Target',
             redirectTo: 'http://localhost:5173/#/auth/reset-password',
-        })
+        })).rejects.toThrow('Inviti email non ancora implementati')
 
         await expect(auth.changePassword({
             currentPassword: 'Password123!',
@@ -732,8 +932,6 @@ describe('auth service', () => {
         const actions = authEvents.map(event => event.action)
         expect(actions).toContain('auth_signout')
         expect(actions).toContain('auth_signin_success')
-        expect(actions).toContain('auth_password_reset_email_requested')
-        expect(actions).toContain('auth_invite_email_sent')
         expect(actions).toContain('auth_password_changed')
     })
 
@@ -794,6 +992,7 @@ describe('auth service', () => {
         })
 
         const updated = await auth.updateCurrentProfile({
+            username: 'profileuser',
             firstName: 'Mario',
             lastName: 'Rossi',
             phone: '+39 333 1234567',
@@ -823,18 +1022,20 @@ describe('auth service', () => {
             confirmPassword: 'Password123!',
             githubToken: 'github_pat_any_value',
         })
-        await auth.signOut()
-        await auth.register({
+
+        await auth.createUser({
             username: 'seconduser',
             firstName: 'Second',
             lastName: 'User',
             email: 'second.user@example.com',
             password: 'Password123!',
-            confirmPassword: 'Password123!',
-            githubToken: 'github_pat_any_value',
         })
 
+        await auth.signOut()
+        await auth.signIn({ username: 'seconduser', password: 'Password123!' })
+
         await expect(auth.updateCurrentProfile({
+            username: 'seconduser',
             firstName: 'Second',
             lastName: 'User',
             phone: '',

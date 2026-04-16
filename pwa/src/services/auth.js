@@ -634,8 +634,8 @@ const SUPABASE_PROFILE_CACHE_KEY = 'supabaseProfileCache'
 const SUPABASE_HAS_USERS_KEY = 'supabaseHasUsers'
 
 function buildCurrentUserFromProfile(profile) {
-    const firstName = String(profile.first_name ?? '').trim()
-    const lastName = String(profile.last_name ?? '').trim()
+    const firstName = String(profile.first_name ?? profile.firstName ?? '').trim()
+    const lastName = String(profile.last_name ?? profile.lastName ?? '').trim()
     return {
         username: profile.username,
         login: profile.username,     // reuse as operatorId / audit log field
@@ -646,10 +646,10 @@ function buildCurrentUserFromProfile(profile) {
         phone: normalizePhone(profile.phone ?? ''),
         role: normalizeRole(profile.role),
         avatarUrl: null,
-        isSeeded: Boolean(profile.is_seeded),
+        isSeeded: Boolean(profile.is_seeded ?? profile.isSeeded),
         supabaseId: profile.id,
-        createdAt: profile.created_at ?? null,
-        updatedAt: profile.updated_at ?? null,
+        createdAt: profile.created_at ?? profile.createdAt ?? null,
+        updatedAt: profile.updated_at ?? profile.updatedAt ?? null,
     }
 }
 
