@@ -86,6 +86,8 @@ export async function fullSync(token) {
     const remoteManifest = await downloadFile(token, gistId, FILE_NAMES.MANIFEST)
     const localVersion = (await getSetting('datasetVersion')) ?? -1
 
+    let downloadedInfo = null
+
     if (remoteManifest.datasetVersion > localVersion) {
         // Remote is ahead — download and merge
         const remoteDataset = await downloadFile(token, gistId, FILE_NAMES.DATA)
@@ -125,7 +127,7 @@ export async function fullSync(token) {
             }
         }
 
-        return {
+        downloadedInfo = {
             downloaded: true,
             datasetVersion: remoteManifest.datasetVersion,
             conflicts: conflicts.length > 0 ? conflicts : undefined,
@@ -149,6 +151,7 @@ export async function fullSync(token) {
         })
 
         return {
+            ...(downloadedInfo ?? {}),
             blocked: true,
             reason: 'pending-conflicts',
             conflicts: unresolvedConflicts.length,
@@ -166,6 +169,7 @@ export async function fullSync(token) {
             operatorId: null,
             ts: new Date().toISOString(),
         })
+        if (downloadedInfo) return downloadedInfo
         return { upToDate: true }
     }
 
@@ -234,7 +238,11 @@ export async function fullSync(token) {
             },
         })
 
-        return { uploaded: true, datasetVersion: uploadedVersion }
+        return {
+            ...(downloadedInfo ?? {}),
+            uploaded: true,
+            datasetVersion: uploadedVersion,
+        }
     }
 
     const newVersion = (remoteManifest.datasetVersion ?? 0) + 1
@@ -267,7 +275,11 @@ export async function fullSync(token) {
         },
     })
 
-    return { uploaded: true, datasetVersion: newVersion }
+    return {
+        ...(downloadedInfo ?? {}),
+        uploaded: true,
+        datasetVersion: newVersion,
+    }
 }
 
 // ── Export ────────────────────────────────────────────────────────────────────

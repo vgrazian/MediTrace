@@ -72,6 +72,28 @@ export function buildSyntheticResidenze(runContext) {
     ]
 }
 
+export function buildSyntheticFarmaci(runContext) {
+    const marker = runContext.slug.toUpperCase()
+    return [
+        {
+            nomeFarmaco: `QA Farmaco ${marker} A`,
+            principioAttivo: `QA PA ${marker} A`,
+            classeTerapeutica: 'Validazione Sync',
+            scortaMinima: '5',
+            sogliaAutonomia: '30',
+            label: 'farmaco-a',
+        },
+        {
+            nomeFarmaco: `QA Farmaco ${marker} B`,
+            principioAttivo: `QA PA ${marker} B`,
+            classeTerapeutica: 'Validazione Sync',
+            scortaMinima: '6',
+            sogliaAutonomia: '35',
+            label: 'farmaco-b',
+        },
+    ]
+}
+
 export function redactUser(user) {
     return {
         username: user.username,
