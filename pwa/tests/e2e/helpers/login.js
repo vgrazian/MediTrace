@@ -60,11 +60,12 @@ export async function loginOrRegisterSeededUser(page, {
             await page.locator('#reg-password').fill(password)
             await page.locator('#reg-confirm-password').fill(password)
             const githubTokenInput = page.locator('#reg-gh-token')
-            const tokenDisabled = await githubTokenInput.isDisabled().catch(() => false)
-            if (!tokenDisabled) {
+            const tokenVisible = await githubTokenInput.isVisible().catch(() => false)
+            const tokenDisabled = tokenVisible ? await githubTokenInput.isDisabled().catch(() => false) : true
+            if (tokenVisible && !tokenDisabled) {
                 await githubTokenInput.fill(githubToken)
             }
-            await page.getByRole('button', { name: 'Crea account e accedi' }).click()
+            await page.getByRole('button', { name: /Crea account.*accedi/i }).click()
             await page.waitForLoadState('load')
             await awaitAuthenticated(9000)
             if (await page.locator('main').isVisible()) break

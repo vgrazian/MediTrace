@@ -110,6 +110,12 @@ PR #70 (`feat(seed): demo operators + android phone smoke`) merged to `main`; re
 2. Add matching E2E and unit coverage for recovery and save-state paths
 3. Keep docs/changelog aligned for each release slice
 
+## E2E Coverage Follow-up (2026-04-16)
+1. [P1] Implement full reset-password online E2E with Supabase profile (request email, consume token, login with new password).
+2. [P1] Stabilize and automate online two-user sync scenario in Playwright (seed remote users + deterministic cooldown/rate-limit handling).
+3. [P2] Add cross-browser parity flow (Chromium + Firefox + WebKit) for one critical care workflow.
+4. [P2] Add Playwright-driven JS coverage instrumentation for E2E line/branch metrics.
+
 ## Current Priority
 - HIGH: Preserve green CI/deploy baseline after PR #70 merge
 - HIGH: Continue CRUD UX follow-up wave 2 from refreshed main baseline
