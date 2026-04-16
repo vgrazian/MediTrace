@@ -33,3 +33,9 @@ export function uploadFile(token, name, content, existingId) {
 export function bootstrapDriveFiles(token) {
     return backend().bootstrapDriveFiles(token)
 }
+
+export function commitSnapshot(token, payload) {
+    const active = backend()
+    if (typeof active.commitSnapshot !== 'function') return null
+    return active.commitSnapshot(token, payload)
+}

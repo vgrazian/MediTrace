@@ -12,7 +12,7 @@
  *  - GitHub Gist legacy mode otherwise
  */
 import { db, getSetting, setSetting, getSyncState, setSyncState } from '../db'
-import { listAppFiles, downloadFile, uploadFile, bootstrapDriveFiles, FILE_NAMES } from './syncBackend'
+import { listAppFiles, downloadFile, uploadFile, bootstrapDriveFiles, commitSnapshot, FILE_NAMES } from './syncBackend'
 import { isSupabaseConfigured, supabase } from './supabaseClient'
 import { SyncError, handleAsync } from './errorHandling'
 
@@ -38,6 +38,7 @@ const CONFLICT_FIELDS = {
     ],
 }
 const PENDING_CONFLICTS_KEY = 'pendingConflicts'
+const ATOMIC_SYNC_MAX_RETRIES = 3
 
 // ── Public entry point ────────────────────────────────────────────────────────
 
@@ -166,6 +167,74 @@ export async function fullSync(token) {
             ts: new Date().toISOString(),
         })
         return { upToDate: true }
+    }
+
+    if (usingSupabase) {
+        let baseVersion = Number(remoteManifest.datasetVersion ?? 0)
+        let uploadedVersion = null
+
+        for (let attempt = 1; attempt <= ATOMIC_SYNC_MAX_RETRIES; attempt += 1) {
+            const candidateDataset = await exportLocalDataset(baseVersion + 1)
+            try {
+                const result = await commitSnapshot(token, {
+                    expectedVersion: baseVersion,
+                    dataset: candidateDataset,
+                    updatedByDevice: deviceId,
+                })
+                uploadedVersion = Number(result.datasetVersion)
+                break
+            } catch (error) {
+                const message = String(error?.message || '')
+                const isVersionConflict = /SYNC_VERSION_CONFLICT/.test(message)
+                if (!isVersionConflict || attempt >= ATOMIC_SYNC_MAX_RETRIES) throw error
+
+                const latestManifest = await downloadFile(token, gistId, FILE_NAMES.MANIFEST)
+                const latestDataset = await downloadFile(token, gistId, FILE_NAMES.DATA)
+                const conflicts = await mergeRemoteDataset(latestDataset)
+
+                baseVersion = Number(latestManifest.datasetVersion ?? baseVersion)
+                await setSetting('datasetVersion', baseVersion)
+                await setSyncState('gistId', gistId)
+
+                await db.activityLog.add({
+                    entityType: 'sync',
+                    entityId: `retry:${baseVersion}`,
+                    action: 'sync_retry_version_conflict',
+                    deviceId,
+                    operatorId: null,
+                    ts: new Date().toISOString(),
+                    details: {
+                        attempt,
+                        conflictMessage: message,
+                        remoteVersion: baseVersion,
+                        mergeConflictsDetected: conflicts.length,
+                    },
+                })
+            }
+        }
+
+        if (!Number.isFinite(uploadedVersion)) {
+            throw new SyncError('SYNC_UPLOAD_FAILED', 'Commit sync atomico non riuscito')
+        }
+
+        await db.syncQueue.clear()
+        await setSetting('datasetVersion', uploadedVersion)
+
+        await db.activityLog.add({
+            entityType: 'sync',
+            entityId: `upload:${uploadedVersion}`,
+            action: 'sync_uploaded',
+            deviceId,
+            operatorId: null,
+            ts: new Date().toISOString(),
+            details: {
+                newVersion: uploadedVersion,
+                itemsSynced: pendingCount,
+                mode: 'atomic-supabase',
+            },
+        })
+
+        return { uploaded: true, datasetVersion: uploadedVersion }
     }
 
     const newVersion = (remoteManifest.datasetVersion ?? 0) + 1
