@@ -95,6 +95,34 @@ export async function uploadFile(_token, name, content, _existingId = null) {
 }
 
 /**
+ * Atomically commit a full dataset snapshot with optimistic concurrency.
+ * The server increments datasetVersion only if expectedVersion matches.
+ */
+export async function commitSnapshot(_token, { expectedVersion, dataset, updatedByDevice = null }) {
+    assertConfigured()
+
+    const token = await requireSessionToken()
+    const { data, error } = await supabase.rpc('app_commit_sync_snapshot', {
+        p_token: token,
+        p_expected_version: Number(expectedVersion ?? 0),
+        p_dataset: typeof dataset === 'string' ? JSON.parse(dataset) : dataset,
+        p_updated_by_device: updatedByDevice,
+    })
+    if (error) throw new NetworkError(`Errore commit sync atomico: ${error.message}`, 500)
+
+    const datasetVersion = Number(data?.datasetVersion)
+    if (!Number.isFinite(datasetVersion)) {
+        throw new NetworkError('Commit sync atomico non valido: datasetVersion mancante', 500)
+    }
+
+    await setSetting('syncBackend', 'supabase')
+    return {
+        datasetVersion,
+        exportedAt: data?.exportedAt ?? null,
+    }
+}
+
+/**
  * Ensure both manifest and data files exist.
  * Creates them (empty) if absent — first-run bootstrap.
  * Returns { manifest, dataset, gistId } for compatibility with sync.js callers.
