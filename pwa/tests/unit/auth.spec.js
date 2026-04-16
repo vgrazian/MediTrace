@@ -830,7 +830,7 @@ describe('auth service', () => {
         expect(authTestUtils.sanitizeUsernameInput('  Operatore<script>!  ')).toBe('operatorescript')
     })
 
-    it('rejects password reset email flow in table-auth mode', async () => {
+    it('surfaces reset email configuration error in table-auth mode', async () => {
         const authModule = await import('../../src/services/auth')
         const { initAuth, useAuth } = authModule
         const auth = useAuth()
@@ -838,7 +838,7 @@ describe('auth service', () => {
         await initAuth()
         await expect(auth.requestPasswordResetByEmail('  User.Email@Example.com  ', {
             redirectTo: 'http://localhost:5173/#/auth/reset-password',
-        })).rejects.toThrow('Reset password via email non disponibile')
+        })).rejects.toThrow('Unsupported rpc in test mock: app_request_password_reset')
     })
 
     it('rejects invite email flow in table-auth mode', async () => {
@@ -869,7 +869,7 @@ describe('auth service', () => {
         })).rejects.toThrow('Inviti email non ancora implementati')
     })
 
-    it('rejects password recovery completion in table-auth mode', async () => {
+    it('validates reset token before password recovery completion in table-auth mode', async () => {
         const authModule = await import('../../src/services/auth')
         const { initAuth, useAuth } = authModule
         const auth = useAuth()
@@ -888,7 +888,7 @@ describe('auth service', () => {
         await expect(auth.completePasswordRecovery({
             newPassword: 'Recovery123!#',
             confirmPassword: 'Recovery123!#',
-        })).rejects.toThrow('Recupero password via link email non disponibile')
+        })).rejects.toThrow('Token reset non valido')
     })
 
     it('records core auth audit events for checklist coverage', async () => {
@@ -914,7 +914,7 @@ describe('auth service', () => {
 
         await expect(auth.requestPasswordResetByEmail('audit.admin@example.com', {
             redirectTo: 'http://localhost:5173/#/auth/reset-password',
-        })).rejects.toThrow('Reset password via email non disponibile')
+        })).rejects.toThrow('Unsupported rpc in test mock: app_request_password_reset')
 
         await expect(auth.sendInviteLink({
             email: 'invite.target@example.com',

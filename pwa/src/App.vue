@@ -7,7 +7,7 @@ import ConfirmDialog from './components/ConfirmDialog.vue'
 import { initAuth, sanitizeEmailInput, sanitizeUsernameInput, useAuth } from './services/auth'
 import { formatBuildTimestamp, getBuildTimestampIso } from './services/buildInfo'
 
-const { currentUser, hasUsers, isInitialized, signIn, register } = useAuth()
+const { currentUser, hasUsers, isInitialized, signIn, register, requestPasswordResetByEmail, supportsEmailReset } = useAuth()
 const route = useRoute()
 const isAuthRecoveryRoute = computed(() => route.path === '/auth/reset-password')
 
@@ -20,6 +20,9 @@ const regLastName = ref('')
 const regEmail = ref('')
 const regPassword = ref('')
 const regConfirmPassword = ref('')
+const forgotEmail = ref('')
+const forgotMessage = ref('')
+const forgotBusy = ref(false)
 
 const loginError = ref('')
 const loginBusy = ref(false)
@@ -40,6 +43,10 @@ function handleRegEmailInput(event) {
   regEmail.value = sanitizeEmailInput(event.target.value)
 }
 
+function handleForgotEmailInput(event) {
+  forgotEmail.value = sanitizeEmailInput(event.target.value)
+}
+
 async function handleLogin() {
   const normalizedUsername = username.value.trim()
   if (!normalizedUsername || !password.value) return
@@ -53,6 +60,24 @@ async function handleLogin() {
     loginError.value = err.message
   } finally {
     loginBusy.value = false
+  }
+}
+
+async function handleForgotPassword() {
+  const normalizedEmail = forgotEmail.value.trim()
+  if (!normalizedEmail) return
+
+  forgotBusy.value = true
+  loginError.value = ''
+  forgotMessage.value = ''
+
+  try {
+    await requestPasswordResetByEmail(normalizedEmail)
+    forgotMessage.value = 'Se l\'indirizzo esiste, riceverai una email con il link per reimpostare la password.'
+  } catch (err) {
+    loginError.value = err.message
+  } finally {
+    forgotBusy.value = false
   }
 }
 
@@ -164,6 +189,24 @@ async function handleRegister() {
           <button :disabled="loginBusy || !username.trim() || !password" @click="handleLogin">
             {{ loginBusy ? 'Accesso in corso…' : 'Accedi' }}
           </button>
+
+          <template v-if="supportsEmailReset">
+            <label for="forgot-email-input" style="margin-top:.75rem">Password dimenticata</label>
+            <input
+              id="forgot-email-input"
+              v-model="forgotEmail"
+              type="email"
+              placeholder="Inserisci email account"
+              autocomplete="email"
+              @input="handleForgotEmailInput"
+              @keyup.enter="handleForgotPassword"
+            />
+
+            <button :disabled="forgotBusy || !forgotEmail.trim()" @click="handleForgotPassword">
+              {{ forgotBusy ? 'Invio email…' : 'Invia link reset password' }}
+            </button>
+            <p v-if="forgotMessage" class="auth-help">{{ forgotMessage }}</p>
+          </template>
 
         </div>
 

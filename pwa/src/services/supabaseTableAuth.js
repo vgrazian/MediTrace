@@ -209,3 +209,32 @@ export async function disableSelfSeededWithTable(sessionTtlMinutes) {
     await clearStoredSession()
     return Boolean(result)
 }
+
+export async function requestPasswordResetWithTable({ email, redirectTo, resetTtlMinutes = 30 }) {
+    const payload = await callRpc('app_request_password_reset', {
+        p_email: email,
+        p_reset_base_url: redirectTo,
+        p_reset_ttl_minutes: resetTtlMinutes,
+    })
+
+    if (!payload || typeof payload !== 'object') {
+        return {
+            email,
+            resetUrl: null,
+            expiresAt: null,
+        }
+    }
+
+    return {
+        email: String(payload.email ?? email ?? '').trim().toLowerCase(),
+        resetUrl: String(payload.reset_url ?? payload.resetUrl ?? '').trim() || null,
+        expiresAt: String(payload.expires_at ?? payload.expiresAt ?? '').trim() || null,
+    }
+}
+
+export async function completePasswordRecoveryWithTable({ token, newPassword }) {
+    return normalizeUser(await callRpc('app_complete_password_recovery', {
+        p_token: token,
+        p_new_password: newPassword,
+    }))
+}
