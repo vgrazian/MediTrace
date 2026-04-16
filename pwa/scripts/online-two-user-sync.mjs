@@ -35,11 +35,6 @@ function waitMs(ms) {
     return new Promise(resolve => setTimeout(resolve, ms))
 }
 
-function isRateLimitError(error) {
-    const message = String(error?.message || error || '').toLowerCase()
-    return message.includes('rate limit') || message.includes('over_email_send_rate_limit')
-}
-
 function createSupabaseClient() {
     if (!SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY) return null
     return createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
@@ -51,17 +46,133 @@ function createSupabaseClient() {
     })
 }
 
+function buildDefaultAdminUser() {
+    return {
+        username: String(process.env.MEDITRACE_DEFAULT_ADMIN_USERNAME || '').trim(),
+        password: String(process.env.MEDITRACE_DEFAULT_ADMIN_PASSWORD || '').trim(),
+        email: String(process.env.MEDITRACE_DEFAULT_ADMIN_EMAIL || '').trim(),
+        firstName: 'Admin',
+        lastName: 'MediTrace',
+        role: 'admin',
+    }
+}
+
+async function rpc(client, name, params = {}) {
+    const { data, error } = await client.rpc(name, params)
+    if (error) throw new Error(error.message)
+    return data
+}
+
+async function ensureAdminSession(client, adminUser) {
+    const hasUsers = Boolean(await rpc(client, 'app_has_users'))
+    if (!hasUsers) {
+        const payload = await rpc(client, 'app_register_first_admin', {
+            p_username: adminUser.username,
+            p_password: adminUser.password,
+            p_first_name: adminUser.firstName,
+            p_last_name: adminUser.lastName,
+            p_email: adminUser.email,
+            p_phone: '',
+            p_session_ttl_minutes: 480,
+        })
+        return {
+            token: payload?.session?.token,
+            bootstrapped: true,
+        }
+    }
+
+    const payload = await rpc(client, 'app_sign_in', {
+        p_username: adminUser.username,
+        p_password: adminUser.password,
+        p_session_ttl_minutes: 480,
+    })
+    return {
+        token: payload?.session?.token,
+        bootstrapped: false,
+    }
+}
+
+async function ensureManagedUsers(client, adminUser, users, report) {
+    const session = await ensureAdminSession(client, adminUser)
+    if (!session.token) throw new Error('Token sessione admin non disponibile per il provisioning online')
+
+    const existingRows = await rpc(client, 'app_list_users', {
+        p_token: session.token,
+        p_session_ttl_minutes: 480,
+    })
+    const existingUsers = Array.isArray(existingRows) ? existingRows : []
+
+    for (const user of users) {
+        const startedAt = new Date().toISOString()
+        const existing = existingUsers.find(entry => entry.username === user.username)
+        if (!existing) {
+            await rpc(client, 'app_create_user', {
+                p_token: session.token,
+                p_username: user.username,
+                p_password: user.password,
+                p_first_name: user.firstName,
+                p_last_name: user.lastName,
+                p_email: user.email,
+                p_phone: '',
+                p_role: 'operator',
+                p_is_seeded: true,
+                p_session_ttl_minutes: 480,
+            })
+            existingUsers.push({ username: user.username, disabled: false })
+            report.provisioning.push({
+                username: user.username,
+                startedAt,
+                finishedAt: new Date().toISOString(),
+                status: 'created',
+            })
+            continue
+        }
+
+        if (existing.disabled) {
+            await rpc(client, 'app_set_user_disabled', {
+                p_token: session.token,
+                p_username: user.username,
+                p_disabled: false,
+                p_session_ttl_minutes: 480,
+            })
+            existing.disabled = false
+            report.provisioning.push({
+                username: user.username,
+                startedAt,
+                finishedAt: new Date().toISOString(),
+                status: 'reactivated',
+            })
+            continue
+        }
+
+        report.provisioning.push({
+            username: user.username,
+            startedAt,
+            finishedAt: new Date().toISOString(),
+            status: 'existing',
+        })
+    }
+
+    await rpc(client, 'app_sign_out', { p_token: session.token }).catch(() => null)
+    return session.bootstrapped ? 'bootstrapped-admin' : 'existing-admin'
+}
+
 function buildProvidedUsers() {
+    // Explicit overrides take precedence; fall back to default online operator accounts
     const userA = {
-        username: String(process.env.ONLINE_USER_A_USERNAME || '').trim(),
-        password: String(process.env.ONLINE_USER_A_PASSWORD || '').trim(),
-        email: String(process.env.ONLINE_USER_A_EMAIL || '').trim(),
+        username: String(process.env.ONLINE_USER_A_USERNAME || process.env.MEDITRACE_DEFAULT_OPERATOR1_USERNAME || '').trim(),
+        password: String(process.env.ONLINE_USER_A_PASSWORD || process.env.MEDITRACE_DEFAULT_OPERATOR1_PASSWORD || '').trim(),
+        email: String(process.env.ONLINE_USER_A_EMAIL || process.env.MEDITRACE_DEFAULT_OPERATOR1_EMAIL || '').trim(),
+        firstName: 'Operatore',
+        lastName: 'Uno',
         label: 'user-a',
     }
     const userB = {
-        username: String(process.env.ONLINE_USER_B_USERNAME || '').trim(),
-        password: String(process.env.ONLINE_USER_B_PASSWORD || '').trim(),
-        email: String(process.env.ONLINE_USER_B_EMAIL || '').trim(),
+        username: String(process.env.ONLINE_USER_B_USERNAME || process.env.MEDITRACE_DEFAULT_OPERATOR2_USERNAME || '').trim(),
+        password: String(process.env.ONLINE_USER_B_PASSWORD || process.env.MEDITRACE_DEFAULT_OPERATOR2_PASSWORD || '').trim(),
+        email: String(process.env.ONLINE_USER_B_EMAIL || process.env.MEDITRACE_DEFAULT_OPERATOR2_EMAIL || '').trim(),
+        firstName: 'Operatore',
+        lastName: 'Due',
         label: 'user-b',
     }
 
@@ -88,10 +199,29 @@ async function signInWithUi(page, user) {
     await page.locator('#app-root').waitFor({ state: 'visible', timeout: 20000 })
 
     const usernameInput = page.locator('#username-input')
-    await usernameInput.waitFor({ state: 'visible', timeout: 20000 })
-    await usernameInput.fill(user.username)
-    await page.locator('#password-input').fill(user.password)
-    await page.getByRole('button', { name: 'Accedi' }).click()
+    const registerInput = page.locator('#reg-username')
+    const alreadyAuthed = page.getByRole('link', { name: '⚙' })
+
+    // Wait for whichever form appears first (or already-authenticated nav)
+    await Promise.race([
+        usernameInput.waitFor({ state: 'visible', timeout: 20000 }).catch(() => null),
+        registerInput.waitFor({ state: 'visible', timeout: 20000 }).catch(() => null),
+        alreadyAuthed.waitFor({ state: 'visible', timeout: 20000 }).catch(() => null),
+    ])
+
+    if (await alreadyAuthed.isVisible().catch(() => false)) {
+        return // already authenticated
+    }
+
+    if (await usernameInput.isVisible().catch(() => false)) {
+        await usernameInput.fill(user.username)
+        await page.locator('#password-input').fill(user.password)
+        await page.getByRole('button', { name: 'Accedi' }).click()
+    } else if (await registerInput.isVisible().catch(() => false)) {
+        throw new Error(`Trovato il form di bootstrap admin invece del login per ${user.username}: provisioning utenti non completato`)
+    } else {
+        throw new Error(`Form di login non trovato per ${user.username}`)
+    }
 
     const loginError = String((await page.locator('.login-error').textContent().catch(() => '')) || '').trim()
     if (loginError) {
@@ -176,72 +306,6 @@ async function bestEffortDeleteResidenza(page, codice) {
     }
 }
 
-async function provisionUser(user) {
-    const client = createSupabaseClient()
-    if (!client) {
-        throw new Error('Per creare utenti sintetici servono SUPABASE_URL e SUPABASE_PUBLISHABLE_KEY, oppure credenziali ONLINE_USER_A_* / ONLINE_USER_B_*')
-    }
-
-    for (let attempt = 1; attempt <= SIGNUP_RETRY_ATTEMPTS; attempt += 1) {
-        const { error: signUpError } = await client.auth.signUp({
-            email: user.email,
-            password: user.password,
-            options: {
-                emailRedirectTo: routeUrl('#/impostazioni'),
-                data: {
-                    username: user.username,
-                    firstName: user.firstName,
-                    lastName: user.lastName,
-                    role: 'operator',
-                },
-            },
-        })
-
-        if (!signUpError || /already registered|already been registered/i.test(signUpError.message)) {
-            break
-        }
-
-        if (!isRateLimitError(signUpError) || attempt === SIGNUP_RETRY_ATTEMPTS) {
-            throw new Error(`Creazione utente sintetico ${user.username} fallita: ${signUpError.message}`)
-        }
-
-        console.log(`[online-main] Rate limit Supabase su ${user.username}; attendo ${SIGNUP_RATE_LIMIT_WAIT_MS}ms prima del retry ${attempt + 1}/${SIGNUP_RETRY_ATTEMPTS}`)
-        await waitMs(SIGNUP_RATE_LIMIT_WAIT_MS)
-    }
-
-    const { error: signInError } = await client.auth.signInWithPassword({
-        email: user.email,
-        password: user.password,
-    })
-    if (signInError) {
-        throw new Error(`Impossibile autenticare ${user.username}: ${signInError.message}. Se la conferma email e' obbligatoria, usa credenziali ONLINE_USER_A_* e ONLINE_USER_B_* pre-provisionate.`)
-    }
-
-    const { data: userData, error: userError } = await client.auth.getUser()
-    if (userError || !userData?.user?.id) {
-        throw new Error(userError?.message || `Profilo Supabase non disponibile per ${user.username}`)
-    }
-
-    const { error: profileError } = await client
-        .from('profiles')
-        .upsert({
-            id: userData.user.id,
-            email: user.email,
-            username: user.username,
-            role: 'operator',
-            first_name: user.firstName,
-            last_name: user.lastName,
-            phone: '',
-            disabled: false,
-        })
-
-    if (profileError) {
-        throw new Error(`Upsert profilo ${user.username} fallito: ${profileError.message}`)
-    }
-
-    await client.auth.signOut().catch(() => null)
-}
-
 function writeReport(report) {
     if (!REPORT_FILE) return
     fs.writeFileSync(REPORT_FILE, `${JSON.stringify(report, null, 2)}\n`, 'utf8')
@@ -252,7 +316,8 @@ async function main() {
     const residenze = buildSyntheticResidenze(runContext)
     const providedUsers = buildProvidedUsers()
     const users = providedUsers || buildSyntheticUsers(runContext)
-    const accountMode = providedUsers ? 'provided' : 'synthetic-signup'
+    const adminUser = buildDefaultAdminUser()
+    const accountMode = providedUsers ? 'provided' : 'synthetic-provisioned'
 
     const browser = await chromium.launch({ headless: HEADLESS })
     const contextA = await browser.newContext()
@@ -278,28 +343,18 @@ async function main() {
     }
 
     try {
-        if (!providedUsers) {
-            if (INITIAL_SIGNUP_COOLDOWN_MS > 0) {
-                console.log(`[online-main] Attendo ${INITIAL_SIGNUP_COOLDOWN_MS}ms prima di iniziare il provisioning per raffreddare il rate limit Supabase`)
-                await waitMs(INITIAL_SIGNUP_COOLDOWN_MS)
-            }
-
-            for (const [index, user] of users.entries()) {
-                const startedAt = new Date().toISOString()
-                await provisionUser(user)
-                report.provisioning.push({
-                    username: user.username,
-                    startedAt,
-                    finishedAt: new Date().toISOString(),
-                    status: 'provisioned',
-                })
-
-                if (index < users.length - 1 && INTER_ACCOUNT_SIGNUP_WAIT_MS > 0) {
-                    console.log(`[online-main] Attendo ${INTER_ACCOUNT_SIGNUP_WAIT_MS}ms prima di creare l'account successivo per evitare il rate limit Supabase`)
-                    await waitMs(INTER_ACCOUNT_SIGNUP_WAIT_MS)
-                }
-            }
+        const client = createSupabaseClient()
+        if (!client) {
+            throw new Error('SUPABASE_URL e SUPABASE_PUBLISHABLE_KEY sono obbligatori per il provisioning online')
         }
+        if (!adminUser.username || !adminUser.password || !adminUser.email) {
+            throw new Error('Credenziali admin di default mancanti per il provisioning online')
+        }
+        if (INITIAL_SIGNUP_COOLDOWN_MS > 0) {
+            console.log(`[online-main] Attendo ${INITIAL_SIGNUP_COOLDOWN_MS}ms prima del provisioning online`)
+            await waitMs(INITIAL_SIGNUP_COOLDOWN_MS)
+        }
+        report.adminProvisioning = await ensureManagedUsers(client, adminUser, users, report)
 
         await Promise.all([
             signInWithUi(pageA, users[0]),
