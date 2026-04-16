@@ -1,4 +1,5 @@
 import fs from 'node:fs'
+import path from 'node:path'
 import { chromium } from '@playwright/test'
 
 const SITE_URL = String(process.env.SITE_URL || process.argv[2] || '').trim()
@@ -15,6 +16,10 @@ if (!SITE_URL) {
 
 function writeReport(report) {
     if (!REPORT_FILE) return
+    const reportDir = path.dirname(REPORT_FILE)
+    if (reportDir && reportDir !== '.') {
+        fs.mkdirSync(reportDir, { recursive: true })
+    }
     fs.writeFileSync(REPORT_FILE, `${JSON.stringify(report, null, 2)}\n`, 'utf8')
 }
 
