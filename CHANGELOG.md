@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Updated CI artifact upload steps from `actions/upload-artifact@v4` to `actions/upload-artifact@v5` in quality gate and operational workflows for Node 24-compatible action runtime.
 - Aligned `online-main-validation.yml` Node runtime from `20` to `24` for consistency with repository CI baseline.
+- Stabilized date-sensitive validation and reminder E2E fixtures by switching from UTC date slicing (`toISOString`) to local day formatting to avoid timezone-dependent flakes.
 
 ### Notes
 - This release is governance/reliability-only and does not change application runtime behavior.

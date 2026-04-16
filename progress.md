@@ -159,8 +159,13 @@ Validation commands
 Checklist
 1. [x] CI action/version updates applied.
 2. [x] Changelog/progress/docs updated in same PR.
-3. [ ] Local deterministic validation passed.
-4. [ ] Deployed smoke check passed.
+3. [x] Local deterministic validation passed.
+4. [x] Deployed smoke check passed.
+
+PR-1 completion notes (2026-04-17)
+1. Local deterministic gate completed successfully: `test:unit`, `test:e2e`, `build` all green.
+2. Prior flaky date mismatch (UTC `toISOString()` vs local day filters) triaged and fixed in test fixtures for form validation and promemoria/audit E2E setup.
+3. Online validation bundle completed successfully: `test:online-main`, `test:online-performance`, `test:online-smoke`, `test:online-chaos` all PASS.
 
 ### PR-2: CRUD UX Wave 2 Consolidation
 

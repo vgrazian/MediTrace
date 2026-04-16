@@ -2,6 +2,13 @@ import { test, expect } from '@playwright/test'
 import { loginOrRegisterSeededUser } from './helpers/login'
 import { runWithAcceptedConfirmation } from './helpers/confirm'
 
+function toLocalDateString(date = new Date()) {
+    const year = date.getFullYear()
+    const month = String(date.getMonth() + 1).padStart(2, '0')
+    const day = String(date.getDate()).padStart(2, '0')
+    return `${year}-${month}-${day}`
+}
+
 test('promemoria view shows reminders with labels and supports mark as eseguito/saltato', async ({ page }) => {
     await page.route('https://api.github.com/user', async route => {
         await route.fulfill({
@@ -58,7 +65,7 @@ test('promemoria view shows reminders with labels and supports mark as eseguito/
     await expect(page.getByText('Accettate: 1')).toBeVisible()
 
     // Import promemoria per oggi
-    const today = new Date().toISOString().slice(0, 10)
+    const today = toLocalDateString()
     await page.getByLabel('Sorgente').selectOption('09_PromemoriaSomministrazioni.csv')
     await page.locator('input[type="file"][accept=".csv,text/csv"]').setInputFiles({
         name: '09_PromemoriaSomministrazioni.csv',
@@ -207,7 +214,7 @@ test('promemoria view supports edit/delete and handles Arabic host names', async
     await page.getByRole('button', { name: 'Avvia import CSV' }).click()
     await expect(page.getByText('Accettate: 1')).toBeVisible()
 
-    const today = new Date().toISOString().slice(0, 10)
+    const today = toLocalDateString()
     await page.getByLabel('Sorgente').selectOption('09_PromemoriaSomministrazioni.csv')
     await page.locator('input[type="file"][accept=".csv,text/csv"]').setInputFiles({
         name: '09_PromemoriaSomministrazioni.csv',
