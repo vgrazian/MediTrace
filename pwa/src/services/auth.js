@@ -3,11 +3,13 @@ import { db, getSetting, setSetting } from '../db'
 import { getSupabaseConfigStatus, getSupabaseRedirectTo, isSupabaseConfigured, supabase } from './supabaseClient'
 import {
     changePasswordWithTable,
+    completePasswordRecoveryWithTable,
     createUserWithTable,
     deleteUserWithTable,
     disableSelfSeededWithTable,
     fetchHasUsers,
     listUsersWithTable,
+    requestPasswordResetWithTable,
     readStoredSession,
     registerFirstAdminWithTable,
     restoreSession,
@@ -41,6 +43,8 @@ const EMERGENCY_ADMIN_EMAIL = normalizeEmail(import.meta.env.VITE_EMERGENCY_ADMI
 const EMERGENCY_ADMIN_FIRST_NAME = String(import.meta.env.VITE_EMERGENCY_ADMIN_FIRST_NAME || 'Admin').trim()
 const EMERGENCY_ADMIN_LAST_NAME = String(import.meta.env.VITE_EMERGENCY_ADMIN_LAST_NAME || 'Emergenza').trim()
 const EMERGENCY_ADMIN_GITHUB_TOKEN = String(import.meta.env.VITE_EMERGENCY_ADMIN_GITHUB_TOKEN || '').trim()
+const PASSWORD_RESET_EMAIL_API = String(import.meta.env.VITE_PASSWORD_RESET_EMAIL_API || '').trim()
+const PASSWORD_RESET_TTL_MINUTES = Number.parseInt(import.meta.env.VITE_PASSWORD_RESET_TTL_MINUTES || '30', 10)
 
 // Module-level singleton state
 const state = reactive({
@@ -1078,13 +1082,73 @@ export function useAuth() {
 
         async requestPasswordResetByEmail(email, { redirectTo } = {}) {
             const normalizedEmail = assertValidEmail(email)
-            throw new Error(`Reset password via email non disponibile in questa modalita per ${normalizedEmail}. Usa un amministratore per aggiornare o reimpostare l'utenza.`)
+
+            if (isSupabaseConfigured && supabase) {
+                const resetRedirect = String(redirectTo || getSupabaseRedirectTo('/#/auth/reset-password')).trim()
+                const payload = await requestPasswordResetWithTable({
+                    email: normalizedEmail,
+                    redirectTo: resetRedirect,
+                    resetTtlMinutes: PASSWORD_RESET_TTL_MINUTES,
+                })
+
+                if (payload.resetUrl) {
+                    if (!PASSWORD_RESET_EMAIL_API) {
+                        throw new Error('Invio email reset non configurato: imposta VITE_PASSWORD_RESET_EMAIL_API')
+                    }
+
+                    const response = await fetch(PASSWORD_RESET_EMAIL_API, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            to: normalizedEmail,
+                            resetUrl: payload.resetUrl,
+                            expiresAt: payload.expiresAt,
+                            app: 'MediTrace',
+                        }),
+                    })
+
+                    if (!response.ok) {
+                        throw new Error('Invio email reset non riuscito. Riprova tra poco.')
+                    }
+                }
+
+                await appendAuthAudit('auth_password_reset_email_requested', normalizedEmail, {
+                    provider: 'supabase-table',
+                    emailSent: Boolean(payload.resetUrl),
+                })
+                return {
+                    queued: true,
+                }
+            }
+
+            throw new Error(`Reset password via email non disponibile in questa modalita per ${normalizedEmail}.`)
         },
 
-        async completePasswordRecovery({ newPassword, confirmPassword }) {
+        async completePasswordRecovery({ token, newPassword, confirmPassword }) {
             const passwordPolicyError = getPasswordPolicyErrorMessage(newPassword)
             if (passwordPolicyError) throw new Error(passwordPolicyError)
             if (newPassword !== confirmPassword) throw new Error('Le nuove password non coincidono')
+
+            if (isSupabaseConfigured && supabase) {
+                const normalizedToken = String(token || '').trim()
+                if (!normalizedToken) throw new Error('Token reset non valido')
+
+                const user = await completePasswordRecoveryWithTable({
+                    token: normalizedToken,
+                    newPassword,
+                })
+
+                await appendAuthAudit('auth_password_recovery_completed', user?.username ?? 'unknown', {
+                    provider: 'supabase-table',
+                })
+
+                state.currentUser = null
+                state.accessToken = null
+                return user
+            }
+
             throw new Error('Recupero password via link email non disponibile in questa modalita')
         },
 
@@ -1379,7 +1443,7 @@ export function useAuth() {
             return true
         },
 
-        supportsEmailReset: false,
+        supportsEmailReset: isSupabaseConfigured,
         supportsUserInvites: false,
         getPasswordPolicy,
     }
