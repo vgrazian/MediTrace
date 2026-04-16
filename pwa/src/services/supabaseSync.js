@@ -1,5 +1,4 @@
 /**
-/**
  * supabaseSync.js — Supabase-backed sync storage
  *
  * Drop-in replacement for gist.js with an identical public API surface
@@ -32,13 +31,13 @@ function assertConfigured() {
                 'Aggiungi le stesse variabili in pwa/.env.local per lo sviluppo locale',
             ],
         })
-
-        async function requireSessionToken() {
-            const session = await readStoredSession()
-            if (!session?.token) throw new NetworkError('Sessione non attiva — accedi prima di sincronizzare', 401)
-            return session.token
-        }
     }
+}
+
+async function requireSessionToken() {
+    const session = await readStoredSession()
+    if (!session?.token) throw new NetworkError('Sessione non attiva — accedi prima di sincronizzare', 401)
+    return session.token
 }
 
 // ── Public API (compatible with gist.js) ─────────────────────────────────────
