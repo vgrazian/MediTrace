@@ -2,35 +2,10 @@ import { getSetting, setSetting } from '../db'
 
 const AUTH_USERS_KEY = 'authUsers'
 
-const DEMO_OPERATORS = [
-    {
-        id: '__seed__auth-rosa',
-        username: 'rosa',
-        firstName: 'Rosa',
-        lastName: 'Operatore',
-        email: 'rosa.operatore@meditrace.local',
-        passwordSalt: 'c65c257dde32865d72f47c5d4b9d2539',
-        passwordHash: 'ead518bb3015a9f46e7d9337f84640d64049eaee1f95aa2222f289ebc7e3bc80',
-    },
-    {
-        id: '__seed__auth-margherita',
-        username: 'margherita',
-        firstName: 'Margherita',
-        lastName: 'Operatore',
-        email: 'margherita.operatore@meditrace.local',
-        passwordSalt: 'e359da422e804b5dd7098247f30aaf19',
-        passwordHash: '9045b6a0e7094f08699180271a535cdc05fac7c64f20b498a1cdfc9e43833df3',
-    },
-    {
-        id: '__seed__auth-giglio',
-        username: 'giglio',
-        firstName: 'Giglio',
-        lastName: 'Operatore',
-        email: 'giglio.operatore@meditrace.local',
-        passwordSalt: '534bb705848828cbfdb3698fa0358748',
-        passwordHash: 'b4418e1e8235275a07e54396e3c2f04941429136e2748d9e83872697178eef70',
-    },
-]
+const DEMO_OPERATORS = []
+
+// Legacy seeded demo operators kept only for cleanup/backward compatibility.
+const LEGACY_DEMO_OPERATOR_USERNAMES = new Set(['rosa', 'margherita', 'giglio'])
 
 const DEMO_OPERATOR_USERNAMES = new Set(DEMO_OPERATORS.map(user => user.username))
 
@@ -106,6 +81,7 @@ export async function clearDemoAuthUsers({ preserveAdminUsername = 'admin' } = {
         const isScopedDemoUser = String(user?.seedScope || '').toLowerCase() === 'demo'
         if (isScopedDemoUser) return false
 
+        if (LEGACY_DEMO_OPERATOR_USERNAMES.has(username)) return false
         return !DEMO_OPERATOR_USERNAMES.has(username)
     })
 
@@ -117,7 +93,7 @@ export async function clearDemoAuthUsers({ preserveAdminUsername = 'admin' } = {
     return {
         removed,
         remaining: keptUsers.length,
-        usernames: [...DEMO_OPERATOR_USERNAMES],
+        usernames: [...LEGACY_DEMO_OPERATOR_USERNAMES, ...DEMO_OPERATOR_USERNAMES],
     }
 }
 
@@ -125,4 +101,5 @@ export const seedAuthUsersTestUtils = {
     AUTH_USERS_KEY,
     DEMO_OPERATORS,
     DEMO_OPERATOR_USERNAMES,
+    LEGACY_DEMO_OPERATOR_USERNAMES,
 }

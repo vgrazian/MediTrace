@@ -764,7 +764,7 @@ function generateRealisticReminders(therapies, now) {
 
 function generateRealisticAuditEvents({ rooms, beds, hosts, drugs, stockBatches, therapies, movements, reminders }) {
     const events = []
-    const operators = ['admin', 'rosa', 'margherita', 'giglio']
+    const operators = ['admin', 'operatore1', 'operatore2', 'operatore3']
     const now = new Date()
 
     const pushEvent = ({ entityType, entityId, action, operatorId, ts }) => {

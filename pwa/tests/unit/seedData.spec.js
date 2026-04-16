@@ -211,14 +211,14 @@ describe('seedData — loadSeedData', () => {
         expect(tables.drugs.size).toBe(firstCount)
     })
 
-    it('creates demo operator accounts in authUsers settings', async () => {
+    it('does not create deprecated demo operator accounts in authUsers settings', async () => {
         await loadSeedData()
         const users = settings.get('authUsers')
         expect(Array.isArray(users)).toBe(true)
         const usernames = users.map(user => user.username)
-        expect(usernames).toContain('rosa')
-        expect(usernames).toContain('margherita')
-        expect(usernames).toContain('giglio')
+        expect(usernames).not.toContain('rosa')
+        expect(usernames).not.toContain('margherita')
+        expect(usernames).not.toContain('giglio')
     })
 })
 
