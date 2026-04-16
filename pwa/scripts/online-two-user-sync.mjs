@@ -2,7 +2,7 @@ import fs from 'node:fs'
 import { chromium } from '@playwright/test'
 import { createClient } from '@supabase/supabase-js'
 import {
-    buildSyntheticResidenze,
+    buildSyntheticFarmaci,
     buildSyntheticUsers,
     createOnlineRunContext,
     redactUser,
@@ -259,12 +259,12 @@ async function runManualSync(page) {
     throw new Error('Timeout in attesa del completamento sincronizzazione')
 }
 
-async function openResidenze(page) {
-    await page.goto(routeUrl('#/residenze'), { waitUntil: 'domcontentloaded' })
-    await page.getByRole('heading', { name: 'Residenze' }).waitFor({ state: 'visible', timeout: 20000 })
+async function openFarmaci(page) {
+    await page.goto(routeUrl('#/farmaci'), { waitUntil: 'domcontentloaded' })
+    await page.getByRole('heading', { name: 'Catalogo Farmaci' }).waitFor({ state: 'visible', timeout: 20000 })
 }
 
-async function ensureResidenzePanelOpen(page) {
+async function ensureFarmaciPanelOpen(page) {
     const details = page.locator('details.deep-panel').first()
     await details.waitFor({ state: 'visible', timeout: 15000 })
     if ((await details.getAttribute('open')) === null) {
@@ -272,48 +272,50 @@ async function ensureResidenzePanelOpen(page) {
     }
 }
 
-async function createResidenza(page, residenza) {
-    await openResidenze(page)
-    await ensureResidenzePanelOpen(page)
-    await page.getByLabel('Nome residenza').fill(residenza.codice)
-    await page.getByLabel('Max ospiti').fill(residenza.maxOspiti)
-    await page.getByLabel('Note').fill(residenza.note)
-    await page.getByRole('button', { name: 'Salva residenza' }).click()
-    await page.getByText('Residenza creata.').waitFor({ state: 'visible', timeout: 15000 })
-    await page.getByRole('cell', { name: residenza.codice, exact: true }).waitFor({ state: 'visible', timeout: 15000 })
+async function createFarmaco(page, farmaco) {
+    await openFarmaci(page)
+    await page.locator('.card', { hasText: 'Farmaci registrati' }).getByRole('button', { name: 'Aggiungi' }).click()
+    await ensureFarmaciPanelOpen(page)
+    await page.getByLabel('Nome farmaco').fill(farmaco.nomeFarmaco)
+    await page.getByLabel('Principio attivo').fill(farmaco.principioAttivo)
+    await page.getByLabel('Classe terapeutica').fill(farmaco.classeTerapeutica)
+    await page.getByLabel('Scorta minima').fill(farmaco.scortaMinima)
+    await page.getByLabel('Soglia autonomia (giorni)').fill(farmaco.sogliaAutonomia)
+    await page.getByRole('button', { name: 'Salva farmaco' }).click()
+    await page.getByRole('cell', { name: farmaco.nomeFarmaco, exact: true }).waitFor({ state: 'visible', timeout: 15000 })
 }
 
-async function assertResidenzeVisible(page, residenze) {
-    await openResidenze(page)
-    for (const residenza of residenze) {
-        await page.getByRole('cell', { name: residenza.codice, exact: true }).waitFor({ state: 'visible', timeout: 20000 })
+async function assertFarmaciVisible(page, farmaci) {
+    await openFarmaci(page)
+    for (const farmaco of farmaci) {
+        await page.getByRole('cell', { name: farmaco.nomeFarmaco, exact: true }).waitFor({ state: 'visible', timeout: 20000 })
     }
 }
 
-async function collectMissingResidenze(page, residenze, timeoutMs = 4000) {
-    await openResidenze(page)
+async function collectMissingFarmaci(page, farmaci, timeoutMs = 4000) {
+    await openFarmaci(page)
     const missing = []
-    for (const residenza of residenze) {
+    for (const farmaco of farmaci) {
         const byCellRole = await page
-            .getByRole('cell', { name: residenza.codice, exact: true })
+            .getByRole('cell', { name: farmaco.nomeFarmaco, exact: true })
             .isVisible({ timeout: timeoutMs })
             .catch(() => false)
         const byRowText = byCellRole
             ? true
             : await page
-                .locator('tbody tr', { hasText: residenza.codice })
+                .locator('tbody tr', { hasText: farmaco.nomeFarmaco })
                 .first()
                 .isVisible({ timeout: Math.floor(timeoutMs / 2) })
                 .catch(() => false)
 
-        if (!byCellRole && !byRowText) missing.push(residenza.codice)
+        if (!byCellRole && !byRowText) missing.push(farmaco.nomeFarmaco)
     }
     return missing
 }
 
-async function assertResidenzeVisibleWithRetry({
+async function assertFarmaciVisibleWithRetry({
     page,
-    residenze,
+    farmaci,
     reconcilePage,
     reconcileLabel,
     report,
@@ -322,7 +324,7 @@ async function assertResidenzeVisibleWithRetry({
 }) {
     let missing = []
     for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
-        missing = await collectMissingResidenze(page, residenze)
+        missing = await collectMissingFarmaci(page, farmaci)
         if (missing.length === 0) return
 
         if (attempt < maxAttempts) {
@@ -332,19 +334,17 @@ async function assertResidenzeVisibleWithRetry({
         }
     }
 
-    throw new Error(`Residenze non visibili dopo ${maxAttempts} tentativi: ${missing.join(', ')}`)
+    throw new Error(`Farmaci non visibili dopo ${maxAttempts} tentativi: ${missing.join(', ')}`)
 }
 
-async function bestEffortDeleteResidenza(page, codice) {
+async function bestEffortDeleteFarmaco(page, nomeFarmaco) {
     try {
-        await openResidenze(page)
-        const row = page.locator('tbody tr', { has: page.getByRole('cell', { name: codice, exact: true }) }).first()
+        await openFarmaci(page)
+        const row = page.locator('tbody tr', { has: page.getByRole('cell', { name: nomeFarmaco, exact: true }) }).first()
         if (!(await row.isVisible().catch(() => false))) return false
 
         await row.getByRole('button', { name: 'Elimina' }).click()
-        await page.getByText('Conferma eliminazione residenza').waitFor({ state: 'visible', timeout: 10000 })
-        await page.getByRole('button', { name: 'Elimina residenza' }).click()
-        await page.getByText('Residenza eliminata.').waitFor({ state: 'visible', timeout: 15000 })
+        await page.getByText('Farmaco eliminato.').waitFor({ state: 'visible', timeout: 15000 })
         return true
     } catch {
         return false
@@ -358,7 +358,7 @@ function writeReport(report) {
 
 async function main() {
     const runContext = createOnlineRunContext()
-    const residenze = buildSyntheticResidenze(runContext)
+    const farmaci = buildSyntheticFarmaci(runContext)
     const providedUsers = buildProvidedUsers()
     const users = providedUsers || buildSyntheticUsers(runContext)
     const adminUser = buildDefaultAdminUser()
@@ -410,8 +410,8 @@ async function main() {
         report.syncMessages.initialB = await runManualSync(pageB)
 
         await Promise.all([
-            createResidenza(pageA, residenze[0]),
-            createResidenza(pageB, residenze[1]),
+            createFarmaco(pageA, farmaci[0]),
+            createFarmaco(pageB, farmaci[1]),
         ])
 
         report.syncMessages.afterCreateA = await runManualSync(pageA)
@@ -419,16 +419,16 @@ async function main() {
         report.syncMessages.reconcileA = await runManualSync(pageA)
 
         await Promise.all([
-            assertResidenzeVisibleWithRetry({
+            assertFarmaciVisibleWithRetry({
                 page: pageA,
-                residenze,
+                farmaci,
                 reconcilePage: pageA,
                 reconcileLabel: 'visibilityA',
                 report,
             }),
-            assertResidenzeVisibleWithRetry({
+            assertFarmaciVisibleWithRetry({
                 page: pageB,
-                residenze,
+                farmaci,
                 reconcilePage: pageB,
                 reconcileLabel: 'visibilityB',
                 report,
@@ -441,12 +441,12 @@ async function main() {
         console.log(JSON.stringify({
             run: runContext.slug,
             accountMode,
-            residenze: residenze.map(item => item.codice),
+            farmaci: farmaci.map(item => item.nomeFarmaco),
             syncMessages: report.syncMessages,
         }, null, 2))
     } finally {
-        for (const residenza of residenze) {
-            report.cleanup[residenza.codice] = await bestEffortDeleteResidenza(pageA, residenza.codice)
+        for (const farmaco of farmaci) {
+            report.cleanup[farmaco.nomeFarmaco] = await bestEffortDeleteFarmaco(pageA, farmaco.nomeFarmaco)
         }
 
         if (Object.values(report.cleanup).some(Boolean)) {
