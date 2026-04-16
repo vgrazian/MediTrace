@@ -225,7 +225,7 @@ SUPABASE_PUBLISHABLE_KEY="$VITE_SUPABASE_PUBLISHABLE_KEY" \
 npm --prefix pwa run test:online-main
 ```
 
-Le verifiche online usano dati sintetici e tracciabili: namespace per esecuzione, nomi deterministici quando viene passato un seed, nessun dato reale o derivato dalla produzione. Se sono disponibili credenziali dedicate (`ONLINE_USER_A_*`, `ONLINE_USER_B_*`), lo script le usa; in alternativa prova a creare utenti operatore temporanei via Supabase con la chiave publishable.
+Le verifiche online usano dati sintetici e tracciabili: namespace per esecuzione, nomi deterministici quando viene passato un seed, nessun dato reale o derivato dalla produzione. Se sono disponibili credenziali dedicate (`ONLINE_USER_A_*`, `ONLINE_USER_B_*`), lo script le usa; in alternativa prova a creare utenti operatore temporanei via Supabase con la chiave publishable. Le credenziali dedicate devono rispettare la policy password applicativa (minimo 10 caratteri con maiuscola, minuscola, numero e simbolo).
 
 ### Backup/Restore locale e CSV d'esempio
 
@@ -247,12 +247,12 @@ Deploy operativo:
 
 | Metrica | Valore |
 | --- | --- |
-| Unit test | **270 / 270** ✅ (22 file, Vitest) |
-| E2E test | **54 / 54** ✅ (Playwright, Chromium + WebKit + Android phone emulation smoke) |
-| Statements | 66 % |
-| Branches | 53 % |
-| Functions | 68 % |
-| Lines | 71 % |
+| Unit test | **303 / 303** ✅ (22 file, Vitest) |
+| E2E test | **55 / 55** ✅ (Playwright, Chromium + WebKit + Android phone emulation smoke) |
+| Statements | 56.73 % |
+| Branches | 46.98 % |
+| Functions | 62.33 % |
+| Lines | 60.19 % |
 
 CI/CD: GitHub Actions esegue `test` (unit + E2E) su ogni PR; il pass è requisito obbligatorio per il merge su `main`.
 

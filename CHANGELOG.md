@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.2] - 2026-04-16
+### Added
+- Added E2E route coverage matrix in [`docs/e2e-route-coverage-matrix.md`](docs/e2e-route-coverage-matrix.md) with explicit mapping `route -> spec` and P1/P2 priorities.
+- Added missing route-level E2E coverage in [`reset-password-route.spec.js`](pwa/tests/e2e/reset-password-route.spec.js) and [`router-redirects.spec.js`](pwa/tests/e2e/router-redirects.spec.js).
+
+### Changed
+- Removed creation of legacy demo operator accounts with non-compliant weak credentials in [`seedAuthUsers.js`](pwa/src/services/seedAuthUsers.js).
+- Kept backward-compatible cleanup for existing legacy usernames (`rosa`, `margherita`, `giglio`) in seed cleanup flows.
+- Updated realistic seed audit synthetic operators in [`seedDataRealistic.js`](pwa/src/services/seedDataRealistic.js) to generic compliant identifiers.
+- Aligned related unit tests in [`auth.spec.js`](pwa/tests/unit/auth.spec.js) and [`seedData.spec.js`](pwa/tests/unit/seedData.spec.js).
+
+### Verified
+- Full unit suite passes locally: `303/303`.
+- Full Playwright suite passes locally: `55/55`.
+- Online two-user validation on deployed app passes with compliant credentials (`test:online-main`).
+
 ## [0.5.1] - 2026-04-13
 ### Added
 - Added seeded demo operator auth accounts (`rosa`, `margherita`, `giglio`) through [`seedAuthUsers.js`](pwa/src/services/seedAuthUsers.js), integrated in both legacy and realistic seed flows.
