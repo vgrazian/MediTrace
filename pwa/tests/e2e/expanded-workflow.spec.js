@@ -218,7 +218,7 @@ test('expanded workflow scenario: multi-drug catalog, batch management, and ther
     await expect(page.getByRole('heading', { name: 'Promemoria' })).toBeVisible()
 
     await page.getByLabel('Data').selectOption('all')
-    await page.getByLabel('Stato').first().selectOption('DA_ESEGUIRE')
+    await page.locator('div.card').filter({ hasText: 'Filtri' }).getByRole('checkbox', { name: 'Da eseguire' }).check()
 
     const rowEseguiButtons = page.locator('td button.reminder-action-btn:not([disabled])', { hasText: 'Eseguito' })
     const pendingReminders = await rowEseguiButtons.count()

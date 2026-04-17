@@ -30,7 +30,7 @@ const rooms = ref([])
 const bedSequence = ref([])
 
 const dateFilter = ref('today')
-const stateFilter = ref('')
+const stateFilter = ref([])
 const residenzaFilter = ref('')
 const editingReminderId = ref('')
 const form = ref({
@@ -38,6 +38,14 @@ const form = ref({
   stato: 'DA_ESEGUIRE',
   note: '',
 })
+
+const stateFilterOptions = [
+  { value: 'DA_ESEGUIRE', label: 'Da eseguire' },
+  { value: 'POSTICIPATO', label: 'Posticipato' },
+  { value: 'ESEGUITO', label: 'Eseguito' },
+  { value: 'SALTATO', label: 'Saltato' },
+  { value: 'ANNULLATO', label: 'Annullato' },
+]
 
 const highlightedReminderId = computed(() => String(route.query.highlight || ''))
 
@@ -429,14 +437,23 @@ watch(residenzaFilter, async (value) => {
         </label>
         <label>
           Stato
-          <select v-model="stateFilter">
-            <option value="">Tutti gli stati</option>
-            <option value="DA_ESEGUIRE">Da eseguire</option>
-            <option value="ESEGUITO">Eseguito</option>
-            <option value="SALTATO">Saltato</option>
-            <option value="POSTICIPATO">Posticipato</option>
-            <option value="ANNULLATO">Annullato</option>
-          </select>
+          <div style="margin-top:.35rem;display:flex;gap:.5rem;flex-wrap:wrap">
+            <label
+              v-for="option in stateFilterOptions"
+              :key="option.value"
+              style="display:flex;align-items:center;gap:.35rem;font-weight:500"
+            >
+              <input
+                v-model="stateFilter"
+                type="checkbox"
+                :value="option.value"
+              />
+              <span>{{ option.label }}</span>
+            </label>
+          </div>
+          <p class="muted" style="margin-top:.35rem;font-size:.8rem">
+            {{ stateFilter.length === 0 ? 'Tutti gli stati' : `${stateFilter.length} stati selezionati` }}
+          </p>
         </label>
         <label>
           Residenza operativa

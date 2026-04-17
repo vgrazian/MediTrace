@@ -199,6 +199,22 @@ describe('buildReminderRows', () => {
         expect(rows.some(r => r.id === 'r1')).toBe(false)
     })
 
+    it('filters by multiple stati', () => {
+        const rows = buildReminderRows({
+            reminders: REMINDERS_TODAY,
+            hosts: HOSTS,
+            drugs: DRUGS,
+            therapies: THERAPIES,
+            dateFilter: 'all',
+            stateFilter: ['DA_ESEGUIRE', 'POSTICIPATO'],
+            now: NOW,
+        })
+
+        expect(rows.length).toBeGreaterThan(0)
+        expect(rows.every(r => r.stato === 'DA_ESEGUIRE' || r.stato === 'POSTICIPATO')).toBe(true)
+        expect(rows.some(r => r.stato === 'ESEGUITO')).toBe(false)
+    })
+
     it('filters by selected residenza', () => {
         const rows = buildReminderRows({
             reminders: REMINDERS_TODAY,
