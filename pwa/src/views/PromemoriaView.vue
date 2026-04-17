@@ -484,11 +484,9 @@ watch(residenzaFilter, async (value) => {
             <th>Orario</th>
             <th>Ospite</th>
             <th>Residenza</th>
-            <th>Stanza/Letto</th>
             <th>Farmaco</th>
             <th>Dose</th>
             <th>Freq./giorno</th>
-            <th>Consumo sett.</th>
             <th>Stato</th>
             <th>Erogazione</th>
             <th>Azioni</th>
@@ -511,11 +509,9 @@ watch(residenzaFilter, async (value) => {
             <td>{{ formatSchedule(reminder.scheduledAt) }}</td>
             <td>{{ reminder.hostLabel }}</td>
             <td>{{ reminder.residenzaLabel }}</td>
-            <td>{{ reminder.stanzaLetto }}</td>
             <td>{{ reminder.drugLabel }}</td>
             <td>{{ reminder.dosePerSomministrazione ?? '—' }}</td>
-            <td>{{ reminder.somministrazioniGiornaliere ?? '—' }}</td>
-            <td>{{ reminder.consumoMedioSettimanale ?? '—' }}</td>
+            <td>{{ reminder.dailyScheduleTimes?.join(' / ') ?? reminder.somministrazioniGiornaliere ?? '—' }}</td>
             <td>
               <span :class="['reminder-state', reminderStateBadge(reminder.stato)]">
                 {{ reminder.stato }}

@@ -1,11 +1,9 @@
 import { db, getSetting } from '../db'
-import { createRoom, updateRoom, deactivateRoom, restoreRoom } from './stanze'
+import { createRoom, updateRoom, deactivateRoom, deactivateBed, restoreRoom } from './stanze'
 
 export const DEFAULT_RESIDENZE = [
     { codice: 'Il Rifugio', maxOspiti: 10, note: 'Casa alloggio attiva (5 ospiti target)' },
     { codice: 'Via Bellani', maxOspiti: 10, note: 'Casa alloggio attiva (7 ospiti target)' },
-    { codice: 'Residenza 3', maxOspiti: 10, note: 'Spazio di espansione' },
-    { codice: 'Residenza 4', maxOspiti: 10, note: 'Spazio di espansione' },
 ]
 
 const DEFAULT_MAX_OSPITI = 10
@@ -119,6 +117,14 @@ export async function updateResidenza({ roomId, codice, note = '', maxOspiti = D
 }
 
 export async function deactivateResidenza({ roomId, operatorId = null }) {
+    // Cascade-delete any orphaned beds before deactivating the room.
+    // Beds without active hosts can be safely removed; hosts-assigned beds
+    // will still throw through deactivateBed's own guard.
+    const allBeds = await db.beds.toArray()
+    const activeBeds = allBeds.filter(bed => bed.roomId === roomId && !bed.deletedAt)
+    for (const bed of activeBeds) {
+        await deactivateBed({ bedId: bed.id, operatorId })
+    }
     return deactivateRoom({ roomId, operatorId })
 }
 

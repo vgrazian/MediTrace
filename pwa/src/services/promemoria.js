@@ -101,6 +101,21 @@ export function buildReminderRows({ reminders, hosts, drugs, therapies, beds = [
     const dayStart = startOfDay(now)
     const dayEnd = endOfDay(now)
 
+    // Build a map of therapyId+YYYY-MM-DD → sorted HH:MM time strings for all reminders
+    const therapyDayTimes = new Map()
+    for (const r of reminders) {
+        if (r.deletedAt || !r.therapyId || !r.scheduledAt) continue
+        const d = new Date(r.scheduledAt)
+        if (Number.isNaN(d.getTime())) continue
+        const dayKey = `${r.therapyId}|${d.toISOString().slice(0, 10)}`
+        if (!therapyDayTimes.has(dayKey)) therapyDayTimes.set(dayKey, [])
+        const hhmm = d.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit', hour12: false })
+        therapyDayTimes.get(dayKey).push(hhmm)
+    }
+    for (const [k, times] of therapyDayTimes) {
+        therapyDayTimes.set(k, [...new Set(times)].sort())
+    }
+
     return reminders
         .filter(r => !r.deletedAt)
         .filter(r => {
@@ -132,6 +147,10 @@ export function buildReminderRows({ reminders, hosts, drugs, therapies, beds = [
             const room = roomsById.get(host?.roomId ?? bed?.roomId)
             const fullName = host ? [host.cognome, host.nome].filter(Boolean).join(' ').trim() : ''
             const hostName = fullName || host?.iniziali || host?.codiceInterno || r.hostId
+            const scheduledDay = r.scheduledAt ? new Date(r.scheduledAt).toISOString().slice(0, 10) : null
+            const dailyScheduleTimes = (scheduledDay && r.therapyId)
+                ? (therapyDayTimes.get(`${r.therapyId}|${scheduledDay}`) ?? null)
+                : null
             return {
                 ...r,
                 bedId: host?.bedId ?? null,
@@ -143,6 +162,7 @@ export function buildReminderRows({ reminders, hosts, drugs, therapies, beds = [
                 dosePerSomministrazione: therapy?.dosePerSomministrazione ?? null,
                 somministrazioniGiornaliere: therapy?.somministrazioniGiornaliere ?? null,
                 consumoMedioSettimanale: therapy?.consumoMedioSettimanale ?? null,
+                dailyScheduleTimes,
                 dataInizio: therapy?.dataInizio ?? null,
                 dataFine: therapy?.dataFine ?? null,
                 roomSortKey: room?.codice || host?.stanza || host?.roomId || '',
