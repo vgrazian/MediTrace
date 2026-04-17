@@ -55,6 +55,16 @@ describe('seedDataRealistic dataset validation', () => {
 })
 
 describe('seedDataRealistic mapping', () => {
+    function isoWeekKey(dateValue) {
+        const date = new Date(dateValue)
+        const tmp = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()))
+        const day = tmp.getUTCDay() || 7
+        tmp.setUTCDate(tmp.getUTCDate() + 4 - day)
+        const yearStart = new Date(Date.UTC(tmp.getUTCFullYear(), 0, 1))
+        const weekNo = Math.ceil((((tmp - yearStart) / 86400000) + 1) / 7)
+        return `${tmp.getUTCFullYear()}-W${String(weekNo).padStart(2, '0')}`
+    }
+
     it('maps dataset entities and preserves cardinality', () => {
         const generated = generateRealisticSeedData()
 
@@ -142,6 +152,9 @@ describe('seedDataRealistic mapping', () => {
         const bedIds = generated.hosts.map(host => host.bedId).filter(Boolean)
         const uniqueBedIds = new Set(bedIds)
         expect(uniqueBedIds.size).toBe(bedIds.length)
+
+        const hasDiacriticName = generated.hosts.some((host) => /[\u00C0-\u024F]/.test(`${host.nome} ${host.cognome}`))
+        expect(hasDiacriticName).toBe(true)
     })
 
     it('uses only requested residenze and keeps 5/7 ospiti split', () => {
@@ -203,9 +216,17 @@ describe('seedDataRealistic mapping', () => {
         const generated = generateRealisticSeedData()
         const now = new Date()
         const todayKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+        const nextWeekLimit = new Date(now)
+        nextWeekLimit.setDate(nextWeekLimit.getDate() + 7)
 
         const todayReminders = generated.reminders.filter((item) => String(item.scheduledAt || '').slice(0, 10) === todayKey)
         expect(todayReminders.length).toBeGreaterThanOrEqual(12)
+
+        const futureWeekReminders = generated.reminders.filter((item) => {
+            const when = new Date(item.scheduledAt)
+            return when > now && when <= nextWeekLimit
+        })
+        expect(futureWeekReminders.length).toBeGreaterThanOrEqual(12)
 
         const realisticLabels = generated.therapies
             .map((item) => String(item.nomeTerapia || item.note || '').toLowerCase())
@@ -213,5 +234,27 @@ describe('seedDataRealistic mapping', () => {
 
         expect(realisticLabels.some((label) => label.includes('controllo') || label.includes('supporto') || label.includes('terapia'))).toBe(true)
         expect(realisticLabels.some((label) => label.includes('__realistic__therapy-'))).toBe(false)
+    })
+
+    it('populates consumption trend with data for current and previous 4 weeks', () => {
+        const generated = generateRealisticSeedData()
+        const now = new Date()
+
+        const expectedWeeks = []
+        for (let offset = 0; offset <= 4; offset += 1) {
+            const d = new Date(now)
+            d.setDate(d.getDate() - (offset * 7))
+            expectedWeeks.push(isoWeekKey(d))
+        }
+
+        const consumptionMovements = generated.movements.filter((item) => {
+            const type = String(item.tipoMovimento || '').toLowerCase()
+            return type.includes('scarico') || type.includes('somministr') || type.includes('consumo')
+        })
+
+        const weeksWithData = new Set(consumptionMovements.map((item) => isoWeekKey(item.dataMovimento)))
+        for (const weekKey of expectedWeeks) {
+            expect(weeksWithData.has(weekKey)).toBe(true)
+        }
     })
 })
