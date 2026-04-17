@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 const hosts = new Map()
 const therapies = new Map()
 const rooms = new Map()
+const beds = new Map()
 const enqueueCalls = []
 const activityLogRows = []
 
@@ -25,6 +26,14 @@ vi.mock('../../src/db', () => ({
             },
             async put(row) {
                 rooms.set(String(row.id), row)
+            },
+        },
+        beds: {
+            async get(id) {
+                return beds.get(String(id))
+            },
+            async put(row) {
+                beds.set(String(row.id), row)
             },
         },
         therapies: {
@@ -71,6 +80,7 @@ function resetStore() {
     hosts.clear()
     therapies.clear()
     rooms.clear()
+    beds.clear()
     enqueueCalls.length = 0
     activityLogRows.length = 0
 }
@@ -135,6 +145,9 @@ describe('ospiti service CRUD', () => {
             metadata: { maxOspiti: 2 },
             deletedAt: null,
         })
+        beds.set('bed-1', { id: 'bed-1', roomId: 'room-1', numero: 1, deletedAt: null })
+        beds.set('bed-2', { id: 'bed-2', roomId: 'room-2', numero: 2, deletedAt: null })
+        beds.set('bed-3', { id: 'bed-3', roomId: 'room-3', numero: 3, deletedAt: null })
         hosts.set('host-existing', {
             id: 'host-existing',
             codiceInterno: 'OSP-010',
@@ -294,6 +307,30 @@ describe('ospiti service CRUD', () => {
             note: 'Aggiornato',
             operatorId: 'op-admin',
         })).rejects.toThrow("capienza massima residenza raggiunta")
+    })
+
+    it('updateHost clears stale bedId when bed does not belong to selected residenza', async () => {
+        const updated = await updateHost({
+            hostId: 'host-existing',
+            codiceInterno: 'OSP-010A',
+            iniziali: 'L.B.',
+            nome: 'Luca Mod',
+            cognome: 'Bianchi Mod',
+            luogoNascita: 'Torino',
+            dataNascita: '1941-02-02',
+            sesso: 'M',
+            codiceFiscale: 'BNCLCU41B02L219Y',
+            patologie: 'Ipertensione, BPCO',
+            roomId: 'room-2',
+            bedId: 'bed-1',
+            stanza: 'B',
+            letto: '1',
+            note: 'Aggiornato',
+            operatorId: 'op-admin',
+        })
+
+        expect(updated.roomId).toBe('room-2')
+        expect(updated.bedId).toBeNull()
     })
 
     it('deleteHost performs soft-delete and enqueues delete', async () => {

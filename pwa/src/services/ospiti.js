@@ -39,6 +39,42 @@ async function assertResidenzaCapacity({ roomId, excludeHostId = null }) {
     }
 }
 
+async function normalizeHostPlacement({ roomId, bedId, stanza, letto }) {
+    const safeRoomId = String(roomId || '').trim()
+    if (!safeRoomId) {
+        return {
+            roomId: null,
+            bedId: null,
+            stanza: '',
+            letto: '',
+        }
+    }
+
+    const room = await db.rooms?.get?.(safeRoomId)
+    if (!room || room.deletedAt) {
+        throw new Error('Residenza selezionata non trovata')
+    }
+
+    const safeBedId = String(bedId || '').trim()
+    let normalizedBedId = null
+    let normalizedLetto = ''
+
+    if (safeBedId) {
+        const bed = await db.beds?.get?.(safeBedId)
+        if (bed && !bed.deletedAt && bed.roomId === safeRoomId) {
+            normalizedBedId = safeBedId
+            normalizedLetto = String(bed.numero || '').trim()
+        }
+    }
+
+    return {
+        roomId: safeRoomId,
+        bedId: normalizedBedId,
+        stanza: String(room.codice || stanza || '').trim(),
+        letto: normalizedLetto || String(letto || '').trim(),
+    }
+}
+
 export function formatHostDisplay(host) {
     if (!host) return '—'
     const fullName = [host.cognome, host.nome].filter(Boolean).join(' ').trim()
@@ -136,6 +172,7 @@ export async function createHost({
     if (!codiceInterno?.trim() && !iniziali?.trim()) throw new Error('Codice interno o iniziali obbligatori')
 
     await assertResidenzaCapacity({ roomId })
+    const normalizedPlacement = await normalizeHostPlacement({ roomId, bedId, stanza, letto })
 
     const hostId = id?.trim() || generateEntityId('host')
 
@@ -155,10 +192,10 @@ export async function createHost({
         sesso: sesso?.trim() ?? '',
         codiceFiscale: codiceFiscale?.trim() ?? '',
         patologie: patologie?.trim() ?? '',
-        roomId: roomId ?? null,
-        bedId: bedId ?? null,
-        stanza: stanza !== null && stanza !== undefined ? String(stanza).trim() : '',
-        letto: letto !== null && letto !== undefined ? String(letto).trim() : '',
+        roomId: normalizedPlacement.roomId,
+        bedId: normalizedPlacement.bedId,
+        stanza: normalizedPlacement.stanza,
+        letto: normalizedPlacement.letto,
         note: note?.trim() ?? '',
         attivo: true,
         createdAt: now,
@@ -339,6 +376,7 @@ export async function updateHost({
     if (!host || host.deletedAt) throw new Error(`Ospite "${hostId}" non trovato`)
 
     await assertResidenzaCapacity({ roomId, excludeHostId: hostId })
+    const normalizedPlacement = await normalizeHostPlacement({ roomId, bedId, stanza, letto })
 
     const now = new Date().toISOString()
     const deviceId = await getSetting('deviceId', 'unknown')
@@ -353,10 +391,10 @@ export async function updateHost({
         sesso: sesso?.trim() ?? '',
         codiceFiscale: codiceFiscale?.trim() ?? '',
         patologie: patologie?.trim() ?? '',
-        roomId: roomId ?? null,
-        bedId: bedId ?? null,
-        stanza: stanza !== null && stanza !== undefined ? String(stanza).trim() : '',
-        letto: letto !== null && letto !== undefined ? String(letto).trim() : '',
+        roomId: normalizedPlacement.roomId,
+        bedId: normalizedPlacement.bedId,
+        stanza: normalizedPlacement.stanza,
+        letto: normalizedPlacement.letto,
         note: note?.trim() ?? '',
         updatedAt: now,
         syncStatus: 'pending',
