@@ -17,6 +17,38 @@ function parseResidenzaCapacity(room) {
     return Math.floor(parsed)
 }
 
+function normalizeText(value) {
+    return String(value || '').trim().toLowerCase()
+}
+
+function hostFullNameKey({ nome, cognome }) {
+    const first = normalizeText(nome)
+    const last = normalizeText(cognome)
+    if (!first || !last) return ''
+    return `${last}|${first}`
+}
+
+async function assertUniqueHostIdentity({ hostId = null, codiceInterno = '', nome = '', cognome = '' }) {
+    const allHosts = await (db.hosts?.toArray?.() ?? Promise.resolve([]))
+    const targetCode = normalizeText(codiceInterno)
+    const targetNameKey = hostFullNameKey({ nome, cognome })
+
+    const duplicate = allHosts.find((host) => {
+        if (!host || host.deletedAt) return false
+        if (hostId && host.id === hostId) return false
+
+        const sameCode = targetCode && normalizeText(host.codiceInterno) === targetCode
+        const sameName = targetNameKey && hostFullNameKey(host) === targetNameKey
+        return sameCode || sameName
+    })
+
+    if (!duplicate) return
+    if (targetCode && normalizeText(duplicate.codiceInterno) === targetCode) {
+        throw new Error('Ospite gia esistente: codice interno duplicato')
+    }
+    throw new Error('Ospite gia esistente: nome e cognome duplicati')
+}
+
 async function assertResidenzaCapacity({ roomId, excludeHostId = null }) {
     const safeRoomId = String(roomId || '').trim()
     if (!safeRoomId) return
@@ -171,6 +203,7 @@ export async function createHost({
 }) {
     if (!codiceInterno?.trim() && !iniziali?.trim()) throw new Error('Codice interno o iniziali obbligatori')
 
+    await assertUniqueHostIdentity({ codiceInterno, nome, cognome })
     await assertResidenzaCapacity({ roomId })
     const normalizedPlacement = await normalizeHostPlacement({ roomId, bedId, stanza, letto })
 
@@ -375,6 +408,7 @@ export async function updateHost({
     const host = await db.hosts.get(hostId)
     if (!host || host.deletedAt) throw new Error(`Ospite "${hostId}" non trovato`)
 
+    await assertUniqueHostIdentity({ hostId, codiceInterno, nome, cognome })
     await assertResidenzaCapacity({ roomId, excludeHostId: hostId })
     const normalizedPlacement = await normalizeHostPlacement({ roomId, bedId, stanza, letto })
 

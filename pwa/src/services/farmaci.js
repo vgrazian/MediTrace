@@ -28,6 +28,10 @@ function buildConstraintError(message, code, technicalDetails = {}) {
     })
 }
 
+function normalizeName(value) {
+    return String(value || '').trim().toLowerCase()
+}
+
 /**
  * Create or update a drug (farmaco) record with audit trail.
  *
@@ -51,13 +55,29 @@ export async function upsertDrug({
     sogliaGiorniAutonomia = 30,
     operatorId = null,
 }) {
+    const cleanNomeFarmaco = String(nomeFarmaco || '').trim()
+    const cleanPrincipioAttivo = String(principioAttivo || '').trim()
+    if (!cleanNomeFarmaco) throw new Error('Nome farmaco obbligatorio')
+    if (!cleanPrincipioAttivo) throw new Error('Principio attivo obbligatorio')
+
     const now = new Date().toISOString()
     const persistedDrugId = String(drugId || existing?.id || '').trim() || generateEntityId('drug')
+
+    const allDrugs = await (db.drugs?.toArray?.() ?? Promise.resolve([]))
+    const duplicateByName = allDrugs.find((drug) => {
+        if (!drug || drug.deletedAt) return false
+        if (drug.id === persistedDrugId) return false
+        return normalizeName(drug.nomeFarmaco) === normalizeName(cleanNomeFarmaco)
+    })
+    if (duplicateByName) {
+        throw new Error('Farmaco gia esistente')
+    }
+
     const record = {
         ...(existing || {}),
         id: persistedDrugId,
-        nomeFarmaco: nomeFarmaco.trim(),
-        principioAttivo: principioAttivo.trim(),
+        nomeFarmaco: cleanNomeFarmaco,
+        principioAttivo: cleanPrincipioAttivo,
         classeTerapeutica: classeTerapeutica.trim() || '',
         scortaMinima: Number(scortaMinima || 0),
         sogliaGiorniAutonomia: Number(sogliaGiorniAutonomia ?? 30) || 30,

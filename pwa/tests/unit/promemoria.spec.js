@@ -16,6 +16,7 @@ vi.mock('../../src/db', () => ({
         reminders: {
             async get(id) { return dbReminders.get(id) ?? undefined },
             async put(row) { dbReminders.set(row.id, row) },
+            async toArray() { return Array.from(dbReminders.values()) },
         },
         therapies: {
             async get(id) { return dbTherapies.get(id) ?? undefined },
@@ -56,7 +57,7 @@ vi.mock('../../src/db', () => ({
     async getSetting(_key, fallback = null) { return fallback },
 }))
 
-import { markReminder } from '../../src/services/promemoria'
+import { assertUniqueReminderSlot, markReminder } from '../../src/services/promemoria'
 
 // ── Fixtures ─────────────────────────────────────────────────────────────────
 
@@ -251,6 +252,46 @@ describe('buildReminderRows', () => {
         const noState = [{ id: 'rx', hostId: 'h1', therapyId: 't1', scheduledAt: '2026-04-04T10:00:00.000Z', deletedAt: null }]
         const rows = buildReminderRows({ reminders: noState, hosts: HOSTS, drugs: DRUGS, therapies: THERAPIES, dateFilter: 'all', now: NOW })
         expect(rows[0].stato).toBe('DA_ESEGUIRE')
+    })
+})
+
+describe('assertUniqueReminderSlot', () => {
+    beforeEach(() => {
+        resetState()
+    })
+
+    it('rejects duplicate reminder slot for same therapy and host', async () => {
+        dbReminders.set('r1', {
+            id: 'r1',
+            hostId: 'h1',
+            therapyId: 't1',
+            scheduledAt: '2026-04-04T08:00:00.000Z',
+            deletedAt: null,
+        })
+
+        await expect(assertUniqueReminderSlot({
+            reminderId: 'r2',
+            hostId: 'h1',
+            therapyId: 't1',
+            scheduledAt: '2026-04-04T08:00:30.000Z',
+        })).rejects.toThrow('Promemoria gia esistente')
+    })
+
+    it('allows same reminder slot when existing duplicate is soft-deleted', async () => {
+        dbReminders.set('r1', {
+            id: 'r1',
+            hostId: 'h1',
+            therapyId: 't1',
+            scheduledAt: '2026-04-04T08:00:00.000Z',
+            deletedAt: '2026-04-04T09:00:00.000Z',
+        })
+
+        await expect(assertUniqueReminderSlot({
+            reminderId: 'r2',
+            hostId: 'h1',
+            therapyId: 't1',
+            scheduledAt: '2026-04-04T08:00:00.000Z',
+        })).resolves.toBeUndefined()
     })
 })
 

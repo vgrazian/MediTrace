@@ -218,6 +218,34 @@ describe('ospiti service CRUD', () => {
         expect(enqueueCalls).toContainEqual({ entityType: 'hosts', entityId: record.id, operation: 'upsert' })
     })
 
+    it('createHost rejects duplicate codiceInterno among active hosts', async () => {
+        await expect(createHost({
+            id: 'host-duplicate-code',
+            codiceInterno: 'OSP-010',
+            iniziali: 'X.Y.',
+            nome: 'Xenia',
+            cognome: 'Yale',
+            roomId: 'room-2',
+            operatorId: 'op-admin',
+        })).rejects.toThrow('codice interno duplicato')
+    })
+
+    it('allows createHost with same codiceInterno after original host deletion', async () => {
+        await deleteHost({ hostId: 'host-existing', operatorId: 'op-admin' })
+
+        const recreated = await createHost({
+            id: 'host-recreated',
+            codiceInterno: 'OSP-010',
+            iniziali: 'R.C.',
+            nome: 'Riccardo',
+            cognome: 'Conti',
+            roomId: 'room-2',
+            operatorId: 'op-admin',
+        })
+
+        expect(recreated.id).toBe('host-recreated')
+    })
+
     it('createHost blocks when selected residenza is already full', async () => {
         hosts.set('host-2', {
             id: 'host-2',

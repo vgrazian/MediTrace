@@ -38,7 +38,58 @@ function buildActiveHostsCountByRoom(hosts = []) {
     return counts
 }
 
+function timestampOrMax(value) {
+    const parsed = Date.parse(value || '')
+    return Number.isFinite(parsed) ? parsed : Number.MAX_SAFE_INTEGER
+}
+
+function sortDuplicateCandidates(a, b, activeHostsByRoom) {
+    const hostDiff = (activeHostsByRoom.get(normalizeId(b.id)) ?? 0) - (activeHostsByRoom.get(normalizeId(a.id)) ?? 0)
+    if (hostDiff !== 0) return hostDiff
+
+    const updatedDiff = timestampOrMax(a.updatedAt) - timestampOrMax(b.updatedAt)
+    if (updatedDiff !== 0) return updatedDiff
+
+    return normalizeId(a.id).localeCompare(normalizeId(b.id))
+}
+
+export async function healDuplicateResidenze({ operatorId = null } = {}) {
+    const [rooms, hosts] = await Promise.all([
+        db.rooms.toArray(),
+        db.hosts.toArray(),
+    ])
+
+    const activeHostsByRoom = buildActiveHostsCountByRoom(hosts)
+    const activeRooms = rooms.filter((room) => !room.deletedAt && String(room.codice || '').trim())
+    const groupsByCode = new Map()
+
+    for (const room of activeRooms) {
+        const key = String(room.codice || '').trim().toLowerCase()
+        if (!groupsByCode.has(key)) groupsByCode.set(key, [])
+        groupsByCode.get(key).push(room)
+    }
+
+    let cleaned = 0
+    for (const group of groupsByCode.values()) {
+        if (group.length <= 1) continue
+
+        const ordered = [...group].sort((a, b) => sortDuplicateCandidates(a, b, activeHostsByRoom))
+        const duplicates = ordered.slice(1)
+
+        for (const duplicate of duplicates) {
+            const duplicateId = normalizeId(duplicate.id)
+            if ((activeHostsByRoom.get(duplicateId) ?? 0) > 0) continue
+            await deactivateResidenza({ roomId: duplicateId, operatorId: operatorId ?? 'system:self-heal-dedupe' })
+            cleaned += 1
+        }
+    }
+
+    return cleaned
+}
+
 export async function ensureDefaultResidenze({ operatorId = null } = {}) {
+    await healDuplicateResidenze({ operatorId })
+
     const existingRooms = await db.rooms.toArray()
     const activeCodes = new Set(
         existingRooms
