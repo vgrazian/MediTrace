@@ -25,6 +25,8 @@ const TARGET_ROOM_DISTRIBUTION = [
     { roomId: 2, roomCode: 'Via Bellani', hostCount: 7 },
 ]
 const TARGET_DRUG_COUNT = 12
+const TREND_PREVIOUS_WEEKS = 4
+const REMINDER_LOOKAHEAD_DAYS = 7
 
 const REALISTIC_HOST_IDENTITIES = [
     { nome: 'Elisa', cognome: 'Montelupo' },
@@ -513,6 +515,9 @@ function generateRealisticRoomsAndBeds(now) {
             id: `__realistic__room-${roomId}`,
             codice: String(roomPlan?.roomCode || room.codice || `Stanza ${roomId}`),
             descrizione: String(room.descrizione || ''),
+            metadata: {
+                maxOspiti: Number(roomPlan?.hostCount || 10),
+            },
             updatedAt: now,
             deletedAt: null,
             syncStatus: 'pending',
@@ -550,6 +555,13 @@ function weekKeyFromDate(dateValue) {
 function isoDateDaysAgo(now, daysAgo, hour = 8, minute = 0) {
     const ref = new Date(now)
     ref.setDate(ref.getDate() - daysAgo)
+    ref.setHours(hour, minute, 0, 0)
+    return ref.toISOString()
+}
+
+function isoDateDaysFromNow(now, daysFromNow, hour = 8, minute = 0) {
+    const ref = new Date(now)
+    ref.setDate(ref.getDate() + daysFromNow)
     ref.setHours(hour, minute, 0, 0)
     return ref.toISOString()
 }
@@ -664,42 +676,54 @@ function generateRealisticMovements(therapies, batches, now) {
     const batchById = new Map(batches.map(batch => [batch.id, batch]))
     const movements = []
 
+    let movementId = 1
+    const weeklyOffsets = Array.from({ length: TREND_PREVIOUS_WEEKS + 1 }, (_, idx) => idx)
+    const weeklyTypePattern = ['SCARICO', 'SOMMINISTRAZIONE', 'SCARICO', 'CONSUMO']
+
     for (let i = 0; i < therapies.length; i += 1) {
         const therapy = therapies[i]
-        const performedAt = isoDateDaysAgo(now, i % 7, 7 + (i % 3), 15)
-        const qty = Math.max(1, Number(therapy.dosePerSomministrazione || 1) * Number(therapy.somministrazioniGiornaliere || 1))
         const batch = batchById.get(therapy.stockBatchId)
-        const typePattern = ['SCARICO', 'SOMMINISTRAZIONE', 'SCARICO', 'CORREZIONE']
-        const tipoMovimento = typePattern[i % typePattern.length]
-        movements.push({
-            id: `__realistic__mov-${i + 1}`,
-            stockBatchId: therapy.stockBatchId || null,
-            drugId: therapy.drugId,
-            hostId: therapy.hostId,
-            therapyId: therapy.id,
-            tipoMovimento,
-            quantita: qty,
-            unitaMisura: therapy.unitaDose || 'compressa',
-            causale: tipoMovimento === 'CORREZIONE'
-                ? 'Rettifica inventario post-controllo'
-                : 'Somministrazione da piano terapeutico',
-            dataMovimento: performedAt,
-            settimanaRiferimento: weekKeyFromDate(performedAt),
-            operatore: `op-demo-${(i % 3) + 1}`,
-            source: 'therapy',
-            note: `Somministrazione ${batch?.nomeCommerciale || 'farmaco'}`,
-            updatedAt: performedAt,
-            deletedAt: null,
-            syncStatus: 'pending',
-            _seeded: true,
-        })
+        const baseQty = Math.max(1, Number(therapy.dosePerSomministrazione || 1) * Number(therapy.somministrazioniGiornaliere || 1))
+
+        for (const weekOffset of weeklyOffsets) {
+            const performedAt = isoDateDaysAgo(
+                now,
+                (weekOffset * 7) + (i % 3),
+                8 + ((i + weekOffset) % 4),
+                10 + ((i + weekOffset) % 40),
+            )
+            const qty = Math.max(1, Number((baseQty * (1 + (weekOffset * 0.08))).toFixed(2)))
+            const tipoMovimento = weeklyTypePattern[(i + weekOffset) % weeklyTypePattern.length]
+
+            movements.push({
+                id: `__realistic__mov-${movementId}`,
+                stockBatchId: therapy.stockBatchId || null,
+                drugId: therapy.drugId,
+                hostId: therapy.hostId,
+                therapyId: therapy.id,
+                tipoMovimento,
+                quantita: qty,
+                unitaMisura: therapy.unitaDose || 'compressa',
+                causale: 'Consumo terapeutico settimanale',
+                dataMovimento: performedAt,
+                settimanaRiferimento: weekKeyFromDate(performedAt),
+                operatore: `op-demo-${((i + weekOffset) % 3) + 1}`,
+                source: 'therapy',
+                note: `Somministrazione ${batch?.nomeCommerciale || 'farmaco'}`,
+                updatedAt: performedAt,
+                deletedAt: null,
+                syncStatus: 'pending',
+                _seeded: true,
+            })
+            movementId += 1
+        }
     }
 
-    for (let i = 0; i < 4 && i < batches.length; i += 1) {
-        const recordedAt = isoDateDaysAgo(now, 6 - i, 10, 30)
+    for (let i = 0; i < 8 && i < batches.length; i += 1) {
+        const recordedAt = isoDateDaysAgo(now, (i % (TREND_PREVIOUS_WEEKS + 1)) * 7 + (6 - (i % 5)), 10, 30)
         const batch = batches[i]
         movements.push({
-            id: `__realistic__mov-carico-${i + 1}`,
+            id: `__realistic__mov-${movementId}`,
             stockBatchId: batch.id,
             drugId: batch.drugId,
             hostId: null,
@@ -718,6 +742,7 @@ function generateRealisticMovements(therapies, batches, now) {
             syncStatus: 'pending',
             _seeded: true,
         })
+        movementId += 1
     }
 
     return movements
@@ -728,47 +753,47 @@ function generateRealisticReminders(therapies, now) {
 
     const reminders = []
 
+    let reminderId = 1
+    const timeSlotsByFrequency = {
+        1: [8],
+        2: [8, 20],
+        3: [8, 14, 20],
+    }
+
     for (let i = 0; i < therapies.length; i += 1) {
         const therapy = therapies[i]
-        // Keep at least half of reminders on the current day to guarantee a rich operational view.
-        const dayOffset = i % 2
-        const morningAt = isoDateDaysAgo(now, dayOffset, 8 + (i % 3), 0)
-        const eveningAt = isoDateDaysAgo(now, dayOffset, 18 + (i % 3), 0)
-        const stateCycle = ['ESEGUITO', 'DA_ESEGUIRE', 'POSTICIPATO', 'SALTATO']
-        const morningState = stateCycle[i % stateCycle.length]
-        const eveningState = stateCycle[(i + 1) % stateCycle.length]
+        const freq = Math.max(1, Math.min(3, Number(therapy.somministrazioniGiornaliere || 1)))
+        const baseSlots = timeSlotsByFrequency[freq] ?? [8]
+        const slots = baseSlots.map(hour => (hour + (i % 2)) % 24)
 
-        reminders.push({
-            id: `__realistic__rem-${(i * 2) + 1}`,
-            hostId: therapy.hostId,
-            therapyId: therapy.id,
-            drugId: therapy.drugId,
-            scheduledAt: morningAt,
-            stato: morningState,
-            eseguitoAt: morningState === 'ESEGUITO' ? isoDateDaysAgo(now, i % 7, 8, 12) : null,
-            operatore: morningState === 'ESEGUITO' || morningState === 'SALTATO' ? `op-demo-${(i % 3) + 1}` : null,
-            note: therapy.note || '',
-            updatedAt: morningState === 'ESEGUITO' ? isoDateDaysAgo(now, i % 7, 8, 12) : morningAt,
-            deletedAt: null,
-            syncStatus: 'pending',
-            _seeded: true,
-        })
+        for (let dayOffset = 0; dayOffset <= REMINDER_LOOKAHEAD_DAYS; dayOffset += 1) {
+            for (let slotIndex = 0; slotIndex < slots.length; slotIndex += 1) {
+                const scheduledAt = isoDateDaysFromNow(now, dayOffset, slots[slotIndex], (i * 7 + slotIndex * 10) % 60)
+                let stato = 'DA_ESEGUIRE'
 
-        reminders.push({
-            id: `__realistic__rem-${(i * 2) + 2}`,
-            hostId: therapy.hostId,
-            therapyId: therapy.id,
-            drugId: therapy.drugId,
-            scheduledAt: eveningAt,
-            stato: eveningState,
-            eseguitoAt: null,
-            operatore: eveningState === 'SALTATO' ? `op-demo-${((i + 1) % 3) + 1}` : null,
-            note: therapy.note || '',
-            updatedAt: eveningAt,
-            deletedAt: null,
-            syncStatus: 'pending',
-            _seeded: true,
-        })
+                if (dayOffset === 0) {
+                    const stateCycle = ['ESEGUITO', 'DA_ESEGUIRE', 'POSTICIPATO', 'SALTATO']
+                    stato = stateCycle[(i + slotIndex) % stateCycle.length]
+                }
+
+                reminders.push({
+                    id: `__realistic__rem-${reminderId}`,
+                    hostId: therapy.hostId,
+                    therapyId: therapy.id,
+                    drugId: therapy.drugId,
+                    scheduledAt,
+                    stato,
+                    eseguitoAt: stato === 'ESEGUITO' ? isoDateDaysFromNow(now, 0, slots[slotIndex], ((i + slotIndex) % 40) + 5) : null,
+                    operatore: stato === 'ESEGUITO' || stato === 'SALTATO' ? `op-demo-${((i + slotIndex) % 3) + 1}` : null,
+                    note: therapy.note || '',
+                    updatedAt: scheduledAt,
+                    deletedAt: null,
+                    syncStatus: 'pending',
+                    _seeded: true,
+                })
+                reminderId += 1
+            }
+        }
     }
 
     return reminders
