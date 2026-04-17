@@ -10,6 +10,9 @@ vi.mock('../../src/db', () => ({
             async put(row) {
                 therapies.set(String(row.id), row)
             },
+            async toArray() {
+                return Array.from(therapies.values())
+            },
         },
         syncQueue: {
             async add() {
@@ -133,6 +136,78 @@ describe('terapie service audit', () => {
 
         expect(record.id.startsWith('therapy_')).toBe(true)
         expect(therapies.get(record.id)?.hostId).toBe('host-1')
+    })
+
+    it('rejects duplicate active therapy for same host, drug and start date', async () => {
+        await upsertTherapy({
+            existing: null,
+            therapyId: 'therapy-dup-a',
+            form: {
+                hostId: 'host-1',
+                drugId: 'drug-1',
+                dosePerSomministrazione: '1',
+                somministrazioniGiornaliere: '2',
+                consumoMedioSettimanale: '14',
+                dataInizio: '2026-04-01',
+                dataFine: '',
+                note: 'a',
+            },
+            operatorId: 'op-admin',
+        })
+
+        await expect(upsertTherapy({
+            existing: null,
+            therapyId: 'therapy-dup-b',
+            form: {
+                hostId: 'host-1',
+                drugId: 'drug-1',
+                dosePerSomministrazione: '1',
+                somministrazioniGiornaliere: '2',
+                consumoMedioSettimanale: '14',
+                dataInizio: '2026-04-01',
+                dataFine: '',
+                note: 'b',
+            },
+            operatorId: 'op-admin',
+        })).rejects.toThrow('Terapia gia esistente')
+    })
+
+    it('allows recreating therapy after previous one is deactivated', async () => {
+        const first = await upsertTherapy({
+            existing: null,
+            therapyId: 'therapy-recreate-a',
+            form: {
+                hostId: 'host-1',
+                drugId: 'drug-1',
+                dosePerSomministrazione: '1',
+                somministrazioniGiornaliere: '2',
+                consumoMedioSettimanale: '14',
+                dataInizio: '2026-04-01',
+                dataFine: '',
+                note: 'a',
+            },
+            operatorId: 'op-admin',
+        })
+
+        await deactivateTherapyRecord({ therapy: first, operatorId: 'op-admin' })
+
+        const recreated = await upsertTherapy({
+            existing: null,
+            therapyId: 'therapy-recreate-b',
+            form: {
+                hostId: 'host-1',
+                drugId: 'drug-1',
+                dosePerSomministrazione: '1',
+                somministrazioniGiornaliere: '2',
+                consumoMedioSettimanale: '14',
+                dataInizio: '2026-04-01',
+                dataFine: '',
+                note: 'b',
+            },
+            operatorId: 'op-admin',
+        })
+
+        expect(recreated.id).toBe('therapy-recreate-b')
     })
 
     it('deactivates therapy and writes deactivation audit', async () => {

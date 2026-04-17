@@ -3,7 +3,7 @@ import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { db, enqueue, getSetting, setSetting } from '../db'
 import { useAuth } from '../services/auth'
-import { BED_SEQUENCE_SETTING_KEY, CURRENT_RESIDENZA_SETTING_KEY, buildReminderRows, markReminder, reminderStateBadge, reminderActionButtonColor, REMINDER_OUTCOMES } from '../services/promemoria'
+import { BED_SEQUENCE_SETTING_KEY, CURRENT_RESIDENZA_SETTING_KEY, buildReminderRows, markReminder, reminderStateBadge, reminderActionButtonColor, REMINDER_OUTCOMES, assertUniqueReminderSlot } from '../services/promemoria'
 import { confirmDeleteReminder } from '../services/confirmations'
 import { useFormValidation } from '../services/formValidation'
 import ValidatedInput from '../components/ValidatedInput.vue'
@@ -333,9 +333,17 @@ async function saveReminderEdit() {
 
     const now = new Date().toISOString()
     const deviceId = await getSetting('deviceId', 'unknown')
+    const nextScheduledAt = form.value.scheduledAt ? new Date(form.value.scheduledAt).toISOString() : existing.scheduledAt
+    await assertUniqueReminderSlot({
+      reminderId: existing.id,
+      therapyId: existing.therapyId,
+      hostId: existing.hostId,
+      scheduledAt: nextScheduledAt,
+    })
+
     const updated = {
       ...existing,
-      scheduledAt: form.value.scheduledAt ? new Date(form.value.scheduledAt).toISOString() : existing.scheduledAt,
+      scheduledAt: nextScheduledAt,
       stato: form.value.stato || existing.stato || 'DA_ESEGUIRE',
       note: form.value.note || '',
       updatedAt: now,

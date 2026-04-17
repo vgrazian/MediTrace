@@ -1,6 +1,34 @@
 import { db, enqueue, getSetting } from '../db'
 import { generateEntityId } from './ids'
 
+function normalizeDay(value) {
+    return String(value || '').trim().slice(0, 10)
+}
+
+function isActiveTherapy(therapy) {
+    if (!therapy || therapy.deletedAt) return false
+    if (therapy.attiva === false) return false
+    if (therapy.dataFine) return false
+    return true
+}
+
+async function assertUniqueActiveTherapy({ therapyId = null, hostId, drugId, dataInizio }) {
+    const allTherapies = await (db.therapies?.toArray?.() ?? Promise.resolve([]))
+    const targetDay = normalizeDay(dataInizio)
+
+    const duplicate = allTherapies.find((therapy) => {
+        if (!isActiveTherapy(therapy)) return false
+        if (therapyId && therapy.id === therapyId) return false
+        return therapy.hostId === hostId
+            && therapy.drugId === drugId
+            && normalizeDay(therapy.dataInizio) === targetDay
+    })
+
+    if (duplicate) {
+        throw new Error('Terapia gia esistente per ospite, farmaco e data inizio')
+    }
+}
+
 export async function upsertTherapy({
     existing,
     therapyId,
@@ -9,6 +37,13 @@ export async function upsertTherapy({
 }) {
     const now = new Date().toISOString()
     const persistedTherapyId = String(therapyId || existing?.id || '').trim() || generateEntityId('therapy')
+    await assertUniqueActiveTherapy({
+        therapyId: persistedTherapyId,
+        hostId: form.hostId,
+        drugId: form.drugId,
+        dataInizio: form.dataInizio || now,
+    })
+
     const record = {
         ...(existing || {}),
         id: persistedTherapyId,

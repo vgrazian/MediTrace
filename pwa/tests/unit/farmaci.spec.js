@@ -14,6 +14,7 @@ vi.mock('../../src/db', () => ({
         drugs: {
             async get(id) { return dbDrugs.get(id) ?? undefined },
             async put(row) { dbDrugs.set(row.id, row) },
+            async toArray() { return Array.from(dbDrugs.values()) },
         },
         stockBatches: {
             async get(id) { return dbBatches.get(id) ?? undefined },
@@ -118,6 +119,50 @@ describe('upsertDrug', () => {
 
         expect(result.id.startsWith('drug_')).toBe(true)
         expect(dbDrugs.get(result.id)?.nomeFarmaco).toBe('Ketoprofene')
+    })
+
+    it('rejects creation of active duplicate nomeFarmaco (case-insensitive)', async () => {
+        await upsertDrug({
+            drugId: 'drug-1',
+            existing: null,
+            nomeFarmaco: 'Paracetamolo',
+            principioAttivo: 'Paracetamol',
+            operatorId: 'op-admin',
+        })
+
+        await expect(upsertDrug({
+            drugId: 'drug-2',
+            existing: null,
+            nomeFarmaco: '  PARACETAMOLO  ',
+            principioAttivo: 'Paracetamol',
+            operatorId: 'op-admin',
+        })).rejects.toThrow('Farmaco gia esistente')
+    })
+
+    it('allows recreating same nomeFarmaco after soft-delete', async () => {
+        const created = await upsertDrug({
+            drugId: 'drug-1',
+            existing: null,
+            nomeFarmaco: 'Paracetamolo',
+            principioAttivo: 'Paracetamol',
+            operatorId: 'op-admin',
+        })
+
+        await deleteDrug({
+            drugId: created.id,
+            existing: created,
+            operatorId: 'op-admin',
+        })
+
+        const recreated = await upsertDrug({
+            drugId: 'drug-2',
+            existing: null,
+            nomeFarmaco: 'Paracetamolo',
+            principioAttivo: 'Paracetamol',
+            operatorId: 'op-admin',
+        })
+
+        expect(recreated.id).toBe('drug-2')
     })
 })
 

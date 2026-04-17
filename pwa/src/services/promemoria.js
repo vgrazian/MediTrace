@@ -37,6 +37,30 @@ function toNaturalNumber(value, fallback = Number.MAX_SAFE_INTEGER) {
     return Number.isFinite(parsed) ? parsed : fallback
 }
 
+function minuteKey(value) {
+    const parsed = new Date(value)
+    if (Number.isNaN(parsed.getTime())) return ''
+    return parsed.toISOString().slice(0, 16)
+}
+
+export async function assertUniqueReminderSlot({ reminderId = null, therapyId, hostId, scheduledAt }) {
+    const targetMinute = minuteKey(scheduledAt)
+    if (!therapyId || !targetMinute) return
+
+    const allReminders = await (db.reminders?.toArray?.() ?? Promise.resolve([]))
+    const duplicate = allReminders.find((item) => {
+        if (!item || item.deletedAt) return false
+        if (reminderId && item.id === reminderId) return false
+        if (item.therapyId !== therapyId) return false
+        if (hostId && item.hostId !== hostId) return false
+        return minuteKey(item.scheduledAt) === targetMinute
+    })
+
+    if (duplicate) {
+        throw new Error('Promemoria gia esistente per lo stesso orario')
+    }
+}
+
 export function buildBedSequenceIndex({ beds = [], rooms = [], bedSequence = [] }) {
     const activeBeds = beds.filter(bed => !bed?.deletedAt)
     const roomById = new Map(rooms.filter(room => !room?.deletedAt).map(room => [room.id, room]))
@@ -305,4 +329,5 @@ export const promemoriaTestUtils = {
     compareReminderRows,
     startOfDay,
     endOfDay,
+    assertUniqueReminderSlot,
 }
