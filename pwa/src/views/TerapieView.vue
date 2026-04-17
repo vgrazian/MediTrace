@@ -11,6 +11,7 @@ import { useSelection } from '../composables/useSelection'
 import { useHelpNavigation } from '../composables/useHelpNavigation'
 import { useUnsavedChangesGuard } from '../composables/useUnsavedChangesGuard'
 import { useUndoDelete } from '../composables/useUndoDelete'
+import { useSessionViewState } from '../composables/useSessionViewState'
 
 const { currentUser } = useAuth()
 const { goToHelpSection } = useHelpNavigation()
@@ -51,6 +52,7 @@ const errorMessage = ref('')
 const isFormOpen = ref(false)
 const panelMode = ref('list')
 const filterQuery = ref('')
+const sortBy = ref('updatedDesc')
 const formSnapshot = ref('')
 
 const form = ref({
@@ -70,8 +72,8 @@ const normalizedFilter = computed(() => filterQuery.value.trim().toLowerCase())
 
 const filteredTherapies = computed(() => {
   const q = normalizedFilter.value
-  if (!q) return therapies.value
-  return therapies.value.filter((therapy) => {
+  const baseRows = q
+    ? therapies.value.filter((therapy) => {
     const haystack = [
       therapy.id,
       hostLabel(therapy.hostId),
@@ -82,6 +84,24 @@ const filteredTherapies = computed(() => {
     ].filter(Boolean).join(' ').toLowerCase()
     return haystack.includes(q)
   })
+    : therapies.value
+
+  const result = [...baseRows]
+  if (sortBy.value === 'host') {
+    return result.sort((a, b) => hostLabel(a.hostId).localeCompare(hostLabel(b.hostId)))
+  }
+  if (sortBy.value === 'farmaco') {
+    return result.sort((a, b) => drugLabel(a.drugId).localeCompare(drugLabel(b.drugId)))
+  }
+  if (sortBy.value === 'inizio') {
+    return result.sort((a, b) => new Date(a.dataInizio || 0) - new Date(b.dataInizio || 0))
+  }
+  return result.sort((a, b) => new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0))
+})
+
+useSessionViewState('viewState:terapie', {
+  filterQuery,
+  sortBy,
 })
 
 function isTherapyCurrentlyActive(therapy) {
@@ -430,6 +450,15 @@ onMounted(() => {
         :visible-count="filteredTherapies.length"
         :total-count="therapies.length"
       />
+      <label style="margin-top:.5rem;display:flex;align-items:center;gap:.4rem;max-width:22rem">
+        Ordina terapie
+        <select v-model="sortBy" aria-label="Ordina terapie">
+          <option value="updatedDesc">Ultima modifica</option>
+          <option value="host">Ospite</option>
+          <option value="farmaco">Farmaco</option>
+          <option value="inizio">Data inizio</option>
+        </select>
+      </label>
 
       <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.75rem">
         <button @click="openAddForm">Aggiungi</button>

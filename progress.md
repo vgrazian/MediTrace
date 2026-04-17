@@ -198,10 +198,16 @@ Validation commands
 1. `npm --prefix pwa run build`
 
 Checklist
-1. [ ] Undo/recovery coverage complete for wave-2 targets.
-2. [ ] Save-state and sort/filter persistence validated.
-3. [ ] Small-form-factor checks green.
-4. [ ] Docs/changelog updated for UX behavior changes.
+1. [x] Undo/recovery coverage complete for wave-2 targets.
+2. [x] Save-state and sort/filter persistence validated.
+3. [x] Small-form-factor checks green.
+4. [x] Docs/changelog updated for UX behavior changes.
+
+PR-2 completion notes (2026-04-17)
+1. Added reusable session view-state persistence composable and enabled it across Ospiti/Farmaci/Terapie/Movimenti for filter/sort (and `showAll` on Ospiti) continuity during in-session navigation.
+2. Added explicit sort controls on target CRUD views and kept existing default ordering as baseline values.
+3. Added E2E coverage for in-session filter/sort persistence across all target views in `pwa/tests/e2e/crud-ux-first-pass.spec.js`.
+4. Validation completed successfully: `test:unit`, `test:e2e`, `build` all green on local deterministic mode.
 
 ### PR-3: E2E Hardening by Mode (Local + Online)
 

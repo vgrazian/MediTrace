@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.4] - 2026-04-17
+### Added
+- Added reusable in-session view state persistence composable [`useSessionViewState.js`](pwa/src/composables/useSessionViewState.js) for filter/sort UI continuity.
+- Added E2E regression coverage in [`crud-ux-first-pass.spec.js`](pwa/tests/e2e/crud-ux-first-pass.spec.js) to verify filter/sort state persistence across `Ospiti`, `Farmaci`, `Terapie`, and `Movimenti` during in-session navigation.
+
+### Changed
+- Extended [`OspitiView.vue`](pwa/src/views/OspitiView.vue) with persisted filter/sort controls and persisted `Mostra anche disattivati` state.
+- Extended [`FarmaciView.vue`](pwa/src/views/FarmaciView.vue) with persisted filter and dedicated sort controls for both farmaci and confezioni lists.
+- Extended [`TerapieView.vue`](pwa/src/views/TerapieView.vue) with persisted filter/sort controls.
+- Extended [`MovimentiView.vue`](pwa/src/views/MovimentiView.vue) with persisted filter/sort controls.
+
+### Verified
+- Full unit suite passes locally: `304/304`.
+- Full Playwright suite passes locally: `58/58`.
+- Production build passes locally: `npm --prefix pwa run build`.
+
 ## [0.5.3] - 2026-04-17
 ### Changed
 - Updated CI artifact upload steps from `actions/upload-artifact@v4` to `actions/upload-artifact@v5` in quality gate and operational workflows for Node 24-compatible action runtime.
