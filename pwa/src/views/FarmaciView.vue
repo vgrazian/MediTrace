@@ -11,6 +11,7 @@ import { useSelection } from '../composables/useSelection'
 import { useHelpNavigation } from '../composables/useHelpNavigation'
 import { useUnsavedChangesGuard } from '../composables/useUnsavedChangesGuard'
 import { useUndoDelete } from '../composables/useUndoDelete'
+import { useSessionViewState } from '../composables/useSessionViewState'
 
 const { currentUser } = useAuth()
 const { goToHelpSection } = useHelpNavigation()
@@ -73,6 +74,8 @@ const editingBatchId = ref(null)
 const isFormOpen = ref(false)
 const panelMode = ref('list')
 const filterQuery = ref('')
+const drugSortBy = ref('nome')
+const batchSortBy = ref('updatedDesc')
 const formSnapshot = ref('')
 
 const drugForm = ref({
@@ -98,8 +101,8 @@ const normalizedFilter = computed(() => filterQuery.value.trim().toLowerCase())
 
 const filteredDrugs = computed(() => {
   const q = normalizedFilter.value
-  if (!q) return drugs.value
-  return drugs.value.filter((drug) => {
+  const baseRows = q
+    ? drugs.value.filter((drug) => {
     const haystack = [
       drug.id,
       drug.nomeFarmaco,
@@ -108,12 +111,22 @@ const filteredDrugs = computed(() => {
     ].filter(Boolean).join(' ').toLowerCase()
     return haystack.includes(q)
   })
+    : drugs.value
+
+  const result = [...baseRows]
+  if (drugSortBy.value === 'principio') {
+    return result.sort((a, b) => String(a.principioAttivo || '').localeCompare(String(b.principioAttivo || '')))
+  }
+  if (drugSortBy.value === 'classe') {
+    return result.sort((a, b) => String(a.classeTerapeutica || '').localeCompare(String(b.classeTerapeutica || '')))
+  }
+  return result.sort((a, b) => String(a.nomeFarmaco || a.principioAttivo || a.id).localeCompare(String(b.nomeFarmaco || b.principioAttivo || b.id)))
 })
 
 const filteredBatches = computed(() => {
   const q = normalizedFilter.value
-  if (!q) return batches.value
-  return batches.value.filter((batch) => {
+  const baseRows = q
+    ? batches.value.filter((batch) => {
     const haystack = [
       batch.id,
       batch.nomeCommerciale,
@@ -122,6 +135,22 @@ const filteredBatches = computed(() => {
     ].filter(Boolean).join(' ').toLowerCase()
     return haystack.includes(q)
   })
+    : batches.value
+
+  const result = [...baseRows]
+  if (batchSortBy.value === 'scadenza') {
+    return result.sort((a, b) => new Date(a.scadenza || Number.MAX_SAFE_INTEGER) - new Date(b.scadenza || Number.MAX_SAFE_INTEGER))
+  }
+  if (batchSortBy.value === 'quantita') {
+    return result.sort((a, b) => Number(b.quantitaAttuale || 0) - Number(a.quantitaAttuale || 0))
+  }
+  return result.sort((a, b) => new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0))
+})
+
+useSessionViewState('viewState:farmaci', {
+  filterQuery,
+  drugSortBy,
+  batchSortBy,
 })
 
 const isDirty = computed(() => {
@@ -674,6 +703,14 @@ onMounted(() => {
         :visible-count="filteredDrugs.length + filteredBatches.length"
         :total-count="drugs.length + batches.length"
       />
+      <label style="margin-top:.5rem;display:flex;align-items:center;gap:.4rem;max-width:22rem">
+        Ordina farmaci
+        <select v-model="drugSortBy" aria-label="Ordina farmaci">
+          <option value="nome">Nome farmaco</option>
+          <option value="principio">Principio attivo</option>
+          <option value="classe">Classe terapeutica</option>
+        </select>
+      </label>
       <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.75rem">
         <button @click="openAddDrugForm">Aggiungi</button>
         <button :disabled="selectedDrugsCount !== 1" @click="openEditDrugForm">Modifica</button>
@@ -746,6 +783,14 @@ onMounted(() => {
 
     <div class="card">
       <p><strong>Confezioni attive</strong></p>
+      <label style="margin-top:.5rem;display:flex;align-items:center;gap:.4rem;max-width:22rem">
+        Ordina confezioni
+        <select v-model="batchSortBy" aria-label="Ordina confezioni">
+          <option value="updatedDesc">Ultima modifica</option>
+          <option value="scadenza">Scadenza</option>
+          <option value="quantita">Quantita attuale</option>
+        </select>
+      </label>
       <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.75rem">
         <button @click="openAddBatchForm">Aggiungi</button>
         <button :disabled="selectedBatchesCount !== 1" @click="openEditBatchForm">Modifica</button>

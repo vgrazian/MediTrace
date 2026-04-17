@@ -11,6 +11,7 @@ import { useSelection } from '../composables/useSelection'
 import { useHelpNavigation } from '../composables/useHelpNavigation'
 import { useUnsavedChangesGuard } from '../composables/useUnsavedChangesGuard'
 import { useUndoDelete } from '../composables/useUndoDelete'
+import { useSessionViewState } from '../composables/useSessionViewState'
 import { canRole } from '../services/rbac'
 
 const { currentUser } = useAuth()
@@ -31,6 +32,7 @@ const editingMovementId = ref(null)
 const isFormOpen = ref(false)
 const panelMode = ref('list')
 const filterQuery = ref('')
+const sortBy = ref('dataDesc')
 const formSnapshot = ref('')
 
 const form = ref({
@@ -71,8 +73,8 @@ const normalizedFilter = computed(() => filterQuery.value.trim().toLowerCase())
 
 const filteredMovements = computed(() => {
   const q = normalizedFilter.value
-  if (!q) return movements.value
-  return movements.value.filter((movement) => {
+  const baseRows = q
+    ? movements.value.filter((movement) => {
     const batch = stockBatches.value.find((item) => item.id === movement.stockBatchId)
     const haystack = [
       movement.id,
@@ -84,6 +86,24 @@ const filteredMovements = computed(() => {
     ].filter(Boolean).join(' ').toLowerCase()
     return haystack.includes(q)
   })
+    : movements.value
+
+  const result = [...baseRows]
+  if (sortBy.value === 'dataAsc') {
+    return result.sort((a, b) => new Date(a.dataMovimento || a.updatedAt || 0) - new Date(b.dataMovimento || b.updatedAt || 0))
+  }
+  if (sortBy.value === 'confezione') {
+    return result.sort((a, b) => batchLabel(stockBatches.value.find((item) => item.id === a.stockBatchId)).localeCompare(batchLabel(stockBatches.value.find((item) => item.id === b.stockBatchId))))
+  }
+  if (sortBy.value === 'quantita') {
+    return result.sort((a, b) => Number(b.quantita || 0) - Number(a.quantita || 0))
+  }
+  return result.sort((a, b) => new Date(b.dataMovimento || b.updatedAt || 0) - new Date(a.dataMovimento || a.updatedAt || 0))
+})
+
+useSessionViewState('viewState:movimenti', {
+  filterQuery,
+  sortBy,
 })
 
 const isDirty = computed(() => {
@@ -444,6 +464,15 @@ onMounted(() => {
         :visible-count="filteredMovements.length"
         :total-count="movements.length"
       />
+      <label style="margin-top:.5rem;display:flex;align-items:center;gap:.4rem;max-width:22rem">
+        Ordina movimenti
+        <select v-model="sortBy" aria-label="Ordina movimenti">
+          <option value="dataDesc">Data piu recente</option>
+          <option value="dataAsc">Data meno recente</option>
+          <option value="confezione">Confezione</option>
+          <option value="quantita">Quantita</option>
+        </select>
+      </label>
 
       <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.75rem">
         <button @click="openAddForm">Aggiungi</button>
