@@ -51,7 +51,7 @@ test('daily operations scenario covers therapy edits, executions, stock checks a
     await page.getByRole('link', { name: 'Promemoria' }).click()
     await expect(page.getByRole('heading', { name: 'Promemoria' })).toBeVisible()
     await page.getByLabel('Data').selectOption('all')
-    await page.getByLabel('Stato').first().selectOption('DA_ESEGUIRE')
+    await page.locator('div.card').filter({ hasText: 'Filtri' }).getByRole('checkbox', { name: 'Da eseguire' }).check()
 
     const eseguiButtons = page.getByRole('button', { name: 'Eseguito' })
     const pendingCount = await eseguiButtons.count()
