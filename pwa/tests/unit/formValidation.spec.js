@@ -1,6 +1,13 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { useFormValidation, getFieldAriaAttributes } from '../../src/services/formValidation'
 
+function toLocalDateString(date = new Date()) {
+    const year = date.getFullYear()
+    const month = String(date.getMonth() + 1).padStart(2, '0')
+    const day = String(date.getDate()).padStart(2, '0')
+    return `${year}-${month}-${day}`
+}
+
 describe('formValidation service', () => {
     describe('useFormValidation', () => {
         let validation
@@ -181,7 +188,7 @@ describe('formValidation service', () => {
             })
 
             it('should pass for today', () => {
-                const today = new Date().toISOString().split('T')[0]
+                const today = toLocalDateString()
                 const error = validation.validateField('expiryDate', today)
                 expect(error).toBeNull()
             })

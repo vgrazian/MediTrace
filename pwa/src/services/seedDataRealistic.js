@@ -18,8 +18,12 @@ const REALISTIC_SEED_KEY = '_realisticSeedDataManifest'
 const REALISTIC_SEED_PREFIX = '__realistic__'
 const REALISTIC_SEED_STORE_NAMES = ['rooms', 'beds', 'hosts', 'drugs', 'stockBatches', 'therapies', 'movements', 'reminders', 'activityLog']
 
-const TARGET_ROOM_IDS = [1, 2, 3, 4]
-const TARGET_HOST_COUNT = 9
+const TARGET_ROOM_IDS = [1, 2]
+const TARGET_HOST_COUNT = 12
+const TARGET_ROOM_DISTRIBUTION = [
+    { roomId: 1, roomCode: 'Il Rifugio', hostCount: 5 },
+    { roomId: 2, roomCode: 'Via Bellani', hostCount: 7 },
+]
 const TARGET_DRUG_COUNT = 12
 
 const REALISTIC_HOST_IDENTITIES = [
@@ -386,6 +390,17 @@ function pickNextAvailableBed({ preferredRoomId, bedsByRoom, allBeds, usedBedIds
     return allBeds.find(bed => bed?.id && !usedBedIds.has(bed.id)) ?? null
 }
 
+function getPlannedRoomIdForHostIndex(hostIndex) {
+    let runningTotal = 0
+    for (const roomPlan of TARGET_ROOM_DISTRIBUTION) {
+        runningTotal += roomPlan.hostCount
+        if (hostIndex < runningTotal) return roomPlan.roomId
+    }
+
+    const fallback = TARGET_ROOM_DISTRIBUTION[TARGET_ROOM_DISTRIBUTION.length - 1]
+    return fallback?.roomId ?? null
+}
+
 /**
  * Generate realistic hosts from provided JSON dataset
  */
@@ -409,10 +424,9 @@ function generateRealisticHosts(now, { roomsById = new Map(), bedsById = new Map
             hostIndex: idx,
             usedNames,
         })
-        const roomNumericId = toSafeNumericId(row.roomId)
-        const bedNumericId = toSafeNumericId(row.bedId)
-        const preferredRoomId = roomNumericId ? `__realistic__room-${roomNumericId}` : null
-        const preferredBedId = bedNumericId ? `__realistic__bed-${bedNumericId}` : null
+        const plannedRoomNumericId = getPlannedRoomIdForHostIndex(idx)
+        const preferredRoomId = plannedRoomNumericId ? `__realistic__room-${plannedRoomNumericId}` : null
+        const preferredBedId = null
 
         let bedId = preferredBedId && bedsById.has(preferredBedId) && !usedBedIds.has(preferredBedId)
             ? preferredBedId
@@ -489,16 +503,15 @@ function generateRealisticDrugs() {
  */
 function generateRealisticRoomsAndBeds(now) {
     const templateRooms = Array.isArray(realisticDataset?.rooms) ? realisticDataset.rooms : []
-    const templateBeds = Array.isArray(realisticDataset?.beds) ? realisticDataset.beds : []
 
     const selectedRooms = templateRooms.filter(room => TARGET_ROOM_IDS.includes(Number(room.id)))
-    const selectedBeds = templateBeds.filter(bed => TARGET_ROOM_IDS.includes(Number(bed.roomId)))
 
     const rooms = selectedRooms.map((room, idx) => {
         const roomId = Number(room.id || idx + 1)
+        const roomPlan = TARGET_ROOM_DISTRIBUTION.find(item => item.roomId === roomId)
         return {
             id: `__realistic__room-${roomId}`,
-            codice: String(room.codice || `Stanza ${roomId}`),
+            codice: String(roomPlan?.roomCode || room.codice || `Stanza ${roomId}`),
             descrizione: String(room.descrizione || ''),
             updatedAt: now,
             deletedAt: null,
@@ -507,18 +520,17 @@ function generateRealisticRoomsAndBeds(now) {
         }
     })
 
-    const beds = selectedBeds.map((bed, idx) => {
-        const bedId = Number(bed.id || idx + 1)
-        return {
-            id: `__realistic__bed-${bedId}`,
-            roomId: `__realistic__room-${Number(bed.roomId)}`,
-            numero: Number(bed.numero || 1),
-            occupato: Boolean(bed.occupato),
+    const beds = TARGET_ROOM_DISTRIBUTION.flatMap((roomPlan) => {
+        return Array.from({ length: roomPlan.hostCount }, (_, idx) => ({
+            id: `__realistic__bed-${roomPlan.roomId}-${idx + 1}`,
+            roomId: `__realistic__room-${roomPlan.roomId}`,
+            numero: idx + 1,
+            occupato: true,
             updatedAt: now,
             deletedAt: null,
             syncStatus: 'pending',
             _seeded: true,
-        }
+        }))
     })
 
     return { rooms, beds }

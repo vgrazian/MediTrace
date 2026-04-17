@@ -12,6 +12,7 @@ import { db } from '../db'
 import { useHelpNavigation } from '../composables/useHelpNavigation'
 import { useUnsavedChangesGuard } from '../composables/useUnsavedChangesGuard'
 import { useUndoDelete } from '../composables/useUndoDelete'
+import { useSessionViewState } from '../composables/useSessionViewState'
 
 const { currentUser } = useAuth()
 const { goToHelpSection } = useHelpNavigation()
@@ -52,6 +53,7 @@ const editingHostId = ref(null)
 const isFormOpen = ref(false)
 const panelMode = ref('list')
 const filterQuery = ref('')
+const sortBy = ref('codice')
 const formSnapshot = ref('')
 
 const form = ref({
@@ -80,8 +82,8 @@ const normalizedFilter = computed(() => filterQuery.value.trim().toLowerCase())
 
 const filteredRows = computed(() => {
   const q = normalizedFilter.value
-  if (!q) return rows.value
-  return rows.value.filter((host) => {
+  const baseRows = q
+    ? rows.value.filter((host) => {
     const haystack = [
       host.id,
       host.codiceInterno,
@@ -94,6 +96,26 @@ const filteredRows = computed(() => {
     ].filter(Boolean).join(' ').toLowerCase()
     return haystack.includes(q)
   })
+    : rows.value
+
+  const result = [...baseRows]
+  const byName = (host) => [host.cognome, host.nome].filter(Boolean).join(' ').toLowerCase()
+  if (sortBy.value === 'nome') {
+    return result.sort((a, b) => byName(a).localeCompare(byName(b)))
+  }
+  if (sortBy.value === 'residenza') {
+    return result.sort((a, b) => String(a.stanza || '').localeCompare(String(b.stanza || '')))
+  }
+  if (sortBy.value === 'terapie') {
+    return result.sort((a, b) => Number(b.activeTherapies || 0) - Number(a.activeTherapies || 0))
+  }
+  return result
+})
+
+useSessionViewState('viewState:ospiti', {
+  filterQuery,
+  showAll,
+  sortBy,
 })
 
 const isDirty = computed(() => {
@@ -390,10 +412,19 @@ onMounted(() => {
       <CrudFilterBar
         v-model="filterQuery"
         label="Filtra ospiti"
-        placeholder="Cerca per nome, cognome, codice, iniziali o stanza"
+        placeholder="Cerca per nome, cognome, codice, iniziali o residenza"
         :visible-count="filteredRows.length"
         :total-count="rows.length"
       />
+      <label style="margin-top:.5rem;display:flex;align-items:center;gap:.4rem;max-width:22rem">
+        Ordina per
+        <select v-model="sortBy" aria-label="Ordina ospiti">
+          <option value="codice">Codice interno</option>
+          <option value="nome">Cognome/Nome</option>
+          <option value="residenza">Residenza</option>
+          <option value="terapie">Terapie attive</option>
+        </select>
+      </label>
       <label style="margin-top:.5rem;display:flex;align-items:center;gap:.4rem">
         <input v-model="showAll" type="checkbox" />
         Mostra anche disattivati
@@ -434,7 +465,7 @@ onMounted(() => {
             <th>Iniziali</th>
             <th>Nome</th>
             <th>Cognome</th>
-            <th>Stanza/Letto</th>
+            <th>Residenza</th>
             <th>Terapie attive</th>
             <th>Azioni</th>
           </tr>
@@ -458,7 +489,7 @@ onMounted(() => {
             <td>{{ host.iniziali || '—' }}</td>
             <td>{{ host.nome || '—' }}</td>
             <td>{{ host.cognome || '—' }}</td>
-            <td>{{ host.stanza }}{{ host.letto ? '/' + host.letto : '' }}</td>
+            <td>{{ host.stanza || '—' }}</td>
             <td>{{ host.activeTherapies }}</td>
             <td>
               <button

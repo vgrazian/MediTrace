@@ -177,3 +177,63 @@ test('ospiti delete cascades therapies and asks explicit confirmation', async ({
     await expect(page.getByText(/Farmaco eliminato/i)).toBeVisible()
     await expect(page.getByText(/Non e' possibile eliminare (il farmaco|uno o piu' farmaci)/i)).toHaveCount(0)
 })
+
+test('ospiti seeded from impostazioni keep 5 plus 7 split by residenza', async ({ page }) => {
+    await page.route('https://api.github.com/user', async route => {
+        await route.fulfill({
+            status: 200,
+            contentType: 'application/json',
+            body: JSON.stringify({
+                login: 'seeded-gh-user',
+                name: 'Seeded User',
+                avatar_url: 'https://avatars.githubusercontent.com/u/1?v=4',
+            }),
+        })
+    })
+
+    await page.goto('/')
+    await loginOrRegisterSeededUser(page)
+
+    await page.getByRole('link', { name: '⚙' }).click()
+    await expect(page.getByRole('heading', { name: 'Impostazioni' })).toBeVisible()
+
+    const testDataCard = page.locator('.card', { hasText: 'Dati di test (live)' })
+    const toggleTestDataButton = testDataCard.getByRole('button', {
+        name: /Genera dati di test|Rimuovi dati di test/i,
+    }).first()
+
+    const buttonLabel = ((await toggleTestDataButton.textContent()) || '').trim()
+    if (buttonLabel.includes('Rimuovi dati di test')) {
+        await runWithAcceptedConfirmation(page, async () => {
+            await toggleTestDataButton.click()
+        })
+        await expect(page.getByText('Dati di test rimossi.')).toBeVisible({ timeout: 10_000 })
+    }
+
+    await toggleTestDataButton.click()
+    for (let i = 0; i < 2; i += 1) {
+        const confirmDialog = page.locator('.confirm-dialog')
+        if (!(await confirmDialog.isVisible().catch(() => false))) break
+        await confirmDialog.locator('.actions button').last().click()
+    }
+
+    await expect(page.getByText('Importati dati di test:', { exact: false })).toBeVisible({ timeout: 15_000 })
+
+    await page.getByRole('link', { name: 'Ospiti', exact: true }).click()
+    await expect(page.getByRole('heading', { name: 'Ospiti' })).toBeVisible()
+
+    const countsByResidenza = await page.locator('table.conflict-table tbody tr').evaluateAll((rows) => {
+        return rows.reduce((acc, row) => {
+            const cells = row.querySelectorAll('td')
+            if (cells.length < 9) return acc
+            const residenza = (cells[6]?.textContent || '').trim()
+            if (!residenza || residenza === '—') return acc
+            acc[residenza] = (acc[residenza] || 0) + 1
+            return acc
+        }, {})
+    })
+
+    expect(countsByResidenza['Il Rifugio']).toBe(5)
+    expect(countsByResidenza['Via Bellani']).toBe(7)
+    expect(Object.keys(countsByResidenza).sort()).toEqual(['Il Rifugio', 'Via Bellani'])
+})

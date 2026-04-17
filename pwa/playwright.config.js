@@ -14,7 +14,39 @@ export default defineConfig({
     projects: [
         {
             name: 'desktop-chromium',
-            testIgnore: '**/android-phone-smoke.spec.js',
+            testIgnore: [
+                '**/android-phone-smoke.spec.js',
+                '**/cross-browser-parity.spec.js',
+                '**/e2e-js-coverage.spec.js',
+            ],
+            use: {
+                browserName: 'chromium',
+            },
+        },
+        {
+            name: 'critical-parity-chromium',
+            testMatch: '**/cross-browser-parity.spec.js',
+            use: {
+                browserName: 'chromium',
+            },
+        },
+        {
+            name: 'critical-parity-firefox',
+            testMatch: '**/cross-browser-parity.spec.js',
+            use: {
+                browserName: 'firefox',
+            },
+        },
+        {
+            name: 'critical-parity-webkit',
+            testMatch: '**/cross-browser-parity.spec.js',
+            use: {
+                browserName: 'webkit',
+            },
+        },
+        {
+            name: 'e2e-js-coverage-chromium',
+            testMatch: '**/e2e-js-coverage.spec.js',
             use: {
                 browserName: 'chromium',
             },

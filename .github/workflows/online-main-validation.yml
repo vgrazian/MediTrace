@@ -60,7 +60,7 @@ jobs:
 
       - uses: actions/setup-node@v5
         with:
-          node-version: '20'
+          node-version: '24'
           cache: 'npm'
           cache-dependency-path: pwa/package-lock.json
 
@@ -111,11 +111,26 @@ jobs:
           REPORT_FILE: test-results/online-two-user-sync.json
         run: npm run test:online-main
 
+      - name: Run online reset-password validation
+        working-directory: pwa
+        env:
+          SITE_URL: ${{ steps.derive_url.outputs.site_url }}
+          SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
+          SUPABASE_PUBLISHABLE_KEY: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY }}
+          MEDITRACE_DEFAULT_ADMIN_USERNAME: ${{ vars.VITE_EMERGENCY_ADMIN_USERNAME }}
+          MEDITRACE_DEFAULT_ADMIN_PASSWORD: ${{ secrets.VITE_EMERGENCY_ADMIN_PASSWORD }}
+          MEDITRACE_DEFAULT_ADMIN_EMAIL: ${{ vars.VITE_EMERGENCY_ADMIN_EMAIL }}
+          ONLINE_TEST_SEED: gha-reset-${{ github.run_id }}-${{ github.run_attempt }}
+          INITIAL_SIGNUP_COOLDOWN_MS: ${{ inputs.initial_signup_cooldown_ms }}
+          REPORT_FILE: test-results/online-reset-password.json
+        run: npm run test:online-reset-password
+
       - name: Upload online validation reports
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: online-main-validation-reports
           path: |
             pwa/test-results/online-performance.json
             pwa/test-results/online-two-user-sync.json
+            pwa/test-results/online-reset-password.json
