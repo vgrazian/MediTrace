@@ -1,5 +1,5 @@
-import { db, getSetting } from '../db'
-import { createRoom, updateRoom, deactivateRoom, deactivateBed, restoreRoom } from './stanze'
+import { db, enqueue, getSetting } from '../db'
+import { createRoom, updateRoom, deactivateRoom, restoreRoom } from './stanze'
 
 export const DEFAULT_RESIDENZE = [
     { codice: 'Il Rifugio', maxOspiti: 10, note: 'Casa alloggio attiva (5 ospiti target)' },
@@ -117,14 +117,41 @@ export async function updateResidenza({ roomId, codice, note = '', maxOspiti = D
 }
 
 export async function deactivateResidenza({ roomId, operatorId = null }) {
-    // Cascade-delete any orphaned beds before deactivating the room.
-    // Beds without active hosts can be safely removed; hosts-assigned beds
-    // will still throw through deactivateBed's own guard.
+    const now = new Date().toISOString()
+    const deviceId = await getSetting('deviceId', 'unknown')
+
+    // Keep the room-level host constraint explicit to avoid partially deleting
+    // beds when active hosts are still assigned to this residenza.
+    const allHosts = await (db.hosts?.toArray?.() ?? Promise.resolve([]))
+    const assignedHosts = allHosts
+        .filter(host => host && !host.deletedAt && host.attivo !== false)
+        .filter(host => host.roomId === roomId)
+    if (assignedHosts.length > 0) {
+        throw new Error('Impossibile eliminare la residenza: sono presenti ospiti assegnati. Spostare prima gli ospiti in un altra residenza.')
+    }
+
+    // Cleanup legacy bed links: deactivate all beds in the room in one batch
+    // so room deletion is not blocked by stale host-bed references.
     const allBeds = await db.beds.toArray()
     const activeBeds = allBeds.filter(bed => bed.roomId === roomId && !bed.deletedAt)
-    for (const bed of activeBeds) {
-        await deactivateBed({ bedId: bed.id, operatorId })
+    if (activeBeds.length > 0) {
+        await db.transaction('rw', db.beds, db.syncQueue, db.activityLog, async () => {
+            for (const bed of activeBeds) {
+                const record = { ...bed, deletedAt: now, updatedAt: now, syncStatus: 'pending' }
+                await db.beds.put(record)
+                await enqueue('beds', record.id, 'upsert')
+                await db.activityLog.add({
+                    entityType: 'beds',
+                    entityId: record.id,
+                    action: 'bed_deactivated',
+                    deviceId,
+                    operatorId,
+                    ts: now,
+                })
+            }
+        })
     }
+
     return deactivateRoom({ roomId, operatorId })
 }
 

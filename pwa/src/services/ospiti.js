@@ -9,6 +9,36 @@
 import { db, enqueue, getSetting } from '../db'
 import { generateEntityId } from './ids'
 
+const DEFAULT_RESIDENZA_CAPACITY = 10
+
+function parseResidenzaCapacity(room) {
+    const parsed = Number(room?.metadata?.maxOspiti)
+    if (!Number.isFinite(parsed) || parsed <= 0) return DEFAULT_RESIDENZA_CAPACITY
+    return Math.floor(parsed)
+}
+
+async function assertResidenzaCapacity({ roomId, excludeHostId = null }) {
+    const safeRoomId = String(roomId || '').trim()
+    if (!safeRoomId) return
+
+    const room = await db.rooms?.get?.(safeRoomId)
+    if (!room || room.deletedAt) {
+        throw new Error('Residenza selezionata non trovata')
+    }
+
+    const allHosts = await (db.hosts?.toArray?.() ?? Promise.resolve([]))
+    const activeHostsInRoom = allHosts
+        .filter(host => !host?.deletedAt)
+        .filter(host => host?.attivo !== false)
+        .filter(host => host?.roomId === safeRoomId)
+        .filter(host => !excludeHostId || host?.id !== excludeHostId)
+
+    const capacity = parseResidenzaCapacity(room)
+    if (activeHostsInRoom.length >= capacity) {
+        throw new Error(`Impossibile assegnare l'ospite: capienza massima residenza raggiunta (${capacity} ospiti).`)
+    }
+}
+
 export function formatHostDisplay(host) {
     if (!host) return '—'
     const fullName = [host.cognome, host.nome].filter(Boolean).join(' ').trim()
@@ -104,6 +134,8 @@ export async function createHost({
     operatorId,
 }) {
     if (!codiceInterno?.trim() && !iniziali?.trim()) throw new Error('Codice interno o iniziali obbligatori')
+
+    await assertResidenzaCapacity({ roomId })
 
     const hostId = id?.trim() || generateEntityId('host')
 
@@ -305,6 +337,8 @@ export async function updateHost({
 }) {
     const host = await db.hosts.get(hostId)
     if (!host || host.deletedAt) throw new Error(`Ospite "${hostId}" non trovato`)
+
+    await assertResidenzaCapacity({ roomId, excludeHostId: hostId })
 
     const now = new Date().toISOString()
     const deviceId = await getSetting('deviceId', 'unknown')
