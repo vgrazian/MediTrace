@@ -5,6 +5,29 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.5] - 2026-04-17
+### Added
+- Added reset-token extraction in [`ResetPasswordView.vue`](pwa/src/views/ResetPasswordView.vue) so hash-route recovery links (`/#/auth/reset-password?token=...`) are consumed correctly by table-auth recovery.
+- Added online reset-password validation script [`online-reset-password.mjs`](pwa/scripts/online-reset-password.mjs) with synthetic-user provisioning, recovery-token request, UI password update, login verification, and JSON report output.
+- Added Supabase migration [`007_table_auth_password_recovery.sql`](supabase/migrations/007_table_auth_password_recovery.sql) introducing `user_password_recovery_tokens`, `app_request_password_reset`, and `app_complete_password_recovery` RPCs.
+- Added cross-browser parity coverage in [`cross-browser-parity.spec.js`](pwa/tests/e2e/cross-browser-parity.spec.js) for a critical deterministic Farmaci workflow.
+- Added Playwright-driven JS coverage instrumentation in [`e2e-js-coverage.spec.js`](pwa/tests/e2e/e2e-js-coverage.spec.js), generating `coverage/e2e-js` artifacts (`coverage-summary.json`, `lcov.info`, raw V8 coverage JSON).
+
+### Changed
+- Extended Playwright project matrix in [`playwright.config.js`](pwa/playwright.config.js) with dedicated parity projects (`critical-parity-chromium`, `critical-parity-firefox`, `critical-parity-webkit`) and a dedicated coverage project (`e2e-js-coverage-chromium`).
+- Added npm scripts in [`package.json`](pwa/package.json): `test:online-reset-password`, `test:e2e:parity`, and `test:e2e:coverage`.
+- Updated CI workflows:
+ 	- [`quality-gate.yml`](.github/workflows/quality-gate.yml) installs Chromium + Firefox + WebKit.
+ 	- [`online-main-validation.yml`](.github/workflows/online-main-validation.yml) now runs online reset-password validation and uploads `online-reset-password.json`.
+
+### Verified
+- Local deterministic reset guard-path: `npm --prefix pwa run test:e2e -- tests/e2e/reset-password-route.spec.js`.
+- Cross-browser parity: `npm --prefix pwa run test:e2e:parity` (`3/3`).
+- E2E JS coverage instrumentation: `npm --prefix pwa run test:e2e:coverage` (Lines `50.7%`, Branches `55.78%`).
+- Full local deterministic Playwright suite: `npm --prefix pwa run test:e2e` (`62/62`).
+- Online sync (deployed Pages): `SITE_URL=https://vgrazian.github.io/MediTrace/ npm --prefix pwa run test:online-main`.
+- Online reset-password (current PR code + Supabase backend): `SITE_URL=http://127.0.0.1:4173/ npm --prefix pwa run test:online-reset-password`.
+
 ## [0.5.4] - 2026-04-17
 ### Added
 - Added reusable in-session view state persistence composable [`useSessionViewState.js`](pwa/src/composables/useSessionViewState.js) for filter/sort UI continuity.

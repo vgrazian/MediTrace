@@ -1,10 +1,10 @@
 # CURRENT STATUS
 
 ## Active Task
-Post-merge stabilization after PR #70 and documentation alignment for seed/auth/mobile smoke updates.
+Prepare and execute PR-3 (E2E hardening by mode: local deterministic + online Supabase).
 
 ## Current Phase
-PR #70 (`feat(seed): demo operators + android phone smoke`) merged to `main`; repository is in green CI state.
+PR-1 and PR-2 are merged to `main` with local and online validation gates passing; next phase is PR-3 execution.
 
 ## Done So Far
 1. Referential integrity and conflict error management completed for core CRUD deletes, with unit tests and consistency test scenarios.
@@ -53,14 +53,26 @@ PR #70 (`feat(seed): demo operators + android phone smoke`) merged to `main`; re
 - `npm --prefix pwa run test:unit` passed (`270/270`)
 - `npm --prefix pwa run test:e2e` passed (`54/54`)
 - `npm --prefix pwa run build` passed
+1. PR-2 merged to `main`:
+- merge commit `8591857` (`Merge PR-2: CRUD UX wave-2 persistence`)
+- added in-session filter/sort persistence across Ospiti/Farmaci/Terapie/Movimenti
+- added cross-view E2E persistence regression coverage
+1. Validation completed for PR-2 changes:
+- `npm --prefix pwa run test:unit` passed (`304/304`)
+- `npm --prefix pwa run test:e2e` passed (`58/58`)
+- `npm --prefix pwa run build` passed
+- `npm --prefix pwa run test:online-main` passed
+- `npm --prefix pwa run test:online-performance` passed
+- `npm --prefix pwa run test:online-smoke` passed
+- `npm --prefix pwa run test:online-chaos` passed
 
 ## Immediate Next Steps
-1. Monitor next post-merge CI/deploy runs on `main` and confirm Pages smoke remains green.
-2. Start the next planned CRUD UX follow-up slice from updated `main` baseline.
-3. Keep changelog/progress in sync for each merged PR slice.
+1. Open PR-3 from updated branch with migration + test/workflow hardening bundle.
+2. Trigger online-main validation workflow on the PR branch and verify new reset-password artifact upload.
+3. Merge and deploy so `https://vgrazian.github.io/MediTrace/` includes reset-token handling in `ResetPasswordView`.
 
 ## Blockers
-- No blockers currently identified.
+- None for local/CI execution; deployed Pages reset-password flow will remain old behavior until PR-3 is merged/deployed.
 
 ## PR STILL TO BE WORKED ON
 
@@ -68,8 +80,7 @@ PR #70 (`feat(seed): demo operators + android phone smoke`) merged to `main`; re
 1. None currently open.
 
 ## Planned PR Work (Not Open Yet)
-1. New PR from `feat/crud-ux-followup-wave2` for follow-up UX work in `docs/crud-ux-followup-pr.md`.
-2. Subsequent CRUD refinements where guided flows still need consistency.
+1. PR-3: E2E hardening by mode (local deterministic + online Supabase), as defined in the checklist below.
 
 ## TECHNICAL CONTEXT
 
@@ -106,9 +117,7 @@ PR #70 (`feat(seed): demo operators + android phone smoke`) merged to `main`; re
 - [x] Workflow maintenance merged (PR #53)
 
 ## Remaining Work Items
-1. Deliver follow-up CRUD UX wave 2 (undo, save-state, sorting/filters persistence)
-2. Add matching E2E and unit coverage for recovery and save-state paths
-3. Keep docs/changelog aligned for each release slice
+1. Merge/deploy PR-3 so online reset-password E2E can run against production Pages URL with new token handling.
 
 ## Technical Debt (CI/CD)
 1. Update GitHub Actions usage of `actions/upload-artifact@v4` (Node 20 deprecation annotation) to a Node 24-compatible path/version before platform enforcement windows.
@@ -126,9 +135,9 @@ PR #70 (`feat(seed): demo operators + android phone smoke`) merged to `main`; re
 5. [P2] Add Playwright-driven JS coverage instrumentation for E2E line/branch metrics.
 
 ## Current Priority
-- HIGH: Preserve green CI/deploy baseline after PR #70 merge
-- HIGH: Continue CRUD UX follow-up wave 2 from refreshed main baseline
-- MEDIUM: Keep changelog/docs aligned with each rollout increment
+- HIGH: Execute PR-3 E2E hardening tasks without regressing current green baseline.
+- HIGH: Stabilize online-mode auth/sync scenarios with deterministic preconditions.
+- MEDIUM: Keep changelog/docs aligned with each rollout increment.
 
 ## 3-PR Execution Checklist (Concrete)
 
@@ -242,8 +251,26 @@ Validation commands
 1. `npm --prefix pwa run test:online-chaos`
 
 Checklist
-1. [ ] Local guard-path and deterministic regression suite green.
-2. [ ] Online reset-password E2E implemented and stable.
-3. [ ] Online two-user sync E2E stabilized.
-4. [ ] Cross-browser parity flow enabled and passing.
-5. [ ] E2E coverage instrumentation integrated and published.
+1. [x] Local guard-path and deterministic regression suite green.
+2. [x] Online reset-password E2E implemented and stable (validated against local app + Supabase backend; production Pages pending deploy).
+3. [x] Online two-user sync E2E stabilized.
+4. [x] Cross-browser parity flow enabled and passing.
+5. [x] E2E coverage instrumentation integrated and published.
+
+PR-3 execution notes (2026-04-17)
+1. Added reset-token extraction in `ResetPasswordView` so `/#/auth/reset-password?token=...` completes Supabase table-auth recovery flow.
+2. Added online reset-password validator script `pwa/scripts/online-reset-password.mjs` with synthetic-user provisioning, token request, reset submit, login verification, and JSON reporting.
+3. Added migration `supabase/migrations/007_table_auth_password_recovery.sql` introducing `app_request_password_reset` + `app_complete_password_recovery` RPCs and password recovery token storage; migration applied successfully on Supabase project.
+4. Added cross-browser parity spec `pwa/tests/e2e/cross-browser-parity.spec.js` and dedicated Playwright projects for Chromium/Firefox/WebKit critical-path verification.
+5. Added Playwright-driven E2E JS coverage instrumentation `pwa/tests/e2e/e2e-js-coverage.spec.js` with `coverage/e2e-js` artifacts (`raw-v8-coverage.json`, `coverage-summary.json`, `lcov.info`).
+6. Updated CI workflows:
+- `quality-gate.yml` installs Chromium + Firefox + WebKit.
+- `online-main-validation.yml` now executes `test:online-reset-password` and uploads `online-reset-password.json` artifact.
+1. Validation evidence:
+- `npm --prefix pwa run test:e2e -- tests/e2e/reset-password-route.spec.js` => PASS
+- `npm --prefix pwa run test:e2e:parity` => PASS (3/3)
+- `npm --prefix pwa run test:e2e:coverage` => PASS (Lines 50.7%, Branches 55.78%)
+- `npm --prefix pwa run test:e2e` => PASS (62/62)
+- `SITE_URL=https://vgrazian.github.io/MediTrace/ ... npm --prefix pwa run test:online-main` => PASS
+- `SITE_URL=http://127.0.0.1:4173/ ... npm --prefix pwa run test:online-reset-password` => PASS
+- `SITE_URL=https://vgrazian.github.io/MediTrace/ ... npm --prefix pwa run test:online-reset-password` currently fails until PR-3 UI changes are deployed to Pages.
