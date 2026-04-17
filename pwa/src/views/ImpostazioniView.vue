@@ -18,7 +18,6 @@ import {
 import { listSupportedImportSources, importCsv } from '../services/csvImport'
 import { db, getSetting, enqueue, setSetting } from '../db'
 import { isSupabaseConfigured } from '../services/supabaseClient'
-import { BED_SEQUENCE_SETTING_KEY, buildBedSequenceIndex } from '../services/promemoria'
 import {
   loadSeedData,
   clearSeedData,
@@ -111,9 +110,6 @@ const seedStats = getSeedStats()
 const backupRestoreBusy = ref(false)
 const backupRestoreMessage = ref('')
 const selectedBackupFile = ref(null)
-const bedSequenceRows = ref([])
-const bedSequenceBusy = ref(false)
-const bedSequenceMessage = ref('')
 
 const passwordPolicyState = computed(() => getPasswordPolicy(pwdNext.value))
 const newUserPasswordPolicyState = computed(() => getPasswordPolicy(newUserPassword.value))
@@ -185,75 +181,6 @@ function formatScheduledAt(value) {
   const date = new Date(value)
   if (Number.isNaN(date.getTime())) return '—'
   return date.toLocaleString('it-IT', { hour12: false })
-}
-
-function formatBedSequenceLabel(item) {
-  const roomLabel = item.roomCode || item.roomId || '—'
-  const bedLabel = item.bedNumber || item.bedId || '—'
-  const hostLabel = item.hostLabel ? ` · ${item.hostLabel}` : ''
-  return `${roomLabel}/${bedLabel}${hostLabel}`
-}
-
-async function refreshBedSequenceSettings() {
-  bedSequenceBusy.value = true
-  bedSequenceMessage.value = ''
-  try {
-    const [rawBeds, rawRooms, rawHosts, savedSequence] = await Promise.all([
-      db.beds.toArray(),
-      db.rooms.toArray(),
-      db.hosts.toArray(),
-      getSetting(BED_SEQUENCE_SETTING_KEY, []),
-    ])
-
-    const beds = rawBeds.filter(item => !item.deletedAt)
-    const rooms = rawRooms.filter(item => !item.deletedAt)
-    const hosts = rawHosts.filter(item => !item.deletedAt)
-    const roomById = new Map(rooms.map(room => [room.id, room]))
-    const hostByBedId = new Map(hosts.filter(host => host.bedId).map(host => [host.bedId, host]))
-    const bedSequenceIndex = buildBedSequenceIndex({ beds, rooms, bedSequence: savedSequence })
-
-    bedSequenceRows.value = [...beds]
-      .sort((a, b) => (bedSequenceIndex.get(a.id) ?? Number.MAX_SAFE_INTEGER) - (bedSequenceIndex.get(b.id) ?? Number.MAX_SAFE_INTEGER))
-      .map((bed, index) => {
-        const room = roomById.get(bed.roomId)
-        const host = hostByBedId.get(bed.id)
-        const hostFullName = host ? [host.cognome, host.nome].filter(Boolean).join(' ').trim() : ''
-        return {
-          order: index,
-          bedId: bed.id,
-          bedNumber: bed.numero,
-          roomId: bed.roomId,
-          roomCode: room?.codice || '',
-          hostLabel: hostFullName || host?.codiceInterno || host?.iniziali || '',
-        }
-      })
-  } catch (err) {
-    bedSequenceRows.value = []
-    bedSequenceMessage.value = `Errore sequenza letti: ${err.message}`
-  } finally {
-    bedSequenceBusy.value = false
-  }
-}
-
-async function persistBedSequenceRows(nextRows, messageText = 'Sequenza letti aggiornata.') {
-  bedSequenceRows.value = nextRows.map((row, index) => ({ ...row, order: index }))
-  await setSetting(BED_SEQUENCE_SETTING_KEY, bedSequenceRows.value.map(item => item.bedId))
-  bedSequenceMessage.value = messageText
-}
-
-async function moveBedSequence(index, direction) {
-  const targetIndex = index + direction
-  if (targetIndex < 0 || targetIndex >= bedSequenceRows.value.length) return
-  const nextRows = [...bedSequenceRows.value]
-  const [item] = nextRows.splice(index, 1)
-  nextRows.splice(targetIndex, 0, item)
-  await persistBedSequenceRows(nextRows)
-}
-
-async function resetBedSequence() {
-  await setSetting(BED_SEQUENCE_SETTING_KEY, [])
-  bedSequenceMessage.value = 'Sequenza letti ripristinata all’ordinamento predefinito.'
-  await refreshBedSequenceSettings()
 }
 
 async function refreshSecurityInfo() {
@@ -406,7 +333,6 @@ onMounted(async () => {
   refreshNotificationStatus()
   await refreshPushStatus()
   await refreshUpcomingReminderRows()
-  await refreshBedSequenceSettings()
   await refreshSeedStatus()
   hydrateProfileForm()
   syncSuggestedUsername()
@@ -1080,42 +1006,7 @@ async function handleCreateUser() {
       </table>
       </div>
 
-      <p style="margin-top:.95rem"><strong>Sequenza letti per Promemoria</strong></p>
-      <p class="muted" style="margin-top:.25rem">
-        Ordina il giro operativo: Promemoria usa prima l’orario, poi questa sequenza letti.
-      </p>
-      <div style="margin-top:.5rem;display:flex;gap:.5rem;flex-wrap:wrap">
-        <button :disabled="bedSequenceBusy" @click="refreshBedSequenceSettings">Aggiorna letti</button>
-        <button :disabled="bedSequenceBusy || bedSequenceRows.length === 0" @click="resetBedSequence">Ripristina default</button>
-      </div>
-
-      <div class="dataset-frame" style="margin-top:.75rem;max-height:18rem">
-        <table class="conflict-table" style="min-width:700px">
-          <thead>
-            <tr>
-              <th>Ordine</th>
-              <th>Letto</th>
-              <th>Azioni</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="(item, index) in bedSequenceRows" :key="item.bedId">
-              <td>{{ index + 1 }}</td>
-              <td>{{ formatBedSequenceLabel(item) }}</td>
-              <td>
-                <button type="button" style="margin-right:.35rem" :disabled="index === 0" @click="moveBedSequence(index, -1)" aria-label="Sposta su" title="Sposta su">▲</button>
-                <button type="button" :disabled="index === bedSequenceRows.length - 1" @click="moveBedSequence(index, 1)" aria-label="Sposta giu" title="Sposta giu">▼</button>
-              </td>
-            </tr>
-            <tr v-if="bedSequenceRows.length === 0">
-              <td colspan="3" class="muted">Nessun letto attivo disponibile per la sequenza.</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-
       <p v-if="notificationMessage" class="muted" style="margin-top:.5rem;font-size:.8rem">{{ notificationMessage }}</p>
-      <p v-if="bedSequenceMessage" class="muted" style="margin-top:.5rem;font-size:.8rem">{{ bedSequenceMessage }}</p>
     </div>
 
     <div class="card">
