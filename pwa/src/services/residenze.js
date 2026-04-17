@@ -1,5 +1,5 @@
 import { db, enqueue, getSetting } from '../db'
-import { createRoom, updateRoom, deactivateRoom, restoreRoom } from './stanze'
+import { createRoom, updateRoom, restoreRoom } from './stanze'
 
 export const DEFAULT_RESIDENZE = [
     { codice: 'Il Rifugio', maxOspiti: 10, note: 'Casa alloggio attiva (5 ospiti target)' },
@@ -16,6 +16,26 @@ function parseMaxOspiti(value) {
 
 function readMaxOspiti(room) {
     return parseMaxOspiti(room?.metadata?.maxOspiti)
+}
+
+function isActiveHost(host) {
+    if (!host || host.deletedAt) return false
+    return host.attivo !== false
+}
+
+function normalizeId(value) {
+    return String(value ?? '').trim()
+}
+
+function buildActiveHostsCountByRoom(hosts = []) {
+    const counts = new Map()
+    for (const host of hosts) {
+        if (!isActiveHost(host)) continue
+        const roomKey = normalizeId(host.roomId)
+        if (!roomKey) continue
+        counts.set(roomKey, (counts.get(roomKey) ?? 0) + 1)
+    }
+    return counts
 }
 
 export async function ensureDefaultResidenze({ operatorId = null } = {}) {
@@ -44,13 +64,13 @@ export async function listResidenze() {
         db.hosts.toArray(),
     ])
 
-    const activeHosts = hosts.filter(host => !host.deletedAt && host.attivo !== false)
+    const activeHostsByRoom = buildActiveHostsCountByRoom(hosts)
 
     return rooms
         .filter(room => !room.deletedAt)
         .map(room => {
             const maxOspiti = readMaxOspiti(room)
-            const ospitiAttivi = activeHosts.filter(host => host.roomId === room.id).length
+            const ospitiAttivi = activeHostsByRoom.get(normalizeId(room.id)) ?? 0
             return {
                 ...room,
                 maxOspiti,
@@ -119,21 +139,23 @@ export async function updateResidenza({ roomId, codice, note = '', maxOspiti = D
 export async function deactivateResidenza({ roomId, operatorId = null }) {
     const now = new Date().toISOString()
     const deviceId = await getSetting('deviceId', 'unknown')
+    const safeRoomId = normalizeId(roomId)
+
+    const room = await db.rooms.get(safeRoomId)
+    if (!room || room.deletedAt) throw new Error('Residenza non trovata')
 
     // Keep the room-level host constraint explicit to avoid partially deleting
     // beds when active hosts are still assigned to this residenza.
     const allHosts = await (db.hosts?.toArray?.() ?? Promise.resolve([]))
-    const assignedHosts = allHosts
-        .filter(host => host && !host.deletedAt && host.attivo !== false)
-        .filter(host => host.roomId === roomId)
-    if (assignedHosts.length > 0) {
+    const activeHostsByRoom = buildActiveHostsCountByRoom(allHosts)
+    if ((activeHostsByRoom.get(safeRoomId) ?? 0) > 0) {
         throw new Error('Impossibile eliminare la residenza: sono presenti ospiti assegnati. Spostare prima gli ospiti in un altra residenza.')
     }
 
     // Cleanup legacy bed links: deactivate all beds in the room in one batch
     // so room deletion is not blocked by stale host-bed references.
     const allBeds = await db.beds.toArray()
-    const activeBeds = allBeds.filter(bed => bed.roomId === roomId && !bed.deletedAt)
+    const activeBeds = allBeds.filter(bed => normalizeId(bed.roomId) === safeRoomId && !bed.deletedAt)
     if (activeBeds.length > 0) {
         await db.transaction('rw', db.beds, db.syncQueue, db.activityLog, async () => {
             for (const bed of activeBeds) {
@@ -152,7 +174,27 @@ export async function deactivateResidenza({ roomId, operatorId = null }) {
         })
     }
 
-    return deactivateRoom({ roomId, operatorId })
+    const record = {
+        ...room,
+        deletedAt: now,
+        updatedAt: now,
+        syncStatus: 'pending',
+    }
+
+    await db.transaction('rw', db.rooms, db.syncQueue, db.activityLog, async () => {
+        await db.rooms.put(record)
+        await enqueue('rooms', record.id, 'upsert')
+        await db.activityLog.add({
+            entityType: 'rooms',
+            entityId: record.id,
+            action: 'room_deactivated',
+            deviceId,
+            operatorId,
+            ts: now,
+        })
+    })
+
+    return record
 }
 
 export async function restoreResidenza({ roomId, existing, operatorId = null }) {
