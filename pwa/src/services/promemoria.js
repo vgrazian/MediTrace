@@ -23,7 +23,7 @@ export const CURRENT_RESIDENZA_SETTING_KEY = 'promemoriaCurrentResidenzaId'
  * @param {Array}  params.drugs       — array di record drug locali
  * @param {Array}  params.therapies   — array di record therapy locali
  * @param {string} params.dateFilter  — 'today' | 'all' | ISO date string (YYYY-MM-DD)
- * @param {string} params.stateFilter — '' | 'DA_ESEGUIRE' | 'ESEGUITO' | 'SALTATO' | 'POSTICIPATO'
+ * @param {string|string[]} params.stateFilter — '' | 'DA_ESEGUIRE' | ['DA_ESEGUIRE','POSTICIPATO']
  * @param {Date}   params.now         — riferimento temporale
  * @returns {Array} reminders arricchiti, ordinati per scheduledAt asc
  */
@@ -100,6 +100,10 @@ export function buildReminderRows({ reminders, hosts, drugs, therapies, beds = [
 
     const dayStart = startOfDay(now)
     const dayEnd = endOfDay(now)
+    const normalizedStateFilters = Array.isArray(stateFilter)
+        ? stateFilter.filter(Boolean)
+        : (stateFilter ? [stateFilter] : [])
+    const stateFilterSet = new Set(normalizedStateFilters)
 
     // Build a map of therapyId+YYYY-MM-DD → sorted HH:MM time strings for all reminders
     const therapyDayTimes = new Map()
@@ -119,8 +123,8 @@ export function buildReminderRows({ reminders, hosts, drugs, therapies, beds = [
     return reminders
         .filter(r => !r.deletedAt)
         .filter(r => {
-            if (!stateFilter) return true
-            return (r.stato ?? 'DA_ESEGUIRE') === stateFilter
+            if (stateFilterSet.size === 0) return true
+            return stateFilterSet.has(r.stato ?? 'DA_ESEGUIRE')
         })
         .filter(r => {
             if (!residenzaFilter) return true
