@@ -522,7 +522,7 @@ watch(residenzaFilter, async (value) => {
                 <button
                   class="reminder-action-btn"
                   :disabled="markingId === reminder.id"
-                  :style="{ backgroundColor: reminderActionButtonColor('ESEGUITO').bg, color: reminderActionButtonColor('ESEGUITO').text, border: 'none', borderRadius: '0.25rem', cursor: markingId === reminder.id ? 'not-allowed' : 'pointer' }"
+                  :style="{ backgroundColor: reminderActionButtonColor('ESEGUITO').bg, color: reminderActionButtonColor('ESEGUITO').text, borderRadius: '0.25rem', cursor: markingId === reminder.id ? 'not-allowed' : 'pointer' }"
                   title="Somministrazione eseguita"
                   @click="applyOutcome(reminder.id, 'ESEGUITO')"
                 >
@@ -531,7 +531,7 @@ watch(residenzaFilter, async (value) => {
                 <button
                   class="reminder-action-btn"
                   :disabled="markingId === reminder.id"
-                  :style="{ backgroundColor: reminderActionButtonColor('POSTICIPATO').bg, color: reminderActionButtonColor('POSTICIPATO').text, border: 'none', borderRadius: '0.25rem', cursor: markingId === reminder.id ? 'not-allowed' : 'pointer' }"
+                  :style="{ backgroundColor: reminderActionButtonColor('POSTICIPATO').bg, color: reminderActionButtonColor('POSTICIPATO').text, borderRadius: '0.25rem', cursor: markingId === reminder.id ? 'not-allowed' : 'pointer' }"
                   title="Somministrazione posticipata"
                   @click="applyOutcome(reminder.id, 'POSTICIPATO')"
                 >
@@ -540,7 +540,7 @@ watch(residenzaFilter, async (value) => {
                 <button
                   class="reminder-action-btn"
                   :disabled="markingId === reminder.id"
-                  :style="{ backgroundColor: reminderActionButtonColor('SALTATO').bg, color: reminderActionButtonColor('SALTATO').text, border: 'none', borderRadius: '0.25rem', cursor: markingId === reminder.id ? 'not-allowed' : 'pointer' }"
+                  :style="{ backgroundColor: reminderActionButtonColor('SALTATO').bg, color: reminderActionButtonColor('SALTATO').text, borderRadius: '0.25rem', cursor: markingId === reminder.id ? 'not-allowed' : 'pointer' }"
                   title="Somministrazione saltata"
                   @click="applyOutcome(reminder.id, 'SALTATO')"
                 >
@@ -549,7 +549,7 @@ watch(residenzaFilter, async (value) => {
                 <button
                   class="reminder-action-btn"
                   :disabled="markingId === reminder.id"
-                  :style="{ backgroundColor: reminderActionButtonColor('ANNULLATO').bg, color: reminderActionButtonColor('ANNULLATO').text, border: 'none', borderRadius: '0.25rem', cursor: markingId === reminder.id ? 'not-allowed' : 'pointer' }"
+                  :style="{ backgroundColor: reminderActionButtonColor('ANNULLATO').bg, color: reminderActionButtonColor('ANNULLATO').text, borderRadius: '0.25rem', cursor: markingId === reminder.id ? 'not-allowed' : 'pointer' }"
                   title="Somministrazione annullata"
                   @click="applyOutcome(reminder.id, 'ANNULLATO')"
                 >
