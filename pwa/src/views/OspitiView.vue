@@ -595,6 +595,7 @@ onMounted(() => {
               <select
                 v-model="form.roomId"
                 :disabled="!roomsData.length || saving"
+                @change="() => { if (editingHostId) form.bedId = '' }"
                 @blur="validateField('roomId', roomsData.length ? form.roomId : 'room-not-required')"
                 :aria-invalid="!!errors.roomId"
                 :aria-describedby="errors.roomId ? 'roomId-error' : undefined"
@@ -608,7 +609,7 @@ onMounted(() => {
                 {{ errors.roomId }}
               </span>
             </label>
-            <label>
+            <label v-if="!editingHostId">
               Letto
               <select v-model="form.bedId" :disabled="!form.roomId || !availableBeds.length || saving">
                 <option value="">Seleziona letto (opzionale)</option>

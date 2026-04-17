@@ -2,6 +2,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 const hosts = new Map()
 const therapies = new Map()
+const rooms = new Map()
+const beds = new Map()
 const enqueueCalls = []
 const activityLogRows = []
 
@@ -11,8 +13,27 @@ vi.mock('../../src/db', () => ({
             async get(id) {
                 return hosts.get(String(id))
             },
+            async toArray() {
+                return Array.from(hosts.values())
+            },
             async put(row) {
                 hosts.set(String(row.id), row)
+            },
+        },
+        rooms: {
+            async get(id) {
+                return rooms.get(String(id))
+            },
+            async put(row) {
+                rooms.set(String(row.id), row)
+            },
+        },
+        beds: {
+            async get(id) {
+                return beds.get(String(id))
+            },
+            async put(row) {
+                beds.set(String(row.id), row)
             },
         },
         therapies: {
@@ -58,6 +79,8 @@ import {
 function resetStore() {
     hosts.clear()
     therapies.clear()
+    rooms.clear()
+    beds.clear()
     enqueueCalls.length = 0
     activityLogRows.length = 0
 }
@@ -104,6 +127,27 @@ describe('ospiti helpers', () => {
 describe('ospiti service CRUD', () => {
     beforeEach(() => {
         resetStore()
+        rooms.set('room-1', {
+            id: 'room-1',
+            codice: 'Via Bellani',
+            metadata: { maxOspiti: 2 },
+            deletedAt: null,
+        })
+        rooms.set('room-2', {
+            id: 'room-2',
+            codice: 'Il Rifugio',
+            metadata: { maxOspiti: 2 },
+            deletedAt: null,
+        })
+        rooms.set('room-3', {
+            id: 'room-3',
+            codice: 'Residenza 3',
+            metadata: { maxOspiti: 2 },
+            deletedAt: null,
+        })
+        beds.set('bed-1', { id: 'bed-1', roomId: 'room-1', numero: 1, deletedAt: null })
+        beds.set('bed-2', { id: 'bed-2', roomId: 'room-2', numero: 2, deletedAt: null })
+        beds.set('bed-3', { id: 'bed-3', roomId: 'room-3', numero: 3, deletedAt: null })
         hosts.set('host-existing', {
             id: 'host-existing',
             codiceInterno: 'OSP-010',
@@ -174,6 +218,26 @@ describe('ospiti service CRUD', () => {
         expect(enqueueCalls).toContainEqual({ entityType: 'hosts', entityId: record.id, operation: 'upsert' })
     })
 
+    it('createHost blocks when selected residenza is already full', async () => {
+        hosts.set('host-2', {
+            id: 'host-2',
+            codiceInterno: 'OSP-020',
+            roomId: 'room-1',
+            bedId: null,
+            attivo: true,
+            deletedAt: null,
+        })
+
+        await expect(createHost({
+            id: 'host-over-capacity',
+            codiceInterno: 'OSP-021',
+            nome: 'Mario',
+            cognome: 'Neri',
+            roomId: 'room-1',
+            operatorId: 'op-admin',
+        })).rejects.toThrow("capienza massima residenza raggiunta")
+    })
+
     it('updateHost updates anagrafica fields and enqueues upsert', async () => {
         const updated = await updateHost({
             hostId: 'host-existing',
@@ -205,6 +269,68 @@ describe('ospiti service CRUD', () => {
         expect(updatedAudit?.deviceId).toBe('device-test')
         expect(updatedAudit?.operatorId).toBe('op-admin')
         expect(typeof updatedAudit?.ts).toBe('string')
+    })
+
+    it('updateHost blocks moving host into a full residenza', async () => {
+        hosts.set('host-room-2-a', {
+            id: 'host-room-2-a',
+            codiceInterno: 'OSP-030',
+            roomId: 'room-2',
+            bedId: null,
+            attivo: true,
+            deletedAt: null,
+        })
+        hosts.set('host-room-2-b', {
+            id: 'host-room-2-b',
+            codiceInterno: 'OSP-031',
+            roomId: 'room-2',
+            bedId: null,
+            attivo: true,
+            deletedAt: null,
+        })
+
+        await expect(updateHost({
+            hostId: 'host-existing',
+            codiceInterno: 'OSP-010A',
+            iniziali: 'L.B.',
+            nome: 'Luca Mod',
+            cognome: 'Bianchi Mod',
+            luogoNascita: 'Torino',
+            dataNascita: '1941-02-02',
+            sesso: 'M',
+            codiceFiscale: 'BNCLCU41B02L219Y',
+            patologie: 'Ipertensione, BPCO',
+            roomId: 'room-2',
+            bedId: null,
+            stanza: 'B',
+            letto: '',
+            note: 'Aggiornato',
+            operatorId: 'op-admin',
+        })).rejects.toThrow("capienza massima residenza raggiunta")
+    })
+
+    it('updateHost clears stale bedId when bed does not belong to selected residenza', async () => {
+        const updated = await updateHost({
+            hostId: 'host-existing',
+            codiceInterno: 'OSP-010A',
+            iniziali: 'L.B.',
+            nome: 'Luca Mod',
+            cognome: 'Bianchi Mod',
+            luogoNascita: 'Torino',
+            dataNascita: '1941-02-02',
+            sesso: 'M',
+            codiceFiscale: 'BNCLCU41B02L219Y',
+            patologie: 'Ipertensione, BPCO',
+            roomId: 'room-2',
+            bedId: 'bed-1',
+            stanza: 'B',
+            letto: '1',
+            note: 'Aggiornato',
+            operatorId: 'op-admin',
+        })
+
+        expect(updated.roomId).toBe('room-2')
+        expect(updated.bedId).toBeNull()
     })
 
     it('deleteHost performs soft-delete and enqueues delete', async () => {
