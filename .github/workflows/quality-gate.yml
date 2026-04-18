@@ -1,18 +1,4 @@
-            - name: Print all logs and errors
-              if: failure()
-              run: |
-                find pwa -type f \( -name "*.log" -o -name "*.txt" -o -name "*.json" -o -name "*.html" \) -exec echo "--- {} ---" \; -exec cat {} \; || true
-      - name: Print Playwright error logs
-        if: failure()
-        run: |
-          cat pwa/playwright-report/index.html || true
-          cat pwa/test-results/*/test-*.log || true
-          cat pwa/coverage/coverage-final.json || true
-      - name: Print Vitest error logs
-        if: failure()
-        run: |
-          cat pwa/coverage/vitest-final.json || true
-          cat pwa/coverage/coverage-final.json || true
+            # ...nessun altro step qui, questi step devono stare dentro jobs.test.steps
 name: Quality Gate Automated Tests
 
 on:
