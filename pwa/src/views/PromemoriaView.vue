@@ -1,4 +1,28 @@
 <script setup>
+// --- FULLSCREEN STATE ---
+import { onUnmounted } from 'vue'
+const isFullscreen = ref(false)
+const promemoriaViewRef = ref(null)
+
+function toggleFullscreen() {
+  isFullscreen.value = !isFullscreen.value
+  if (isFullscreen.value) {
+    // Try native fullscreen if available
+    const el = promemoriaViewRef.value
+    if (el && el.requestFullscreen) el.requestFullscreen()
+  } else {
+    if (document.fullscreenElement) document.exitFullscreen()
+  }
+}
+
+// Exit fullscreen if user presses ESC or system event
+function onFullscreenChange() {
+  if (!document.fullscreenElement) isFullscreen.value = false
+}
+document.addEventListener('fullscreenchange', onFullscreenChange)
+onUnmounted(() => {
+  document.removeEventListener('fullscreenchange', onFullscreenChange)
+})
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { db, enqueue, getSetting, setSetting } from '../db'
@@ -433,11 +457,11 @@ watch(residenzaFilter, async (value) => {
 </script>
 
 <template>
-  <div class="view">
-    <div class="view-heading">
-      <h2>Promemoria</h2>
+  <div class="view" :class="{ 'fullscreen': isFullscreen }" ref="promemoriaViewRef">
+    <div class="view-heading" style="display:flex;align-items:center;gap:1rem">
+      <h2 style="flex:1">Promemoria</h2>
       <button class="help-btn" @click="goToHelpSection('promemoria')">Aiuto</button>
-    </div>
+
 
 
     <div class="card">
@@ -681,4 +705,29 @@ watch(residenzaFilter, async (value) => {
       </details>
     </div>
   </div>
+  </div>
 </template>
+
+<style scoped>
+.view.fullscreen {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  background: #fff;
+  box-shadow: 0 0 0 9999px rgba(0,0,0,0.12);
+  overflow: auto;
+  padding: 2.5rem 1.5rem 2.5rem 1.5rem;
+  max-width: 100vw;
+  max-height: 100vh;
+}
+.expand-btn {
+  background: #e5e7eb;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background .2s;
+}
+.expand-btn:active, .expand-btn[aria-pressed="true"] {
+  background: #dbeafe;
+}
+</style>

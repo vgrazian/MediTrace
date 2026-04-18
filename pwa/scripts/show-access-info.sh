@@ -21,12 +21,14 @@ extract_value() {
   printf '%s' "$value"
 }
 
+
 base_url="$(extract_value "$LOCAL_ENV_FILE" "VITE_BASE_URL")"
 if [[ -z "$base_url" ]]; then
   base_url="/MediTrace/"
 fi
 
 prod_url="https://vgrazian.github.io${base_url}#/"
+demo_url="https://vgrazian.github.io${base_url}#/?env=demo"
 
 admin_user="$(extract_value "$LOCAL_ENV_FILE" "VITE_EMERGENCY_ADMIN_USERNAME")"
 admin_pass="$(extract_value "$LOCAL_ENV_FILE" "VITE_EMERGENCY_ADMIN_PASSWORD")"
@@ -42,21 +44,21 @@ default_admin_pass="$(extract_value "$CREDENTIALS_FILE" "MEDITRACE_DEFAULT_ADMIN
 
 printf "\nMediTrace Access Info\n"
 printf '%s\n' '===================='
-printf "App URL (production): %s\n" "$prod_url"
+printf "App URL (PRODUZIONE): %s\n" "$prod_url"
+printf "App URL (DEMO):        %s\n" "$demo_url"
 printf "\n"
-printf "Primary emergency account (local/ops)\n"
-printf '%s\n' '-----------------------------------'
-printf "username: %s\n" "${admin_user:-N/A}"
-printf "password: %s\n" "${admin_pass:-N/A}"
+printf "--- PRODUZIONE ---\n"
+printf "Admin (solo produzione):\n"
+printf "  username: %s\n" "${admin_user:-N/A}"
+printf "  password: %s\n" "${admin_pass:-N/A}"
 printf "\n"
-printf "Default online users (current provisioning)\n"
-printf '%s\n' '-------------------------------------'
-printf "admin      -> username: %s | password: %s\n" "${default_admin_user:-N/A}" "${default_admin_pass:-N/A}"
-
+printf "--- DEMO ---\n"
+printf "Utenti demo attivi (provisioning attuale):\n"
+printf "  admin      -> username: %s | password: %s\n" "${default_admin_user:-N/A}" "${default_admin_pass:-N/A}"
 for i in 1 2 3 4 5; do
   user="$(extract_value "$CREDENTIALS_FILE" "MEDITRACE_DEFAULT_OPERATOR${i}_USERNAME")"
   pass="$(extract_value "$CREDENTIALS_FILE" "MEDITRACE_DEFAULT_OPERATOR${i}_PASSWORD")"
-  printf "operatore%s -> username: %s | password: %s\n" "$i" "${user:-N/A}" "${pass:-N/A}"
+  printf "  operatore%s -> username: %s | password: %s\n" "$i" "${user:-N/A}" "${pass:-N/A}"
 done
 
 printf "\nLocal files used\n"

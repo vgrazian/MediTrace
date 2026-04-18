@@ -833,7 +833,14 @@ async function handleCreateUser() {
       <p class="muted">Email: {{ currentUser?.email || '—' }}</p>
       <p class="muted">Ruolo: {{ currentUser?.role === 'admin' ? 'amministratore' : 'operatore' }}</p>
       <p class="muted">Backend sincronizzazione: {{ syncBackendLabel }}</p>
-      <button style="margin-top:.75rem" @click="signOut">Esci</button>
+      <button style="margin-top:.75rem" @click="handleSignOut">Esci</button>
+
+import { useRouter } from 'vue-router'
+const router = useRouter()
+async function handleSignOut() {
+  await signOut()
+  router.replace('/')
+}
 
       <template v-if="currentUser?.isSeeded">
         <button
