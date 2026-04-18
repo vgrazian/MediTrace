@@ -1,3 +1,7 @@
+            - name: Print all logs and errors
+              if: failure()
+              run: |
+                find pwa -type f \( -name "*.log" -o -name "*.txt" -o -name "*.json" -o -name "*.html" \) -exec echo "--- {} ---" \; -exec cat {} \; || true
       - name: Print Playwright error logs
         if: failure()
         run: |
