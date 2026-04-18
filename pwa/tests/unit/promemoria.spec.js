@@ -1,3 +1,46 @@
+it('filters by selected hostId', () => {
+    const rows = buildReminderRows({
+        reminders: REMINDERS_TODAY,
+        hosts: HOSTS,
+        drugs: DRUGS,
+        therapies: THERAPIES,
+        dateFilter: 'all',
+        hostIdFilter: 'h2',
+        now: NOW,
+    })
+    expect(rows).toHaveLength(1)
+    expect(rows[0].hostLabel).toBe('OSP-02')
+})
+
+it('filters by fasciaOrariaFilter (mattina)', () => {
+    // r1: 08:00, r2: 20:00, r3: 07:00
+    const rows = buildReminderRows({
+        reminders: REMINDERS_TODAY,
+        hosts: HOSTS,
+        drugs: DRUGS,
+        therapies: THERAPIES,
+        dateFilter: 'all',
+        fasciaOrariaFilter: 'mattina',
+        now: NOW,
+    })
+    // r1 (08:00) e r3 (07:00) sono mattina
+    expect(rows.map(r => r.id).sort()).toEqual(['r1', 'r3'])
+})
+
+it('filters by fasciaOrariaFilter (sera)', () => {
+    // r2: 20:00
+    const rows = buildReminderRows({
+        reminders: REMINDERS_TODAY,
+        hosts: HOSTS,
+        drugs: DRUGS,
+        therapies: THERAPIES,
+        dateFilter: 'all',
+        fasciaOrariaFilter: 'sera',
+        now: NOW,
+    })
+    expect(rows).toHaveLength(1)
+    expect(rows[0].id).toBe('r2')
+})
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { buildReminderRows, reminderStateBadge, startOfDay, endOfDay, REMINDER_OUTCOMES, reminderActionButtonColor } from '../../src/services/promemoria'
 
