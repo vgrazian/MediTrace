@@ -1,12 +1,17 @@
 
 
 test('admin promuove operatore e verifica permessi fasce orarie', async ({ page }) => {
+<<<<<<< HEAD
     // Aumenta timeout per diagnostica
     test.setTimeout(60000)
     console.log('INIZIO TEST: admin promuove operatore')
     // Login come admin
     await page.goto('/')
     console.log('Navigato alla pagina principale...')
+=======
+    // Login come admin
+    await page.goto('/')
+>>>>>>> e43e62c (fix(e2e): robust selectors and admin-only time slot config section; all E2E tests green)
     await loginOrRegisterSeededUser(page)
     await page.getByRole('link', { name: '⚙' }).click()
     await expect(page.getByRole('heading', { name: 'Impostazioni' })).toBeVisible()
@@ -25,11 +30,15 @@ test('admin promuove operatore e verifica permessi fasce orarie', async ({ page 
     // Promuovi a admin
     const opRow = page.locator('table.conflict-table tbody tr').filter({ hasText: 'operatore1' }).first()
     await opRow.locator('input[type="checkbox"]').check()
+<<<<<<< HEAD
     console.log('Promosso a admin, attendo update...')
+=======
+>>>>>>> e43e62c (fix(e2e): robust selectors and admin-only time slot config section; all E2E tests green)
     await expect(opRow.locator('input[type="checkbox"]')).toBeChecked()
 
     // Degrada a operatore
     await opRow.locator('input[type="checkbox"]').uncheck()
+<<<<<<< HEAD
     console.log('Degradato a operatore, attendo update...')
     await expect(opRow.locator('input[type="checkbox"]')).not.toBeChecked()
 
@@ -43,10 +52,20 @@ test('admin promuove operatore e verifica permessi fasce orarie', async ({ page 
     await expect(page.getByRole('textbox', { name: 'Username accesso' })).toBeVisible()
     // Login come operatore
     await page.getByRole('textbox', { name: 'Username accesso' }).fill('operatore1')
+=======
+    await expect(opRow.locator('input[type="checkbox"]')).not.toBeChecked()
+
+    // Logout admin
+    await page.getByRole('button', { name: 'Esci' }).click()
+
+    // Login come operatore
+    await page.getByLabel('Username').fill('operatore1')
+>>>>>>> e43e62c (fix(e2e): robust selectors and admin-only time slot config section; all E2E tests green)
     await page.getByLabel('Password').fill('Test12345!')
     await page.getByRole('button', { name: /Accedi/i }).click()
     await page.getByRole('link', { name: '⚙' }).click()
     await expect(page.getByRole('heading', { name: 'Impostazioni' })).toBeVisible()
+<<<<<<< HEAD
     console.log('Login operatore riuscito, controllo permessi...')
 
     // Verifica che NON possa modificare fasce orarie
@@ -64,6 +83,20 @@ test('admin promuove operatore e verifica permessi fasce orarie', async ({ page 
     await expect(page.getByRole('heading', { name: /Impostazioni/ })).toBeVisible()
     await expect(page.getByText('Fasce orarie configurabili')).toBeVisible()
     console.log('Verifica permessi admin OK, FINE TEST')
+=======
+
+    // Verifica che NON possa modificare fasce orarie
+    await expect(page.getByText(/Fasce orarie/)).toHaveCount(0)
+
+    // Logout operatore
+    await page.getByRole('button', { name: 'Esci' }).click()
+
+    // Login come admin
+    await loginOrRegisterSeededUser(page)
+    await page.getByRole('link', { name: '⚙' }).click()
+    await expect(page.getByRole('heading', { name: /Impostazioni/ })).toBeVisible()
+    await expect(page.getByText('Fasce orarie configurabili')).toBeVisible()
+>>>>>>> e43e62c (fix(e2e): robust selectors and admin-only time slot config section; all E2E tests green)
 })
 import { test, expect } from '@playwright/test'
 import { loginOrRegisterSeededUser } from './helpers/login'
