@@ -967,7 +967,7 @@ async function handleCreateUser() {
         </label>
         <label style="display:flex;align-items:center;gap:.5rem">
           <input v-model="newUserIsSeeded" type="checkbox" />
-          Marca come utente di prova
+          {{ newUserIsSeeded ? 'Segna come utente normale' : 'Marca come utente di prova' }}
         </label>
         <button :disabled="newUserBusy || !newUserUsername || !newUserFirstName || !newUserLastName || !newUserEmail || !newUserPassword" @click="handleCreateUser">
           {{ newUserBusy ? 'Creazione utente…' : 'Crea utente' }}
@@ -985,7 +985,7 @@ async function handleCreateUser() {
               <th>Telefono</th>
               <th>Email</th>
               <th>Admin</th>
-              <th>Prova</th>
+              <th>Normale</th>
               <th>Disabilitato</th>
               <th>Ultima attività</th>
               <th>Creato il</th>
@@ -1010,7 +1010,7 @@ async function handleCreateUser() {
                 />
               </td>
               <td>
-                <span v-if="user.isSeeded" style="color:#b45309;font-weight:bold">✔</span>
+                <span v-if="!user.isSeeded" style="color:#b45309;font-weight:bold">✔</span>
               </td>
               <td>
                 <span v-if="user.disabled" style="color:#dc2626;font-weight:bold">✔</span>
@@ -1026,7 +1026,7 @@ async function handleCreateUser() {
                 <button v-if="canManageUsers && user.username !== currentUser?.username && !user.disabled" style="margin-left:.25rem" @click="handleForceLogout(user)">Logout</button>
               </td>
                 <p v-if="userRoleMessage" class="muted" style="margin-top:.5rem;font-size:.8rem">{{ userRoleMessage }}</p>
-              <td>{{ user.isSeeded ? 'prova' : 'standard' }}</td>
+              <td>{{ user.isSeeded ? 'normale' : 'prova' }}</td>
               <td>{{ user.disabled ? 'disattivato' : 'attivo' }}</td>
               <td>
                 <button
