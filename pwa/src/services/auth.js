@@ -77,9 +77,9 @@ export function sanitizeEmailInput(value) {
 }
 
 export function suggestUsernameFromName(firstName, lastName) {
-    const first = normalizeUsername(firstName).replace(/[^a-z0-9]/g, '').slice(0, 8)
-    const last = normalizeUsername(lastName).replace(/[^a-z0-9]/g, '').slice(0, 7)
-    return `${first}${last}`.slice(0, 32)
+    const first = normalizeUsername(firstName).replace(/[^a-z0-9]/g, '').slice(0, 7)
+    const lastInitial = normalizeUsername(lastName).replace(/[^a-z0-9]/g, '').charAt(0)
+    return `${first}${lastInitial}`.slice(0, 32)
 }
 
 function assertValidUsername(username) {

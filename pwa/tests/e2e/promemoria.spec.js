@@ -1,3 +1,67 @@
+test('promemoria: filtro per ospite e fascia oraria', async ({ page }) => {
+    await page.goto('/')
+    await loginOrRegisterSeededUser(page)
+    await page.getByRole('link', { name: '⚙' }).click()
+    const dryRunCheckbox = page.getByLabel('Esegui simulazione (nessuna scrittura)')
+    if (await dryRunCheckbox.isChecked()) await dryRunCheckbox.uncheck()
+
+    // Import due ospiti
+    await page.getByLabel('Sorgente').selectOption('03_Ospiti.csv')
+    await page.locator('input[type="file"][accept=".csv,text/csv"]').setInputFiles({
+        name: '03_Ospiti.csv', mimeType: 'text/csv', buffer: Buffer.from('guest_id,codice_interno,attivo\nHOST-FILTRO-1,FILTRO-01,si\nHOST-FILTRO-2,FILTRO-02,si\n'),
+    })
+    await page.getByRole('button', { name: 'Avvia import CSV' }).click()
+    await expect(page.getByText('Accettate: 2')).toBeVisible()
+
+    // Import farmaco
+    await page.getByLabel('Sorgente').selectOption('01_CatalogoFarmaci.csv')
+    await page.locator('input[type="file"][accept=".csv,text/csv"]').setInputFiles({
+        name: '01_CatalogoFarmaci.csv', mimeType: 'text/csv', buffer: Buffer.from('drug_id,principio_attivo\nDRUG-FILTRO-1,Metoprololo\n'),
+    })
+    await page.getByRole('button', { name: 'Avvia import CSV' }).click()
+    await expect(page.getByText('Accettate: 1')).toBeVisible()
+
+    // Import terapia
+    await page.getByLabel('Sorgente').selectOption('04_TerapieAttive.csv')
+    await page.locator('input[type="file"][accept=".csv,text/csv"]').setInputFiles({
+        name: '04_TerapieAttive.csv', mimeType: 'text/csv', buffer: Buffer.from('therapy_id,guest_id,drug_id,attiva\nTHERAPY-FILTRO-1,HOST-FILTRO-1,DRUG-FILTRO-1,true\nTHERAPY-FILTRO-2,HOST-FILTRO-2,DRUG-FILTRO-1,true\n'),
+    })
+    await page.getByRole('button', { name: 'Avvia import CSV' }).click()
+    await expect(page.getByText('Accettate: 2')).toBeVisible()
+
+    // Import promemoria
+    const today = toLocalDateString()
+    await page.getByLabel('Sorgente').selectOption('09_PromemoriaSomministrazioni.csv')
+    await page.locator('input[type="file"][accept=".csv,text/csv"]').setInputFiles({
+        name: '09_PromemoriaSomministrazioni.csv', mimeType: 'text/csv', buffer: Buffer.from(
+            `reminder_id,guest_id,therapy_id,drug_id,scheduled_at,stato\n` +
+            `REM-FILTRO-1,HOST-FILTRO-1,THERAPY-FILTRO-1,DRUG-FILTRO-1,${today}T08:00:00.000Z,DA_ESEGUIRE\n` +
+            `REM-FILTRO-2,HOST-FILTRO-2,THERAPY-FILTRO-2,DRUG-FILTRO-1,${today}T20:00:00.000Z,DA_ESEGUIRE\n`
+        ),
+    })
+    await page.getByRole('button', { name: 'Avvia import CSV' }).click()
+    await expect(page.getByText('Accettate: 2')).toBeVisible()
+
+    // Vai su Promemoria
+    await page.getByRole('link', { name: 'Promemoria' }).click()
+    await expect(page.getByRole('heading', { name: 'Promemoria' })).toBeVisible()
+
+    // Filtro per ospite
+    await page.getByLabel('Ospite').selectOption('HOST-FILTRO-2')
+    await expect(page.getByRole('cell', { name: 'FILTRO-02' })).toBeVisible()
+    await expect(page.getByRole('cell', { name: 'FILTRO-01' })).toHaveCount(0)
+
+    // Filtro per fascia oraria (sera)
+    await page.getByLabel('Ospite').selectOption('') // reset
+    await page.getByLabel('Fascia oraria').selectOption('sera')
+    await expect(page.getByRole('cell', { name: 'FILTRO-02' })).toBeVisible()
+    await expect(page.getByRole('cell', { name: 'FILTRO-01' })).toHaveCount(0)
+
+    // Filtro per fascia oraria (mattina)
+    await page.getByLabel('Fascia oraria').selectOption('mattina')
+    await expect(page.getByRole('cell', { name: 'FILTRO-01' })).toBeVisible()
+    await expect(page.getByRole('cell', { name: 'FILTRO-02' })).toHaveCount(0)
+})
 import { test, expect } from '@playwright/test'
 import { loginOrRegisterSeededUser } from './helpers/login'
 import { runWithAcceptedConfirmation } from './helpers/confirm'
@@ -230,7 +294,7 @@ test('promemoria view supports edit/delete and handles Arabic host names', async
     // Navigate and validate Arabic host rendering
     await page.getByRole('link', { name: 'Promemoria' }).click()
     await expect(page.getByRole('heading', { name: 'Promemoria' })).toBeVisible()
-    await expect(page.getByText('أحمد علي')).toBeVisible()
+    await expect(page.getByRole('cell', { name: 'أحمد علي' })).toBeVisible()
 
     // Edit reminder
     const row = page.locator('tr', { hasText: 'Omeprazolo E2E' }).first()
