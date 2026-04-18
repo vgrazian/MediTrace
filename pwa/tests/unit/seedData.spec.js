@@ -17,8 +17,10 @@ const settings = new Map()
 
 function makeTable(name) {
     return {
+        async get(id) { return tables[name].get(String(id)) },
         async put(row) { tables[name].set(String(row.id), row) },
         async delete(id) { tables[name].delete(String(id)) },
+        async toArray() { return Array.from(tables[name].values()) },
     }
 }
 
@@ -39,6 +41,9 @@ vi.mock('../../src/db', () => ({
     },
     async setSetting(key, value) {
         settings.set(key, value)
+    },
+    async enqueue() {
+        return null
     },
 }))
 
@@ -225,16 +230,20 @@ describe('seedData — loadSeedData', () => {
 describe('seedData — clearSeedData', () => {
     beforeEach(() => resetState())
 
+    function activeCount(name) {
+        return Array.from(tables[name].values()).filter(row => !row.deletedAt).length
+    }
+
     it('removes all seed records from every table', async () => {
         await loadSeedData()
         await clearSeedData()
 
-        expect(tables.drugs.size).toBe(0)
-        expect(tables.hosts.size).toBe(0)
-        expect(tables.stockBatches.size).toBe(0)
-        expect(tables.therapies.size).toBe(0)
-        expect(tables.movements.size).toBe(0)
-        expect(tables.reminders.size).toBe(0)
+        expect(activeCount('drugs')).toBe(0)
+        expect(activeCount('hosts')).toBe(0)
+        expect(activeCount('stockBatches')).toBe(0)
+        expect(activeCount('therapies')).toBe(0)
+        expect(activeCount('movements')).toBe(0)
+        expect(activeCount('reminders')).toBe(0)
     })
 
     it('clears the manifest from settings', async () => {
@@ -291,7 +300,27 @@ describe('seedData — clearSeedData', () => {
         await clearSeedData()
 
         expect(tables.drugs.has('real-drug-1')).toBe(true)
-        expect(tables.drugs.size).toBe(1)
+        expect(activeCount('drugs')).toBe(1)
+    })
+
+    it('also clears seed-linked derived movements not present in manifest', async () => {
+        await loadSeedData()
+
+        tables.movements.set('__movement___seed__rem-2_20260404090000', {
+            id: '__movement___seed__rem-2_20260404090000',
+            type: 'SOMMINISTRAZIONE',
+            hostId: '__seed__host-1',
+            therapyId: '__seed__therapy-1',
+            reminderId: '__seed__rem-2',
+            deletedAt: null,
+            syncStatus: 'pending',
+        })
+
+        await clearSeedData()
+
+        const derived = tables.movements.get('__movement___seed__rem-2_20260404090000')
+        expect(derived?.deletedAt).toBeTruthy()
+        expect(derived?.syncStatus).toBe('pending')
     })
 
     it('removes demo operators but preserves admin user', async () => {
