@@ -42,27 +42,28 @@ fi
 default_admin_user="$(extract_value "$CREDENTIALS_FILE" "MEDITRACE_DEFAULT_ADMIN_USERNAME")"
 default_admin_pass="$(extract_value "$CREDENTIALS_FILE" "MEDITRACE_DEFAULT_ADMIN_PASSWORD")"
 
-printf "\nMediTrace Access Info\n"
-printf '%s\n' '===================='
+echo
+echo "MediTrace Access Info"
+echo "===================="
 printf "App URL (PRODUZIONE): %s\n" "$prod_url"
 printf "App URL (DEMO):        %s\n" "$demo_url"
-printf "\n"
-printf "--- PRODUZIONE ---\n"
-printf "Admin (solo produzione):\n"
+echo
+echo "--- PRODUZIONE ---"
+echo "Admin (solo produzione):"
 printf "  username: %s\n" "${admin_user:-N/A}"
 printf "  password: %s\n" "${admin_pass:-N/A}"
-printf "\n"
-printf "--- DEMO ---\n"
-printf "Utenti demo attivi (provisioning attuale):\n"
+echo
+echo "--- DEMO ---"
+echo "Utenti demo attivi (provisioning attuale):"
 printf "  admin      -> username: %s | password: %s\n" "${default_admin_user:-N/A}" "${default_admin_pass:-N/A}"
 for i in 1 2 3 4 5; do
   user="$(extract_value "$CREDENTIALS_FILE" "MEDITRACE_DEFAULT_OPERATOR${i}_USERNAME")"
   pass="$(extract_value "$CREDENTIALS_FILE" "MEDITRACE_DEFAULT_OPERATOR${i}_PASSWORD")"
   printf "  operatore%s -> username: %s | password: %s\n" "$i" "${user:-N/A}" "${pass:-N/A}"
 done
-
-printf "\nLocal files used\n"
-printf '%s\n' '----------------'
-printf '%s\n' "- $LOCAL_ENV_FILE"
-printf '%s\n' "- $CREDENTIALS_FILE"
-printf "\n"
+echo
+echo "Local files used"
+echo "----------------"
+echo "- $LOCAL_ENV_FILE"
+echo "- $CREDENTIALS_FILE"
+echo
