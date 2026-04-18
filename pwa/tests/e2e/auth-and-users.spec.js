@@ -1,3 +1,54 @@
+
+
+test('admin promuove operatore e verifica permessi fasce orarie', async ({ page }) => {
+    // Login come admin
+    await page.goto('/')
+    await loginOrRegisterSeededUser(page)
+    await page.getByRole('link', { name: '⚙' }).click()
+    await expect(page.getByRole('heading', { name: 'Impostazioni' })).toBeVisible()
+
+    // Crea nuovo operatore (seleziona solo nel form di creazione utente)
+    const creaUtenteForm = page.getByText('Crea nuovo utente').locator('..').locator('..')
+    await creaUtenteForm.getByLabel('Nome').first().fill('Operatore')
+    await creaUtenteForm.getByLabel('Cognome').first().fill('Test')
+    await creaUtenteForm.getByLabel('Username suggerito').fill('operatore1')
+    await creaUtenteForm.getByLabel('Email').fill('operatore1@example.com')
+    await creaUtenteForm.getByLabel('Password iniziale').fill('Test12345!')
+    await creaUtenteForm.getByLabel('Ruolo').selectOption('operator')
+    await creaUtenteForm.getByRole('button', { name: 'Crea utente' }).click()
+    await expect(page.getByText('Utente operatore1 creato.')).toBeVisible()
+
+    // Promuovi a admin
+    const opRow = page.locator('table.conflict-table tbody tr').filter({ hasText: 'operatore1' }).first()
+    await opRow.locator('input[type="checkbox"]').check()
+    await expect(opRow.locator('input[type="checkbox"]')).toBeChecked()
+
+    // Degrada a operatore
+    await opRow.locator('input[type="checkbox"]').uncheck()
+    await expect(opRow.locator('input[type="checkbox"]')).not.toBeChecked()
+
+    // Logout admin
+    await page.getByRole('button', { name: 'Esci' }).click()
+
+    // Login come operatore
+    await page.getByLabel('Username').fill('operatore1')
+    await page.getByLabel('Password').fill('Test12345!')
+    await page.getByRole('button', { name: /Accedi/i }).click()
+    await page.getByRole('link', { name: '⚙' }).click()
+    await expect(page.getByRole('heading', { name: 'Impostazioni' })).toBeVisible()
+
+    // Verifica che NON possa modificare fasce orarie
+    await expect(page.getByText(/Fasce orarie/)).toHaveCount(0)
+
+    // Logout operatore
+    await page.getByRole('button', { name: 'Esci' }).click()
+
+    // Login come admin
+    await loginOrRegisterSeededUser(page)
+    await page.getByRole('link', { name: '⚙' }).click()
+    await expect(page.getByRole('heading', { name: /Impostazioni/ })).toBeVisible()
+    await expect(page.getByText('Fasce orarie configurabili')).toBeVisible()
+})
 import { test, expect } from '@playwright/test'
 import { loginOrRegisterSeededUser } from './helpers/login'
 

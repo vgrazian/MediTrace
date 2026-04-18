@@ -10,7 +10,7 @@
  *   clearRealisticSeedData(options) — Rimuove tutto dal database
  */
 
-import { db, getSetting, setSetting } from '../db'
+import { db, enqueue, getSetting, setSetting } from '../db'
 import realisticDataset from '../data/realisticDataset.json'
 import { upsertDemoAuthUsers, clearDemoAuthUsers } from './seedAuthUsers.js'
 
@@ -222,8 +222,53 @@ async function findRealisticSeedIds(table) {
     if (!table || typeof table.toArray !== 'function') return []
     const rows = await table.toArray()
     return rows
+        .filter(row => !row?.deletedAt)
         .map(row => row?.id)
         .filter(id => typeof id === 'string' && id.startsWith(REALISTIC_SEED_PREFIX))
+}
+
+function uniqueIds(ids = []) {
+    return [...new Set((ids || []).filter(Boolean).map(id => String(id)))]
+}
+
+function hasRealisticReference(value) {
+    const str = String(value || '')
+    if (!str) return false
+    return str.startsWith(REALISTIC_SEED_PREFIX) || str.startsWith('__seed__')
+}
+
+async function findRealisticSeedLinkedIds(table, relationFields = []) {
+    if (!table || typeof table.toArray !== 'function') return []
+    const rows = await table.toArray()
+    return rows
+        .filter((row) => {
+            if (!row || row.deletedAt) return false
+            const id = String(row.id || '')
+            if (id.startsWith(REALISTIC_SEED_PREFIX) || id.startsWith('__movement___realistic__')) return true
+            if (row._seeded === true) return true
+            return relationFields.some((field) => hasRealisticReference(row[field]))
+        })
+        .map((row) => row.id)
+        .filter(Boolean)
+}
+
+async function softDeleteRealisticRecords(storeName, ids, now) {
+    const table = db[storeName]
+    if (!table || typeof table.get !== 'function' || typeof table.put !== 'function') return 0
+    let changed = 0
+    for (const id of uniqueIds(ids)) {
+        const existing = await table.get(id)
+        if (!existing || existing.deletedAt) continue
+        await table.put({
+            ...existing,
+            deletedAt: now,
+            updatedAt: now,
+            syncStatus: 'pending',
+        })
+        await enqueue(storeName, id, 'upsert')
+        changed += 1
+    }
+    return changed
 }
 
 async function getRealisticSeedManifest() {
@@ -1039,6 +1084,16 @@ export async function clearRealisticSeedData(options = {}) {
     }
 
     const availableStores = await getAvailableStoreNames(REALISTIC_SEED_STORE_NAMES)
+    const linkedIds = {
+        rooms: availableStores.has('rooms') ? await findRealisticSeedLinkedIds(db.rooms) : [],
+        beds: availableStores.has('beds') ? await findRealisticSeedLinkedIds(db.beds, ['roomId']) : [],
+        hosts: availableStores.has('hosts') ? await findRealisticSeedLinkedIds(db.hosts, ['roomId', 'bedId']) : [],
+        drugs: availableStores.has('drugs') ? await findRealisticSeedLinkedIds(db.drugs) : [],
+        stockBatches: availableStores.has('stockBatches') ? await findRealisticSeedLinkedIds(db.stockBatches, ['drugId']) : [],
+        therapies: availableStores.has('therapies') ? await findRealisticSeedLinkedIds(db.therapies, ['hostId', 'drugId', 'stockBatchId', 'stockBatchIdPreferito']) : [],
+        movements: availableStores.has('movements') ? await findRealisticSeedLinkedIds(db.movements, ['hostId', 'drugId', 'batchId', 'stockBatchId', 'therapyId', 'reminderId']) : [],
+        reminders: availableStores.has('reminders') ? await findRealisticSeedLinkedIds(db.reminders, ['hostId', 'therapyId', 'drugId']) : [],
+    }
     const transactionTables = [
         availableStores.has('rooms') ? db.rooms : null,
         availableStores.has('beds') ? db.beds : null,
@@ -1052,15 +1107,16 @@ export async function clearRealisticSeedData(options = {}) {
     ].filter(Boolean)
 
     if (transactionTables.length > 0) {
+        const now = new Date().toISOString()
         await db.transaction('rw', transactionTables, async () => {
-            if (availableStores.has('rooms')) for (const id of (manifest.rooms ?? [])) await db.rooms.delete(id)
-            if (availableStores.has('beds')) for (const id of (manifest.beds ?? [])) await db.beds.delete(id)
-            if (availableStores.has('hosts')) for (const id of (manifest.hosts ?? [])) await db.hosts.delete(id)
-            if (availableStores.has('drugs')) for (const id of (manifest.drugs ?? [])) await db.drugs.delete(id)
-            if (availableStores.has('stockBatches')) for (const id of (manifest.stockBatches ?? [])) await db.stockBatches.delete(id)
-            if (availableStores.has('therapies')) for (const id of (manifest.therapies ?? [])) await db.therapies.delete(id)
-            if (availableStores.has('movements')) for (const id of (manifest.movements ?? [])) await db.movements.delete(id)
-            if (availableStores.has('reminders')) for (const id of (manifest.reminders ?? [])) await db.reminders.delete(id)
+            if (availableStores.has('rooms')) await softDeleteRealisticRecords('rooms', [...(manifest.rooms ?? []), ...linkedIds.rooms], now)
+            if (availableStores.has('beds')) await softDeleteRealisticRecords('beds', [...(manifest.beds ?? []), ...linkedIds.beds], now)
+            if (availableStores.has('hosts')) await softDeleteRealisticRecords('hosts', [...(manifest.hosts ?? []), ...linkedIds.hosts], now)
+            if (availableStores.has('drugs')) await softDeleteRealisticRecords('drugs', [...(manifest.drugs ?? []), ...linkedIds.drugs], now)
+            if (availableStores.has('stockBatches')) await softDeleteRealisticRecords('stockBatches', [...(manifest.stockBatches ?? []), ...linkedIds.stockBatches], now)
+            if (availableStores.has('therapies')) await softDeleteRealisticRecords('therapies', [...(manifest.therapies ?? []), ...linkedIds.therapies], now)
+            if (availableStores.has('movements')) await softDeleteRealisticRecords('movements', [...(manifest.movements ?? []), ...linkedIds.movements], now)
+            if (availableStores.has('reminders')) await softDeleteRealisticRecords('reminders', [...(manifest.reminders ?? []), ...linkedIds.reminders], now)
             if (availableStores.has('activityLog')) for (const id of (manifest.activityLog ?? [])) await db.activityLog.delete(id)
         })
     }
