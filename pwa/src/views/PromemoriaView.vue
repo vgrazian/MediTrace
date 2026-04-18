@@ -32,6 +32,10 @@ const bedSequence = ref([])
 const dateFilter = ref('today')
 const stateFilter = ref([])
 const residenzaFilter = ref('')
+
+const hostIdFilter = ref('')
+const fasciaOrariaFilter = ref('')
+
 const editingReminderId = ref('')
 const form = ref({
   scheduledAt: '',
@@ -74,6 +78,8 @@ const rows = computed(() => buildReminderRows({
   dateFilter: dateFilter.value,
   stateFilter: stateFilter.value,
   residenzaFilter: residenzaFilter.value,
+  hostIdFilter: hostIdFilter.value,
+  fasciaOrariaFilter: fasciaOrariaFilter.value,
 }))
 
 const residenzaOptions = computed(() => {
@@ -433,9 +439,10 @@ watch(residenzaFilter, async (value) => {
       <button class="help-btn" @click="goToHelpSection('promemoria')">Aiuto</button>
     </div>
 
+
     <div class="card">
       <p><strong>Filtri</strong></p>
-      <div class="import-form" style="margin-top:.5rem">
+      <div class="import-form" style="margin-top:.5rem;display:flex;flex-wrap:wrap;gap:1.5rem">
         <label>
           Data
           <select v-model="dateFilter">
@@ -462,6 +469,25 @@ watch(residenzaFilter, async (value) => {
           <p class="muted" style="margin-top:.35rem;font-size:.8rem">
             {{ stateFilter.length === 0 ? 'Tutti gli stati' : `${stateFilter.length} stati selezionati` }}
           </p>
+        </label>
+        <label>
+          Ospite
+          <select v-model="hostIdFilter">
+            <option value="">Tutti gli ospiti</option>
+            <option v-for="host in hosts" :key="host.id" :value="host.id">
+              {{ host.cognome || host.nome ? (host.cognome + ' ' + host.nome).trim() : (host.iniziali || host.codiceInterno || host.id) }}
+            </option>
+          </select>
+        </label>
+        <label>
+          Fascia oraria
+          <select v-model="fasciaOrariaFilter">
+            <option value="">Tutte le fasce</option>
+            <option value="mattina">Mattina (06:00-11:59)</option>
+            <option value="pomeriggio">Pomeriggio (12:00-17:59)</option>
+            <option value="sera">Sera (18:00-23:59)</option>
+            <option value="notte">Notte (00:00-05:59)</option>
+          </select>
         </label>
         <label>
           Residenza operativa

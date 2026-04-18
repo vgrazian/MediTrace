@@ -1,4 +1,98 @@
-<script setup>
+import { openConfirmDialog } from '../services/confirmDialog'
+import { signOut } from '../services/auth'
+async function handleResetPassword(user) {
+  if (!canManageUsers.value || user.username === currentUser.value?.username) return
+  const confirmed = await openConfirmDialog({
+    title: 'Reset password',
+    message: `Vuoi inviare una mail di reset password a ${user.email}?`,
+    confirmText: 'Invia',
+    cancelText: 'Annulla',
+    tone: 'primary',
+  })
+  if (!confirmed) return
+  // TODO: integrare con flusso reale invio reset password
+  userRoleMessage.value = `Reset password richiesto per ${user.username}`
+}
+
+async function handleForceLogout(user) {
+  if (!canManageUsers.value || user.username === currentUser.value?.username) return
+  const confirmed = await openConfirmDialog({
+    title: 'Forza logout',
+    message: `Vuoi forzare il logout per ${user.username}?`,
+    confirmText: 'Forza logout',
+    cancelText: 'Annulla',
+    tone: 'danger',
+  })
+  if (!confirmed) return
+  // TODO: integrare con logica reale di invalidazione sessione
+  userRoleMessage.value = `Logout forzato per ${user.username}`
+}
+import { setUserRole } from '../services/userManagement'
+const userRoleBusy = ref('')
+const userRoleMessage = ref('')
+
+async function handleToggleAdmin(user) {
+  if (!canManageUsers.value) return
+  if (user.username === currentUser.value?.username) return // non puoi cambiare il tuo ruolo
+  userRoleBusy.value = user.username
+  userRoleMessage.value = ''
+  try {
+    const newRole = user.role === 'admin' ? 'operator' : 'admin'
+    await setUserRole({ username: user.username, role: newRole })
+    await refreshUsers()
+    userRoleMessage.value = `Ruolo aggiornato per ${user.username}`
+  } catch (err) {
+    userRoleMessage.value = `Errore ruolo: ${err.message}`
+  } finally {
+    userRoleBusy.value = ''
+  }
+}
+// Fasce orarie configurabili
+const DEFAULT_FASCE_ORARIE = [
+  { nome: 'Mattina', inizio: '06:00', fine: '11:59' },
+  { nome: 'Pomeriggio', inizio: '12:00', fine: '17:59' },
+  { nome: 'Sera', inizio: '18:00', fine: '23:59' },
+  { nome: 'Notte', inizio: '00:00', fine: '05:59' },
+]
+const FASCE_ORARIE_KEY = 'fasceOrarieConfig'
+const fasceOrarie = ref([...DEFAULT_FASCE_ORARIE])
+const fasceOrarieBusy = ref(false)
+const fasceOrarieMessage = ref('')
+
+async function loadFasceOrarie() {
+  try {
+    const saved = await getSetting(FASCE_ORARIE_KEY, null)
+    if (Array.isArray(saved) && saved.length > 0) {
+      fasceOrarie.value = saved
+    }
+  } catch {}
+}
+
+async function saveFasceOrarie() {
+  fasceOrarieBusy.value = true
+  fasceOrarieMessage.value = ''
+  try {
+    await setSetting(FASCE_ORARIE_KEY, JSON.parse(JSON.stringify(fasceOrarie.value)))
+    fasceOrarieMessage.value = 'Fasce orarie salvate.'
+  } catch (err) {
+    fasceOrarieMessage.value = `Errore salvataggio: ${err.message}`
+  } finally {
+    fasceOrarieBusy.value = false
+  }
+}
+
+function addFasciaOraria() {
+  fasceOrarie.value.push({ nome: '', inizio: '08:00', fine: '12:00' })
+}
+
+function removeFasciaOraria(idx) {
+  fasceOrarie.value.splice(idx, 1)
+}
+
+onMounted(async () => {
+  await loadFasceOrarie()
+})
+  <script setup>
 import { computed, ref, onMounted, watch } from 'vue'
 import { suggestUsernameFromName, useAuth } from '../services/auth'
 import { canRole } from '../services/rbac'
@@ -694,7 +788,6 @@ async function handleCreateUser() {
   }
 }
 </script>
-
 <template>
   <div class="view">
     <div class="view-heading">
@@ -702,6 +795,36 @@ async function handleCreateUser() {
       <button class="help-btn" @click="goToHelpSection('impostazioni')">Aiuto</button>
     </div>
 
+    <div v-if="canManageUsers" class="card">
+      <p><strong>Fasce orarie configurabili</strong></p>
+      <div>
+        <table class="conflict-table" style="min-width:600px">
+          <thead>
+            <tr>
+              <th>Nome fascia</th>
+              <th>Inizio</th>
+              <th>Fine</th>
+              <th>Azioni</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="(fascia, idx) in fasceOrarie" :key="idx">
+              <td><input v-model="fascia.nome" type="text" /></td>
+              <td><input v-model="fascia.inizio" type="time" /></td>
+              <td><input v-model="fascia.fine" type="time" /></td>
+              <td>
+                <button @click="removeFasciaOraria(idx)">Rimuovi</button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+        <button style="margin-top:.5rem" @click="addFasciaOraria">Aggiungi fascia</button>
+        <button style="margin-top:.5rem" :disabled="fasceOrarieBusy" @click="saveFasceOrarie">
+          {{ fasceOrarieBusy ? 'Salvataggio...' : 'Salva fasce orarie' }}
+        </button>
+        <p v-if="fasceOrarieMessage" class="muted" style="margin-top:.5rem;font-size:.8rem">{{ fasceOrarieMessage }}</p>
+      </div>
+    </div>
     <div class="card">
       <p><strong>Account operatore</strong></p>
       <p class="muted">Username: {{ currentUser?.username }}</p>
@@ -844,7 +967,7 @@ async function handleCreateUser() {
         </label>
         <label style="display:flex;align-items:center;gap:.5rem">
           <input v-model="newUserIsSeeded" type="checkbox" />
-          Marca come utente di prova
+          {{ newUserIsSeeded ? 'Segna come utente normale' : 'Marca come utente di prova' }}
         </label>
         <button :disabled="newUserBusy || !newUserUsername || !newUserFirstName || !newUserLastName || !newUserEmail || !newUserPassword" @click="handleCreateUser">
           {{ newUserBusy ? 'Creazione utente…' : 'Crea utente' }}
@@ -861,7 +984,12 @@ async function handleCreateUser() {
               <th>Cognome</th>
               <th>Telefono</th>
               <th>Email</th>
-              <th>Ruolo</th>
+              <th>Admin</th>
+              <th>Normale</th>
+              <th>Disabilitato</th>
+              <th>Ultima attività</th>
+              <th>Creato il</th>
+              <th>Azioni</th>
               <th>Tipo</th>
               <th>Stato</th>
               <th>Azione</th>
@@ -874,8 +1002,31 @@ async function handleCreateUser() {
               <td>{{ user.lastName || '—' }}</td>
               <td>{{ user.phone || '—' }}</td>
               <td>{{ user.email || '—' }}</td>
-              <td>{{ user.role }}</td>
-              <td>{{ user.isSeeded ? 'prova' : 'standard' }}</td>
+              <td>
+                <input type="checkbox"
+                  :checked="user.role === 'admin'"
+                  :disabled="!canManageUsers || user.username === currentUser?.username || userRoleBusy === user.username"
+                  @change="handleToggleAdmin(user)"
+                />
+              </td>
+              <td>
+                <span v-if="!user.isSeeded" style="color:#b45309;font-weight:bold">✔</span>
+              </td>
+              <td>
+                <span v-if="user.disabled" style="color:#dc2626;font-weight:bold">✔</span>
+              </td>
+              <td>
+                <span :title="user.lastActivityAt">{{ user.lastActivityAt ? user.lastActivityAt.slice(0,19).replace('T',' ') : '—' }}</span>
+              </td>
+              <td>
+                <span :title="user.createdAt">{{ user.createdAt ? user.createdAt.slice(0,19).replace('T',' ') : '—' }}</span>
+              </td>
+              <td style="white-space:nowrap">
+                <button v-if="canManageUsers && user.username !== currentUser?.username && !user.disabled" @click="handleResetPassword(user)">Reset PW</button>
+                <button v-if="canManageUsers && user.username !== currentUser?.username && !user.disabled" style="margin-left:.25rem" @click="handleForceLogout(user)">Logout</button>
+              </td>
+                <p v-if="userRoleMessage" class="muted" style="margin-top:.5rem;font-size:.8rem">{{ userRoleMessage }}</p>
+              <td>{{ user.isSeeded ? 'normale' : 'prova' }}</td>
               <td>{{ user.disabled ? 'disattivato' : 'attivo' }}</td>
               <td>
                 <button

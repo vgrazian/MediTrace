@@ -1,3 +1,19 @@
+/**
+ * Aggiorna il ruolo di un utente (solo admin).
+ * @param {string} username
+ * @param {string} role ('admin'|'operator')
+ * @returns {Promise<object>} user aggiornato
+ */
+export async function setUserRoleWithTable({ username, role, sessionTtlMinutes }) {
+    const storedSession = await readStoredSession()
+    if (!storedSession?.token) throw new Error('Sessione non attiva')
+    return normalizeUser(await callRpc('app_set_user_role', {
+        p_token: storedSession.token,
+        p_username: username,
+        p_role: role,
+        p_session_ttl_minutes: sessionTtlMinutes,
+    }))
+}
 import { getSetting, setSetting } from '../db'
 import { isSupabaseConfigured, supabase } from './supabaseClient'
 
