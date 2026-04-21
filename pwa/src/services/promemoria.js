@@ -114,7 +114,24 @@ function compareReminderRows(a, b, bedSequenceIndex) {
     return String(a.id || '').localeCompare(String(b.id || ''))
 }
 
-export function buildReminderRows({ reminders, hosts, drugs, therapies, beds = [], rooms = [], bedSequence = [], dateFilter = 'today', stateFilter = '', residenzaFilter = '', now = new Date() }) {
+/**
+ * Costruisce e filtra i promemoria arricchiti per la vista.
+ * @param {Object} params
+ * @param {Array} params.reminders
+ * @param {Array} params.hosts
+ * @param {Array} params.drugs
+ * @param {Array} params.therapies
+ * @param {Array} [params.beds]
+ * @param {Array} [params.rooms]
+ * @param {Array} [params.bedSequence]
+ * @param {string} [params.dateFilter]
+ * @param {string|string[]} [params.stateFilter]
+ * @param {string} [params.residenzaFilter]
+ * @param {string} [params.hostIdFilter] — se valorizzato, mostra solo promemoria di quell'ospite
+ * @param {string} [params.fasciaOrariaFilter] — se valorizzato, mostra solo promemoria in quella fascia ('mattina','pomeriggio','sera','notte')
+ * @param {Date} [params.now]
+ */
+export function buildReminderRows({ reminders, hosts, drugs, therapies, beds = [], rooms = [], bedSequence = [], dateFilter = 'today', stateFilter = '', residenzaFilter = '', hostIdFilter = '', fasciaOrariaFilter = '', now = new Date() }) {
     const hostsById = new Map(hosts.map(h => [h.id, h]))
     const drugsById = new Map(drugs.map(d => [d.id, d]))
     const therapiesById = new Map(therapies.map(t => [t.id, t]))
@@ -158,6 +175,10 @@ export function buildReminderRows({ reminders, hosts, drugs, therapies, beds = [
             return roomId === residenzaFilter
         })
         .filter(r => {
+            if (!hostIdFilter) return true
+            return r.hostId === hostIdFilter
+        })
+        .filter(r => {
             const when = new Date(r.scheduledAt)
             if (Number.isNaN(when.getTime())) return true
             if (dateFilter === 'today') return when >= dayStart && when <= dayEnd
@@ -166,6 +187,19 @@ export function buildReminderRows({ reminders, hosts, drugs, therapies, beds = [
             const dayStart2 = new Date(dateFilter + 'T00:00:00')
             const dayEnd2 = new Date(dateFilter + 'T23:59:59.999')
             return when >= dayStart2 && when <= dayEnd2
+        })
+        .filter(r => {
+            if (!fasciaOrariaFilter) return true
+            const when = new Date(r.scheduledAt)
+            if (Number.isNaN(when.getTime())) return true
+            const hour = when.getHours()
+            switch (fasciaOrariaFilter) {
+                case 'mattina': return hour >= 6 && hour < 12
+                case 'pomeriggio': return hour >= 12 && hour < 18
+                case 'sera': return hour >= 18 && hour < 24
+                case 'notte': return hour >= 0 && hour < 6
+                default: return true
+            }
         })
         .map(r => {
             const therapy = therapiesById.get(r.therapyId)

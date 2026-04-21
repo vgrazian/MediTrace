@@ -1,4 +1,28 @@
 <script setup>
+// --- FULLSCREEN STATE ---
+import { onUnmounted } from 'vue'
+const isFullscreen = ref(false)
+const promemoriaViewRef = ref(null)
+
+function toggleFullscreen() {
+  isFullscreen.value = !isFullscreen.value
+  if (isFullscreen.value) {
+    // Try native fullscreen if available
+    const el = promemoriaViewRef.value
+    if (el && el.requestFullscreen) el.requestFullscreen()
+  } else {
+    if (document.fullscreenElement) document.exitFullscreen()
+  }
+}
+
+// Exit fullscreen if user presses ESC or system event
+function onFullscreenChange() {
+  if (!document.fullscreenElement) isFullscreen.value = false
+}
+document.addEventListener('fullscreenchange', onFullscreenChange)
+onUnmounted(() => {
+  document.removeEventListener('fullscreenchange', onFullscreenChange)
+})
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { db, enqueue, getSetting, setSetting } from '../db'
@@ -32,6 +56,10 @@ const bedSequence = ref([])
 const dateFilter = ref('today')
 const stateFilter = ref([])
 const residenzaFilter = ref('')
+
+const hostIdFilter = ref('')
+const fasciaOrariaFilter = ref('')
+
 const editingReminderId = ref('')
 const form = ref({
   scheduledAt: '',
@@ -74,6 +102,8 @@ const rows = computed(() => buildReminderRows({
   dateFilter: dateFilter.value,
   stateFilter: stateFilter.value,
   residenzaFilter: residenzaFilter.value,
+  hostIdFilter: hostIdFilter.value,
+  fasciaOrariaFilter: fasciaOrariaFilter.value,
 }))
 
 const residenzaOptions = computed(() => {
@@ -427,15 +457,16 @@ watch(residenzaFilter, async (value) => {
 </script>
 
 <template>
-  <div class="view">
-    <div class="view-heading">
-      <h2>Promemoria</h2>
+  <div class="view" :class="{ 'fullscreen': isFullscreen }" ref="promemoriaViewRef">
+    <div class="view-heading" style="display:flex;align-items:center;gap:1rem">
+      <h2 style="flex:1">Promemoria</h2>
       <button class="help-btn" @click="goToHelpSection('promemoria')">Aiuto</button>
-    </div>
+
+
 
     <div class="card">
       <p><strong>Filtri</strong></p>
-      <div class="import-form" style="margin-top:.5rem">
+      <div class="import-form" style="margin-top:.5rem;display:flex;flex-wrap:wrap;gap:1.5rem">
         <label>
           Data
           <select v-model="dateFilter">
@@ -462,6 +493,25 @@ watch(residenzaFilter, async (value) => {
           <p class="muted" style="margin-top:.35rem;font-size:.8rem">
             {{ stateFilter.length === 0 ? 'Tutti gli stati' : `${stateFilter.length} stati selezionati` }}
           </p>
+        </label>
+        <label>
+          Ospite
+          <select v-model="hostIdFilter">
+            <option value="">Tutti gli ospiti</option>
+            <option v-for="host in hosts" :key="host.id" :value="host.id">
+              {{ host.cognome || host.nome ? (host.cognome + ' ' + host.nome).trim() : (host.iniziali || host.codiceInterno || host.id) }}
+            </option>
+          </select>
+        </label>
+        <label>
+          Fascia oraria
+          <select v-model="fasciaOrariaFilter">
+            <option value="">Tutte le fasce</option>
+            <option value="mattina">Mattina (06:00-11:59)</option>
+            <option value="pomeriggio">Pomeriggio (12:00-17:59)</option>
+            <option value="sera">Sera (18:00-23:59)</option>
+            <option value="notte">Notte (00:00-05:59)</option>
+          </select>
         </label>
         <label>
           Residenza operativa
@@ -655,4 +705,29 @@ watch(residenzaFilter, async (value) => {
       </details>
     </div>
   </div>
+  </div>
 </template>
+
+<style scoped>
+.view.fullscreen {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  background: #fff;
+  box-shadow: 0 0 0 9999px rgba(0,0,0,0.12);
+  overflow: auto;
+  padding: 2.5rem 1.5rem 2.5rem 1.5rem;
+  max-width: 100vw;
+  max-height: 100vh;
+}
+.expand-btn {
+  background: #e5e7eb;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background .2s;
+}
+.expand-btn:active, .expand-btn[aria-pressed="true"] {
+  background: #dbeafe;
+}
+</style>

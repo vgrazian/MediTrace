@@ -98,6 +98,12 @@ function requireSupabaseSession(token, requireAdmin = false) {
 async function supabaseRpc(name, params = {}) {
     try {
         switch (name) {
+            case 'app_set_fasce_orarie': {
+                // Simula controllo permessi: solo admin può modificare
+                const { profile } = requireSupabaseSession(params.p_token, true)
+                // Se non lancia, simula successo
+                return { data: true, error: null }
+            }
             case 'app_has_users':
                 return { data: supabaseProfiles.some(profile => !profile.disabled), error: null }
             case 'app_register_first_admin': {
@@ -506,6 +512,28 @@ function setupGithubUserFetchMock() {
 }
 
 describe('auth service', () => {
+    it('solo admin può modificare le fasce orarie', async () => {
+        // Simula utente operatore
+
+        supabaseProfiles.push({
+            id: 'u1', username: 'op1', email: 'op1@example.com', role: 'operator', disabled: false, is_seeded: false, created_at: new Date().toISOString(), updated_at: new Date().toISOString(),
+        })
+        supabaseCurrentUserId = 'u1'
+        // Crea una sessione attiva per l'utente operatore
+        createSupabaseSession('u1')
+        // Simula tentativo modifica settings
+        // La funzione mock restituisce { error: { message: ... } }, non lancia
+        const result = await supabaseRpc('app_set_fasce_orarie', { p_fasce: [{ nome: 'Test', inizio: '10:00', fine: '12:00' }], p_token: Array.from(supabaseSessions.values()).find(s => s.user_id === 'u1')?.token })
+        expect(result.error?.message).toMatch(/admin/i)
+
+        // Simula utente admin
+        supabaseProfiles[0].role = 'admin'
+        let errore2 = null
+        try {
+            await supabaseRpc('app_set_fasce_orarie', { p_fasce: [{ nome: 'Test', inizio: '10:00', fine: '12:00' }] })
+        } catch (e) { errore2 = e }
+        expect(errore2).toBeNull()
+    })
     beforeEach(() => {
         settings.clear()
         authEvents.length = 0

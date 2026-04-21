@@ -1,3 +1,70 @@
+
+
+test('admin promuove operatore e verifica permessi fasce orarie', async ({ page }) => {
+    // Aumenta timeout per diagnostica
+    test.setTimeout(60000)
+    console.log('INIZIO TEST: admin promuove operatore')
+    // Login come admin
+    await page.goto('/')
+    console.log('Navigato alla pagina principale...')
+    await loginOrRegisterSeededUser(page)
+    await page.getByRole('link', { name: '⚙' }).click()
+    await expect(page.getByRole('heading', { name: 'Impostazioni' })).toBeVisible()
+
+    // Crea nuovo operatore (seleziona solo nel form di creazione utente)
+    const creaUtenteForm = page.getByText('Crea nuovo utente').locator('..').locator('..')
+    await creaUtenteForm.getByLabel('Nome').first().fill('Operatore')
+    await creaUtenteForm.getByLabel('Cognome').first().fill('Test')
+    await creaUtenteForm.getByLabel('Username suggerito').fill('operatore1')
+    await creaUtenteForm.getByLabel('Email').fill('operatore1@example.com')
+    await creaUtenteForm.getByLabel('Password iniziale').fill('Test12345!')
+    await creaUtenteForm.getByLabel('Ruolo').selectOption('operator')
+    await creaUtenteForm.getByRole('button', { name: 'Crea utente' }).click()
+    await expect(page.getByText('Utente operatore1 creato.')).toBeVisible()
+
+    // Promuovi a admin
+    const opRow = page.locator('table.conflict-table tbody tr').filter({ hasText: 'operatore1' }).first()
+    await opRow.locator('input[type="checkbox"]').check()
+    console.log('Promosso a admin, attendo update...')
+    await expect(opRow.locator('input[type="checkbox"]')).toBeChecked()
+
+    // Degrada a operatore
+    await opRow.locator('input[type="checkbox"]').uncheck()
+    console.log('Degradato a operatore, attendo update...')
+    await expect(opRow.locator('input[type="checkbox"]')).not.toBeChecked()
+
+    // Logout admin
+
+    await page.getByRole('button', { name: 'Esci' }).click()
+    console.log('Logout admin, clear storage e goto / ...')
+    await page.context().clearCookies()
+    await page.evaluate(() => { localStorage.clear(); sessionStorage.clear(); })
+    await page.goto('/')
+    await expect(page.getByRole('textbox', { name: 'Username accesso' })).toBeVisible()
+    // Login come operatore
+    await page.getByRole('textbox', { name: 'Username accesso' }).fill('operatore1')
+    await page.getByLabel('Password').fill('Test12345!')
+    await page.getByRole('button', { name: /Accedi/i }).click()
+    await page.getByRole('link', { name: '⚙' }).click()
+    await expect(page.getByRole('heading', { name: 'Impostazioni' })).toBeVisible()
+    console.log('Login operatore riuscito, controllo permessi...')
+
+    // Verifica che NON possa modificare fasce orarie
+    await expect(page.getByText(/Fasce orarie/)).toHaveCount(0)
+    console.log('Verifica permessi operatore OK')
+
+    // Logout operatore
+    await page.getByRole('button', { name: 'Esci' }).click()
+    console.log('Logout operatore, login admin...')
+
+    // Login come admin
+    await loginOrRegisterSeededUser(page)
+    console.log('Login admin riuscito, controllo permessi...')
+    await page.getByRole('link', { name: '⚙' }).click()
+    await expect(page.getByRole('heading', { name: /Impostazioni/ })).toBeVisible()
+    await expect(page.getByText('Fasce orarie configurabili')).toBeVisible()
+    console.log('Verifica permessi admin OK, FINE TEST')
+})
 import { test, expect } from '@playwright/test'
 import { loginOrRegisterSeededUser } from './helpers/login'
 
