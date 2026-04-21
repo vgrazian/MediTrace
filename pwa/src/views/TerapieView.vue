@@ -55,12 +55,13 @@ const filterQuery = ref('')
 const sortBy = ref('updatedDesc')
 const formSnapshot = ref('')
 
+const BLANK_ORARI = ['', '', '', '', '', '']
 const form = ref({
   hostId: '',
   drugId: '',
   dosePerSomministrazione: '',
   somministrazioniGiornaliere: '',
-  consumoMedioSettimanale: '',
+  orariSomministrazione: [...BLANK_ORARI],
   dataInizio: '',
   dataFine: '',
   note: '',
@@ -285,7 +286,7 @@ function startEditTherapy(therapy) {
     drugId: therapy.drugId || '',
     dosePerSomministrazione: therapy.dosePerSomministrazione ?? '',
     somministrazioniGiornaliere: therapy.somministrazioniGiornaliere ?? '',
-    consumoMedioSettimanale: therapy.consumoMedioSettimanale ?? '',
+    orariSomministrazione: Array.isArray(therapy.orariSomministrazione) ? [...therapy.orariSomministrazione, ...BLANK_ORARI].slice(0,6) : [...BLANK_ORARI],
     dataInizio: toDateInput(therapy.dataInizio),
     dataFine: toDateInput(therapy.dataFine),
     note: therapy.note || '',
@@ -316,7 +317,7 @@ function resetForm() {
     drugId: '',
     dosePerSomministrazione: '',
     somministrazioniGiornaliere: '',
-    consumoMedioSettimanale: '',
+    orariSomministrazione: [...BLANK_ORARI],
     dataInizio: '',
     dataFine: '',
     note: '',
@@ -496,7 +497,7 @@ onMounted(() => {
             <th>Farmaco</th>
             <th>Dose</th>
             <th>Freq./giorno</th>
-            <th>Consumo sett.</th>
+            <!-- <th>Consumo sett.</th> -->
             <th>Inizio</th>
             <th>Fine</th>
             <th>Azione</th>
@@ -520,7 +521,7 @@ onMounted(() => {
             <td>{{ drugLabel(therapy.drugId) }}</td>
             <td>{{ therapy.dosePerSomministrazione ?? '—' }}</td>
             <td>{{ therapy.somministrazioniGiornaliere ?? '—' }}</td>
-            <td>{{ therapy.consumoMedioSettimanale ?? '—' }}</td>
+            <!-- <td>{{ therapy.consumoMedioSettimanale ?? '—' }}</td> -->
             <td>{{ formatDate(therapy.dataInizio) }}</td>
             <td>{{ formatDate(therapy.dataFine) }}</td>
             <td>
@@ -609,13 +610,25 @@ onMounted(() => {
               type="number"
               :error="errors.somministrazioniGiornaliere"
               :required="true"
+              min="1"
+              max="6"
               @validate="validateField"
             />
-
-            <label>
-              Consumo medio settimanale
-              <input v-model="form.consumoMedioSettimanale" type="number" min="0" step="0.01" />
-            </label>
+            <div style="margin-bottom:1rem">
+              <label><strong>Orari somministrazione</strong></label>
+              <div style="display:flex;gap:.5rem;flex-wrap:wrap">
+                <template v-for="idx in 6" :key="idx">
+                  <input
+                    type="time"
+                    :disabled="idx > Math.max(1, Number(form.somministrazioniGiornaliere) || 1)"
+                    v-model="form.orariSomministrazione[idx-1]"
+                    style="width:6.5rem"
+                    :placeholder="`Orario ${idx}`"
+                  />
+                </template>
+              </div>
+              <small class="muted">Compila almeno un orario. Solo i primi N orari sono attivi, dove N = somministrazioni giornaliere.</small>
+            </div>
 
             <ValidatedInput
               v-model="form.dataInizio"

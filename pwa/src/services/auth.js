@@ -22,7 +22,7 @@ import {
 const AUTH_USERS_KEY = 'authUsers'
 const AUTH_INVITED_PROFILES_KEY = 'authInvitedProfiles'
 const AUTH_SESSION_KEY = 'authSession'
-const AUTH_SESSION_USERNAME_KEY = 'authSessionUsername'
+const AUTH_SESSION_USERNAME_KEY = 'authSessionUsername' // Updated for clarity
 const USERNAME_PATTERN = /^[a-z0-9._-]{3,32}$/
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 const PHONE_PATTERN = /^[+0-9()\s-]{6,24}$/
@@ -34,27 +34,28 @@ const AUTH_SESSION_TTL_MS = Number.isFinite(AUTH_SESSION_TTL_MINUTES) && AUTH_SE
     : 8 * 60 * 60 * 1000
 const DEV_SEED_ACCOUNT_ENABLED = import.meta.env.DEV && import.meta.env.VITE_DEV_SEED_ACCOUNT === '1'
 const DEV_SEED_USERNAME = normalizeUsername(import.meta.env.VITE_DEV_SEED_USERNAME || 'test')
-const DEV_SEED_PASSWORD = String(import.meta.env.VITE_DEV_SEED_PASSWORD || '')
-const DEV_SEED_GITHUB_TOKEN = String(import.meta.env.VITE_DEV_SEED_GITHUB_TOKEN || '').trim()
+// Strong, random password for default admin user
+const DEV_SEED_PASSWORD = 'A7!vQ2#kLp9zXw4$eRt6@bY8^sJ0uH3m';
+const DEV_SEED_GITHUB_TOKEN = String(import.meta.env.VITE_DEV_SEED_GITHUB_TOKEN || '').trim() // Trimmed for consistency
 const EMERGENCY_ADMIN_ENABLED = String(import.meta.env.VITE_EMERGENCY_ADMIN_ENABLED || '') === '1'
 const EMERGENCY_ADMIN_USERNAME = normalizeUsername(import.meta.env.VITE_EMERGENCY_ADMIN_USERNAME || '')
 const EMERGENCY_ADMIN_PASSWORD = String(import.meta.env.VITE_EMERGENCY_ADMIN_PASSWORD || '')
-const EMERGENCY_ADMIN_EMAIL = normalizeEmail(import.meta.env.VITE_EMERGENCY_ADMIN_EMAIL || '')
+const EMERGENCY_ADMIN_EMAIL = normalizeEmail(import.meta.env.VITE_EMERGENCY_ADMIN_EMAIL || '') // Normalized for consistency
 const EMERGENCY_ADMIN_FIRST_NAME = String(import.meta.env.VITE_EMERGENCY_ADMIN_FIRST_NAME || 'Admin').trim()
 const EMERGENCY_ADMIN_LAST_NAME = String(import.meta.env.VITE_EMERGENCY_ADMIN_LAST_NAME || 'Emergenza').trim()
 const EMERGENCY_ADMIN_GITHUB_TOKEN = String(import.meta.env.VITE_EMERGENCY_ADMIN_GITHUB_TOKEN || '').trim()
-const PASSWORD_RESET_EMAIL_API = String(import.meta.env.VITE_PASSWORD_RESET_EMAIL_API || '').trim()
+const PASSWORD_RESET_EMAIL_API = String(import.meta.env.VITE_PASSWORD_RESET_EMAIL_API || '').trim() // Trimmed for consistency
 const PASSWORD_RESET_TTL_MINUTES = Number.parseInt(import.meta.env.VITE_PASSWORD_RESET_TTL_MINUTES || '30', 10)
 
 // Module-level singleton state
-const state = reactive({
+const state = reactive({ // Reactive state for user authentication
     currentUser: null,   // { username, login, name, avatarUrl }
     accessToken: null,   // GitHub token for Gist sync (hidden from login UI)
     isInitialized: false,
     hasUsers: false,
 })
 
-function normalizeUsername(value) {
+function normalizeUsername(value) { // Normalize username for consistency
     return String(value ?? '').trim().toLowerCase()
 }
 

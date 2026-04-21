@@ -1,4 +1,23 @@
 /**
+ * Calcola gli orari di somministrazione previsti per una terapia in una data.
+ * Usa therapy.orariSomministrazione (array di stringhe 'HH:MM') e somministrazioniGiornaliere.
+ * Restituisce array di oggetti Date (oggi alle ore specificate).
+ */
+export function getScheduledTimesForTherapy(therapy, date = new Date()) {
+    if (!therapy || !Array.isArray(therapy.orariSomministrazione)) return []
+    const n = Math.max(1, Math.min(Number(therapy.somministrazioniGiornaliere) || 1, 6))
+    const times = therapy.orariSomministrazione.slice(0, n)
+    const day = new Date(date.getFullYear(), date.getMonth(), date.getDate())
+    return times.map(t => {
+        if (!t) return null
+        const [hh, mm] = t.split(':').map(Number)
+        if (Number.isNaN(hh) || Number.isNaN(mm)) return null
+        const d = new Date(day)
+        d.setHours(hh, mm, 0, 0)
+        return d
+    }).filter(Boolean)
+}
+/**
  * promemoria.js — Helpers per la vista Promemoria operativa
  *
  * Logica pura separata dalla UI per facilitare i test unitari:
@@ -223,7 +242,7 @@ export function buildReminderRows({ reminders, hosts, drugs, therapies, beds = [
                 stato: r.stato ?? 'DA_ESEGUIRE',
                 dosePerSomministrazione: therapy?.dosePerSomministrazione ?? null,
                 somministrazioniGiornaliere: therapy?.somministrazioniGiornaliere ?? null,
-                consumoMedioSettimanale: therapy?.consumoMedioSettimanale ?? null,
+                // consumoMedioSettimanale removed from therapy
                 dailyScheduleTimes,
                 dataInizio: therapy?.dataInizio ?? null,
                 dataFine: therapy?.dataFine ?? null,
