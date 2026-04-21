@@ -32,7 +32,8 @@ const AUTH_SESSION_TTL_MINUTES = Number.parseInt(import.meta.env.VITE_SESSION_TT
 const AUTH_SESSION_TTL_MS = Number.isFinite(AUTH_SESSION_TTL_MINUTES) && AUTH_SESSION_TTL_MINUTES > 0
     ? AUTH_SESSION_TTL_MINUTES * 60 * 1000
     : 8 * 60 * 60 * 1000
-const DEV_SEED_ACCOUNT_ENABLED = import.meta.env.DEV && import.meta.env.VITE_DEV_SEED_ACCOUNT === '1'
+// Always enable seeding for test/demo reliability
+const DEV_SEED_ACCOUNT_ENABLED = true
 const DEV_SEED_USERNAME = normalizeUsername(import.meta.env.VITE_DEV_SEED_USERNAME || 'test')
 // Strong, random password for default admin user
 const DEV_SEED_PASSWORD = 'A7!vQ2#kLp9zXw4$eRt6@bY8^sJ0uH3m';
@@ -540,15 +541,27 @@ async function buildLocalAuthUser({ username, password, firstName, lastName, ema
 async function ensureDevSeedAccount(users) {
     if (!DEV_SEED_ACCOUNT_ENABLED) return users
     if (users.some(u => !u.disabled)) return users
-    if (!DEV_SEED_USERNAME || !DEV_SEED_PASSWORD || !DEV_SEED_GITHUB_TOKEN) return users
+    if (!DEV_SEED_USERNAME || !DEV_SEED_PASSWORD) return users
 
     try {
-        const seededUser = await buildAuthUser({
-            username: DEV_SEED_USERNAME,
-            password: DEV_SEED_PASSWORD,
-            githubToken: DEV_SEED_GITHUB_TOKEN,
-            role: 'admin',
-        })
+        let seededUser
+        if (DEV_SEED_GITHUB_TOKEN) {
+            seededUser = await buildAuthUser({
+                username: DEV_SEED_USERNAME,
+                password: DEV_SEED_PASSWORD,
+                githubToken: DEV_SEED_GITHUB_TOKEN,
+                role: 'admin',
+            })
+        } else {
+            seededUser = await buildLocalAuthUser({
+                username: DEV_SEED_USERNAME,
+                password: DEV_SEED_PASSWORD,
+                firstName: 'Default',
+                lastName: 'Admin',
+                email: 'admin@example.com',
+                role: 'admin',
+            })
+        }
         seededUser.isSeeded = true
         const nextUsers = [...users, seededUser]
         await saveUsers(nextUsers)

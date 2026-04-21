@@ -1,8 +1,17 @@
 export async function loginOrRegisterSeededUser(page, {
-    username = 'prova',
-    password = 'Prova1234!',
+    // Clear IndexedDB to ensure registration form is available and no users exist
+    await page.evaluate(async () => {
+        if ('indexedDB' in window) {
+            const dbs = await window.indexedDB.databases();
+            for (const db of dbs) {
+                if (db.name) window.indexedDB.deleteDatabase(db.name);
+            }
+        }
+    });
+username = 'admin',
+    password = 'A7!vQ2#kLp9zXw4$eRt6@bY8^sJ0uH3m',
     githubToken = 'github_pat_seeded',
-} = {}) {
+} = { }) {
     const usernameInput = page.locator('#username-input')
     const registerUsernameInput = page.locator('#reg-username')
     const homeLink = page.getByRole('link', { name: 'Cruscotto' })
@@ -41,6 +50,7 @@ export async function loginOrRegisterSeededUser(page, {
         return
     }
 
+
     if (await usernameInput.isVisible()) {
         for (let attempt = 0; attempt < 2; attempt += 1) {
             await usernameInput.fill(username)
@@ -49,6 +59,28 @@ export async function loginOrRegisterSeededUser(page, {
             await page.waitForLoadState('load')
             await awaitAuthenticated(9000)
             if (await page.locator('main').isVisible()) break
+            // If login failed with 'Utente non trovato', try registration
+            if (await loginError.isVisible() && (await loginError.textContent()).includes('Utente non trovato')) {
+                // Switch to registration form if available
+                if (await registerUsernameInput.isVisible()) {
+                    await registerUsernameInput.fill(username)
+                    await page.locator('#reg-first-name').fill('Test')
+                    await page.locator('#reg-last-name').fill('Operator')
+                    await page.locator('#reg-email').fill(`${username}@example.com`)
+                    await page.locator('#reg-password').fill(password)
+                    await page.locator('#reg-confirm-password').fill(password)
+                    const githubTokenInput = page.locator('#reg-gh-token')
+                    const tokenVisible = await githubTokenInput.isVisible().catch(() => false)
+                    const tokenDisabled = tokenVisible ? await githubTokenInput.isDisabled().catch(() => false) : true
+                    if (tokenVisible && !tokenDisabled) {
+                        await githubTokenInput.fill(githubToken)
+                    }
+                    await page.getByRole('button', { name: /Crea account.*accedi/i }).click()
+                    await page.waitForLoadState('load')
+                    await awaitAuthenticated(9000)
+                    if (await page.locator('main').isVisible()) break
+                }
+            }
             if (attempt === 1) break
         }
     } else if (await registerUsernameInput.isVisible()) {

@@ -5,6 +5,7 @@ const BASE_URL = `http://127.0.0.1:${PORT}`
 
 export default defineConfig({
     testDir: 'tests/e2e',
+    globalSetup: require.resolve('./tests/e2e/setup.js'),
     timeout: 30_000,
     use: {
         baseURL: BASE_URL,
