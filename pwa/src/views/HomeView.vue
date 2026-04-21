@@ -6,6 +6,7 @@ import { buildHomeDashboardKpis } from '../services/homeDashboard'
 import { useHelpNavigation } from '../composables/useHelpNavigation'
 import { formatBuildTimestamp, getBuildTimestampIso } from '../services/buildInfo'
 
+
 const { currentUser } = useAuth()
 const { goToHelpSection } = useHelpNavigation()
 const datasetVersion = ref(null)
@@ -13,6 +14,58 @@ const syncStatus = ref('—')
 const homeKpi = ref(null)
 const buildTimestampLabel = formatBuildTimestamp('it-IT')
 const buildTimestampIso = getBuildTimestampIso()
+
+import { computed } from 'vue'
+const attentionItems = computed(() => {
+  if (!homeKpi.value) return []
+  const items = []
+  // Overdue reminders
+  if (homeKpi.value.remindersPending > 0) {
+    items.push({
+      type: 'reminder',
+      label: `${homeKpi.value.remindersPending} promemoria da eseguire oggi`,
+      to: '/promemoria',
+      tooltip: 'Vai ai promemoria da eseguire',
+    })
+  }
+  // Low/critical stock
+  if (homeKpi.value.stockCritical > 0) {
+    items.push({
+      type: 'stock',
+      label: `${homeKpi.value.stockCritical} farmaci in scorta critica`,
+      to: '/scorte',
+      tooltip: 'Vai a scorte critiche',
+    })
+  } else if (homeKpi.value.stockHigh > 0) {
+    items.push({
+      type: 'stock',
+      label: `${homeKpi.value.stockHigh} farmaci in scorta bassa`,
+      to: '/scorte',
+      tooltip: 'Vai a scorte basse',
+    })
+  }
+  // Pending sync
+  if (homeKpi.value.pendingSync > 0) {
+    items.push({
+      type: 'sync',
+      label: `Sincronizzazione in attesa (${homeKpi.value.pendingSync})`,
+      to: '/impostazioni',
+      tooltip: 'Visualizza dettagli sincronizzazione',
+    })
+  }
+  return items
+})
+
+    <div class="card attention-panel" v-if="attentionItems.length">
+      <p><strong>Attenzione</strong></p>
+      <ul class="attention-list">
+        <li v-for="item in attentionItems" :key="item.type" style="margin-bottom:.3rem">
+          <RouterLink :to="item.to" :title="item.tooltip" class="attention-link">
+            {{ item.label }}
+          </RouterLink>
+        </li>
+      </ul>
+    </div>
 
 function formatDateTime(value) {
   if (!value) return '—'

@@ -1,5 +1,40 @@
 <script setup>
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
+// --- Keyboard Shortcuts (Scorciatoie da tastiera) ---
+function handleKeyboardShortcut(event) {
+  // Focus search (Cerca)
+  if (event.key === '/') {
+    event.preventDefault()
+    const searchInput = document.querySelector('input[placeholder="Cerca per nome farmaco, principio attivo, confezione o dosaggio"]')
+    if (searchInput) searchInput.focus()
+  }
+  // Nuovo (Aggiungi farmaco)
+  if (event.key === 'n' && !event.ctrlKey && !event.metaKey) {
+    event.preventDefault()
+    openAddDrugForm()
+  }
+  // Salva (form attivo)
+  if ((event.key === 's' && (event.ctrlKey || event.metaKey)) && isFormOpen.value) {
+    event.preventDefault()
+    if (panelMode.value === 'create-drug' || panelMode.value === 'edit-drug') createDrug()
+    if (panelMode.value === 'create-batch' || panelMode.value === 'edit-batch') createBatch()
+  }
+  // Elimina selezionato
+  if (event.key === 'd' && !event.ctrlKey && !event.metaKey) {
+    event.preventDefault()
+    if (selectedDrugsCount.value > 0) deleteSelectedDrugs()
+    else if (selectedBatchesCount.value > 0) deleteSelectedBatches()
+  }
+}
+
+onMounted(() => {
+  window.addEventListener('keydown', handleKeyboardShortcut)
+  void loadData()
+  markFormSnapshot()
+})
+onUnmounted(() => {
+  window.removeEventListener('keydown', handleKeyboardShortcut)
+})
 import { db, getSetting } from '../db'
 import { useAuth } from '../services/auth'
 import { upsertDrug, deleteDrug, upsertBatch, deactivateBatch, restoreDrug, restoreBatch } from '../services/farmaci'
@@ -11,6 +46,7 @@ import { useSelection } from '../composables/useSelection'
 import { useHelpNavigation } from '../composables/useHelpNavigation'
 import { useUnsavedChangesGuard } from '../composables/useUnsavedChangesGuard'
 import { useUndoDelete } from '../composables/useUndoDelete'
+import UndoDeleteBanner from '../components/UndoDeleteBanner.vue'
 import { useSessionViewState } from '../composables/useSessionViewState'
 
 const { currentUser } = useAuth()
@@ -712,14 +748,21 @@ onMounted(() => {
         </select>
       </label>
       <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.75rem">
-        <button @click="openAddDrugForm">Aggiungi</button>
-        <button :disabled="selectedDrugsCount !== 1" @click="openEditDrugForm">Modifica</button>
+        <button @click="openAddDrugForm" title="Aggiungi (Scorciatoia: N)">Aggiungi</button>
+        <button :disabled="selectedDrugsCount !== 1" @click="openEditDrugForm" title="Modifica selezionato">Modifica</button>
         <button
           :disabled="selectedDrugsCount === 0"
           style="background:#d35f55"
           @click="deleteSelectedDrugs"
+          title="Elimina selezionato (Scorciatoia: D)"
         >
           Elimina{{ selectedDrugsCount > 0 ? ` (${selectedDrugsCount})` : '' }}
+        </button>
+        <button
+          @click="() => { const searchInput = document.querySelector('input[placeholder=\'Cerca per nome farmaco, principio attivo, confezione o dosaggio\']'); if (searchInput) searchInput.focus(); }"
+          title="Cerca (Scorciatoia: /)"
+        >
+          Cerca
         </button>
       </div>
       <p v-if="selectedDrugsCount > 0" class="muted" style="margin-top:.55rem">
@@ -792,14 +835,21 @@ onMounted(() => {
         </select>
       </label>
       <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.75rem">
-        <button @click="openAddBatchForm">Aggiungi</button>
-        <button :disabled="selectedBatchesCount !== 1" @click="openEditBatchForm">Modifica</button>
+        <button @click="openAddBatchForm" title="Aggiungi confezione (Scorciatoia: N)">Aggiungi</button>
+        <button :disabled="selectedBatchesCount !== 1" @click="openEditBatchForm" title="Modifica selezionata">Modifica</button>
         <button
           :disabled="selectedBatchesCount === 0"
           style="background:#d35f55"
           @click="deleteSelectedBatches"
+          title="Elimina selezionata (Scorciatoia: D)"
         >
           Elimina{{ selectedBatchesCount > 0 ? ` (${selectedBatchesCount})` : '' }}
+        </button>
+        <button
+          @click="() => { const searchInput = document.querySelector('input[placeholder=\'Cerca per nome farmaco, principio attivo, confezione o dosaggio\']'); if (searchInput) searchInput.focus(); }"
+          title="Cerca (Scorciatoia: /)"
+        >
+          Cerca
         </button>
       </div>
       <p v-if="selectedBatchesCount > 0" class="muted" style="margin-top:.55rem">
@@ -1026,9 +1076,12 @@ onMounted(() => {
       </details>
     </div>
 
-    <div v-if="pendingUndo" class="undo-banner" role="status" aria-live="polite">
-      <span>{{ pendingUndo.label }}</span>
-      <button type="button" @click="executeUndo">Annulla eliminazione</button>
-    </div>
+    <UndoDeleteBanner
+      v-if="pendingUndo"
+      :label="pendingUndo.label"
+      :timeout="10000"
+      @undo="executeUndo"
+      @close="pendingUndo = null"
+    />
   </div>
 </template>
