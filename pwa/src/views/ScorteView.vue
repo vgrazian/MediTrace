@@ -158,6 +158,16 @@ function openAddBatchForm() {
   resetBatchForm()
   creatingBatch.value = true
   isFormOpen.value = true
+  // Ensure all batch form fields are enabled and cleared
+  batchForm.value = {
+    drugId: '',
+    nomeCommerciale: '',
+    dosaggio: '',
+    quantitaAttuale: '',
+    sogliaRiordino: '',
+    scadenza: '',
+  }
+  editingBatchId.value = ''
 }
 
 function startEditDrug(drugId) {
