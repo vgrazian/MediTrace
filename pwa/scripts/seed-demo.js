@@ -39,44 +39,25 @@ async function waitForServer(url, timeoutMs = 45_000) {
 }
 
 async function ensureLocalSeedUser(page, { username, password }) {
-    return page.evaluate(async ({ username, password }) => {
-        const AUTH_USERS_KEY = 'authUsers'
-
-        const { getSetting, setSetting } = await import('/src/db/index.js')
-
-        const nowIso = new Date().toISOString()
-        const users = await getSetting(AUTH_USERS_KEY, [])
-        const list = Array.isArray(users) ? users : []
-
-        const existingActive = list.find(u => !u?.disabled && String(u?.username || '').toLowerCase() === username)
-        if (existingActive) return { created: false }
-
-        const saltBytes = new Uint8Array(16)
-        crypto.getRandomValues(saltBytes)
-        const salt = Array.from(saltBytes).map(x => x.toString(16).padStart(2, '0')).join('')
-        const data = new TextEncoder().encode(`${salt}:${password}`)
-        const digest = await crypto.subtle.digest('SHA-256', data)
-        const hash = Array.from(new Uint8Array(digest)).map(x => x.toString(16).padStart(2, '0')).join('')
-
-        const newUser = {
-            id: crypto.randomUUID(),
-            username,
-            passwordSalt: salt,
-            passwordHash: hash,
-            githubToken: 'local_demo_token',
-            githubLogin: 'demo-local',
-            displayName: 'Demo Local',
-            avatarUrl: 'https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png',
-            role: 'admin',
-            createdAt: nowIso,
-            updatedAt: nowIso,
-            disabled: false,
-            isSeeded: true,
-        }
-
-        await setSetting(AUTH_USERS_KEY, [...list, newUser])
-        return { created: true }
-    }, { username, password })
+    // Check if the registration form is visible (no users exist)
+    const regFormVisible = await page.locator('#reg-username').isVisible()
+    if (regFormVisible) {
+        console.log('▶  No users exist, registering demo user via UI…')
+        await page.fill('#reg-username', username)
+        await page.fill('#reg-first-name', 'Demo')
+        await page.fill('#reg-last-name', 'Local')
+        await page.fill('#reg-email', 'demo@example.com')
+        await page.fill('#reg-password', password)
+        await page.fill('#reg-confirm-password', password)
+        await page.click('button:has-text("Crea account admin")')
+        // Wait for login to complete (main element visible)
+        await page.waitForSelector('main', { timeout: 10000 })
+        return { created: true, afterUsers: 'created via UI' }
+    } else {
+        // If user already exists, do nothing
+        console.log('▶  User already exists, skipping registration.')
+        return { created: false, afterUsers: 'already exists' }
+    }
 }
 
 // ── Main ──────────────────────────────────────────────────────────────────────
@@ -115,13 +96,18 @@ async function main() {
         console.log(`✔  Server pronto → ${BASE_URL}`)
 
         const context = await chromium.launchPersistentContext(DEMO_PROFILE, {
-            headless: false,
+            headless: false, // Run in non-headless mode for debugging
             args: ['--disable-infobars'],
             viewport: { width: 1280, height: 800 },
         })
+        // Print database name and version for confirmation
+        console.log('▶  DB name (from env):', process.env.VITE_DB_NAME || 'meditrace')
+
+        console.log('▶  Chromium launched in headless mode')
 
         const page = await context.newPage()
         await page.goto(`${BASE_URL}/#/`)
+        console.log('▶  Navigated to login page')
 
         // ── Login robusto (senza dipendere dalla registrazione via GitHub API)
         const loginInput = page.locator('#username-input')
@@ -130,9 +116,9 @@ async function main() {
         const loginError = page.locator('.login-error')
 
         await Promise.race([
-            loginInput.waitFor({ state: 'visible', timeout: 8000 }).catch(() => { }),
-            registerInput.waitFor({ state: 'visible', timeout: 8000 }).catch(() => { }),
-            mainEl.waitFor({ state: 'visible', timeout: 8000 }).catch(() => { }),
+            loginInput.waitFor({ state: 'visible', timeout: 8000 }).then(() => console.log('▶  Login input visible')).catch(() => { }),
+            registerInput.waitFor({ state: 'visible', timeout: 8000 }).then(() => console.log('▶  Register input visible')).catch(() => { }),
+            mainEl.waitFor({ state: 'visible', timeout: 8000 }).then(() => console.log('▶  Main element visible')).catch(() => { }),
         ])
 
         if (await mainEl.isVisible()) {

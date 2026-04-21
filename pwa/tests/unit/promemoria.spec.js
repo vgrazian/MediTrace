@@ -1,3 +1,50 @@
+import { getScheduledTimesForTherapy } from '../../src/services/promemoria'
+describe('getScheduledTimesForTherapy', () => {
+    it('returns correct times for valid orariSomministrazione and somministrazioniGiornaliere', () => {
+        const therapy = {
+            orariSomministrazione: ['08:00', '12:30', '20:00', '', '', ''],
+            somministrazioniGiornaliere: 3,
+        }
+        const date = new Date('2026-04-21T00:00:00Z')
+        const result = getScheduledTimesForTherapy(therapy, date)
+        expect(result).toHaveLength(3)
+        expect(result[0].getHours()).toBe(8)
+        expect(result[0].getMinutes()).toBe(0)
+        expect(result[1].getHours()).toBe(12)
+        expect(result[1].getMinutes()).toBe(30)
+        expect(result[2].getHours()).toBe(20)
+        expect(result[2].getMinutes()).toBe(0)
+    })
+
+    it('returns only up to N times for somministrazioniGiornaliere < orariSomministrazione.length', () => {
+        const therapy = {
+            orariSomministrazione: ['08:00', '12:00', '18:00', '22:00', '', ''],
+            somministrazioniGiornaliere: 2,
+        }
+        const date = new Date('2026-04-21T00:00:00Z')
+        const result = getScheduledTimesForTherapy(therapy, date)
+        expect(result).toHaveLength(2)
+        expect(result[0].getHours()).toBe(8)
+        expect(result[1].getHours()).toBe(12)
+    })
+
+    it('returns empty array if orariSomministrazione is missing or not array', () => {
+        expect(getScheduledTimesForTherapy({}, new Date())).toEqual([])
+        expect(getScheduledTimesForTherapy(null, new Date())).toEqual([])
+    })
+
+    it('skips invalid or empty time strings', () => {
+        const therapy = {
+            orariSomministrazione: ['08:00', 'notatime', '', '20:00'],
+            somministrazioniGiornaliere: 4,
+        }
+        const date = new Date('2026-04-21T00:00:00Z')
+        const result = getScheduledTimesForTherapy(therapy, date)
+        expect(result).toHaveLength(2)
+        expect(result[0].getHours()).toBe(8)
+        expect(result[1].getHours()).toBe(20)
+    })
+})
 it('filters by selected hostId', () => {
     const rows = buildReminderRows({
         reminders: REMINDERS_TODAY,

@@ -51,7 +51,7 @@ export async function upsertTherapy({
         drugId: form.drugId,
         dosePerSomministrazione: Number(form.dosePerSomministrazione || 0),
         somministrazioniGiornaliere: Number(form.somministrazioniGiornaliere || 0),
-        consumoMedioSettimanale: Number(form.consumoMedioSettimanale || 0),
+        orariSomministrazione: Array.isArray(form.orariSomministrazione) ? form.orariSomministrazione.slice(0, 6) : [],
         dataInizio: form.dataInizio || now,
         dataFine: form.dataFine || null,
         note: form.note || '',
