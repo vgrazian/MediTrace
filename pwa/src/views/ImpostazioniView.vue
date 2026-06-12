@@ -438,6 +438,7 @@ async function handleToggleTestData() {
 
   const shouldClear = seedActionMode.value === 'clear'
   
+  // First confirmation dialog
   const confirmed1 = shouldClear
     ? await openConfirmDialog({
       title: 'Conferma rimozione dati demo',
@@ -457,6 +458,7 @@ async function handleToggleTestData() {
     })
   if (!confirmed1) return
 
+  // Second confirmation for loading
   if (!shouldClear) {
     const confirmed2 = await openConfirmDialog({
       title: '⚠️ ATTENZIONE: Ambiente di produzione?',

@@ -56,17 +56,6 @@ const attentionItems = computed(() => {
   return items
 })
 
-    <div class="card attention-panel" v-if="attentionItems.length">
-      <p><strong>Attenzione</strong></p>
-      <ul class="attention-list">
-        <li v-for="item in attentionItems" :key="item.type" style="margin-bottom:.3rem">
-          <RouterLink :to="item.to" :title="item.tooltip" class="attention-link">
-            {{ item.label }}
-          </RouterLink>
-        </li>
-      </ul>
-    </div>
-
 function formatDateTime(value) {
   if (!value) return '—'
   const parsed = new Date(value)
@@ -97,6 +86,17 @@ onMounted(async () => {
       <p class="muted" style="margin-top:.35rem">
         Monitoraggio scorte, terapie e promemoria con controllo operativo continuo.
       </p>
+    </div>
+
+    <div class="card attention-panel" v-if="attentionItems.length">
+      <p><strong>Attenzione</strong></p>
+      <ul class="attention-list">
+        <li v-for="item in attentionItems" :key="item.type" style="margin-bottom:.3rem">
+          <RouterLink :to="item.to" :title="item.tooltip" class="attention-link">
+            {{ item.label }}
+          </RouterLink>
+        </li>
+      </ul>
     </div>
 
     <div class="card">

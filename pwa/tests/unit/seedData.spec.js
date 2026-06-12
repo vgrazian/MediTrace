@@ -76,32 +76,32 @@ describe('seedData — static helpers', () => {
         expect(stats.reminders).toBeGreaterThan(0)
     })
 
-    it('all seed IDs are prefixed with __seed__', () => {
+    it('all seed IDs are prefixed with __demo__', () => {
         const allRecords = [
-            ...seedDataTestUtils.SEED_ROOMS,
-            ...seedDataTestUtils.SEED_BEDS,
-            ...seedDataTestUtils.SEED_HOSTS,
-            ...seedDataTestUtils.SEED_DRUGS,
-            ...seedDataTestUtils.SEED_STOCK_BATCHES,
-            ...seedDataTestUtils.SEED_THERAPIES,
-            ...seedDataTestUtils.SEED_MOVEMENTS,
-            ...seedDataTestUtils.SEED_REMINDERS,
+            ...seedDataTestUtils.DEMO_ROOMS,
+            ...seedDataTestUtils.DEMO_BEDS,
+            ...seedDataTestUtils.DEMO_HOSTS,
+            ...seedDataTestUtils.DEMO_DRUGS,
+            ...seedDataTestUtils.DEMO_STOCK_BATCHES,
+            ...seedDataTestUtils.DEMO_THERAPIES,
+            ...seedDataTestUtils.DEMO_MOVEMENTS,
+            ...seedDataTestUtils.DEMO_REMINDERS,
         ]
         for (const record of allRecords) {
-            expect(record.id).toMatch(/^__seed__/)
+            expect(record.id).toMatch(/^__demo__/)
         }
     })
 
     it('all seed records carry _seeded: true', () => {
         const allRecords = [
-            ...seedDataTestUtils.SEED_ROOMS,
-            ...seedDataTestUtils.SEED_BEDS,
-            ...seedDataTestUtils.SEED_HOSTS,
-            ...seedDataTestUtils.SEED_DRUGS,
-            ...seedDataTestUtils.SEED_STOCK_BATCHES,
-            ...seedDataTestUtils.SEED_THERAPIES,
-            ...seedDataTestUtils.SEED_MOVEMENTS,
-            ...seedDataTestUtils.SEED_REMINDERS,
+            ...seedDataTestUtils.DEMO_ROOMS,
+            ...seedDataTestUtils.DEMO_BEDS,
+            ...seedDataTestUtils.DEMO_HOSTS,
+            ...seedDataTestUtils.DEMO_DRUGS,
+            ...seedDataTestUtils.DEMO_STOCK_BATCHES,
+            ...seedDataTestUtils.DEMO_THERAPIES,
+            ...seedDataTestUtils.DEMO_MOVEMENTS,
+            ...seedDataTestUtils.DEMO_REMINDERS,
         ]
         for (const record of allRecords) {
             expect(record._seeded).toBe(true)
@@ -109,44 +109,44 @@ describe('seedData — static helpers', () => {
     })
 
     it('manifest IDs match record lists', () => {
-        const { SEED_MANIFEST, SEED_ROOMS, SEED_BEDS, SEED_HOSTS, SEED_DRUGS, SEED_STOCK_BATCHES, SEED_THERAPIES, SEED_MOVEMENTS, SEED_REMINDERS } = seedDataTestUtils
-        expect(SEED_MANIFEST.rooms).toEqual(SEED_ROOMS.map(r => r.id))
-        expect(SEED_MANIFEST.beds).toEqual(SEED_BEDS.map(r => r.id))
-        expect(SEED_MANIFEST.hosts).toEqual(SEED_HOSTS.map(r => r.id))
-        expect(SEED_MANIFEST.drugs).toEqual(SEED_DRUGS.map(r => r.id))
-        expect(SEED_MANIFEST.stockBatches).toEqual(SEED_STOCK_BATCHES.map(r => r.id))
-        expect(SEED_MANIFEST.therapies).toEqual(SEED_THERAPIES.map(r => r.id))
-        expect(SEED_MANIFEST.movements).toEqual(SEED_MOVEMENTS.map(r => r.id))
-        expect(SEED_MANIFEST.reminders).toEqual(SEED_REMINDERS.map(r => r.id))
+        const { DEMO_MANIFEST, DEMO_ROOMS, DEMO_BEDS, DEMO_HOSTS, DEMO_DRUGS, DEMO_STOCK_BATCHES, DEMO_THERAPIES, DEMO_MOVEMENTS, DEMO_REMINDERS } = seedDataTestUtils
+        expect(DEMO_MANIFEST.rooms).toEqual(DEMO_ROOMS.map(r => r.id))
+        expect(DEMO_MANIFEST.beds).toEqual(DEMO_BEDS.map(r => r.id))
+        expect(DEMO_MANIFEST.hosts).toEqual(DEMO_HOSTS.map(r => r.id))
+        expect(DEMO_MANIFEST.drugs).toEqual(DEMO_DRUGS.map(r => r.id))
+        expect(DEMO_MANIFEST.stockBatches).toEqual(DEMO_STOCK_BATCHES.map(r => r.id))
+        expect(DEMO_MANIFEST.therapies).toEqual(DEMO_THERAPIES.map(r => r.id))
+        expect(DEMO_MANIFEST.movements).toEqual(DEMO_MOVEMENTS.map(r => r.id))
+        expect(DEMO_MANIFEST.reminders).toEqual(DEMO_REMINDERS.map(r => r.id))
     })
 
     it('bed foreign keys resolve to existing seed rooms', () => {
-        const roomIds = new Set(seedDataTestUtils.SEED_ROOMS.map(r => r.id))
-        for (const bed of seedDataTestUtils.SEED_BEDS) {
+        const roomIds = new Set(seedDataTestUtils.DEMO_ROOMS.map(r => r.id))
+        for (const bed of seedDataTestUtils.DEMO_BEDS) {
             expect(roomIds.has(bed.roomId)).toBe(true)
         }
     })
 
     it('therapy foreign keys resolve to existing seed drugs and hosts', () => {
-        const drugIds = new Set(seedDataTestUtils.SEED_DRUGS.map(r => r.id))
-        const hostIds = new Set(seedDataTestUtils.SEED_HOSTS.map(r => r.id))
-        for (const therapy of seedDataTestUtils.SEED_THERAPIES) {
+        const drugIds = new Set(seedDataTestUtils.DEMO_DRUGS.map(r => r.id))
+        const hostIds = new Set(seedDataTestUtils.DEMO_HOSTS.map(r => r.id))
+        for (const therapy of seedDataTestUtils.DEMO_THERAPIES) {
             expect(drugIds.has(therapy.drugId)).toBe(true)
             expect(hostIds.has(therapy.hostId)).toBe(true)
         }
     })
 
     it('stockBatch foreign keys resolve to existing seed drugs', () => {
-        const drugIds = new Set(seedDataTestUtils.SEED_DRUGS.map(r => r.id))
-        for (const batch of seedDataTestUtils.SEED_STOCK_BATCHES) {
+        const drugIds = new Set(seedDataTestUtils.DEMO_DRUGS.map(r => r.id))
+        for (const batch of seedDataTestUtils.DEMO_STOCK_BATCHES) {
             expect(drugIds.has(batch.drugId)).toBe(true)
         }
     })
 
     it('reminders reference existing seed hosts and therapies', () => {
-        const hostIds = new Set(seedDataTestUtils.SEED_HOSTS.map(r => r.id))
-        const therapyIds = new Set(seedDataTestUtils.SEED_THERAPIES.map(r => r.id))
-        for (const reminder of seedDataTestUtils.SEED_REMINDERS) {
+        const hostIds = new Set(seedDataTestUtils.DEMO_HOSTS.map(r => r.id))
+        const therapyIds = new Set(seedDataTestUtils.DEMO_THERAPIES.map(r => r.id))
+        for (const reminder of seedDataTestUtils.DEMO_REMINDERS) {
             expect(hostIds.has(reminder.hostId)).toBe(true)
             expect(therapyIds.has(reminder.therapyId)).toBe(true)
         }
@@ -154,14 +154,14 @@ describe('seedData — static helpers', () => {
 
     it('no duplicate IDs within or across tables', () => {
         const allIds = [
-            ...seedDataTestUtils.SEED_ROOMS,
-            ...seedDataTestUtils.SEED_BEDS,
-            ...seedDataTestUtils.SEED_HOSTS,
-            ...seedDataTestUtils.SEED_DRUGS,
-            ...seedDataTestUtils.SEED_STOCK_BATCHES,
-            ...seedDataTestUtils.SEED_THERAPIES,
-            ...seedDataTestUtils.SEED_MOVEMENTS,
-            ...seedDataTestUtils.SEED_REMINDERS,
+            ...seedDataTestUtils.DEMO_ROOMS,
+            ...seedDataTestUtils.DEMO_BEDS,
+            ...seedDataTestUtils.DEMO_HOSTS,
+            ...seedDataTestUtils.DEMO_DRUGS,
+            ...seedDataTestUtils.DEMO_STOCK_BATCHES,
+            ...seedDataTestUtils.DEMO_THERAPIES,
+            ...seedDataTestUtils.DEMO_MOVEMENTS,
+            ...seedDataTestUtils.DEMO_REMINDERS,
         ].map(r => r.id)
 
         expect(new Set(allIds).size).toBe(allIds.length)
@@ -203,7 +203,7 @@ describe('seedData — loadSeedData', () => {
 
     it('stores manifest in settings', async () => {
         await loadSeedData()
-        const manifest = settings.get(seedDataTestUtils.SEED_MANIFEST_KEY)
+        const manifest = settings.get(seedDataTestUtils.DEMO_MANIFEST_KEY)
         expect(manifest).toBeTruthy()
         expect(Array.isArray(manifest.drugs)).toBe(true)
         expect(manifest.drugs.length).toBeGreaterThan(0)
@@ -306,19 +306,19 @@ describe('seedData — clearSeedData', () => {
     it('also clears seed-linked derived movements not present in manifest', async () => {
         await loadSeedData()
 
-        tables.movements.set('__movement___seed__rem-2_20260404090000', {
-            id: '__movement___seed__rem-2_20260404090000',
+        tables.movements.set('__movement___demo__rem-2_20260404090000', {
+            id: '__movement___demo__rem-2_20260404090000',
             type: 'SOMMINISTRAZIONE',
-            hostId: '__seed__host-1',
-            therapyId: '__seed__therapy-1',
-            reminderId: '__seed__rem-2',
+            hostId: '__demo__host-1',
+            therapyId: '__demo__therapy-1',
+            reminderId: '__demo__rem-2',
             deletedAt: null,
             syncStatus: 'pending',
         })
 
         await clearSeedData()
 
-        const derived = tables.movements.get('__movement___seed__rem-2_20260404090000')
+        const derived = tables.movements.get('__movement___demo__rem-2_20260404090000')
         expect(derived?.deletedAt).toBeTruthy()
         expect(derived?.syncStatus).toBe('pending')
     })
