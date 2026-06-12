@@ -1,4 +1,4 @@
-export async function loginOrRegisterSeededUser(page, {
+export async function loginOrRegisterSeededUser(page, options = {}) {
     // Clear IndexedDB to ensure registration form is available and no users exist
     await page.evaluate(async () => {
         if ('indexedDB' in window) {
@@ -8,10 +8,11 @@ export async function loginOrRegisterSeededUser(page, {
             }
         }
     });
-username = 'admin',
-    password = 'A7!vQ2#kLp9zXw4$eRt6@bY8^sJ0uH3m',
-    githubToken = 'github_pat_seeded',
-} = { }) {
+    const {
+        username = 'admin',
+        password = 'A7!vQ2#kLp9zXw4$eRt6@bY8^sJ0uH3m',
+        githubToken = 'github_pat_seeded',
+    } = options;
     const usernameInput = page.locator('#username-input')
     const registerUsernameInput = page.locator('#reg-username')
     const homeLink = page.getByRole('link', { name: 'Cruscotto' })

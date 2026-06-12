@@ -1,5 +1,38 @@
 <script setup>
-import { onMounted, ref, computed } from 'vue'
+import { onMounted, onUnmounted, ref, computed } from 'vue'
+// --- Keyboard Shortcuts (Scorciatoie da tastiera) ---
+function handleKeyboardShortcut(event) {
+  // Focus search (Cerca)
+  if (event.key === '/') {
+    event.preventDefault()
+    const searchInput = document.querySelector('input[placeholder="Cerca per nome, cognome, codice, iniziali o residenza"]')
+    if (searchInput) searchInput.focus()
+  }
+  // Nuovo (Aggiungi ospite)
+  if (event.key === 'n' && !event.ctrlKey && !event.metaKey) {
+    event.preventDefault()
+    openAddForm()
+  }
+  // Salva (form attivo)
+  if ((event.key === 's' && (event.ctrlKey || event.metaKey)) && isFormOpen.value) {
+    event.preventDefault()
+    handleSave()
+  }
+  // Elimina selezionato
+  if (event.key === 'd' && !event.ctrlKey && !event.metaKey) {
+    event.preventDefault()
+    if (selectedCount.value > 0) deleteSelectedHosts()
+  }
+}
+
+onMounted(() => {
+  window.addEventListener('keydown', handleKeyboardShortcut)
+  void loadData()
+  markFormSnapshot()
+})
+onUnmounted(() => {
+  window.removeEventListener('keydown', handleKeyboardShortcut)
+})
 import { useAuth } from '../services/auth'
 import { buildHostRows, createHost, deleteHost, formatHostDisplay, restoreHost, updateHost } from '../services/ospiti'
 import { getRoomsWithBeds } from '../services/stanze'
@@ -12,6 +45,7 @@ import { db } from '../db'
 import { useHelpNavigation } from '../composables/useHelpNavigation'
 import { useUnsavedChangesGuard } from '../composables/useUnsavedChangesGuard'
 import { useUndoDelete } from '../composables/useUndoDelete'
+import UndoDeleteBanner from '../components/UndoDeleteBanner.vue'
 import { useSessionViewState } from '../composables/useSessionViewState'
 
 const { currentUser } = useAuth()
@@ -431,14 +465,21 @@ onMounted(() => {
       </label>
 
       <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.75rem">
-        <button @click="openAddForm">Aggiungi</button>
-        <button :disabled="selectedCount !== 1" @click="openEditForm">Modifica</button>
+        <button @click="openAddForm" title="Aggiungi (Scorciatoia: N)">Aggiungi</button>
+        <button :disabled="selectedCount !== 1" @click="openEditForm" title="Modifica selezionato">Modifica</button>
         <button
           :disabled="selectedCount === 0"
           style="background:#d35f55"
           @click="deleteSelectedHosts"
+          title="Elimina selezionato (Scorciatoia: D)"
         >
           Elimina{{ selectedCount > 0 ? ` (${selectedCount})` : '' }}
+        </button>
+        <button
+          @click="() => { const searchInput = document.querySelector('input[placeholder=\'Cerca per nome, cognome, codice, iniziali o residenza\']'); if (searchInput) searchInput.focus(); }"
+          title="Cerca (Scorciatoia: /)"
+        >
+          Cerca
         </button>
       </div>
 
@@ -636,9 +677,12 @@ onMounted(() => {
     <p v-if="message" class="muted" style="margin-top:.5rem">{{ message }}</p>
     <p v-if="errorMessage" class="import-error" style="margin-top:.5rem">{{ errorMessage }}</p>
 
-    <div v-if="pendingUndo" class="undo-banner" role="status" aria-live="polite">
-      <span>{{ pendingUndo.label }}</span>
-      <button type="button" @click="executeUndo">Annulla eliminazione</button>
-    </div>
+    <UndoDeleteBanner
+      v-if="pendingUndo"
+      :label="pendingUndo.label"
+      :timeout="10000"
+      @undo="executeUndo"
+      @close="pendingUndo = null"
+    />
   </div>
 </template>

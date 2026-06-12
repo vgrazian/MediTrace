@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.6] - 2026-04-21
+### Added
+- Persistent sync state indicator always visible in app bar (`AppNav.vue`) with Italian labels and tooltip for all sync states (sincronizzato, in attesa, conflitto, errore, offline).
+- New composable [`useSyncState.js`](pwa/src/composables/useSyncState.js) for reactive sync state, used by the UI.
+- E2E tests [`sync-indicator.spec.js`](pwa/tests/e2e/sync-indicator.spec.js) to verify indicator for all states and localization.
+- Unit tests [`useSyncState.spec.js`](pwa/tests/unit/useSyncState.spec.js) for all sync state logic and Italian messages.
+
+### Changed
+- Updated documentation and progress tracking to reflect PR-UI-1 delivery and test coverage.
+
+### Verified
+- Implementation and test coverage for sync indicator complete. Test runner config for window mocking/ESM remains to be finalized for full green runs.
+
 ## [0.5.5] - 2026-04-17
 ### Added
 - Added reset-token extraction in [`ResetPasswordView.vue`](pwa/src/views/ResetPasswordView.vue) so hash-route recovery links (`/#/auth/reset-password?token=...`) are consumed correctly by table-auth recovery.
@@ -17,8 +30,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Extended Playwright project matrix in [`playwright.config.js`](pwa/playwright.config.js) with dedicated parity projects (`critical-parity-chromium`, `critical-parity-firefox`, `critical-parity-webkit`) and a dedicated coverage project (`e2e-js-coverage-chromium`).
 - Added npm scripts in [`package.json`](pwa/package.json): `test:online-reset-password`, `test:e2e:parity`, and `test:e2e:coverage`.
 - Updated CI workflows:
- 	- [`quality-gate.yml`](.github/workflows/quality-gate.yml) installs Chromium + Firefox + WebKit.
- 	- [`online-main-validation.yml`](.github/workflows/online-main-validation.yml) now runs online reset-password validation and uploads `online-reset-password.json`.
+  - [`quality-gate.yml`](.github/workflows/quality-gate.yml) installs Chromium + Firefox + WebKit.
+  - [`online-main-validation.yml`](.github/workflows/online-main-validation.yml) now runs online reset-password validation and uploads `online-reset-password.json`.
 
 ### Verified
 - Local deterministic reset guard-path: `npm --prefix pwa run test:e2e -- tests/e2e/reset-password-route.spec.js`.

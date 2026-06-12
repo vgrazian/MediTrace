@@ -274,3 +274,142 @@ PR-3 execution notes (2026-04-17)
 - `SITE_URL=https://vgrazian.github.io/MediTrace/ ... npm --prefix pwa run test:online-main` => PASS
 - `SITE_URL=http://127.0.0.1:4173/ ... npm --prefix pwa run test:online-reset-password` => PASS
 - `SITE_URL=https://vgrazian.github.io/MediTrace/ ... npm --prefix pwa run test:online-reset-password` currently fails until PR-3 UI changes are deployed to Pages.
+
+# MediTrace UX/UI Improvement Recommendations (2026-04-21)
+
+## High-Impact / Low-Effort Improvements
+- Persistent sync state indicator in app bar
+- Standardized undo delete banner for all destructive actions
+- Keyboard shortcuts for frequent actions
+
+## 1. Daily Workflows Optimization
+- Dashboard “Attention” panel for overdue reminders, low stock, pending sync/conflicts
+- One-click “Today’s Tasks” with batch-completion
+- Sticky action bar on mobile/tablet
+- Batch actions for repetitive tasks
+
+## 2. Create Flows
+- Inline, contextual validation
+- Smart defaults & autofill
+- “Quick Add” for frequent entities
+- Draft save & resume
+
+## 3. Delete / Destructive Actions
+- Soft delete with audit trail
+- Role-based delete permissions
+- Offline-aware delete UX
+- Clear consequence dialogs
+
+## 4. Error Prevention & Feedback
+- Save/sync state badges
+- Conflict resolution UI
+- Background sync feedback
+
+## 5. Visual and Interaction Design
+- Modern, calm theme
+- Consistent component library
+- Progressive disclosure for advanced options
+- Table enhancements (sticky headers, inline actions)
+- Accessible feedback (ARIA-live, keyboard)
+
+## Example User Flows
+- Quick medication administration (mobile)
+- Safe delete (desktop)
+
+## Next Steps
+- Prioritize high-impact/low-effort items
+- Refactor for component consistency and accessibility
+- Schedule user testing sessions
+
+# Planned PRs for MediTrace UI/UX Improvements (2026-04-21)
+
+Each PR is focused, reviewable, and can be delivered independently:
+
+- **PR-UI-1: Persistent Sync State Indicator**
+  - Add always-visible sync status icon to app bar
+  - Tooltip/modal for sync details (pending, error, conflict)
+  - E2E: Verify indicator state for offline, pending, synced
+
+- **PR-UI-2: Standardized Undo Delete Banner**
+  - Refactor all CRUD views to use a shared undo delete banner
+  - Ensure undo is available for all soft-deletes, with consistent timing/messaging
+  - E2E: Test undo for each entity type
+
+- **PR-UI-3: Keyboard Shortcuts for Frequent Actions**
+  - Add shortcuts: “n” (new), “s” (save), “d” (delete), “/” (search/filter)
+  - Show shortcut hints in tooltips/action menus
+  - Unit/E2E: Validate shortcut triggers
+
+- **PR-UI-4: Dashboard “Attention” Panel**
+  - Add summary panel to home/dashboard for overdue reminders, low stock, pending sync/conflicts
+  - Each item links to filtered detail view
+  - E2E: Validate attention panel population/navigation
+
+- **PR-UI-5: One-Click “Today’s Tasks” & Batch Actions**
+  - Prominent “Today’s Reminders” button with batch-complete
+  - Enable multi-select and batch actions for repetitive tasks
+  - E2E: Batch-complete flow for reminders/medication administration
+
+- **PR-UI-6: Sticky Action Bar (Mobile/Tablet)**
+  - Make main actions sticky at the bottom on small screens
+  - Responsive layout adjustments
+  - E2E: Validate action bar visibility/interaction
+
+- **PR-UI-7: Inline Validation & Smart Defaults**
+  - Add real-time validation to all create/edit forms
+  - Pre-fill common fields and remember last-used values
+  - E2E: Test validation/autofill for all entities
+
+- **PR-UI-8: “Quick Add” in Select Menus**
+  - Allow inline creation of related entities (e.g., add new patient from therapy form)
+  - “+ Add new” option in dropdowns
+  - E2E: Validate quick-add flow
+
+- **PR-UI-9: Draft Save & Resume**
+  - Auto-save incomplete forms to IndexedDB
+  - Prompt user to resume drafts on return
+  - E2E: Validate draft save/restore
+
+- **PR-UI-10: Enhanced Delete/Audit UX**
+  - All deletes as soft-delete with audit log
+  - Role-based delete permissions (admin vs operator)
+  - Improved offline delete messaging/consequence dialogs
+  - E2E: Test delete, restore, and audit log for all entities
+
+- **PR-UI-11: Save/Sync State Badges & Conflict UI**
+  - Add badges to forms: “Saved locally”, “Pending sync”, “Synced”, “Conflict”
+  - Implement conflict resolution dialog
+  - E2E: Simulate and resolve sync conflicts
+
+- **PR-UI-12: Modernize Theme & Component Consistency**
+  - Adopt a calm, modern theme (spacing, color, shadows)
+  - Standardize on a component library or refactor for consistency
+  - Table enhancements: sticky headers, inline row actions
+  - Accessibility: ARIA-live, keyboard navigation for all feedback
+
+Delivery Guidance:
+- Each PR should include updated unit/E2E tests and documentation where relevant.
+- Start with high-impact/low-effort PRs (UI-1, UI-2, UI-3) for immediate value.
+- Larger refactors (UI-12) can be split further if needed.
+
+# Nota di localizzazione (UI/UX)
+
+Tutti i nomi delle PR, le etichette UI, i tooltip, i messaggi di stato e le nuove funzionalità utente devono essere in lingua italiana, coerenti con il tono professionale e chiaro già presente nell’app MediTrace. Esempi:
+- PR-UI-1: Indicatore stato sincronizzazione persistente
+- PR-UI-2: Banner annulla eliminazione standardizzato
+- PR-UI-3: Scorciatoie da tastiera per azioni frequenti
+- PR-UI-4: Pannello "Attenzione" in dashboard
+- PR-UI-5: Pulsante "Promemoria di oggi" e azioni batch
+- PR-UI-6: Barra azioni fissa (mobile/tablet)
+- PR-UI-7: Validazione in tempo reale e valori predefiniti intelligenti
+- PR-UI-8: "Aggiungi rapido" nei menu a tendina
+- PR-UI-9: Salvataggio bozza e ripristino
+- PR-UI-10: UX eliminazione/audit migliorata
+- PR-UI-11: Badge stato salvataggio/sync e UI conflitti
+- PR-UI-12: Tema moderno e coerenza componenti
+
+Tutti i nuovi elementi UI devono:
+- Usare etichette, messaggi e tooltip in italiano
+- Mantenere chiarezza, sintesi e tono calmo
+- Essere coerenti con le convenzioni esistenti (es. "Salva", "Elimina", "Annulla", "Sincronizza", "Conferma")
+- Essere validati in E2E/unit test anche per la localizzazione

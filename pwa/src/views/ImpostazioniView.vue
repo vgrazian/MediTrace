@@ -113,13 +113,10 @@ import { listSupportedImportSources, importCsv } from '../services/csvImport'
 import { db, getSetting, enqueue, setSetting } from '../db'
 import { isSupabaseConfigured } from '../services/supabaseClient'
 import {
-  loadSeedData,
-  clearSeedData,
-  isSeedDataLoaded,
-  getSeedStats,
-  loadRealisticSeedData,
-  clearRealisticSeedData,
-  isRealisticSeedDataLoaded,
+  loadDemoData,
+  clearDemoData,
+  isDemoDataLoaded,
+  getDemoStats,
 } from '../services/seedData'
 import { useHelpNavigation } from '../composables/useHelpNavigation'
 import { openConfirmDialog } from '../services/confirmDialog'
@@ -200,7 +197,7 @@ const seedLoaded = ref(false)
 const seedActionMode = ref('load')
 const seedBusy = ref(false)
 const seedMessage = ref('')
-const seedStats = getSeedStats()
+const seedStats = getDemoStats()
 const backupRestoreBusy = ref(false)
 const backupRestoreMessage = ref('')
 const selectedBackupFile = ref(null)
@@ -213,7 +210,7 @@ const canManageTestData = computed(() => canRole(currentUser.value?.role, 'testD
 const syncBackendLabel = computed(() => (isSupabaseConfigured ? 'Supabase' : 'GitHub Gist (legacy)'))
 const testDataActionLabel = computed(() => {
   if (seedBusy.value) return seedActionMode.value === 'clear' ? 'Rimozione in corso…' : 'Generazione in corso…'
-  return seedActionMode.value === 'clear' ? 'Rimuovi dati di test' : 'Genera dati di test'
+  return seedActionMode.value === 'clear' ? 'Rimuovi dati demo' : 'Genera dati demo'
 })
 
 function hydrateProfileForm() {
@@ -235,11 +232,7 @@ function handleNewUserUsernameInput(event) {
 }
 
 async function refreshSeedStatus() {
-  const [legacySeedLoaded, realisticSeedLoaded] = await Promise.all([
-    isSeedDataLoaded(),
-    isRealisticSeedDataLoaded(),
-  ])
-  seedLoaded.value = legacySeedLoaded || realisticSeedLoaded
+  seedLoaded.value = await isDemoDataLoaded()
   seedActionMode.value = seedLoaded.value ? 'clear' : 'load'
 }
 
@@ -445,33 +438,33 @@ async function handleToggleTestData() {
 
   const shouldClear = seedActionMode.value === 'clear'
   
-  // First confirmation dialog: operation to perform
+  // First confirmation dialog
   const confirmed1 = shouldClear
     ? await openConfirmDialog({
-      title: 'Conferma rimozione dati di test',
-      message: 'Rimuovere tutti i dati di test dal database locale?',
-      details: 'Questa operazione elimina i dataset demo locali per ripartire da uno stato pulito.',
+      title: 'Conferma rimozione dati demo',
+      message: 'Rimuovere tutti i dati demo dal database locale?',
+      details: 'Questa operazione elimina i dati demo per ripartire da uno stato pulito. Le residenze reali non vengono toccate.',
       confirmText: 'Rimuovi dati',
       cancelText: 'Annulla',
       tone: 'danger',
     })
     : await openConfirmDialog({
-      title: 'Conferma import dati di test',
-      message: 'Generare e importare dati di test nel database locale?',
-      details: 'I dati demo esistenti verranno prima rimossi, poi ricreati con il pacchetto realistico.',
+      title: 'Conferma import dati demo',
+      message: 'Generare e importare dati demo nel database locale?',
+      details: 'I dati demo esistenti verranno prima rimossi, poi ricreati nella residenza "Residenza Demo". Le residenze reali ("Il Rifugio", "Via Bellani") restano vuote.',
       confirmText: 'Importa dati',
       cancelText: 'Annulla',
       tone: 'primary',
     })
   if (!confirmed1) return
 
-  // Second confirmation dialog: production environment warning (only if loading data)
+  // Second confirmation for loading
   if (!shouldClear) {
     const confirmed2 = await openConfirmDialog({
       title: '⚠️ ATTENZIONE: Ambiente di produzione?',
       message: 'I dati archiviati verranno danneggiati se si procede in produzione.',
-      details: 'I dati di test sostituiranno i dati effettivi. Utilizzare SOLO in ambiente di sviluppo/test. I dati di produzione saranno PERDUTI.',
-      confirmText: 'Proceedi comunque (Sviluppo)',
+      details: 'I dati demo sostituiranno i dati effettivi. Utilizzare SOLO in ambiente di sviluppo/test. I dati di produzione saranno PERDUTI.',
+      confirmText: 'Procedi comunque (Sviluppo)',
       cancelText: 'Annulla (Salva produzione)',
       tone: 'danger',
     })
@@ -486,53 +479,43 @@ async function handleToggleTestData() {
     const deviceId = await getSetting('deviceId', 'unknown')
 
     if (shouldClear) {
-      const [legacyResult, realisticResult] = await Promise.all([
-        clearSeedData({ allowInProduction: true }),
-        clearRealisticSeedData({ allowInProduction: true }),
-      ])
-      const cleared = Boolean(legacyResult?.cleared || realisticResult?.cleared)
+      const result = await clearDemoData({ allowInProduction: true })
       seedLoaded.value = false
       seedActionMode.value = 'load'
-      seedMessage.value = cleared
-        ? 'Dati di test rimossi.'
-        : 'Nessun dato di test presente da rimuovere.'
-      if (!cleared) await refreshSeedStatus()
+      seedMessage.value = result.cleared
+        ? 'Dati demo rimossi.'
+        : 'Nessun dato demo presente da rimuovere.'
       
-      // Log the removal to audit log
-      if (cleared) {
+      if (result.cleared) {
         await db.activityLog.add({
           entityType: 'seeds',
-          entityId: 'seed_data',
-          action: 'seed_data_cleared',
+          entityId: 'demo_data',
+          action: 'demo_data_cleared',
           deviceId,
           operatorId: currentUser.value?.login ?? null,
           ts: now,
-          details: 'Dati di test rimossi manualmente',
+          details: 'Dati demo rimossi manualmente',
         })
       }
     } else {
-      await Promise.all([
-        clearSeedData({ allowInProduction: true }),
-        clearRealisticSeedData({ allowInProduction: true }),
-      ])
-      const stats = await loadRealisticSeedData({ allowInProduction: true })
+      await clearDemoData({ allowInProduction: true })
+      const stats = await loadDemoData({ allowInProduction: true })
       seedLoaded.value = true
       seedActionMode.value = 'clear'
-      seedMessage.value = `Importati dati di test: ${stats.drugs} farmaci, ${stats.hosts} ospiti, ${stats.stockBatches} confezioni, ${stats.therapies} terapie, ${stats.movements ?? 0} movimenti, ${stats.reminders ?? 0} promemoria, ${stats.activityLog ?? 0} eventi audit, ${stats.rooms} stanze, ${stats.beds} letti, ${stats.operators ?? 0} operatori demo.`
+      seedMessage.value = `Importati dati demo: ${stats.drugs} farmaci, ${stats.hosts} ospiti, ${stats.stockBatches} confezioni, ${stats.therapies} terapie, ${stats.movements} movimenti, ${stats.reminders} promemoria (residenza "Residenza Demo").`
       
-      // Log the generation to audit log
       await db.activityLog.add({
         entityType: 'seeds',
-        entityId: 'seed_data',
-        action: 'seed_data_loaded',
+        entityId: 'demo_data',
+        action: 'demo_data_loaded',
         deviceId,
         operatorId: currentUser.value?.login ?? null,
         ts: now,
-        details: `Dati di test caricati: ${stats.drugs} farmaci, ${stats.hosts} ospiti, ${stats.stockBatches} confezioni, ${stats.therapies} terapie, ${stats.reminders ?? 0} promemoria`,
+        details: `Dati demo caricati: ${stats.drugs} farmaci, ${stats.hosts} ospiti, ${stats.stockBatches} confezioni, ${stats.therapies} terapie, ${stats.reminders} promemoria`,
       })
     }
   } catch (err) {
-    seedMessage.value = `Errore gestione dati di test: ${err.message}`
+    seedMessage.value = `Errore gestione dati demo: ${err.message}`
   } finally {
     seedBusy.value = false
   }
@@ -1090,10 +1073,10 @@ async function handleSignOut() {
       </div>
 
       <div v-if="canManageTestData" style="margin-top:.85rem;padding:.75rem;border:1px dashed #d8b154;border-radius:.55rem">
-        <p><strong>Dati di test (live)</strong></p>
+        <p><strong>Dati demo (live)</strong></p>
         <p class="muted" style="margin-top:.25rem">
-          Usa questo pulsante per importare rapidamente dati di test o per ripulirli.
-          Il testo del pulsante cambia automaticamente in base allo stato corrente.
+          Usa questo pulsante per importare rapidamente dati dimostrativi o per ripulirli.
+          I dati vengono creati nella residenza "Residenza Demo", lasciando "Il Rifugio" e "Via Bellani" vuote.
         </p>
         <p class="muted" style="margin-top:.25rem;font-size:.85rem">
           Pacchetto: {{ seedStats.drugs }} farmaci · {{ seedStats.hosts }} ospiti ·
@@ -1104,7 +1087,7 @@ async function handleSignOut() {
           {{ testDataActionLabel }}
         </button>
         <p v-if="seedLoaded && !seedMessage" class="muted" style="margin-top:.5rem;font-size:.8rem">
-          Stato: dati di test presenti nel database locale.
+          Stato: dati demo presenti nel database locale.
         </p>
         <p v-if="seedMessage" class="muted" style="margin-top:.5rem;font-size:.8rem">{{ seedMessage }}</p>
       </div>
