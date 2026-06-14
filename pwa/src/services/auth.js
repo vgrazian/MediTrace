@@ -651,7 +651,7 @@ async function ensureEmergencyAdminAccount(users) {
 }
 
 /**
- * Creates default operator accounts (valerio, anna) when no users exist.
+ * Creates default user accounts (admin, valerio, anna) when no users exist.
  * Runs during initAuth() if the db has no active users.
  */
 async function ensureDefaultOperators(users) {
@@ -659,11 +659,20 @@ async function ensureDefaultOperators(users) {
 
     const operators = [
         {
+            username: normalizeUsername(import.meta.env.VITE_EMERGENCY_ADMIN_USERNAME || 'admin'),
+            password: String(import.meta.env.VITE_EMERGENCY_ADMIN_PASSWORD || 'A9m4K2qL'),
+            email: normalizeEmail(import.meta.env.VITE_EMERGENCY_ADMIN_EMAIL || 'admin@example.com'),
+            firstName: String(import.meta.env.VITE_EMERGENCY_ADMIN_FIRST_NAME || 'Admin').trim(),
+            lastName: String(import.meta.env.VITE_EMERGENCY_ADMIN_LAST_NAME || 'MediTrace').trim(),
+            role: 'admin',
+        },
+        {
             username: DEFAULT_OPERATOR_VALERIO_USERNAME,
             password: DEFAULT_OPERATOR_VALERIO_PASSWORD,
             email: DEFAULT_OPERATOR_VALERIO_EMAIL,
             firstName: 'Valerio',
             lastName: 'Graziani',
+            role: 'operator',
         },
         {
             username: DEFAULT_OPERATOR_ANNA_USERNAME,
@@ -671,6 +680,7 @@ async function ensureDefaultOperators(users) {
             email: DEFAULT_OPERATOR_ANNA_EMAIL,
             firstName: 'Anna',
             lastName: 'Bianchi',
+            role: 'operator',
         },
     ]
 
@@ -702,7 +712,7 @@ async function ensureDefaultOperators(users) {
                 firstName: op.firstName,
                 lastName: op.lastName,
                 email: op.email,
-                role: 'operator',
+                role: op.role || 'operator',
             })
             newUser.isSeeded = true
             nextUsers.push(newUser)
