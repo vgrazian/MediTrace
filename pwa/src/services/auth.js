@@ -45,6 +45,12 @@ const EMERGENCY_ADMIN_EMAIL = normalizeEmail(import.meta.env.VITE_EMERGENCY_ADMI
 const EMERGENCY_ADMIN_FIRST_NAME = String(import.meta.env.VITE_EMERGENCY_ADMIN_FIRST_NAME || 'Admin').trim()
 const EMERGENCY_ADMIN_LAST_NAME = String(import.meta.env.VITE_EMERGENCY_ADMIN_LAST_NAME || 'Emergenza').trim()
 const EMERGENCY_ADMIN_GITHUB_TOKEN = String(import.meta.env.VITE_EMERGENCY_ADMIN_GITHUB_TOKEN || '').trim()
+const DEFAULT_OPERATOR_VALERIO_USERNAME = normalizeUsername(import.meta.env.VITE_DEFAULT_VALERIO_USERNAME || 'valerio')
+const DEFAULT_OPERATOR_VALERIO_PASSWORD = String(import.meta.env.VITE_DEFAULT_VALERIO_PASSWORD || 'V@lerio123!')
+const DEFAULT_OPERATOR_VALERIO_EMAIL = normalizeEmail(import.meta.env.VITE_DEFAULT_VALERIO_EMAIL || 'valerio@example.com')
+const DEFAULT_OPERATOR_ANNA_USERNAME = normalizeUsername(import.meta.env.VITE_DEFAULT_ANNA_USERNAME || 'anna')
+const DEFAULT_OPERATOR_ANNA_PASSWORD = String(import.meta.env.VITE_DEFAULT_ANNA_PASSWORD || 'Anna@456!')
+const DEFAULT_OPERATOR_ANNA_EMAIL = normalizeEmail(import.meta.env.VITE_DEFAULT_ANNA_EMAIL || 'anna@example.com')
 const PASSWORD_RESET_EMAIL_API = String(import.meta.env.VITE_PASSWORD_RESET_EMAIL_API || '').trim() // Trimmed for consistency
 const PASSWORD_RESET_TTL_MINUTES = Number.parseInt(import.meta.env.VITE_PASSWORD_RESET_TTL_MINUTES || '30', 10)
 
@@ -644,6 +650,75 @@ async function ensureEmergencyAdminAccount(users) {
     }
 }
 
+/**
+ * Creates default operator accounts (valerio, anna) when no users exist.
+ * Runs during initAuth() if the db has no active users.
+ */
+async function ensureDefaultOperators(users) {
+    if (users.some(u => !u.disabled)) return users
+
+    const operators = [
+        {
+            username: DEFAULT_OPERATOR_VALERIO_USERNAME,
+            password: DEFAULT_OPERATOR_VALERIO_PASSWORD,
+            email: DEFAULT_OPERATOR_VALERIO_EMAIL,
+            firstName: 'Valerio',
+            lastName: 'Graziani',
+        },
+        {
+            username: DEFAULT_OPERATOR_ANNA_USERNAME,
+            password: DEFAULT_OPERATOR_ANNA_PASSWORD,
+            email: DEFAULT_OPERATOR_ANNA_EMAIL,
+            firstName: 'Anna',
+            lastName: 'Bianchi',
+        },
+    ]
+
+    let updated = false
+    let nextUsers = [...users]
+
+    for (const op of operators) {
+        if (!USERNAME_PATTERN.test(op.username)) {
+            console.warn(`[auth] Operatore ${op.username} non creato: username non valido`)
+            continue
+        }
+        const policyError = getPasswordPolicyErrorMessage(op.password)
+        if (policyError) {
+            console.warn(`[auth] Operatore ${op.username} non creato: password non conforme`)
+            continue
+        }
+        if (!EMAIL_PATTERN.test(op.email)) {
+            console.warn(`[auth] Operatore ${op.username} non creato: email non valida`)
+            continue
+        }
+
+        const existingIndex = nextUsers.findIndex(u => u.username === op.username)
+        if (existingIndex >= 0) continue // already exists
+
+        try {
+            const newUser = await buildLocalAuthUser({
+                username: op.username,
+                password: op.password,
+                firstName: op.firstName,
+                lastName: op.lastName,
+                email: op.email,
+                role: 'operator',
+            })
+            newUser.isSeeded = true
+            nextUsers.push(newUser)
+            updated = true
+            console.info(`[auth] Operatore predefinito creato: ${op.username}`)
+        } catch (err) {
+            console.warn(`[auth] Impossibile creare ${op.username}:`, err.message)
+        }
+    }
+
+    if (updated) {
+        await saveUsers(nextUsers)
+    }
+    return nextUsers
+}
+
 // ── Public API ────────────────────────────────────────────────────────────────
 
 // ── Supabase Auth helpers ─────────────────────────────────────────────────────
@@ -724,6 +799,7 @@ export async function initAuth() {
             let users = await loadUsers()
             users = await ensureDevSeedAccount(users)
             users = await ensureEmergencyAdminAccount(users)
+            users = await ensureDefaultOperators(users)
             state.hasUsers = users.some(u => !u.disabled)
 
             try {
