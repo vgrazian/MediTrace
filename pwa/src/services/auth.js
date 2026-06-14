@@ -652,11 +652,9 @@ async function ensureEmergencyAdminAccount(users) {
 
 /**
  * Creates default user accounts (admin, valerio, anna) when no users exist.
- * Runs during initAuth() if the db has no active users.
+ * Runs during initAuth() for each missing user.
  */
 async function ensureDefaultOperators(users) {
-    if (users.some(u => !u.disabled)) return users
-
     const operators = [
         {
             username: normalizeUsername(import.meta.env.VITE_EMERGENCY_ADMIN_USERNAME || 'admin'),
