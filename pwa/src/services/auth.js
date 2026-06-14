@@ -49,7 +49,7 @@ const DEFAULT_OPERATOR_VALERIO_USERNAME = normalizeUsername(import.meta.env.VITE
 const DEFAULT_OPERATOR_VALERIO_PASSWORD = String(import.meta.env.VITE_DEFAULT_VALERIO_PASSWORD || 'V@lerio123!')
 const DEFAULT_OPERATOR_VALERIO_EMAIL = normalizeEmail(import.meta.env.VITE_DEFAULT_VALERIO_EMAIL || 'valerio@example.com')
 const DEFAULT_OPERATOR_ANNA_USERNAME = normalizeUsername(import.meta.env.VITE_DEFAULT_ANNA_USERNAME || 'anna')
-const DEFAULT_OPERATOR_ANNA_PASSWORD = String(import.meta.env.VITE_DEFAULT_ANNA_PASSWORD || 'Anna@456!')
+const DEFAULT_OPERATOR_ANNA_PASSWORD = String(import.meta.env.VITE_DEFAULT_ANNA_PASSWORD || 'Anna@456!Xy')
 const DEFAULT_OPERATOR_ANNA_EMAIL = normalizeEmail(import.meta.env.VITE_DEFAULT_ANNA_EMAIL || 'anna@example.com')
 const PASSWORD_RESET_EMAIL_API = String(import.meta.env.VITE_PASSWORD_RESET_EMAIL_API || '').trim() // Trimmed for consistency
 const PASSWORD_RESET_TTL_MINUTES = Number.parseInt(import.meta.env.VITE_PASSWORD_RESET_TTL_MINUTES || '30', 10)
@@ -658,7 +658,7 @@ async function ensureDefaultOperators(users) {
     const operators = [
         {
             username: normalizeUsername(import.meta.env.VITE_EMERGENCY_ADMIN_USERNAME || 'admin'),
-            password: String(import.meta.env.VITE_EMERGENCY_ADMIN_PASSWORD || 'A9m4K2qL'),
+            password: String(import.meta.env.VITE_EMERGENCY_ADMIN_PASSWORD || 'A9m4K2qL!Xy'),
             email: normalizeEmail(import.meta.env.VITE_EMERGENCY_ADMIN_EMAIL || 'admin@example.com'),
             firstName: String(import.meta.env.VITE_EMERGENCY_ADMIN_FIRST_NAME || 'Admin').trim(),
             lastName: String(import.meta.env.VITE_EMERGENCY_ADMIN_LAST_NAME || 'MediTrace').trim(),
