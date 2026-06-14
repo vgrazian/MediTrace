@@ -21,6 +21,7 @@ import { upsertDemoAuthUsers, clearDemoAuthUsers } from './seedAuthUsers.js'
 const SEED_ENABLED = import.meta.env.DEV || import.meta.env.VITE_SEED_DATA === '1'
 const DEMO_MANIFEST_KEY = '_demoDataManifest'
 const DEMO_PREFIX = '__demo__'
+const LEGACY_PREFIXES = ['__seed__', '__realistic__', '__demo__']
 const DEMO_STORE_NAMES = ['rooms', 'beds', 'hosts', 'drugs', 'stockBatches', 'therapies', 'movements', 'reminders']
 
 const NOW = '2026-04-04T08:00:00.000Z'
@@ -49,7 +50,7 @@ async function findDemoIds(table) {
     return rows
         .filter(row => !row?.deletedAt)
         .map(row => row?.id)
-        .filter(id => typeof id === 'string' && id.startsWith(DEMO_PREFIX))
+        .filter(id => typeof id === 'string' && LEGACY_PREFIXES.some(p => id.startsWith(p)))
 }
 
 function uniqueIds(ids = []) {
@@ -59,7 +60,7 @@ function uniqueIds(ids = []) {
 function hasDemoReference(value) {
     const str = String(value || '')
     if (!str) return false
-    return str.startsWith(DEMO_PREFIX)
+    return LEGACY_PREFIXES.some(p => str.startsWith(p))
 }
 
 async function findDemoLinkedIds(table, relationFields = []) {
@@ -69,7 +70,8 @@ async function findDemoLinkedIds(table, relationFields = []) {
         .filter((row) => {
             if (!row || row.deletedAt) return false
             const id = String(row.id || '')
-            if (id.startsWith(DEMO_PREFIX)) return true
+            if (LEGACY_PREFIXES.some(p => id.startsWith(p))) return true
+            if (id.startsWith('__movement___seed__') || id.startsWith('__movement___realistic__')) return true
             if (row._seeded === true) return true
             return relationFields.some((field) => hasDemoReference(row[field]))
         })
@@ -112,8 +114,8 @@ async function getDemoManifest() {
     ])
 
     const fallbackManifest = { rooms, beds, hosts, drugs, stockBatches, therapies, movements, reminders }
-    const hasDemoRows = Object.values(fallbackManifest).some(ids => ids.length > 0)
-    return hasDemoRows ? fallbackManifest : null
+    const hasSeedRows = Object.values(fallbackManifest).some(ids => ids.length > 0)
+    return hasSeedRows ? fallbackManifest : null
 }
 
 function assertSeedEnabled(options = {}) {
