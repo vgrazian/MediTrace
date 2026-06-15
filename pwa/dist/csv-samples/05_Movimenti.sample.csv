@@ -1,0 +1,3 @@
+movement_id,stock_item_id,drug_id,guest_id,tipo_movimento,quantita,unita_misura,causale,data_movimento,settimana_riferimento,operatore,source,updated_at
+mov_demo_001,batch_demo_001,drug_demo_001,host_demo_001,SCARICO,2,cp,somministrazione,2026-04-13T09:00:00.000Z,2026-W15,rossi,manuale,2026-04-13T09:00:00.000Z
+mov_demo_002,batch_demo_002,drug_demo_002,host_demo_002,CARICO,10,cp,riordino,2026-04-13T09:10:00.000Z,2026-W15,rossi,manuale,2026-04-13T09:10:00.000Z
