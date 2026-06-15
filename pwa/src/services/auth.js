@@ -796,7 +796,7 @@ async function initAuthSupabase() {
         try {
             const adminPayload = await registerFirstAdminWithTable({
                 username: EMERGENCY_ADMIN_USERNAME || 'admin',
-                password: EMERGENCY_ADMIN_PASSWORD || 'A9m4K2qL',
+                password: EMERGENCY_ADMIN_PASSWORD || 'A9m4K2qL!Xy',
                 firstName: EMERGENCY_ADMIN_FIRST_NAME || 'Admin',
                 lastName: EMERGENCY_ADMIN_LAST_NAME || 'MediTrace',
                 email: EMERGENCY_ADMIN_EMAIL || 'admin@example.com',
