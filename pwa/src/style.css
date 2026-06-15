@@ -458,6 +458,25 @@ details.add-panel[open] > div {
   font-size: .78rem;
   color: #6b7f98;
   margin-top: .25rem;
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  flex-wrap: wrap;
+}
+
+.refresh-btn {
+  font-size: .75rem;
+  padding: .2rem .55rem;
+  border: 1px solid #cbd5e1;
+  border-radius: .35rem;
+  background: #f8fafc;
+  color: #475569;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.refresh-btn:hover {
+  background: #e2e8f0;
+  border-color: #94a3b8;
 }
 
 .info-panel {

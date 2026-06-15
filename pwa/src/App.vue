@@ -81,6 +81,18 @@ async function handleForgotPassword() {
   }
 }
 
+async function handleForceRefresh() {
+  if ('caches' in window) {
+    const keys = await caches.keys()
+    await Promise.all(keys.map(k => caches.delete(k)))
+  }
+  if ('serviceWorker' in navigator) {
+    const regs = await navigator.serviceWorker.getRegistrations()
+    await Promise.all(regs.map(r => r.unregister()))
+  }
+  window.location.reload()
+}
+
 async function handleRegister() {
   if (
     !regUsername.value.trim()
@@ -217,6 +229,7 @@ async function handleRegister() {
         </p>
         <p class="build-meta" :title="`Build ISO: ${buildTimestampIso}`">
           Build: {{ buildTimestampLabel }}
+          <button class="refresh-btn" @click="handleForceRefresh" title="Forza il refresh dell'app eliminando la cache del service worker">⟳ Aggiorna app</button>
         </p>
       </div>
     </template>
