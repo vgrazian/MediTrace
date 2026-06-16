@@ -704,7 +704,6 @@ watch(residenzaFilter, async (value) => {
       </details>
     </div>
   </div>
-  </div>
 </template>
 
 <style scoped>
