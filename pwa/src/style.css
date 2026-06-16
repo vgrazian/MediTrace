@@ -357,7 +357,6 @@ details.add-panel[open] > div {
   max-height: 24rem;
   overflow-x: auto;
   overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
 }
 
 .dataset-frame .conflict-table {
@@ -633,6 +632,7 @@ details.add-panel[open] > div {
   font-weight: 600;
   color: var(--brand-800);
   padding: .55rem .75rem;
+  -webkit-user-select: none;
   user-select: none;
   list-style: none;
 }
@@ -757,8 +757,6 @@ details[open] .help-section-title::before { content: '▼ '; }
 
   .conflict-table {
     display: block;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
   }
 
   .dataset-frame {
