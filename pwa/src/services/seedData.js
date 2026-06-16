@@ -130,17 +130,6 @@ const DEMO_ROOMS = [
     { id: '__demo__residenza-demo', codice: 'Residenza Demo', descrizione: 'Residenza fittizia per dati dimostrativi', metadata: { maxOspiti: 10 }, updatedAt: NOW, deletedAt: null, syncStatus: 'pending', _seeded: true },
 ]
 
-const DEMO_BEDS = Array.from({ length: 10 }, (_, i) => ({
-    id: `__demo__bed-${i + 1}`,
-    roomId: '__demo__residenza-demo',
-    numero: i + 1,
-    note: '',
-    updatedAt: NOW,
-    deletedAt: null,
-    syncStatus: 'pending',
-    _seeded: true,
-}))
-
 const DEMO_DRUGS = [
     { id: '__demo__drug-1', principioAttivo: 'Paracetamolo', classeTerapeutica: 'Analgesici / Antipiretici', scortaMinima: 10, fornitore: 'Farmacia Centrale', note: '', updatedAt: NOW, deletedAt: null, syncStatus: 'pending', _seeded: true },
     { id: '__demo__drug-2', principioAttivo: 'Ibuprofene', classeTerapeutica: 'FANS', scortaMinima: 8, fornitore: 'Farmacia Centrale', note: '', updatedAt: NOW, deletedAt: null, syncStatus: 'pending', _seeded: true },
@@ -238,8 +227,7 @@ const DEMO_REMINDERS = [
 // ── Manifest ──────────────────────────────────────────────────────────────────
 
 const DEMO_MANIFEST = {
-    rooms: DEMO_ROOMS.map(r => r.id),
-    beds: DEMO_BEDS.map(r => r.id),
+    rooms: [],
     hosts: DEMO_HOSTS.map(r => r.id),
     drugs: DEMO_DRUGS.map(r => r.id),
     stockBatches: DEMO_STOCK_BATCHES.map(r => r.id),
@@ -337,7 +325,7 @@ export async function clearDemoData(options = {}) {
 
     const linkedIds = {
         rooms: availableStores.has('rooms') ? await findDemoLinkedIds(db.rooms) : [],
-        hosts: availableStores.has('hosts') ? await findDemoLinkedIds(db.hosts, ['roomId', 'bedId']) : [],
+        hosts: availableStores.has('hosts') ? await findDemoLinkedIds(db.hosts, ['roomId']) : [],
         drugs: availableStores.has('drugs') ? await findDemoLinkedIds(db.drugs) : [],
         stockBatches: availableStores.has('stockBatches') ? await findDemoLinkedIds(db.stockBatches, ['drugId']) : [],
         therapies: availableStores.has('therapies') ? await findDemoLinkedIds(db.therapies, ['hostId', 'drugId', 'stockBatchId', 'stockBatchIdPreferito']) : [],
@@ -404,7 +392,6 @@ export const seedDataTestUtils = {
     DEMO_PREFIX,
     DEMO_MANIFEST,
     DEMO_ROOMS,
-    DEMO_BEDS,
     DEMO_HOSTS,
     DEMO_DRUGS,
     DEMO_STOCK_BATCHES,
