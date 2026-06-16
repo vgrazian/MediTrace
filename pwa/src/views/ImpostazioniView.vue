@@ -146,6 +146,8 @@ const { goToHelpSection } = useHelpNavigation()
 const deviceId = ref(null)
 const datasetVersion = ref(null)
 const syncMessage = ref('')
+const syncIntervalMinutes = ref(15)
+const SYNC_INTERVAL_SETTING = 'syncIntervalMinutes'
 const pendingConflicts = ref([])
 const resolvingConflictId = ref(null)
 const importSources = listSupportedImportSources()
@@ -419,6 +421,7 @@ async function runCsvImport() {
 onMounted(async () => {
   deviceId.value = await getSetting('deviceId')
   datasetVersion.value = await getSetting('datasetVersion')
+  syncIntervalMinutes.value = Number(await getSetting(SYNC_INTERVAL_SETTING, 15)) || 15
   await refreshPendingConflicts()
   await refreshUsers()
   await refreshSecurityInfo()
@@ -565,6 +568,12 @@ async function runSync() {
     
     console.error('[ImpostazioniView] Sync error:', formatted)
   }
+}
+
+async function saveSyncInterval() {
+  await setSetting(SYNC_INTERVAL_SETTING, syncIntervalMinutes.value)
+  syncMessage.value = `Intervallo sync impostato a ${syncIntervalMinutes.value} minuti`
+  setTimeout(() => { if (syncMessage.value.startsWith('Intervallo')) syncMessage.value = '' }, 3000)
 }
 
 async function applyResolution(conflictId, choice) {
@@ -1221,8 +1230,20 @@ async function handleCreateUser() {
     </div>
 
     <div class="card">
-      <p><strong>Sincronizzazione manuale</strong></p>
-      <button style="margin-top:.75rem" @click="runSync">Sincronizza ora</button>
+      <p><strong>Sincronizzazione</strong></p>
+      <div style="display:flex;align-items:center;gap:1rem;flex-wrap:wrap;margin-top:.5rem">
+        <label style="display:flex;align-items:center;gap:.35rem">
+          Sincronizza automaticamente ogni
+          <select v-model.number="syncIntervalMinutes" @change="saveSyncInterval" style="width:auto">
+            <option :value="5">5 minuti</option>
+            <option :value="10">10 minuti</option>
+            <option :value="15">15 minuti</option>
+            <option :value="30">30 minuti</option>
+            <option :value="60">60 minuti</option>
+          </select>
+        </label>
+        <button @click="runSync">Sincronizza ora</button>
+      </div>
       <p v-if="syncMessage" class="muted" style="margin-top:.5rem;font-size:.8rem;white-space:pre-line">{{ syncMessage }}</p>
     </div>
 

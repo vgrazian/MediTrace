@@ -3,7 +3,7 @@ import { ref, onMounted, onUnmounted } from 'vue'
 import { useAuth } from '../services/auth'
 import { fullSync } from '../services/sync'
 import { isSupabaseConfigured } from '../services/supabaseClient'
-import { db } from '../db'
+import { db, getSetting } from '../db'
 import { useSyncState, SYNC_STATES } from '../composables/useSyncState'
 
 const { currentUser, signOut } = useAuth()
@@ -14,13 +14,20 @@ const { statoSync, dettagli } = useSyncState()
 // ── Periodic sync (Supabase free‑tier safe) ─────────────────────────────────
 // Each sync uploads ~185 KB. At 15‑min intervals with only‑when‑dirty,
 // worst‑case monthly bandwidth ≈ 533 MB (10.6 % of 5 GB free tier).
-const SYNC_INTERVAL_MS = Math.max(
+const DEFAULT_SYNC_INTERVAL_MS = Math.max(
   5 * 60 * 1000, // minimum 5 minutes
   Number(import.meta.env.VITE_SYNC_INTERVAL_MINUTES || 15) * 60 * 1000
 )
 let periodicTimer = null
 let syncInProgress = false
 let lastSyncAttempt = 0
+
+async function getSyncIntervalMs() {
+  try {
+    const mins = Number(await getSetting('syncIntervalMinutes', 15)) || 15
+    return Math.max(5, mins) * 60 * 1000
+  } catch { return DEFAULT_SYNC_INTERVAL_MS }
+}
 
 async function maybeAutoSync() {
   if (syncInProgress) return
@@ -33,7 +40,8 @@ async function maybeAutoSync() {
 
   // Throttle: don't sync more than once per interval
   const now = Date.now()
-  if (now - lastSyncAttempt < SYNC_INTERVAL_MS) return
+  const interval = await getSyncIntervalMs()
+  if (now - lastSyncAttempt < interval) return
 
   lastSyncAttempt = now
   syncInProgress = true
@@ -48,7 +56,8 @@ async function maybeAutoSync() {
 
 onMounted(() => {
   if (isSupabaseConfigured) {
-    periodicTimer = setInterval(maybeAutoSync, SYNC_INTERVAL_MS)
+    // Check every 5 minutes; actual sync interval is controlled by throttle in maybeAutoSync
+    periodicTimer = setInterval(maybeAutoSync, 5 * 60 * 1000)
     // Also run on first mount (after a 10s warm-up)
     setTimeout(maybeAutoSync, 10_000)
   }
