@@ -461,9 +461,7 @@ watch(residenzaFilter, async (value) => {
     <div class="view-heading" style="display:flex;align-items:center;gap:1rem">
       <h2 style="flex:1">Promemoria</h2>
       <button class="help-btn" @click="goToHelpSection('promemoria')">Aiuto</button>
-
-
-
+    </div>
 
     <div class="card">
       <p><strong>Filtri</strong></p>
