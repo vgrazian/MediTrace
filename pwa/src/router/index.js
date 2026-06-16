@@ -72,7 +72,7 @@ const routes = [
     {
         path: '/manuale',
         component: () => import('../views/ManualeView.vue'),
-        meta: { title: 'Manuale Utente' },
+        meta: { title: 'Guida' },
     },
 ]
 

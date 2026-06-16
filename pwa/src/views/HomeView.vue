@@ -153,7 +153,7 @@ onMounted(async () => {
           <p class="muted">Registro completo delle attività e operazioni di sistema.</p>
         </div>
         <div class="dashboard-nav-item">
-          <RouterLink class="quick-link" to="/manuale" aria-label="Shortcut cruscotto 10">Manuale</RouterLink>
+          <RouterLink class="quick-link" to="/manuale" aria-label="Shortcut cruscotto 10">Guida</RouterLink>
           <p class="muted">Guida utente con istruzioni su ogni sezione dell'applicazione.</p>
         </div>
       </div>
