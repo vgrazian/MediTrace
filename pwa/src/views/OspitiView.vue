@@ -625,16 +625,15 @@ onMounted(() => {
               <input v-model="form.patologie" type="text" placeholder="Patologie o note cliniche" />
             </label>
             <label>
-              Stanza
+              Residenza
               <select
                 v-model="form.roomId"
                 :disabled="!roomsData.length || saving"
-                @change="() => { if (editingHostId) form.bedId = '' }"
                 @blur="validateField('roomId', roomsData.length ? form.roomId : 'room-not-required')"
                 :aria-invalid="!!errors.roomId"
                 :aria-describedby="errors.roomId ? 'roomId-error' : undefined"
               >
-                <option value="">Seleziona stanza</option>
+                <option value="">Seleziona residenza</option>
                 <option v-for="room in roomsData.filter(r => !r.deletedAt)" :key="room.id" :value="room.id">
                   {{ room.codice }}
                 </option>

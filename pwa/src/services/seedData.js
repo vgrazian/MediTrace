@@ -333,27 +333,23 @@ export async function clearDemoData(options = {}) {
         reminders: availableStores.has('reminders') ? await findDemoLinkedIds(db.reminders, ['hostId', 'therapyId', 'drugId']) : [],
     }
 
-    const transactionTables = [
-        availableStores.has('rooms') ? db.rooms : null,
-        availableStores.has('hosts') ? db.hosts : null,
-        availableStores.has('drugs') ? db.drugs : null,
-        availableStores.has('stockBatches') ? db.stockBatches : null,
-        availableStores.has('therapies') ? db.therapies : null,
-        availableStores.has('movements') ? db.movements : null,
-        availableStores.has('reminders') ? db.reminders : null,
-    ].filter(Boolean)
-
-    if (transactionTables.length > 0) {
+    if (availableStores.size > 0) {
         const now = new Date().toISOString()
-        await db.transaction('rw', transactionTables, async () => {
-            if (availableStores.has('rooms')) await softDeleteDemoRecords('rooms', [...(manifest.rooms ?? []), ...linkedIds.rooms], now)
-            if (availableStores.has('hosts')) await softDeleteDemoRecords('hosts', [...(manifest.hosts ?? []), ...linkedIds.hosts], now)
-            if (availableStores.has('drugs')) await softDeleteDemoRecords('drugs', [...(manifest.drugs ?? []), ...linkedIds.drugs], now)
-            if (availableStores.has('stockBatches')) await softDeleteDemoRecords('stockBatches', [...(manifest.stockBatches ?? []), ...linkedIds.stockBatches], now)
-            if (availableStores.has('therapies')) await softDeleteDemoRecords('therapies', [...(manifest.therapies ?? []), ...linkedIds.therapies], now)
-            if (availableStores.has('movements')) await softDeleteDemoRecords('movements', [...(manifest.movements ?? []), ...linkedIds.movements], now)
-            if (availableStores.has('reminders')) await softDeleteDemoRecords('reminders', [...(manifest.reminders ?? []), ...linkedIds.reminders], now)
-        })
+        const storeOps = [
+            ['rooms', manifest.rooms, linkedIds.rooms],
+            ['hosts', manifest.hosts, linkedIds.hosts],
+            ['drugs', manifest.drugs, linkedIds.drugs],
+            ['stockBatches', manifest.stockBatches, linkedIds.stockBatches],
+            ['therapies', manifest.therapies, linkedIds.therapies],
+            ['movements', manifest.movements, linkedIds.movements],
+            ['reminders', manifest.reminders, linkedIds.reminders],
+        ]
+        for (const [storeName, manifestIds, extraIds] of storeOps) {
+            if (!availableStores.has(storeName)) continue
+            try {
+                await softDeleteDemoRecords(storeName, [...(manifestIds ?? []), ...extraIds], now)
+            } catch (_) { /* skip individual store errors */ }
+        }
     }
 
     await setSetting(DEMO_MANIFEST_KEY, null)
