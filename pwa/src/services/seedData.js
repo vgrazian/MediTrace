@@ -27,6 +27,14 @@ const DEMO_STORE_NAMES = ['rooms', 'hosts', 'drugs', 'stockBatches', 'therapies'
 
 const NOW = '2026-04-04T08:00:00.000Z'
 
+/** Build an ISO date string relative to today: dayOffset (0=today, -1=yesterday, 1=tomorrow), hour, minute */
+function buildDateStr(dayOffset, hour, minute) {
+    const d = new Date()
+    d.setDate(d.getDate() + dayOffset)
+    d.setHours(hour, minute, 0, 0)
+    return d.toISOString()
+}
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 async function getAvailableStoreNames(expectedStoreNames) {
@@ -207,21 +215,23 @@ const DEMO_MOVEMENTS = [
 ]
 
 const DEMO_REMINDERS = [
-    { id: '__demo__rem-1', hostId: '__demo__host-1', therapyId: '__demo__therapy-1', drugId: '__demo__drug-1', scheduledAt: '2026-04-04T08:00:00.000Z', stato: 'ESEGUITO', eseguitoAt: '2026-04-04T08:12:00.000Z', operatore: 'Oper1', note: '', updatedAt: '2026-04-04T08:12:00.000Z', deletedAt: null, syncStatus: 'pending', _seeded: true },
-    { id: '__demo__rem-2', hostId: '__demo__host-1', therapyId: '__demo__therapy-1', drugId: '__demo__drug-1', scheduledAt: '2026-04-04T20:00:00.000Z', stato: 'DA_ESEGUIRE', eseguitoAt: null, operatore: null, note: '', updatedAt: NOW, deletedAt: null, syncStatus: 'pending', _seeded: true },
-    { id: '__demo__rem-3', hostId: '__demo__host-2', therapyId: '__demo__therapy-3', drugId: '__demo__drug-2', scheduledAt: '2026-04-04T07:00:00.000Z', stato: 'DA_ESEGUIRE', eseguitoAt: null, operatore: null, note: '', updatedAt: NOW, deletedAt: null, syncStatus: 'pending', _seeded: true },
-    { id: '__demo__rem-4', hostId: '__demo__host-3', therapyId: '__demo__therapy-5', drugId: '__demo__drug-5', scheduledAt: '2026-04-04T21:00:00.000Z', stato: 'DA_ESEGUIRE', eseguitoAt: null, operatore: null, note: '', updatedAt: NOW, deletedAt: null, syncStatus: 'pending', _seeded: true },
-    { id: '__demo__rem-5', hostId: '__demo__host-1', therapyId: '__demo__therapy-2', drugId: '__demo__drug-3', scheduledAt: '2026-04-05T09:00:00.000Z', stato: 'DA_ESEGUIRE', eseguitoAt: null, operatore: null, note: '', updatedAt: NOW, deletedAt: null, syncStatus: 'pending', _seeded: true },
-    { id: '__demo__rem-6', hostId: '__demo__host-5', therapyId: '__demo__therapy-7', drugId: '__demo__drug-6', scheduledAt: '2026-04-04T09:30:00.000Z', stato: 'DA_ESEGUIRE', eseguitoAt: null, operatore: null, note: '', updatedAt: NOW, deletedAt: null, syncStatus: 'pending', _seeded: true },
-    { id: '__demo__rem-7', hostId: '__demo__host-5', therapyId: '__demo__therapy-8', drugId: '__demo__drug-7', scheduledAt: '2026-04-04T09:45:00.000Z', stato: 'DA_ESEGUIRE', eseguitoAt: null, operatore: null, note: '', updatedAt: NOW, deletedAt: null, syncStatus: 'pending', _seeded: true },
-    { id: '__demo__rem-8', hostId: '__demo__host-6', therapyId: '__demo__therapy-9', drugId: '__demo__drug-8', scheduledAt: '2026-04-04T08:00:00.000Z', stato: 'ESEGUITO', eseguitoAt: '2026-04-04T08:05:00.000Z', operatore: 'Oper2', note: '', updatedAt: '2026-04-04T08:05:00.000Z', deletedAt: null, syncStatus: 'pending', _seeded: true },
-    { id: '__demo__rem-9', hostId: '__demo__host-7', therapyId: '__demo__therapy-10', drugId: '__demo__drug-4', scheduledAt: '2026-04-04T08:00:00.000Z', stato: 'DA_ESEGUIRE', eseguitoAt: null, operatore: null, note: '', updatedAt: NOW, deletedAt: null, syncStatus: 'pending', _seeded: true },
-    { id: '__demo__rem-10', hostId: '__demo__host-7', therapyId: '__demo__therapy-11', drugId: '__demo__drug-9', scheduledAt: '2026-04-04T18:00:00.000Z', stato: 'DA_ESEGUIRE', eseguitoAt: null, operatore: null, note: '', updatedAt: NOW, deletedAt: null, syncStatus: 'pending', _seeded: true },
-    { id: '__demo__rem-11', hostId: '__demo__host-8', therapyId: '__demo__therapy-12', drugId: '__demo__drug-10', scheduledAt: '2026-04-04T07:00:00.000Z', stato: 'DA_ESEGUIRE', eseguitoAt: null, operatore: null, note: '', updatedAt: NOW, deletedAt: null, syncStatus: 'pending', _seeded: true },
-    { id: '__demo__rem-12', hostId: '__demo__host-8', therapyId: '__demo__therapy-13', drugId: '__demo__drug-3', scheduledAt: '2026-04-04T20:00:00.000Z', stato: 'DA_ESEGUIRE', eseguitoAt: null, operatore: null, note: '', updatedAt: NOW, deletedAt: null, syncStatus: 'pending', _seeded: true },
-    { id: '__demo__rem-13', hostId: '__demo__host-9', therapyId: '__demo__therapy-14', drugId: '__demo__drug-1', scheduledAt: '2026-04-04T08:00:00.000Z', stato: 'DA_ESEGUIRE', eseguitoAt: null, operatore: null, note: '', updatedAt: NOW, deletedAt: null, syncStatus: 'pending', _seeded: true },
-    { id: '__demo__rem-14', hostId: '__demo__host-9', therapyId: '__demo__therapy-14', drugId: '__demo__drug-1', scheduledAt: '2026-04-04T20:00:00.000Z', stato: 'DA_ESEGUIRE', eseguitoAt: null, operatore: null, note: '', updatedAt: NOW, deletedAt: null, syncStatus: 'pending', _seeded: true },
-    { id: '__demo__rem-15', hostId: '__demo__host-9', therapyId: '__demo__therapy-15', drugId: '__demo__drug-2', scheduledAt: '2026-04-04T12:00:00.000Z', stato: 'DA_ESEGUIRE', eseguitoAt: null, operatore: null, note: '', updatedAt: NOW, deletedAt: null, syncStatus: 'pending', _seeded: true },
+    { id: '__demo__rem-1', hostId: '__demo__host-1', therapyId: '__demo__therapy-1', drugId: '__demo__drug-1', scheduledAt: buildDateStr(-1, 8, 0), stato: 'ESEGUITO', eseguitoAt: buildDateStr(-1, 8, 12), operatore: 'Oper1', note: '', updatedAt: buildDateStr(-1, 8, 12), deletedAt: null, syncStatus: 'pending', _seeded: true },
+    { id: '__demo__rem-2', hostId: '__demo__host-1', therapyId: '__demo__therapy-1', drugId: '__demo__drug-1', scheduledAt: buildDateStr(-1, 20, 0), stato: 'SALTATO', eseguitoAt: buildDateStr(-1, 20, 5), operatore: 'Oper1', note: 'Paziente dormiva', updatedAt: buildDateStr(-1, 20, 5), deletedAt: null, syncStatus: 'pending', _seeded: true },
+    { id: '__demo__rem-3', hostId: '__demo__host-2', therapyId: '__demo__therapy-3', drugId: '__demo__drug-2', scheduledAt: buildDateStr(-1, 7, 0), stato: 'ESEGUITO', eseguitoAt: buildDateStr(-1, 7, 8), operatore: 'Oper2', note: '', updatedAt: buildDateStr(-1, 7, 8), deletedAt: null, syncStatus: 'pending', _seeded: true },
+    { id: '__demo__rem-4', hostId: '__demo__host-3', therapyId: '__demo__therapy-5', drugId: '__demo__drug-5', scheduledAt: buildDateStr(-1, 21, 0), stato: 'POSTICIPATO', eseguitoAt: null, operatore: 'Oper3', note: 'Rimandato a domani', updatedAt: buildDateStr(-1, 21, 5), deletedAt: null, syncStatus: 'pending', _seeded: true },
+    // Oggi — mattina già eseguiti, pomeriggio/sera da eseguire
+    { id: '__demo__rem-5', hostId: '__demo__host-1', therapyId: '__demo__therapy-2', drugId: '__demo__drug-3', scheduledAt: buildDateStr(0, 7, 30), stato: 'ESEGUITO', eseguitoAt: buildDateStr(0, 7, 35), operatore: 'Oper1', note: '', updatedAt: buildDateStr(0, 7, 35), deletedAt: null, syncStatus: 'pending', _seeded: true },
+    { id: '__demo__rem-6', hostId: '__demo__host-5', therapyId: '__demo__therapy-7', drugId: '__demo__drug-6', scheduledAt: buildDateStr(0, 9, 0), stato: 'ESEGUITO', eseguitoAt: buildDateStr(0, 9, 5), operatore: 'Oper2', note: '', updatedAt: buildDateStr(0, 9, 5), deletedAt: null, syncStatus: 'pending', _seeded: true },
+    { id: '__demo__rem-7', hostId: '__demo__host-6', therapyId: '__demo__therapy-9', drugId: '__demo__drug-8', scheduledAt: buildDateStr(0, 8, 0), stato: 'ESEGUITO', eseguitoAt: buildDateStr(0, 8, 10), operatore: 'Oper1', note: '', updatedAt: buildDateStr(0, 8, 10), deletedAt: null, syncStatus: 'pending', _seeded: true },
+    { id: '__demo__rem-8', hostId: '__demo__host-5', therapyId: '__demo__therapy-8', drugId: '__demo__drug-7', scheduledAt: buildDateStr(0, 14, 0), stato: 'DA_ESEGUIRE', eseguitoAt: null, operatore: null, note: '', updatedAt: NOW, deletedAt: null, syncStatus: 'pending', _seeded: true },
+    { id: '__demo__rem-9', hostId: '__demo__host-7', therapyId: '__demo__therapy-10', drugId: '__demo__drug-4', scheduledAt: buildDateStr(0, 18, 0), stato: 'DA_ESEGUIRE', eseguitoAt: null, operatore: null, note: '', updatedAt: NOW, deletedAt: null, syncStatus: 'pending', _seeded: true },
+    { id: '__demo__rem-10', hostId: '__demo__host-9', therapyId: '__demo__therapy-14', drugId: '__demo__drug-1', scheduledAt: buildDateStr(0, 20, 0), stato: 'DA_ESEGUIRE', eseguitoAt: null, operatore: null, note: '', updatedAt: NOW, deletedAt: null, syncStatus: 'pending', _seeded: true },
+    // Domani — tutti da eseguire
+    { id: '__demo__rem-11', hostId: '__demo__host-2', therapyId: '__demo__therapy-3', drugId: '__demo__drug-2', scheduledAt: buildDateStr(1, 7, 0), stato: 'DA_ESEGUIRE', eseguitoAt: null, operatore: null, note: '', updatedAt: NOW, deletedAt: null, syncStatus: 'pending', _seeded: true },
+    { id: '__demo__rem-12', hostId: '__demo__host-3', therapyId: '__demo__therapy-4', drugId: '__demo__drug-4', scheduledAt: buildDateStr(1, 8, 0), stato: 'DA_ESEGUIRE', eseguitoAt: null, operatore: null, note: '', updatedAt: NOW, deletedAt: null, syncStatus: 'pending', _seeded: true },
+    { id: '__demo__rem-13', hostId: '__demo__host-8', therapyId: '__demo__therapy-12', drugId: '__demo__drug-10', scheduledAt: buildDateStr(1, 7, 0), stato: 'DA_ESEGUIRE', eseguitoAt: null, operatore: null, note: '', updatedAt: NOW, deletedAt: null, syncStatus: 'pending', _seeded: true },
+    { id: '__demo__rem-14', hostId: '__demo__host-9', therapyId: '__demo__therapy-14', drugId: '__demo__drug-1', scheduledAt: buildDateStr(1, 8, 0), stato: 'DA_ESEGUIRE', eseguitoAt: null, operatore: null, note: '', updatedAt: NOW, deletedAt: null, syncStatus: 'pending', _seeded: true },
+    { id: '__demo__rem-15', hostId: '__demo__host-9', therapyId: '__demo__therapy-15', drugId: '__demo__drug-2', scheduledAt: buildDateStr(1, 12, 0), stato: 'DA_ESEGUIRE', eseguitoAt: null, operatore: null, note: '', updatedAt: NOW, deletedAt: null, syncStatus: 'pending', _seeded: true },
 ]
 
 // ── Manifest ──────────────────────────────────────────────────────────────────
