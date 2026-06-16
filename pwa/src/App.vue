@@ -224,9 +224,6 @@ async function handleRegister() {
 
         <p v-if="loginError" class="login-error">{{ loginError }}</p>
 
-        <p class="auth-help">
-          Al primo avvio crea l'account amministratore. Gli altri utenti verranno creati dal pannello impostazioni e accederanno con username e password.
-        </p>
         <p class="build-meta" :title="`Build ISO: ${buildTimestampIso}`">
           Build: {{ buildTimestampLabel }}
           <button class="refresh-btn" @click="handleForceRefresh" title="Forza il refresh dell'app eliminando la cache del service worker">⟳ Aggiorna app</button>

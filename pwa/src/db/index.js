@@ -149,6 +149,26 @@ db.version(4).stores({
     })
 })
 
+// v5 — Remove room/letto sub-system (beds table + bedId from hosts)
+db.version(5).stores({
+    settings: '&key',
+    rooms: 'id, codice, updatedAt, syncStatus',
+    hosts: 'id, codiceInterno, cognome, nome, roomId, attivo, updatedAt, syncStatus',
+    drugs: 'id, nomeFarmaco, principioAttivo, classeTerapeutica, updatedAt, syncStatus',
+    stockBatches: 'id, drugId, nomeCommerciale, scadenza, updatedAt, syncStatus',
+    therapies: 'id, hostId, drugId, stockBatchId, dataInizio, dataFine, updatedAt, syncStatus',
+    movements: 'id, stockBatchId, hostId, therapyId, type, updatedAt, syncStatus',
+    reminders: 'id, hostId, therapyId, scheduledAt, stato, updatedAt, syncStatus',
+    syncQueue: '++id, entityType, entityId, operation, createdAt',
+    syncState: '&key',
+    activityLog: '++id, entityType, entityId, action, deviceId, operatorId, ts',
+}).upgrade(async tx => {
+    await tx.table('hosts').toCollection().modify(host => {
+        host.bedId = undefined
+        host.letto = undefined
+    })
+})
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 export async function getSetting(key, fallback = null) {

@@ -35,7 +35,6 @@ onUnmounted(() => {
 })
 import { useAuth } from '../services/auth'
 import { buildHostRows, createHost, deleteHost, formatHostDisplay, restoreHost, updateHost } from '../services/ospiti'
-import { getRoomsWithBeds } from '../services/stanze'
 import { confirmDeleteHost, confirmDeleteMultiple } from '../services/confirmations'
 import { useFormValidation } from '../services/formValidation'
 import ValidatedInput from '../components/ValidatedInput.vue'
@@ -71,7 +70,7 @@ const {
   cognome: 'Cognome',
   dataNascita: 'Data di nascita',
   codiceFiscale: 'Codice fiscale',
-  roomId: 'Stanza',
+  roomId: 'Residenza',
 })
 
 const loading = ref(false)
@@ -101,7 +100,7 @@ const form = ref({
   codiceFiscale: '',
   patologie: '',
     roomId: '',
-    bedId: '',
+
     note: '',
 })
 
@@ -124,8 +123,6 @@ const filteredRows = computed(() => {
       host.iniziali,
       host.nome,
       host.cognome,
-      host.stanza,
-      host.letto,
       formatHostDisplay(host),
     ].filter(Boolean).join(' ').toLowerCase()
     return haystack.includes(q)
@@ -198,7 +195,7 @@ async function loadData() {
         const [rawHosts, rawTherapies, rooms] = await Promise.all([
             db.hosts.toArray(),
             db.therapies.toArray(),
-            getRoomsWithBeds(),
+            db.rooms.toArray(),
         ])
         allHosts.value = rawHosts
         therapies.value = rawTherapies
@@ -244,10 +241,8 @@ async function handleSave() {
             codiceFiscale: form.value.codiceFiscale,
             patologie: form.value.patologie,
             roomId,
-            bedId,
-            stanza: room?.codice || '',
-            letto: bed?.numero || '',
-            note: form.value.note,
+                        stanza: room?.codice || '',
+                        note: form.value.note,
             operatorId: currentUser.value?.login ?? null,
           })
           message.value = `Ospite "${editingHostId.value}" aggiornato.`
@@ -263,10 +258,8 @@ async function handleSave() {
             codiceFiscale: form.value.codiceFiscale,
             patologie: form.value.patologie,
             roomId,
-            bedId,
-            stanza: room?.codice || '',
-            letto: bed?.numero || '',
-            note: form.value.note,
+                        stanza: room?.codice || '',
+                        note: form.value.note,
             operatorId: currentUser.value?.login ?? null,
           })
           message.value = `Ospite "${created.id}" creato.`
@@ -400,7 +393,7 @@ function startEdit(host) {
     codiceFiscale: host.codiceFiscale || '',
     patologie: host.patologie || '',
     roomId: host.roomId || '',
-    bedId: host.bedId || '',
+
     note: host.note || '',
   }
   isFormOpen.value = true
@@ -421,7 +414,7 @@ function resetForm() {
       codiceFiscale: '',
       patologie: '',
       roomId: '',
-      bedId: '',
+
       note: '',
     }
   clearErrors()

@@ -15,6 +15,7 @@
  */
 import { db, enqueue, getSetting, setSetting } from '../db'
 import { upsertDemoAuthUsers, clearDemoAuthUsers } from './seedAuthUsers.js'
+import { ensureDefaultResidenze } from './residenze.js'
 
 // ── Guard ─────────────────────────────────────────────────────────────────────
 
@@ -22,7 +23,7 @@ const SEED_ENABLED = import.meta.env.DEV || import.meta.env.VITE_SEED_DATA === '
 const DEMO_MANIFEST_KEY = '_demoDataManifest'
 const DEMO_PREFIX = '__demo__'
 const LEGACY_PREFIXES = ['__seed__', '__realistic__', '__demo__']
-const DEMO_STORE_NAMES = ['rooms', 'beds', 'hosts', 'drugs', 'stockBatches', 'therapies', 'movements', 'reminders']
+const DEMO_STORE_NAMES = ['rooms', 'hosts', 'drugs', 'stockBatches', 'therapies', 'movements', 'reminders']
 
 const NOW = '2026-04-04T08:00:00.000Z'
 
@@ -102,9 +103,8 @@ async function getDemoManifest() {
     const manifest = await getSetting(DEMO_MANIFEST_KEY, null)
     if (manifest) return manifest
 
-    const [rooms, beds, hosts, drugs, stockBatches, therapies, movements, reminders] = await Promise.all([
+    const [rooms, hosts, drugs, stockBatches, therapies, movements, reminders] = await Promise.all([
         findDemoIds(db.rooms),
-        findDemoIds(db.beds),
         findDemoIds(db.hosts),
         findDemoIds(db.drugs),
         findDemoIds(db.stockBatches),
@@ -113,7 +113,7 @@ async function getDemoManifest() {
         findDemoIds(db.reminders),
     ])
 
-    const fallbackManifest = { rooms, beds, hosts, drugs, stockBatches, therapies, movements, reminders }
+    const fallbackManifest = { rooms, hosts, drugs, stockBatches, therapies, movements, reminders }
     const hasSeedRows = Object.values(fallbackManifest).some(ids => ids.length > 0)
     return hasSeedRows ? fallbackManifest : null
 }
@@ -257,10 +257,30 @@ const DEMO_MANIFEST = {
 export async function loadDemoData(options = {}) {
     assertSeedEnabled(options)
 
+    // Ensure default residences exist (now includes "Residenza Demo")
+    await ensureDefaultResidenze()
+
+    // Find the "Residenza Demo" room (created by ensureDefaultResidenze or pre-existing)
+    const allRooms = await db.rooms.toArray()
+    const demoRoom = allRooms.find(
+        r => !r.deletedAt && String(r.codice || '').trim().toLowerCase() === 'residenza demo'
+    )
+    const demoRoomId = demoRoom?.id || '__demo__residenza-demo'
+
+    // Patch demo data to use the real residence ID instead of hardcoded one
+    const patchRoomId = (record) => {
+        if (!record) return record
+        const patched = { ...record }
+        if (patched.roomId === '__demo__residenza-demo') patched.roomId = demoRoomId
+        // Don't overwrite the existing room — skip demo room creation
+        return patched
+    }
+
+    const patchedHosts = DEMO_HOSTS.map(patchRoomId)
+
     const availableStores = await getAvailableStoreNames(DEMO_STORE_NAMES)
     const transactionTables = [
         availableStores.has('rooms') ? db.rooms : null,
-        availableStores.has('beds') ? db.beds : null,
         availableStores.has('hosts') ? db.hosts : null,
         availableStores.has('drugs') ? db.drugs : null,
         availableStores.has('stockBatches') ? db.stockBatches : null,
@@ -271,9 +291,8 @@ export async function loadDemoData(options = {}) {
 
     if (transactionTables.length > 0) {
         await db.transaction('rw', transactionTables, async () => {
-            if (availableStores.has('rooms')) for (const record of DEMO_ROOMS) await db.rooms.put(record)
-            if (availableStores.has('beds')) for (const record of DEMO_BEDS) await db.beds.put(record)
-            if (availableStores.has('hosts')) for (const record of DEMO_HOSTS) await db.hosts.put(record)
+            // Skip DEMO_ROOMS — "Residenza Demo" is now a permanent default residence
+            if (availableStores.has('hosts')) for (const record of patchedHosts) await db.hosts.put(record)
             if (availableStores.has('drugs')) for (const record of DEMO_DRUGS) await db.drugs.put(record)
             if (availableStores.has('stockBatches')) for (const record of DEMO_STOCK_BATCHES) await db.stockBatches.put(record)
             if (availableStores.has('therapies')) for (const record of DEMO_THERAPIES) await db.therapies.put(record)
@@ -283,8 +302,7 @@ export async function loadDemoData(options = {}) {
     }
 
     await setSetting(DEMO_MANIFEST_KEY, {
-        rooms: availableStores.has('rooms') ? DEMO_MANIFEST.rooms : [],
-        beds: availableStores.has('beds') ? DEMO_MANIFEST.beds : [],
+        rooms: [], // Residenza Demo is now a permanent default — never cleared
         hosts: availableStores.has('hosts') ? DEMO_MANIFEST.hosts : [],
         drugs: availableStores.has('drugs') ? DEMO_MANIFEST.drugs : [],
         stockBatches: availableStores.has('stockBatches') ? DEMO_MANIFEST.stockBatches : [],
@@ -319,7 +337,6 @@ export async function clearDemoData(options = {}) {
 
     const linkedIds = {
         rooms: availableStores.has('rooms') ? await findDemoLinkedIds(db.rooms) : [],
-        beds: availableStores.has('beds') ? await findDemoLinkedIds(db.beds, ['roomId']) : [],
         hosts: availableStores.has('hosts') ? await findDemoLinkedIds(db.hosts, ['roomId', 'bedId']) : [],
         drugs: availableStores.has('drugs') ? await findDemoLinkedIds(db.drugs) : [],
         stockBatches: availableStores.has('stockBatches') ? await findDemoLinkedIds(db.stockBatches, ['drugId']) : [],
@@ -330,7 +347,6 @@ export async function clearDemoData(options = {}) {
 
     const transactionTables = [
         availableStores.has('rooms') ? db.rooms : null,
-        availableStores.has('beds') ? db.beds : null,
         availableStores.has('hosts') ? db.hosts : null,
         availableStores.has('drugs') ? db.drugs : null,
         availableStores.has('stockBatches') ? db.stockBatches : null,
@@ -343,7 +359,6 @@ export async function clearDemoData(options = {}) {
         const now = new Date().toISOString()
         await db.transaction('rw', transactionTables, async () => {
             if (availableStores.has('rooms')) await softDeleteDemoRecords('rooms', [...(manifest.rooms ?? []), ...linkedIds.rooms], now)
-            if (availableStores.has('beds')) await softDeleteDemoRecords('beds', [...(manifest.beds ?? []), ...linkedIds.beds], now)
             if (availableStores.has('hosts')) await softDeleteDemoRecords('hosts', [...(manifest.hosts ?? []), ...linkedIds.hosts], now)
             if (availableStores.has('drugs')) await softDeleteDemoRecords('drugs', [...(manifest.drugs ?? []), ...linkedIds.drugs], now)
             if (availableStores.has('stockBatches')) await softDeleteDemoRecords('stockBatches', [...(manifest.stockBatches ?? []), ...linkedIds.stockBatches], now)
@@ -373,7 +388,6 @@ export async function isDemoDataLoaded() {
 export function getDemoStats() {
     return {
         rooms: DEMO_ROOMS.length,
-        beds: DEMO_BEDS.length,
         hosts: DEMO_HOSTS.length,
         drugs: DEMO_DRUGS.length,
         stockBatches: DEMO_STOCK_BATCHES.length,

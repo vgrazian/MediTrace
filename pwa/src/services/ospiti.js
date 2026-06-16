@@ -71,15 +71,10 @@ async function assertResidenzaCapacity({ roomId, excludeHostId = null }) {
     }
 }
 
-async function normalizeHostPlacement({ roomId, bedId, stanza, letto }) {
+async function normalizeHostPlacement({ roomId, stanza }) {
     const safeRoomId = String(roomId || '').trim()
     if (!safeRoomId) {
-        return {
-            roomId: null,
-            bedId: null,
-            stanza: '',
-            letto: '',
-        }
+        return { roomId: null, stanza: '' }
     }
 
     const room = await db.rooms?.get?.(safeRoomId)
@@ -87,23 +82,9 @@ async function normalizeHostPlacement({ roomId, bedId, stanza, letto }) {
         throw new Error('Residenza selezionata non trovata')
     }
 
-    const safeBedId = String(bedId || '').trim()
-    let normalizedBedId = null
-    let normalizedLetto = ''
-
-    if (safeBedId) {
-        const bed = await db.beds?.get?.(safeBedId)
-        if (bed && !bed.deletedAt && bed.roomId === safeRoomId) {
-            normalizedBedId = safeBedId
-            normalizedLetto = String(bed.numero || '').trim()
-        }
-    }
-
     return {
         roomId: safeRoomId,
-        bedId: normalizedBedId,
         stanza: String(room.codice || stanza || '').trim(),
-        letto: normalizedLetto || String(letto || '').trim(),
     }
 }
 
@@ -135,31 +116,19 @@ export function buildHostRows({ hosts, therapies, showAll = false, rooms = [] })
     }
 
     const roomById = new Map(rooms.map(r => [r.id, r]))
-    const bedById = new Map()
-    for (const room of rooms) {
-        for (const bed of (room.beds ?? [])) {
-            bedById.set(bed.id, bed)
-        }
-    }
 
     return hosts
         .filter(h => !h.deletedAt)
         .filter(h => showAll || h.attivo !== false)
         .map(h => {
             let stanza = h.stanza || ''
-            let letto = h.letto !== null && h.letto !== undefined ? String(h.letto) : ''
             if (h.roomId && !stanza) {
                 const room = roomById.get(h.roomId)
                 if (room) stanza = room.codice || ''
             }
-            if (h.bedId && !letto) {
-                const bed = bedById.get(h.bedId)
-                if (bed) letto = String(bed.numero || '')
-            }
             return {
                 ...h,
                 stanza,
-                letto,
                 activeTherapies: therapyCountByHost.get(h.id) ?? 0,
             }
         })
@@ -176,9 +145,9 @@ export function buildHostRows({ hosts, therapies, showAll = false, rooms = [] })
  * @param {string} params.codiceInterno    — codice operativo (es. "OSP-01")
  * @param {string} [params.iniziali]       — iniziali (es. "M.R.")
  * @param {string} [params.roomId]         — stanza (ID Room)
- * @param {string} [params.bedId]          — letto (ID Bed)
+ * @param {string} [params.]          — (ID Bed)
  * @param {string} [params.stanza]         — numero stanza (campo di testo libero, legacy)
- * @param {string} [params.letto]          — numero letto (campo di testo libero, legacy)
+ * @param {string} [params.]          — numero (campo di testo libero, legacy)
  * @param {string} [params.note]           — note libere
  * @param {string} [params.operatorId]     — login operatore corrente
  * @returns {Promise<object>} record salvato
@@ -195,9 +164,7 @@ export async function createHost({
     codiceFiscale,
     patologie,
     roomId,
-    bedId,
     stanza,
-    letto,
     note,
     operatorId,
 }) {
@@ -205,7 +172,7 @@ export async function createHost({
 
     await assertUniqueHostIdentity({ codiceInterno, nome, cognome })
     await assertResidenzaCapacity({ roomId })
-    const normalizedPlacement = await normalizeHostPlacement({ roomId, bedId, stanza, letto })
+    const normalizedPlacement = await normalizeHostPlacement({ roomId, stanza, })
 
     const hostId = id?.trim() || generateEntityId('host')
 
@@ -226,9 +193,7 @@ export async function createHost({
         codiceFiscale: codiceFiscale?.trim() ?? '',
         patologie: patologie?.trim() ?? '',
         roomId: normalizedPlacement.roomId,
-        bedId: normalizedPlacement.bedId,
         stanza: normalizedPlacement.stanza,
-        letto: normalizedPlacement.letto,
         note: note?.trim() ?? '',
         attivo: true,
         createdAt: now,
@@ -275,9 +240,8 @@ export async function deactivateHost({ hostId, operatorId }) {
     const updated = {
         ...host,
         roomId: null,
-        bedId: null,
         stanza: '',
-        letto: '',
+
         attivo: false,
         deletedAt: now,
         updatedAt: now,
@@ -325,9 +289,7 @@ export async function deactivateHost({ hostId, operatorId }) {
     return {
         ...updated,
         roomId: host.roomId ?? null,
-        bedId: host.bedId ?? null,
         stanza: host.stanza ?? '',
-        letto: host.letto ?? '',
         _cascadeDeletedTherapies: deactivatedTherapies,
     }
 }
@@ -399,9 +361,7 @@ export async function updateHost({
     codiceFiscale,
     patologie,
     roomId,
-    bedId,
     stanza,
-    letto,
     note,
     operatorId,
 }) {
@@ -410,7 +370,7 @@ export async function updateHost({
 
     await assertUniqueHostIdentity({ hostId, codiceInterno, nome, cognome })
     await assertResidenzaCapacity({ roomId, excludeHostId: hostId })
-    const normalizedPlacement = await normalizeHostPlacement({ roomId, bedId, stanza, letto })
+    const normalizedPlacement = await normalizeHostPlacement({ roomId, stanza, })
 
     const now = new Date().toISOString()
     const deviceId = await getSetting('deviceId', 'unknown')
@@ -426,9 +386,7 @@ export async function updateHost({
         codiceFiscale: codiceFiscale?.trim() ?? '',
         patologie: patologie?.trim() ?? '',
         roomId: normalizedPlacement.roomId,
-        bedId: normalizedPlacement.bedId,
         stanza: normalizedPlacement.stanza,
-        letto: normalizedPlacement.letto,
         note: note?.trim() ?? '',
         updatedAt: now,
         syncStatus: 'pending',

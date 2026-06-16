@@ -2,8 +2,9 @@ import { db, enqueue, getSetting } from '../db'
 import { createRoom, updateRoom, restoreRoom } from './stanze'
 
 export const DEFAULT_RESIDENZE = [
-    { codice: 'Il Rifugio', maxOspiti: 10, note: 'Casa alloggio attiva (5 ospiti target)' },
-    { codice: 'Via Bellani', maxOspiti: 10, note: 'Casa alloggio attiva (7 ospiti target)' },
+    { codice: 'Il Rifugio', maxOspiti: 5, note: 'Casa alloggio attiva (5 ospiti target)' },
+    { codice: 'Via Bellani', maxOspiti: 7, note: 'Casa alloggio attiva (7 ospiti target)' },
+    { codice: 'Residenza Demo', maxOspiti: 10, note: 'Residenza per formazione e dati dimostrativi' },
 ]
 
 const DEFAULT_MAX_OSPITI = 10
@@ -101,9 +102,10 @@ export async function ensureDefaultResidenze({ operatorId = null } = {}) {
         const key = String(residenza.codice).trim().toLowerCase()
         if (activeCodes.has(key)) continue
 
-        await createRoom({
+        await createResidenza({
             codice: residenza.codice,
             note: residenza.note,
+            maxOspiti: residenza.maxOspiti ?? DEFAULT_MAX_OSPITI,
             operatorId,
         })
     }
