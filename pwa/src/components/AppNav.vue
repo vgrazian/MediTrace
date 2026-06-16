@@ -98,6 +98,10 @@ async function handleSync() {
         :data-state="statoSync"
         :title="dettagli"
         aria-label="Stato sincronizzazione"
+        @click="maybeAutoSync"
+        role="button"
+        tabindex="0"
+        style="cursor:pointer"
       >
         <template v-if="statoSync === SYNC_STATES.SYNCED">
           <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="9" r="7" stroke="#22c55e" stroke-width="2"/><circle cx="9" cy="9" r="3" fill="#22c55e"/></svg>
