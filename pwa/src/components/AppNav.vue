@@ -1,13 +1,63 @@
 <script setup>
+import { ref, onMounted, onUnmounted } from 'vue'
 import { useAuth } from '../services/auth'
 import { fullSync } from '../services/sync'
-
+import { isSupabaseConfigured } from '../services/supabaseClient'
+import { db } from '../db'
 import { useSyncState, SYNC_STATES } from '../composables/useSyncState'
 
 const { currentUser, signOut } = useAuth()
 const logoSrc = `${import.meta.env.BASE_URL}branding/logo-header.svg`
 
 const { statoSync, dettagli } = useSyncState()
+
+// ── Periodic sync (Supabase free‑tier safe) ─────────────────────────────────
+// Each sync uploads ~185 KB. At 15‑min intervals with only‑when‑dirty,
+// worst‑case monthly bandwidth ≈ 533 MB (10.6 % of 5 GB free tier).
+const SYNC_INTERVAL_MS = Math.max(
+  5 * 60 * 1000, // minimum 5 minutes
+  Number(import.meta.env.VITE_SYNC_INTERVAL_MINUTES || 15) * 60 * 1000
+)
+let periodicTimer = null
+let syncInProgress = false
+let lastSyncAttempt = 0
+
+async function maybeAutoSync() {
+  if (syncInProgress) return
+  if (!navigator.onLine) return
+  if (!isSupabaseConfigured) return
+
+  // Only sync if there are pending changes
+  const pending = await db.syncQueue.count()
+  if (pending === 0) return
+
+  // Throttle: don't sync more than once per interval
+  const now = Date.now()
+  if (now - lastSyncAttempt < SYNC_INTERVAL_MS) return
+
+  lastSyncAttempt = now
+  syncInProgress = true
+  try {
+    await fullSync()
+  } catch (_) {
+    // Silent fail — next cycle will retry
+  } finally {
+    syncInProgress = false
+  }
+}
+
+onMounted(() => {
+  if (isSupabaseConfigured) {
+    periodicTimer = setInterval(maybeAutoSync, SYNC_INTERVAL_MS)
+    // Also run on first mount (after a 10s warm-up)
+    setTimeout(maybeAutoSync, 10_000)
+  }
+})
+
+onUnmounted(() => {
+  if (periodicTimer) clearInterval(periodicTimer)
+})
+// ── End periodic sync ────────────────────────────────────────────────────────
 
 async function handleSignOut() {
   await signOut()
