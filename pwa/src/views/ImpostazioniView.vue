@@ -1,5 +1,6 @@
 import { openConfirmDialog } from '../services/confirmDialog'
 import { signOut } from '../services/auth'
+import { useRouter } from 'vue-router'
 async function handleResetPassword(user) {
   if (!canManageUsers.value || user.username === currentUser.value?.username) return
   const confirmed = await openConfirmDialog({
@@ -137,6 +138,12 @@ const {
   setUserDisabled,
   deleteUser,
 } = useAuth()
+
+const router = useRouter()
+async function handleSignOut() {
+  await signOut()
+  router.replace('/')
+}
 const { goToHelpSection } = useHelpNavigation()
 const deviceId = ref(null)
 const datasetVersion = ref(null)
@@ -817,13 +824,6 @@ async function handleCreateUser() {
       <p class="muted">Ruolo: {{ currentUser?.role === 'admin' ? 'amministratore' : 'operatore' }}</p>
       <p class="muted">Backend sincronizzazione: {{ syncBackendLabel }}</p>
       <button style="margin-top:.75rem" @click="handleSignOut">Esci</button>
-
-import { useRouter } from 'vue-router'
-const router = useRouter()
-async function handleSignOut() {
-  await signOut()
-  router.replace('/')
-}
 
       <template v-if="currentUser?.isSeeded">
         <button
