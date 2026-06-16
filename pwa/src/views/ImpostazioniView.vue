@@ -1,6 +1,5 @@
 import { openConfirmDialog } from '../services/confirmDialog'
 import { signOut } from '../services/auth'
-import { useRouter } from 'vue-router'
 async function handleResetPassword(user) {
   if (!canManageUsers.value || user.username === currentUser.value?.username) return
   const confirmed = await openConfirmDialog({
@@ -139,10 +138,9 @@ const {
   deleteUser,
 } = useAuth()
 
-const router = useRouter()
 async function handleSignOut() {
   await signOut()
-  router.replace('/')
+  window.location.replace('/')
 }
 const { goToHelpSection } = useHelpNavigation()
 const deviceId = ref(null)
