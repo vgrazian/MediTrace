@@ -30,8 +30,10 @@ export async function buildHomeDashboardKpis(now = new Date()) {
             return when >= dayStart && when <= dayEnd
         })
 
-    const remindersPending = remindersToday.filter(item => (item.stato ?? 'DA_ESEGUIRE') !== 'ESEGUITO').length
+    const remindersPending = remindersToday.filter(item => (item.stato ?? 'DA_ESEGUIRE') !== 'ESEGUITO' && item.stato !== 'SALTATO' && item.stato !== 'ANNULLATO').length
     const remindersDone = remindersToday.filter(item => item.stato === 'ESEGUITO').length
+    const remindersSkipped = remindersToday.filter(item => item.stato === 'SALTATO').length
+    const remindersPostponed = remindersToday.filter(item => item.stato === 'POSTICIPATO').length
 
     return {
         datasetVersion,
@@ -43,6 +45,8 @@ export async function buildHomeDashboardKpis(now = new Date()) {
         remindersToday: remindersToday.length,
         remindersPending,
         remindersDone,
+        remindersSkipped,
+        remindersPostponed,
     }
 }
 

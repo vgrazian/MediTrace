@@ -89,7 +89,7 @@ onMounted(async () => {
     </div>
 
     <div class="card attention-panel" v-if="attentionItems.length">
-      <p><strong>Attenzione</strong></p>
+      <p><strong>⚠️ Attenzione</strong></p>
       <ul class="attention-list">
         <li v-for="item in attentionItems" :key="item.type" style="margin-bottom:.3rem">
           <RouterLink :to="item.to" :title="item.tooltip" class="attention-link">
@@ -97,6 +97,20 @@ onMounted(async () => {
           </RouterLink>
         </li>
       </ul>
+    </div>
+
+    <div class="card">
+      <p><strong>📋 Riepilogo turno di oggi</strong></p>
+      <div v-if="homeKpi && homeKpi.remindersToday > 0" style="display:flex;gap:1.5em;flex-wrap:wrap;margin-top:.5rem">
+        <span style="color:#22c55e;font-weight:600">✅ Eseguiti: {{ homeKpi.remindersDone }}</span>
+        <span style="color:#f59e42;font-weight:600">⏳ Da eseguire: {{ homeKpi.remindersPending }}</span>
+        <span v-if="homeKpi.remindersPostponed > 0" style="color:#3b82f6;font-weight:600">🔄 Posticipati: {{ homeKpi.remindersPostponed }}</span>
+        <span v-if="homeKpi.remindersSkipped > 0" style="color:#ef4444;font-weight:600">❌ Saltati: {{ homeKpi.remindersSkipped }}</span>
+      </div>
+      <p v-else class="muted" style="margin-top:.5rem">Nessun promemoria pianificato per oggi.</p>
+      <div v-if="homeKpi && homeKpi.remindersToday > 0" style="margin-top:.5rem">
+        <RouterLink to="/promemoria" class="attention-link">Vai ai promemoria →</RouterLink>
+      </div>
     </div>
 
     <div class="card">
@@ -117,32 +131,32 @@ onMounted(async () => {
       <p><strong>Navigazione rapida</strong></p>
       <div class="dashboard-nav">
         <div class="dashboard-nav-item">
-          <RouterLink class="quick-link" to="/farmaci" aria-label="Shortcut cruscotto 1">Farmaci</RouterLink>
-          <p class="muted">Catalogo principi attivi, classi terapeutiche e schede farmaco.</p>
-        </div>
-        <div class="dashboard-nav-item">
-          <RouterLink class="quick-link" to="/ospiti" aria-label="Shortcut cruscotto 2">Ospiti</RouterLink>
-          <p class="muted">Registro ospiti con assegnazione residenza e terapie attive.</p>
-        </div>
-        <div class="dashboard-nav-item">
-          <RouterLink class="quick-link" to="/residenze" aria-label="Shortcut cruscotto 3">Residenze</RouterLink>
-          <p class="muted">Gestione residenze operative e capienza ospiti per sede.</p>
-        </div>
-        <div class="dashboard-nav-item">
-          <RouterLink class="quick-link" to="/terapie" aria-label="Shortcut cruscotto 4">Terapie</RouterLink>
-          <p class="muted">Piani terapici attivi per ospite: dosaggi, frequenze e storico.</p>
-        </div>
-        <div class="dashboard-nav-item">
-          <RouterLink class="quick-link" to="/scorte" aria-label="Shortcut cruscotto 5">Scorte</RouterLink>
-          <p class="muted">Monitoraggio scorte, KPI operativi e report consumi farmaci.</p>
-        </div>
-        <div class="dashboard-nav-item">
-          <RouterLink class="quick-link" to="/promemoria" aria-label="Shortcut cruscotto 6">Promemoria</RouterLink>
+          <RouterLink class="quick-link" to="/promemoria" aria-label="Shortcut cruscotto 1">Promemoria</RouterLink>
           <p class="muted">Promemoria somministrazioni e notifiche pendenti.</p>
         </div>
         <div class="dashboard-nav-item">
-          <RouterLink class="quick-link" to="/movimenti" aria-label="Shortcut cruscotto 7">Movimenti</RouterLink>
+          <RouterLink class="quick-link" to="/terapie" aria-label="Shortcut cruscotto 2">Terapie</RouterLink>
+          <p class="muted">Piani terapici attivi per ospite: dosaggi, frequenze e storico.</p>
+        </div>
+        <div class="dashboard-nav-item">
+          <RouterLink class="quick-link" to="/scorte" aria-label="Shortcut cruscotto 3">Scorte</RouterLink>
+          <p class="muted">Monitoraggio scorte, KPI operativi e report consumi farmaci.</p>
+        </div>
+        <div class="dashboard-nav-item">
+          <RouterLink class="quick-link" to="/movimenti" aria-label="Shortcut cruscotto 4">Movimenti</RouterLink>
           <p class="muted">Storico movimenti di magazzino: carichi, scarichi e rettifiche.</p>
+        </div>
+        <div class="dashboard-nav-item">
+          <RouterLink class="quick-link" to="/ospiti" aria-label="Shortcut cruscotto 5">Ospiti</RouterLink>
+          <p class="muted">Registro ospiti con assegnazione residenza e terapie attive.</p>
+        </div>
+        <div class="dashboard-nav-item">
+          <RouterLink class="quick-link" to="/farmaci" aria-label="Shortcut cruscotto 6">Farmaci</RouterLink>
+          <p class="muted">Catalogo principi attivi, classi terapeutiche e schede farmaco.</p>
+        </div>
+        <div class="dashboard-nav-item">
+          <RouterLink class="quick-link" to="/residenze" aria-label="Shortcut cruscotto 7">Residenze</RouterLink>
+          <p class="muted">Gestione residenze operative e capienza ospiti per sede.</p>
         </div>
         <div class="dashboard-nav-item">
           <RouterLink class="quick-link" to="/impostazioni" aria-label="Shortcut cruscotto 8">Impostazioni</RouterLink>

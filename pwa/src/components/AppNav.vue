@@ -1,15 +1,38 @@
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { useAuth } from '../services/auth'
 import { fullSync } from '../services/sync'
 import { isSupabaseConfigured } from '../services/supabaseClient'
 import { db, getSetting } from '../db'
 import { useSyncState, SYNC_STATES } from '../composables/useSyncState'
+import { CURRENT_RESIDENZA_SETTING_KEY } from '../services/promemoria'
 
 const { currentUser, signOut } = useAuth()
 const logoSrc = `${import.meta.env.BASE_URL}branding/logo-header.svg`
 
 const { statoSync, dettagli } = useSyncState()
+
+// ── Residenza corrente ──────────────────────────────────────────────────────
+const currentResidenzaId = ref('')
+const currentResidenzaLabel = ref('')
+
+const showResidenzaBadge = computed(() => Boolean(currentResidenzaId.value && currentResidenzaLabel.value))
+
+async function loadCurrentResidenza() {
+  const savedId = await getSetting(CURRENT_RESIDENZA_SETTING_KEY, '')
+  currentResidenzaId.value = String(savedId || '')
+  if (currentResidenzaId.value) {
+    try {
+      const room = await db.rooms.get(currentResidenzaId.value)
+      if (room && !room.deletedAt) {
+        currentResidenzaLabel.value = room.codice || room.nome || currentResidenzaId.value
+        return
+      }
+    } catch { /* ignore */ }
+  }
+  currentResidenzaId.value = ''
+  currentResidenzaLabel.value = ''
+}
 
 // ── Periodic sync (Supabase free‑tier safe) ─────────────────────────────────
 // Each sync uploads ~185 KB. At 15‑min intervals with only‑when‑dirty,
@@ -55,6 +78,7 @@ async function maybeAutoSync() {
 }
 
 onMounted(() => {
+  loadCurrentResidenza()
   if (isSupabaseConfigured) {
     // Check every 5 minutes; actual sync interval is controlled by throttle in maybeAutoSync
     periodicTimer = setInterval(maybeAutoSync, 5 * 60 * 1000)
@@ -91,14 +115,18 @@ async function handleSync() {
       <span class="brand-title">MediTrace</span>
     </div>
 
+    <span v-if="showResidenzaBadge" class="residenza-badge" :title="`Residenza attiva: ${currentResidenzaLabel}`">
+      🏠 {{ currentResidenzaLabel }}
+    </span>
+
     <RouterLink to="/">Cruscotto</RouterLink>
-    <RouterLink to="/farmaci">Farmaci</RouterLink>
-    <RouterLink to="/residenze">Residenze</RouterLink>
-    <RouterLink to="/ospiti">Ospiti</RouterLink>
+    <RouterLink to="/promemoria">Promemoria</RouterLink>
+    <RouterLink to="/terapie">Terapie</RouterLink>
     <RouterLink to="/scorte">Scorte</RouterLink>
     <RouterLink to="/movimenti">Movimenti</RouterLink>
-    <RouterLink to="/terapie">Terapie</RouterLink>
-    <RouterLink to="/promemoria">Promemoria</RouterLink>
+    <RouterLink to="/ospiti">Ospiti</RouterLink>
+    <RouterLink to="/farmaci">Farmaci</RouterLink>
+    <RouterLink to="/residenze">Residenze</RouterLink>
     <RouterLink to="/manuale">Guida</RouterLink>
     <RouterLink v-if="currentUser?.role === 'admin'" to="/operatori">Operatori</RouterLink>
     <RouterLink v-if="currentUser?.role === 'admin'" to="/audit">Audit</RouterLink>
@@ -171,5 +199,20 @@ async function handleSync() {
   height: 22px;
   vertical-align: middle;
   cursor: pointer;
+}
+
+.residenza-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3em;
+  padding: 0.2em 0.6em;
+  margin-right: 0.5em;
+  background: #dbeafe;
+  color: #1e40af;
+  border-radius: 8px;
+  font-size: 0.82em;
+  font-weight: 500;
+  white-space: nowrap;
+  vertical-align: middle;
 }
 </style>
