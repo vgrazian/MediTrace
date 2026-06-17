@@ -27,10 +27,6 @@ const routes = [
         meta: { title: 'Residenze' },
     },
     {
-        path: '/stanze',
-        redirect: '/residenze',
-    },
-    {
         path: '/scorte',
         component: () => import('../views/ScorteView.vue'),
         meta: { title: 'Scorte' },

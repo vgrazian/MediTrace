@@ -34,7 +34,10 @@ vi.mock('../../src/db', () => ({
         therapies: makeTable('therapies'),
         movements: makeTable('movements'),
         reminders: makeTable('reminders'),
-        async transaction(_mode, _tables, callback) { await callback() },
+        async transaction(_mode, ...rest) {
+            const callback = rest.pop()
+            await callback()
+        },
     },
     async getSetting(key, fallback = null) {
         return settings.has(key) ? settings.get(key) : fallback

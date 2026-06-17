@@ -791,8 +791,8 @@ async function checkSupabaseHasUsers() {
 async function initAuthSupabase() {
     state.hasUsers = await fetchHasUsers()
 
-    // Seed default users when no users exist on Supabase
-    if (!state.hasUsers) {
+    // Seed default users when no users exist on Supabase AND emergency admin is enabled
+    if (!state.hasUsers && EMERGENCY_ADMIN_ENABLED) {
         try {
             const adminPayload = await registerFirstAdminWithTable({
                 username: EMERGENCY_ADMIN_USERNAME || 'admin',

@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { nextTick } from 'vue'
 import { useSyncState, SYNC_STATES } from '../../src/composables/useSyncState'
+import { db, getSetting } from '../../src/db'
 
 vi.mock('../../src/db', () => ({
     db: {
@@ -9,12 +10,14 @@ vi.mock('../../src/db', () => ({
     getSetting: vi.fn(),
 }))
 
-const { db, getSetting } = require('../../src/db')
-
 describe('useSyncState', () => {
     beforeEach(() => {
         vi.clearAllMocks()
-        window.navigator.onLine = true
+        Object.defineProperty(window.navigator, 'onLine', {
+            value: true,
+            writable: true,
+            configurable: true,
+        })
     })
 
     it('returns SYNCED when no pending or conflicts', async () => {
@@ -50,7 +53,11 @@ describe('useSyncState', () => {
     it('returns OFFLINE when navigator is offline', async () => {
         db.syncQueue.count.mockResolvedValue(0)
         getSetting.mockResolvedValue([])
-        window.navigator.onLine = false
+        Object.defineProperty(window.navigator, 'onLine', {
+            value: false,
+            writable: true,
+            configurable: true,
+        })
         const { statoSync, dettagli } = useSyncState()
         await nextTick()
         await new Promise(r => setTimeout(r, 10))
