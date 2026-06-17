@@ -191,6 +191,7 @@ export async function setSyncState(key, value) {
 
 /**
  * Enqueue a sync operation. Called automatically by data-write helpers.
+ * Dispatches a 'medi-trace:local-change' DOM event for debounce-aware sync.
  */
 export async function enqueue(entityType, entityId, operation = 'upsert') {
     await db.syncQueue.add({
@@ -199,4 +200,9 @@ export async function enqueue(entityType, entityId, operation = 'upsert') {
         operation,
         createdAt: new Date().toISOString(),
     })
+    if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('medi-trace:local-change', {
+            detail: { entityType, entityId, operation },
+        }))
+    }
 }

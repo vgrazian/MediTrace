@@ -6,6 +6,7 @@ import { isSupabaseConfigured } from '../services/supabaseClient'
 import { db, getSetting } from '../db'
 import { useSyncState, SYNC_STATES } from '../composables/useSyncState'
 import { CURRENT_RESIDENZA_SETTING_KEY } from '../services/promemoria'
+import { pruneStaleData } from '../services/dataPruning'
 
 const { currentUser, signOut } = useAuth()
 const logoSrc = `${import.meta.env.BASE_URL}branding/logo-header.svg`
@@ -35,20 +36,29 @@ async function loadCurrentResidenza() {
 }
 
 // ── Periodic sync (Supabase free‑tier safe) ─────────────────────────────────
-// Each sync uploads ~185 KB. At 15‑min intervals with only‑when‑dirty,
-// worst‑case monthly bandwidth ≈ 533 MB (10.6 % of 5 GB free tier).
+// With gzip compression (~80% bandwidth reduction) and smart debounce,
+// sync interval can safely go down to 1 minute.
+// At 1‑min intervals with compression: ~1.6 GB/month (32% of 5 GB free tier).
 const DEFAULT_SYNC_INTERVAL_MS = Math.max(
-  5 * 60 * 1000, // minimum 5 minutes
-  Number(import.meta.env.VITE_SYNC_INTERVAL_MINUTES || 15) * 60 * 1000
+  1 * 60 * 1000, // minimum 1 minute
+  Number(import.meta.env.VITE_SYNC_INTERVAL_MINUTES || 1) * 60 * 1000
 )
+const DEBOUNCE_MS = 30_000 // Wait 30s of inactivity after last change before syncing
+
 let periodicTimer = null
 let syncInProgress = false
 let lastSyncAttempt = 0
+let lastChangeDetectedAt = 0
+
+// Named handler for proper add/removeEventListener pairing
+function onLocalChange() {
+  lastChangeDetectedAt = Date.now()
+}
 
 async function getSyncIntervalMs() {
   try {
-    const mins = Number(await getSetting('syncIntervalMinutes', 15)) || 15
-    return Math.max(5, mins) * 60 * 1000
+    const mins = Number(await getSetting('syncIntervalMinutes', 1)) || 1
+    return Math.max(1, mins) * 60 * 1000
   } catch { return DEFAULT_SYNC_INTERVAL_MS }
 }
 
@@ -59,10 +69,19 @@ async function maybeAutoSync() {
 
   // Only sync if there are pending changes
   const pending = await db.syncQueue.count()
-  if (pending === 0) return
+  if (pending === 0) {
+    lastChangeDetectedAt = 0
+    return
+  }
+
+  const now = Date.now()
+
+  // Smart debounce: wait until no new changes for DEBOUNCE_MS
+  if (lastChangeDetectedAt > 0 && (now - lastChangeDetectedAt) < DEBOUNCE_MS) {
+    return
+  }
 
   // Throttle: don't sync more than once per interval
-  const now = Date.now()
   const interval = await getSyncIntervalMs()
   if (now - lastSyncAttempt < interval) return
 
@@ -80,15 +99,20 @@ async function maybeAutoSync() {
 onMounted(() => {
   loadCurrentResidenza()
   if (isSupabaseConfigured) {
-    // Check every 5 minutes; actual sync interval is controlled by throttle in maybeAutoSync
-    periodicTimer = setInterval(maybeAutoSync, 5 * 60 * 1000)
+    // Check every 30 seconds; debounce prevents sync during active edits
+    periodicTimer = setInterval(maybeAutoSync, 30_000)
     // Also run on first mount (after a 10s warm-up)
     setTimeout(maybeAutoSync, 10_000)
+    // Listen for local data changes to reset debounce timer
+    window.addEventListener('medi-trace:local-change', onLocalChange)
+    // Prune stale data once per day (old reminders, movements, activity logs)
+    setTimeout(() => { pruneStaleData().catch(() => {}) }, 30_000)
   }
 })
 
 onUnmounted(() => {
   if (periodicTimer) clearInterval(periodicTimer)
+  window.removeEventListener('medi-trace:local-change', onLocalChange)
 })
 // ── End periodic sync ────────────────────────────────────────────────────────
 

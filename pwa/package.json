@@ -27,6 +27,7 @@
         "dexie": "^3.2.7",
         "jspdf": "^4.2.1",
         "jspdf-autotable": "^5.0.7",
+        "pako": "^2.1.0",
         "papaparse": "^5.5.3",
         "playwright": "^1.59.1",
         "vue": "^3.4.21",

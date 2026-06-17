@@ -146,7 +146,7 @@ const { goToHelpSection } = useHelpNavigation()
 const deviceId = ref(null)
 const datasetVersion = ref(null)
 const syncMessage = ref('')
-const syncIntervalMinutes = ref(15)
+const syncIntervalMinutes = ref(1)
 const SYNC_INTERVAL_SETTING = 'syncIntervalMinutes'
 const pendingConflicts = ref([])
 const resolvingConflictId = ref(null)
@@ -421,7 +421,7 @@ async function runCsvImport() {
 onMounted(async () => {
   deviceId.value = await getSetting('deviceId')
   datasetVersion.value = await getSetting('datasetVersion')
-  syncIntervalMinutes.value = Number(await getSetting(SYNC_INTERVAL_SETTING, 15)) || 15
+  syncIntervalMinutes.value = Number(await getSetting(SYNC_INTERVAL_SETTING, 1)) || 1
   await refreshPendingConflicts()
   await refreshUsers()
   await refreshSecurityInfo()

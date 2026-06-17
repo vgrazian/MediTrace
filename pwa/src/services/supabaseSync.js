@@ -12,11 +12,16 @@
  *
  * Token parameters are kept for API compatibility but are NOT used — the
  * table-auth session token is read from IndexedDB automatically.
+ *
+ * Compression: data payloads are gzip-compressed client-side and wrapped in a
+ * {"_gz":"<base64>"} JSONB envelope (~80% bandwidth reduction). The manifest
+ * (~200 bytes) is never compressed so it remains readable server-side.
  */
 import { isSupabaseConfigured, supabase } from './supabaseClient'
 import { getSetting, setSetting } from '../db'
 import { readStoredSession } from './supabaseTableAuth'
 import { NetworkError } from './errorHandling'
+import { compressSyncPayload, decompressSyncPayload } from './syncCompress'
 
 export const FILE_NAMES = {
     MANIFEST: 'meditrace-manifest.json',
@@ -58,6 +63,7 @@ export async function listAppFiles(_token) {
 /**
  * Download and parse a specific sync file.
  * _gistId is ignored — name is the primary key in sync_files.
+ * Data files are automatically decompressed from gzip envelopes.
  */
 export async function downloadFile(_token, _gistId, fileName) {
     assertConfigured()
@@ -71,22 +77,30 @@ export async function downloadFile(_token, _gistId, fileName) {
         ],
     })
     if (data == null) throw new NetworkError(`File ${fileName} non trovato nel database di sincronizzazione`, 404)
-    // The RPC returns JSONB cast to TEXT; parse it back to an object
-    return typeof data === 'string' ? JSON.parse(data) : data
+
+    const parsed = typeof data === 'string' ? JSON.parse(data) : data
+    if (fileName === FILE_NAMES.DATA) {
+        return decompressSyncPayload(parsed)
+    }
+    return parsed
 }
 
 /**
  * Upsert a JSON file in sync_files.
  * _existingId is ignored — we always upsert by name.
+ * The data file is gzip-compressed before upload (~80% bandwidth reduction).
  */
 export async function uploadFile(_token, name, content, _existingId = null) {
     assertConfigured()
 
     const token = await requireSessionToken()
+    const parsed = typeof content === 'string' ? JSON.parse(content) : content
+    const payload = name === FILE_NAMES.DATA ? compressSyncPayload(parsed) : parsed
+
     const { data, error } = await supabase.rpc('app_upload_sync_file', {
         p_token: token,
         p_name: name,
-        p_content: typeof content === 'string' ? JSON.parse(content) : content,
+        p_content: payload,
     })
     if (error) throw new NetworkError(`Errore scrittura sync_files (${name}): ${error.message}`, 500)
     const updatedAt = data ?? new Date().toISOString()
@@ -97,15 +111,19 @@ export async function uploadFile(_token, name, content, _existingId = null) {
 /**
  * Atomically commit a full dataset snapshot with optimistic concurrency.
  * The server increments datasetVersion only if expectedVersion matches.
+ * The dataset is gzip-compressed before upload.
  */
 export async function commitSnapshot(_token, { expectedVersion, dataset, updatedByDevice = null }) {
     assertConfigured()
 
     const token = await requireSessionToken()
+    const parsed = typeof dataset === 'string' ? JSON.parse(dataset) : dataset
+    const compressed = compressSyncPayload(parsed)
+
     const { data, error } = await supabase.rpc('app_commit_sync_snapshot', {
         p_token: token,
         p_expected_version: Number(expectedVersion ?? 0),
-        p_dataset: typeof dataset === 'string' ? JSON.parse(dataset) : dataset,
+        p_dataset: compressed,
         p_updated_by_device: updatedByDevice,
     })
     if (error) throw new NetworkError(`Errore commit sync atomico: ${error.message}`, 500)
