@@ -1,13 +1,24 @@
 export async function loginOrRegisterSeededUser(page, options = {}) {
-    // Clear IndexedDB to ensure registration form is available and no users exist
+    // Clear IndexedDB BEFORE navigating to ensure a clean state.
+    // We must do this before page.goto() because the app opens IndexedDB on load,
+    // and deleting it mid-session causes DatabaseClosedError.
     await page.evaluate(async () => {
         if ('indexedDB' in window) {
-            const dbs = await window.indexedDB.databases();
-            for (const db of dbs) {
-                if (db.name) window.indexedDB.deleteDatabase(db.name);
+            try {
+                const dbs = await window.indexedDB.databases();
+                for (const db of dbs) {
+                    if (db.name) window.indexedDB.deleteDatabase(db.name);
+                }
+            } catch {
+                // Fallback for browsers that don't support databases()
+                try { window.indexedDB.deleteDatabase('medi-trace'); } catch { }
             }
         }
     });
+
+    // Navigate to app with clean database
+    await page.goto('/');
+
     const {
         username = 'admin',
         password = 'A7!vQ2#kLp9zXw4$eRt6@bY8^sJ0uH3m',

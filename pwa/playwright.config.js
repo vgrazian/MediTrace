@@ -81,6 +81,10 @@ export default defineConfig({
             VITE_DEV_SEED_USERNAME: 'prova',
             VITE_DEV_SEED_PASSWORD: 'Prova1234!',
             VITE_DEV_SEED_GITHUB_TOKEN: 'github_pat_test_seed_token',
+            VITE_EMERGENCY_ADMIN_ENABLED: '1',
+            VITE_EMERGENCY_ADMIN_USERNAME: 'admin',
+            VITE_EMERGENCY_ADMIN_PASSWORD: 'A7!vQ2#kLp9zXw4$eRt6@bY8^sJ0uH3m',
+            VITE_EMERGENCY_ADMIN_EMAIL: 'admin@example.com',
             // Force deterministic local-auth mode for E2E smoke (no real Supabase calls).
             VITE_SUPABASE_URL: '',
             VITE_SUPABASE_PUBLISHABLE_KEY: '',
