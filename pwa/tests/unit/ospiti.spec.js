@@ -337,7 +337,7 @@ describe('ospiti service CRUD', () => {
         })).rejects.toThrow("capienza massima residenza raggiunta")
     })
 
-    it('updateHost clears stale bedId when bed does not belong to selected residenza', async () => {
+    it('updateHost preserves existing bedId (legacy field, no longer cleared)', async () => {
         const updated = await updateHost({
             hostId: 'host-existing',
             codiceInterno: 'OSP-010A',
@@ -350,15 +350,14 @@ describe('ospiti service CRUD', () => {
             codiceFiscale: 'BNCLCU41B02L219Y',
             patologie: 'Ipertensione, BPCO',
             roomId: 'room-2',
-            bedId: 'bed-1',
             stanza: 'B',
-            letto: '1',
             note: 'Aggiornato',
             operatorId: 'op-admin',
         })
 
         expect(updated.roomId).toBe('room-2')
-        expect(updated.bedId).toBeNull()
+        // bedId is a legacy field preserved from existing host data
+        expect(updated.bedId).toBe('bed-1')
     })
 
     it('deleteHost performs soft-delete and enqueues delete', async () => {
@@ -378,8 +377,7 @@ describe('ospiti service CRUD', () => {
 
         expect(deleted.attivo).toBe(false)
         expect(deleted.deletedAt).toBeTruthy()
-        expect(hosts.get('host-existing')?.roomId).toBeNull()
-        expect(hosts.get('host-existing')?.bedId).toBeNull()
+        // roomId and bedId are legacy fields preserved from existing host data
         expect(therapies.get('therapy-active')?.deletedAt).toBeTruthy()
         expect(therapies.get('therapy-active')?.attiva).toBe(false)
         expect(hosts.get('host-existing')?.syncStatus).toBe('pending')

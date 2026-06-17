@@ -90,6 +90,7 @@ describe('residenze self-healing', () => {
         dbRooms.set('room-a', makeRoom({ id: 'room-a', codice: 'Via Bellani', updatedAt: '2026-04-17T08:00:00.000Z' }))
         dbRooms.set('room-b', makeRoom({ id: 'room-b', codice: 'Via Bellani', updatedAt: '2026-04-17T09:00:00.000Z' }))
         dbRooms.set('room-c', makeRoom({ id: 'room-c', codice: 'Il Rifugio', updatedAt: '2026-04-17T07:00:00.000Z' }))
+        dbRooms.set('room-demo', makeRoom({ id: 'room-demo', codice: 'Residenza Demo', updatedAt: '2026-04-17T06:00:00.000Z' }))
 
         dbBeds.set('bed-b1', {
             id: 'bed-b1',

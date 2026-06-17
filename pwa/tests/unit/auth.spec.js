@@ -1004,20 +1004,29 @@ describe('auth service', () => {
     })
 
     it('updates current user profile data (name, phone, email)', async () => {
+        // Pre-populate a user in the mock Supabase
+        const now = new Date().toISOString()
+        supabaseProfiles.push({
+            id: 'supabase-user-profile',
+            username: 'profileuser',
+            email: 'profile.user@example.com',
+            role: 'admin',
+            first_name: 'Nome',
+            last_name: 'Vecchio',
+            phone: '',
+            disabled: false,
+            is_seeded: false,
+            created_at: now,
+            updated_at: now,
+        })
+        supabasePasswords.set('supabase-user-profile', 'Password123!')
+
         const authModule = await import('../../src/services/auth')
         const { initAuth, useAuth } = authModule
         const auth = useAuth()
 
         await initAuth()
-        await auth.register({
-            username: 'profileuser',
-            firstName: 'Nome',
-            lastName: 'Vecchio',
-            email: 'profile.user@example.com',
-            password: 'Password123!',
-            confirmPassword: 'Password123!',
-            githubToken: 'github_pat_any_value',
-        })
+        await auth.signIn({ username: 'profileuser', password: 'Password123!' })
 
         const updated = await auth.updateCurrentProfile({
             username: 'profileuser',
@@ -1036,20 +1045,30 @@ describe('auth service', () => {
     })
 
     it('rejects profile update when email already belongs to another active user', async () => {
+        // Pre-populate first user in the mock Supabase
+        const now = new Date().toISOString()
+        supabaseProfiles.push({
+            id: 'supabase-user-first',
+            username: 'firstuser',
+            email: 'first.user@example.com',
+            role: 'admin',
+            first_name: 'First',
+            last_name: 'User',
+            phone: '',
+            disabled: false,
+            is_seeded: false,
+            created_at: now,
+            updated_at: now,
+        })
+        supabasePasswords.set('supabase-user-first', 'Password123!')
+
         const authModule = await import('../../src/services/auth')
         const { initAuth, useAuth } = authModule
         const auth = useAuth()
 
         await initAuth()
-        await auth.register({
-            username: 'firstuser',
-            firstName: 'First',
-            lastName: 'User',
-            email: 'first.user@example.com',
-            password: 'Password123!',
-            confirmPassword: 'Password123!',
-            githubToken: 'github_pat_any_value',
-        })
+        // initAuth boots emergency admin, so sign in instead of register
+        await auth.signIn({ username: 'firstuser', password: 'Password123!' })
 
         await auth.createUser({
             username: 'seconduser',

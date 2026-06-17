@@ -34,6 +34,8 @@ vi.mock('../../src/db', () => ({
         therapies: makeTable('therapies'),
         movements: makeTable('movements'),
         reminders: makeTable('reminders'),
+        syncQueue: { async add() { } },
+        activityLog: { async add() { } },
         async transaction(_mode, ...rest) {
             const callback = rest.pop()
             await callback()
@@ -69,8 +71,7 @@ function resetState() {
 describe('seedData — static helpers', () => {
     it('getSeedStats returns non-zero counts for every table', () => {
         const stats = getSeedStats()
-        expect(stats.rooms).toBeGreaterThan(0)
-        expect(stats.beds).toBeGreaterThan(0)
+        // rooms are no longer seeded (managed by ensureDefaultResidenze)
         expect(stats.hosts).toBeGreaterThan(0)
         expect(stats.drugs).toBeGreaterThan(0)
         expect(stats.stockBatches).toBeGreaterThan(0)
@@ -82,7 +83,6 @@ describe('seedData — static helpers', () => {
     it('all seed IDs are prefixed with __demo__', () => {
         const allRecords = [
             ...seedDataTestUtils.DEMO_ROOMS,
-            ...seedDataTestUtils.DEMO_BEDS,
             ...seedDataTestUtils.DEMO_HOSTS,
             ...seedDataTestUtils.DEMO_DRUGS,
             ...seedDataTestUtils.DEMO_STOCK_BATCHES,
@@ -98,7 +98,6 @@ describe('seedData — static helpers', () => {
     it('all seed records carry _seeded: true', () => {
         const allRecords = [
             ...seedDataTestUtils.DEMO_ROOMS,
-            ...seedDataTestUtils.DEMO_BEDS,
             ...seedDataTestUtils.DEMO_HOSTS,
             ...seedDataTestUtils.DEMO_DRUGS,
             ...seedDataTestUtils.DEMO_STOCK_BATCHES,
@@ -112,9 +111,9 @@ describe('seedData — static helpers', () => {
     })
 
     it('manifest IDs match record lists', () => {
-        const { DEMO_MANIFEST, DEMO_ROOMS, DEMO_BEDS, DEMO_HOSTS, DEMO_DRUGS, DEMO_STOCK_BATCHES, DEMO_THERAPIES, DEMO_MOVEMENTS, DEMO_REMINDERS } = seedDataTestUtils
-        expect(DEMO_MANIFEST.rooms).toEqual(DEMO_ROOMS.map(r => r.id))
-        expect(DEMO_MANIFEST.beds).toEqual(DEMO_BEDS.map(r => r.id))
+        const { DEMO_MANIFEST, DEMO_ROOMS, DEMO_HOSTS, DEMO_DRUGS, DEMO_STOCK_BATCHES, DEMO_THERAPIES, DEMO_MOVEMENTS, DEMO_REMINDERS } = seedDataTestUtils
+        // rooms are managed by ensureDefaultResidenze, manifest.rooms is []
+        expect(DEMO_MANIFEST.rooms).toEqual([])
         expect(DEMO_MANIFEST.hosts).toEqual(DEMO_HOSTS.map(r => r.id))
         expect(DEMO_MANIFEST.drugs).toEqual(DEMO_DRUGS.map(r => r.id))
         expect(DEMO_MANIFEST.stockBatches).toEqual(DEMO_STOCK_BATCHES.map(r => r.id))
@@ -123,11 +122,12 @@ describe('seedData — static helpers', () => {
         expect(DEMO_MANIFEST.reminders).toEqual(DEMO_REMINDERS.map(r => r.id))
     })
 
-    it('bed foreign keys resolve to existing seed rooms', () => {
-        const roomIds = new Set(seedDataTestUtils.DEMO_ROOMS.map(r => r.id))
-        for (const bed of seedDataTestUtils.DEMO_BEDS) {
-            expect(roomIds.has(bed.roomId)).toBe(true)
-        }
+    // beds have been removed as part of Stanze→Residenze migration
+    it('rooms are managed by ensureDefaultResidenze (not seeded)', () => {
+        const { DEMO_ROOMS } = seedDataTestUtils
+        // DEMO_ROOMS still exists for static reference but is no longer loaded
+        // Rooms ("Residenza Demo" etc.) are created by ensureDefaultResidenze()
+        expect(Array.isArray(DEMO_ROOMS)).toBe(true)
     })
 
     it('therapy foreign keys resolve to existing seed drugs and hosts', () => {
@@ -158,7 +158,6 @@ describe('seedData — static helpers', () => {
     it('no duplicate IDs within or across tables', () => {
         const allIds = [
             ...seedDataTestUtils.DEMO_ROOMS,
-            ...seedDataTestUtils.DEMO_BEDS,
             ...seedDataTestUtils.DEMO_HOSTS,
             ...seedDataTestUtils.DEMO_DRUGS,
             ...seedDataTestUtils.DEMO_STOCK_BATCHES,

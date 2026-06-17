@@ -48,9 +48,6 @@ export function useSyncState() {
         updateSyncState()
         intervalId = setInterval(updateSyncState, 2000) // Aggiorna ogni 2s
         window.addEventListener('online', updateSyncState)
-
-        // Immediate first call for test environments where onMounted may not fire
-        updateSyncState()
         window.addEventListener('offline', updateSyncState)
     })
 
@@ -60,7 +57,7 @@ export function useSyncState() {
         window.removeEventListener('offline', updateSyncState)
     })
 
-    return { statoSync, dettagli }
+    return { statoSync, dettagli, updateSyncState }
 }
 
 export { SYNC_STATES }
