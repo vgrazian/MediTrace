@@ -1,0 +1,581 @@
+# Instructions
+
+- Following Playwright test failed.
+- Explain why, be concise, respect Playwright best practices.
+- Provide a snippet of code with the fix, if possible.
+
+# Test info
+
+- Name: auth-and-users.spec.js >> seeded account login, sync, profile update, password change and users section are exercisable automatically
+- Location: tests/e2e/auth-and-users.spec.js:121:1
+
+# Error details
+
+```
+Error: expect(locator).toBeVisible() failed
+
+Locator: getByText(/sincronizzazione inizializzata con successo/i)
+Expected: visible
+Timeout: 5000ms
+Error: element(s) not found
+
+Call log:
+  - Expect "toBeVisible" with timeout 5000ms
+  - waiting for getByText(/sincronizzazione inizializzata con successo/i)
+
+```
+
+# Page snapshot
+
+```yaml
+- generic [ref=e3]:
+  - navigation [ref=e4]:
+    - generic "MediTrace" [ref=e5]:
+      - img "Comunità di Sant'Egidio" [ref=e6]
+      - generic [ref=e7]: MediTrace
+    - link "Cruscotto" [ref=e8] [cursor=pointer]:
+      - /url: "#/"
+    - link "Promemoria" [ref=e9] [cursor=pointer]:
+      - /url: "#/promemoria"
+    - link "Terapie" [ref=e10] [cursor=pointer]:
+      - /url: "#/terapie"
+    - link "Scorte" [ref=e11] [cursor=pointer]:
+      - /url: "#/scorte"
+    - link "Movimenti" [ref=e12] [cursor=pointer]:
+      - /url: "#/movimenti"
+    - link "Ospiti" [ref=e13] [cursor=pointer]:
+      - /url: "#/ospiti"
+    - link "Farmaci" [ref=e14] [cursor=pointer]:
+      - /url: "#/farmaci"
+    - link "Residenze" [ref=e15] [cursor=pointer]:
+      - /url: "#/residenze"
+    - link "Guida" [ref=e16] [cursor=pointer]:
+      - /url: "#/manuale"
+    - link "Operatori" [ref=e17] [cursor=pointer]:
+      - /url: "#/operatori"
+    - link "Audit" [ref=e18] [cursor=pointer]:
+      - /url: "#/audit"
+    - button "Stato sincronizzazione" [ref=e20] [cursor=pointer]:
+      - img [ref=e21]
+    - generic [ref=e24]:
+      - button "Sincronizza" [ref=e25] [cursor=pointer]:
+        - img [ref=e26]
+      - link "Admin Emergenza" [ref=e29] [cursor=pointer]:
+        - /url: "#/impostazioni"
+      - link "⚙" [ref=e30] [cursor=pointer]:
+        - /url: "#/impostazioni"
+      - button "Logout" [ref=e31] [cursor=pointer]
+  - main [ref=e32]:
+    - generic [ref=e33]:
+      - generic [ref=e34]:
+        - heading "Impostazioni" [level=2] [ref=e35]
+        - button "Aiuto" [ref=e36] [cursor=pointer]
+      - generic [ref=e37]:
+        - paragraph [ref=e38]:
+          - strong [ref=e39]: Fasce orarie configurabili
+        - generic [ref=e40]:
+          - table [ref=e41]:
+            - rowgroup [ref=e42]:
+              - row "Nome fascia Inizio Fine Azioni" [ref=e43]:
+                - columnheader "Nome fascia" [ref=e44]
+                - columnheader "Inizio" [ref=e45]
+                - columnheader "Fine" [ref=e46]
+                - columnheader "Azioni" [ref=e47]
+            - rowgroup
+          - button "Aggiungi fascia" [ref=e48]
+          - button "Salva fasce orarie" [ref=e49]
+      - generic [ref=e50]:
+        - paragraph [ref=e51]:
+          - strong [ref=e52]: Account operatore
+        - paragraph [ref=e53]: "Username: admin"
+        - paragraph [ref=e54]: "Nome: Admin Emergenza"
+        - paragraph [ref=e55]: "Telefono: —"
+        - paragraph [ref=e56]: "Email: admin@example.com"
+        - paragraph [ref=e57]: "Ruolo: amministratore"
+        - paragraph [ref=e58]: "Backend sincronizzazione: GitHub Gist (legacy)"
+        - button "Esci" [ref=e59]
+        - button "Disattiva utente di prova" [ref=e60]
+      - generic [ref=e61]:
+        - paragraph [ref=e62]:
+          - strong [ref=e63]: Profilo personale
+        - generic [ref=e64]:
+          - generic [ref=e65]:
+            - text: Username accesso
+            - textbox "Username accesso" [ref=e66]
+          - generic [ref=e67]:
+            - text: Nome profilo
+            - textbox "Nome profilo" [ref=e68]
+          - generic [ref=e69]:
+            - text: Cognome profilo
+            - textbox "Cognome profilo" [ref=e70]
+          - generic [ref=e71]:
+            - text: Telefono profilo
+            - textbox "Telefono profilo" [ref=e72]:
+              - /placeholder: +39 333 1234567
+          - generic [ref=e73]:
+            - text: Email profilo
+            - textbox "Email profilo" [ref=e74]
+          - button "Aggiorna profilo" [disabled] [ref=e75]
+      - generic [ref=e76]:
+        - paragraph [ref=e77]:
+          - strong [ref=e78]: Gestione password
+        - generic [ref=e79]:
+          - generic [ref=e80]:
+            - text: Password corrente
+            - textbox "Password corrente" [ref=e81]
+          - generic [ref=e82]:
+            - text: Nuova password
+            - textbox "Nuova password" [ref=e83]
+          - paragraph [ref=e84]:
+            - text: "Regole: 10+ caratteri, maiuscola, minuscola, numero e simbolo."
+            - text: "Verifica: no lunghezza · no maiuscola · no minuscola · no numero · no simbolo"
+          - generic [ref=e85]:
+            - text: Conferma nuova password
+            - textbox "Conferma nuova password" [ref=e86]
+          - button "Aggiorna password" [disabled] [ref=e87]
+      - generic [ref=e88]:
+        - paragraph [ref=e89]:
+          - strong [ref=e90]: Utenti
+        - paragraph [ref=e91]: Gestione utenti consentita solo ad account amministratore. Gli operatori vengono creati direttamente da questo pannello.
+        - generic [ref=e92]:
+          - paragraph [ref=e93]:
+            - strong [ref=e94]: Crea nuovo utente
+          - generic [ref=e95]:
+            - text: Nome
+            - textbox "Nome" [ref=e96]
+          - generic [ref=e97]:
+            - text: Cognome
+            - textbox "Cognome" [ref=e98]
+          - generic [ref=e99]:
+            - text: Username suggerito
+            - textbox "Username suggerito" [ref=e100]
+          - paragraph [ref=e101]: "Suggerimento: prime 8 lettere del nome + prime 7 del cognome, modificabile manualmente."
+          - generic [ref=e102]:
+            - text: Email
+            - textbox "Email" [ref=e103]
+          - generic [ref=e104]:
+            - text: Telefono
+            - textbox "Telefono" [ref=e105]:
+              - /placeholder: +39 333 1234567
+          - generic [ref=e106]:
+            - text: Password iniziale
+            - textbox "Password iniziale" [ref=e107]
+          - paragraph [ref=e108]: "Regole password: no lunghezza · no maiuscola · no minuscola · no numero · no simbolo"
+          - generic [ref=e109]:
+            - text: Ruolo
+            - combobox "Ruolo" [ref=e110]:
+              - option "Operatore" [selected]
+              - option "Amministratore"
+          - generic [ref=e111]:
+            - checkbox "Marca come utente di prova" [ref=e112]
+            - text: Marca come utente di prova
+          - button "Crea utente" [disabled] [ref=e113]
+        - table [ref=e115]:
+          - rowgroup [ref=e116]:
+            - 'row "Username Nome Cognome Telefono Email Admin <<<<<<< HEAD <<<<<<< HEAD Prova ======= Prova >>>>>>> e43e62c (fix(e2e): robust selectors and admin-only time slot config section; all E2E tests green) ======= Prova >>>>>>> 2a10e8f (fix(ui): aggiorna label utente di prova/standard e colonna in impostazioni) Disabilitato Ultima attività Creato il Azioni Tipo Stato Azione" [ref=e117]':
+              - columnheader "Username" [ref=e118]
+              - columnheader "Nome" [ref=e119]
+              - columnheader "Cognome" [ref=e120]
+              - columnheader "Telefono" [ref=e121]
+              - columnheader "Email" [ref=e122]
+              - columnheader "Admin" [ref=e123]
+              - text: <<<<<<< HEAD <<<<<<< HEAD
+              - columnheader "Prova" [ref=e124]
+              - text: =======
+              - columnheader "Prova" [ref=e125]
+              - text: ">>>>>>> e43e62c (fix(e2e): robust selectors and admin-only time slot config section; all E2E tests green) ======="
+              - columnheader "Prova" [ref=e126]
+              - text: ">>>>>>> 2a10e8f (fix(ui): aggiorna label utente di prova/standard e colonna in impostazioni)"
+              - columnheader "Disabilitato" [ref=e127]
+              - columnheader "Ultima attività" [ref=e128]
+              - columnheader "Creato il" [ref=e129]
+              - columnheader "Azioni" [ref=e130]
+              - columnheader "Tipo" [ref=e131]
+              - columnheader "Stato" [ref=e132]
+              - columnheader "Azione" [ref=e133]
+          - rowgroup [ref=e134]:
+            - 'row "admin (sessione attiva) Admin Emergenza — admin@example.com <<<<<<< HEAD <<<<<<< HEAD ✔ ======= ✔ >>>>>>> e43e62c (fix(e2e): robust selectors and admin-only time slot config section; all E2E tests green) ======= ✔ >>>>>>> 2a10e8f (fix(ui): aggiorna label utente di prova/standard e colonna in impostazioni) — 2026-06-17 15:28:40 <<<<<<< HEAD <<<<<<< HEAD prova ======= prova >>>>>>> e43e62c (fix(e2e): robust selectors and admin-only time slot config section; all E2E tests green) ======= prova >>>>>>> 2a10e8f (fix(ui): aggiorna label utente di prova/standard e colonna in impostazioni) attivo —" [ref=e135]':
+              - cell "admin (sessione attiva)" [ref=e136]
+              - cell "Admin" [ref=e137]
+              - cell "Emergenza" [ref=e138]
+              - cell "—" [ref=e139]
+              - cell "admin@example.com" [ref=e140]
+              - cell [ref=e141]:
+                - checkbox [checked] [disabled] [ref=e142]
+              - 'cell "<<<<<<< HEAD <<<<<<< HEAD ✔ ======= ✔ >>>>>>> e43e62c (fix(e2e): robust selectors and admin-only time slot config section; all E2E tests green) ======= ✔ >>>>>>> 2a10e8f (fix(ui): aggiorna label utente di prova/standard e colonna in impostazioni)" [ref=e143]'
+              - cell [ref=e144]
+              - cell "—" [ref=e145]
+              - cell "2026-06-17 15:28:40" [ref=e146]
+              - cell [ref=e147]
+              - text: <<<<<<< HEAD <<<<<<< HEAD
+              - cell "prova" [ref=e148]
+              - text: =======
+              - cell "prova" [ref=e149]
+              - text: ">>>>>>> e43e62c (fix(e2e): robust selectors and admin-only time slot config section; all E2E tests green) ======="
+              - cell "prova" [ref=e150]
+              - text: ">>>>>>> 2a10e8f (fix(ui): aggiorna label utente di prova/standard e colonna in impostazioni)"
+              - cell "attivo" [ref=e151]
+              - cell "—" [ref=e152]
+            - 'row "anna Anna Bianchi — anna@example.com <<<<<<< HEAD <<<<<<< HEAD ✔ ======= ✔ >>>>>>> e43e62c (fix(e2e): robust selectors and admin-only time slot config section; all E2E tests green) ======= ✔ >>>>>>> 2a10e8f (fix(ui): aggiorna label utente di prova/standard e colonna in impostazioni) — 2026-06-17 15:28:40 Reset PW Logout <<<<<<< HEAD <<<<<<< HEAD prova ======= prova >>>>>>> e43e62c (fix(e2e): robust selectors and admin-only time slot config section; all E2E tests green) ======= prova >>>>>>> 2a10e8f (fix(ui): aggiorna label utente di prova/standard e colonna in impostazioni) attivo Disattiva Elimina" [ref=e153]':
+              - cell "anna" [ref=e154]
+              - cell "Anna" [ref=e155]
+              - cell "Bianchi" [ref=e156]
+              - cell "—" [ref=e157]
+              - cell "anna@example.com" [ref=e158]
+              - cell [ref=e159]:
+                - checkbox [ref=e160]
+              - 'cell "<<<<<<< HEAD <<<<<<< HEAD ✔ ======= ✔ >>>>>>> e43e62c (fix(e2e): robust selectors and admin-only time slot config section; all E2E tests green) ======= ✔ >>>>>>> 2a10e8f (fix(ui): aggiorna label utente di prova/standard e colonna in impostazioni)" [ref=e161]'
+              - cell [ref=e162]
+              - cell "—" [ref=e163]
+              - cell "2026-06-17 15:28:40" [ref=e164]
+              - cell "Reset PW Logout" [ref=e165]:
+                - button "Reset PW" [ref=e166]
+                - button "Logout" [ref=e167]
+              - text: <<<<<<< HEAD <<<<<<< HEAD
+              - cell "prova" [ref=e168]
+              - text: =======
+              - cell "prova" [ref=e169]
+              - text: ">>>>>>> e43e62c (fix(e2e): robust selectors and admin-only time slot config section; all E2E tests green) ======="
+              - cell "prova" [ref=e170]
+              - text: ">>>>>>> 2a10e8f (fix(ui): aggiorna label utente di prova/standard e colonna in impostazioni)"
+              - cell "attivo" [ref=e171]
+              - cell "Disattiva Elimina" [ref=e172]:
+                - button "Disattiva" [ref=e173]
+                - button "Elimina" [ref=e174]
+            - 'row "prova — — — — <<<<<<< HEAD <<<<<<< HEAD ✔ ======= ✔ >>>>>>> e43e62c (fix(e2e): robust selectors and admin-only time slot config section; all E2E tests green) ======= ✔ >>>>>>> 2a10e8f (fix(ui): aggiorna label utente di prova/standard e colonna in impostazioni) — 2026-06-17 15:28:40 Reset PW Logout <<<<<<< HEAD <<<<<<< HEAD prova ======= prova >>>>>>> e43e62c (fix(e2e): robust selectors and admin-only time slot config section; all E2E tests green) ======= prova >>>>>>> 2a10e8f (fix(ui): aggiorna label utente di prova/standard e colonna in impostazioni) attivo Disattiva Elimina" [ref=e175]':
+              - cell "prova" [ref=e176]
+              - cell "—" [ref=e177]
+              - cell "—" [ref=e178]
+              - cell "—" [ref=e179]
+              - cell "—" [ref=e180]
+              - cell [ref=e181]:
+                - checkbox [checked] [ref=e182]
+              - 'cell "<<<<<<< HEAD <<<<<<< HEAD ✔ ======= ✔ >>>>>>> e43e62c (fix(e2e): robust selectors and admin-only time slot config section; all E2E tests green) ======= ✔ >>>>>>> 2a10e8f (fix(ui): aggiorna label utente di prova/standard e colonna in impostazioni)" [ref=e183]'
+              - cell [ref=e184]
+              - cell "—" [ref=e185]
+              - cell "2026-06-17 15:28:40" [ref=e186]
+              - cell "Reset PW Logout" [ref=e187]:
+                - button "Reset PW" [ref=e188]
+                - button "Logout" [ref=e189]
+              - text: <<<<<<< HEAD <<<<<<< HEAD
+              - cell "prova" [ref=e190]
+              - text: =======
+              - cell "prova" [ref=e191]
+              - text: ">>>>>>> e43e62c (fix(e2e): robust selectors and admin-only time slot config section; all E2E tests green) ======="
+              - cell "prova" [ref=e192]
+              - text: ">>>>>>> 2a10e8f (fix(ui): aggiorna label utente di prova/standard e colonna in impostazioni)"
+              - cell "attivo" [ref=e193]
+              - cell "Disattiva Elimina" [ref=e194]:
+                - button "Disattiva" [ref=e195]
+                - button "Elimina" [ref=e196]
+            - 'row "valerio Valerio Graziani — valerio@example.com <<<<<<< HEAD <<<<<<< HEAD ✔ ======= ✔ >>>>>>> e43e62c (fix(e2e): robust selectors and admin-only time slot config section; all E2E tests green) ======= ✔ >>>>>>> 2a10e8f (fix(ui): aggiorna label utente di prova/standard e colonna in impostazioni) — 2026-06-17 15:28:40 Reset PW Logout <<<<<<< HEAD <<<<<<< HEAD prova ======= prova >>>>>>> e43e62c (fix(e2e): robust selectors and admin-only time slot config section; all E2E tests green) ======= prova >>>>>>> 2a10e8f (fix(ui): aggiorna label utente di prova/standard e colonna in impostazioni) attivo Disattiva Elimina" [ref=e197]':
+              - cell "valerio" [ref=e198]
+              - cell "Valerio" [ref=e199]
+              - cell "Graziani" [ref=e200]
+              - cell "—" [ref=e201]
+              - cell "valerio@example.com" [ref=e202]
+              - cell [ref=e203]:
+                - checkbox [ref=e204]
+              - 'cell "<<<<<<< HEAD <<<<<<< HEAD ✔ ======= ✔ >>>>>>> e43e62c (fix(e2e): robust selectors and admin-only time slot config section; all E2E tests green) ======= ✔ >>>>>>> 2a10e8f (fix(ui): aggiorna label utente di prova/standard e colonna in impostazioni)" [ref=e205]'
+              - cell [ref=e206]
+              - cell "—" [ref=e207]
+              - cell "2026-06-17 15:28:40" [ref=e208]
+              - cell "Reset PW Logout" [ref=e209]:
+                - button "Reset PW" [ref=e210]
+                - button "Logout" [ref=e211]
+              - text: <<<<<<< HEAD <<<<<<< HEAD
+              - cell "prova" [ref=e212]
+              - text: =======
+              - cell "prova" [ref=e213]
+              - text: ">>>>>>> e43e62c (fix(e2e): robust selectors and admin-only time slot config section; all E2E tests green) ======="
+              - cell "prova" [ref=e214]
+              - text: ">>>>>>> 2a10e8f (fix(ui): aggiorna label utente di prova/standard e colonna in impostazioni)"
+              - cell "attivo" [ref=e215]
+              - cell "Disattiva Elimina" [ref=e216]:
+                - button "Disattiva" [ref=e217]
+                - button "Elimina" [ref=e218]
+        - generic [ref=e219]:
+          - paragraph [ref=e220]:
+            - strong [ref=e221]: Dati demo (live)
+          - paragraph [ref=e222]: Usa questo pulsante per importare rapidamente dati dimostrativi o per ripulirli. I dati vengono creati nella residenza "Residenza Demo", lasciando "Il Rifugio" e "Via Bellani" vuote.
+          - paragraph [ref=e223]: "Pacchetto: 10 farmaci · 10 ospiti · 11 confezioni · 15 terapie · 15 movimenti · 15 promemoria"
+          - button "Genera dati demo" [ref=e224]
+      - generic [ref=e225]:
+        - paragraph [ref=e226]:
+          - strong [ref=e227]: Notifiche promemoria
+        - paragraph [ref=e228]: "Supporto browser: si"
+        - paragraph [ref=e229]: "Permesso: denied"
+        - paragraph [ref=e230]: "Stato: non abilitate"
+        - paragraph [ref=e231]: "Dettaglio: Bloccate dal browser/dispositivo."
+        - generic [ref=e232]:
+          - button "Abilita notifiche" [ref=e233]
+          - button "Invia notifica test" [disabled] [ref=e234]
+          - button "Verifica promemoria imminenti" [disabled] [ref=e235]
+          - button "Aggiorna stato" [ref=e236]
+        - paragraph [ref=e237]:
+          - strong [ref=e238]: Web Push API (base)
+        - paragraph [ref=e239]: "Supporto Push API: no"
+        - paragraph [ref=e240]: "VAPID public key: mancante"
+        - paragraph [ref=e241]: "Stato sottoscrizione: non attiva"
+        - paragraph [ref=e242]: "Dettaglio: Push API non supportata in questo ambiente."
+        - generic [ref=e243]:
+          - button "Attiva sottoscrizione push" [disabled] [ref=e244]
+          - button "Disattiva sottoscrizione push" [disabled] [ref=e245]
+          - button "Aggiorna stato push" [ref=e246]
+        - paragraph [ref=e247]:
+          - strong [ref=e248]: Promemoria prossime 24h (pending)
+        - paragraph [ref=e249]: Questa lista supporta il controllo operativo dei reminder candidati alla notifica nelle prossime 24 ore.
+        - button "Aggiorna lista 24h" [ref=e250]
+        - table [ref=e252]:
+          - rowgroup [ref=e253]:
+            - row "Orario Ospite Farmaco Stato" [ref=e254]:
+              - columnheader "Orario" [ref=e255]
+              - columnheader "Ospite" [ref=e256]
+              - columnheader "Farmaco" [ref=e257]
+              - columnheader "Stato" [ref=e258]
+          - rowgroup [ref=e259]:
+            - row "Nessun promemoria pending nelle prossime 24 ore." [ref=e260]:
+              - cell "Nessun promemoria pending nelle prossime 24 ore." [ref=e261]
+      - generic [ref=e262]:
+        - paragraph [ref=e263]:
+          - strong [ref=e264]: Sicurezza sessione
+        - paragraph [ref=e265]: "TTL sessione: 480 minuti"
+        - paragraph [ref=e266]: "Scadenza: 2026-06-17T23:28:41.376Z"
+        - paragraph [ref=e267]: "Ultima attivita': 2026-06-17T15:28:41.376Z"
+        - paragraph [ref=e268]: "Stato: attiva"
+        - paragraph [ref=e269]: "Credenziali: Credenziali entro finestra operativa."
+        - paragraph [ref=e270]: "Scadenza credenziali: 2026-09-15T15:28:40.536Z"
+        - button "Aggiorna stato sicurezza" [ref=e271]
+        - generic [ref=e272]:
+          - generic [ref=e273]:
+            - text: Filtro audit accessi
+            - textbox "Filtro audit accessi" [ref=e274]:
+              - /placeholder: es. accesso, scadenza, amministratore
+          - button "Applica filtro" [ref=e275]
+        - table [ref=e277]:
+          - rowgroup [ref=e278]:
+            - row "Timestamp Azione Operatore" [ref=e279]:
+              - columnheader "Timestamp" [ref=e280]
+              - columnheader "Azione" [ref=e281]
+              - columnheader "Operatore" [ref=e282]
+          - rowgroup [ref=e283]:
+            - row "2026-06-17T15:28:40.757Z auth_signin_success admin" [ref=e284]:
+              - cell "2026-06-17T15:28:40.757Z" [ref=e285]
+              - cell "auth_signin_success" [ref=e286]
+              - cell "admin" [ref=e287]
+      - generic [ref=e288]:
+        - paragraph [ref=e289]:
+          - strong [ref=e290]: Dispositivo
+        - paragraph [ref=e291]: "Device ID: — (non ancora assegnato)"
+        - paragraph [ref=e292]: "Versione dataset locale: —"
+      - generic [ref=e293]:
+        - paragraph [ref=e294]:
+          - strong [ref=e295]: Sincronizzazione
+        - generic [ref=e296]:
+          - generic [ref=e297]:
+            - text: Sincronizza automaticamente ogni
+            - combobox "Sincronizza automaticamente ogni" [ref=e298]:
+              - option "5 minuti"
+              - option "10 minuti"
+              - option "15 minuti" [selected]
+              - option "30 minuti"
+              - option "60 minuti"
+          - button "Sincronizza ora" [active] [ref=e299]
+        - paragraph [ref=e300]: "Errore sincronizzazione: Sincronizzazione non configurata Azioni suggerite: • Configura VITE_SUPABASE_URL e VITE_SUPABASE_PUBLISHABLE_KEY nelle GitHub Variables • Oppure imposta un token GitHub nell'account operatore per la sincronizzazione legacy"
+      - generic [ref=e301]:
+        - paragraph [ref=e302]:
+          - strong [ref=e303]: Conflitti sincronizzazione
+        - paragraph [ref=e304]: "Conflitti aperti: 0"
+        - paragraph [ref=e305]: Nessun conflitto aperto.
+      - generic [ref=e306]:
+        - paragraph [ref=e307]:
+          - strong [ref=e308]: Backup locale
+        - paragraph [ref=e309]: Scarica tutti i dati come file JSON oppure ripristina un backup per upgrade sicuri.
+        - generic [ref=e310]:
+          - button "Scarica backup JSON" [ref=e311]
+          - button "Choose File" [ref=e312]
+          - button "Ripristina backup da file" [disabled] [ref=e313]
+        - paragraph [ref=e314]: "Best practice: esegui prima \"Scarica backup JSON\", poi restore, poi \"Sincronizza ora\"."
+      - generic [ref=e315]:
+        - paragraph [ref=e316]:
+          - strong [ref=e317]: Import CSV guidato
+        - paragraph [ref=e318]: Supporta simulazione senza scrittura con report righe scartate secondo mapping v1.
+        - generic [ref=e319]:
+          - generic [ref=e320]:
+            - text: Sorgente
+            - combobox "Sorgente" [ref=e321]:
+              - option "01_CatalogoFarmaci.csv" [selected]
+              - option "02_ConfezioniMagazzino.csv"
+              - option "03_Ospiti.csv"
+              - option "04_TerapieAttive.csv"
+              - option "05_Movimenti.csv"
+              - option "09_PromemoriaSomministrazioni.csv"
+          - generic [ref=e322]:
+            - text: File CSV
+            - button "File CSV" [ref=e323]
+          - generic [ref=e324]:
+            - checkbox "Esegui simulazione (nessuna scrittura)" [checked] [ref=e325]
+            - text: Esegui simulazione (nessuna scrittura)
+          - button "Avvia import CSV" [ref=e326]
+```
+
+# Test source
+
+```ts
+  30  | 
+  31  |     // Degrada a operatore
+  32  |     await opRow.locator('input[type="checkbox"]').uncheck()
+  33  |     console.log('Degradato a operatore, attendo update...')
+  34  |     await expect(opRow.locator('input[type="checkbox"]').not.toBeChecked())
+  35  | 
+  36  |     // Logout admin
+  37  |     await page.getByRole('button', { name: 'Esci' }).click()
+  38  |     console.log('Logout admin, clear storage e goto / ...')
+  39  |     await page.context().clearCookies()
+  40  |     await page.evaluate(() => { localStorage.clear(); sessionStorage.clear(); })
+  41  |     await page.goto('/')
+  42  |     await expect(page.getByRole('textbox', { name: 'Username accesso' })).toBeVisible()
+  43  |     // Login come operatore
+  44  |     await page.getByRole('textbox', { name: 'Username accesso' }).fill('operatore1')
+  45  |     await page.getByLabel('Password').fill('Test12345!')
+  46  |     await page.getByRole('button', { name: /Accedi/i }).click()
+  47  |     await page.getByRole('link', { name: '⚙' }).click()
+  48  |     await expect(page.getByRole('heading', { name: 'Impostazioni' })).toBeVisible()
+  49  | 
+  50  |     // Verifica che NON possa modificare fasce orarie
+  51  |     await expect(page.getByText(/Fasce orarie/)).toHaveCount(0)
+  52  |     console.log('Verifica permessi operatore OK')
+  53  | 
+  54  |     // Logout operatore
+  55  |     await page.getByRole('button', { name: 'Esci' }).click()
+  56  |     console.log('Logout operatore, login admin...')
+  57  | 
+  58  |     // Login come admin
+  59  |     await loginOrRegisterSeededUser(page)
+  60  |     console.log('Login admin riuscito, controllo permessi...')
+  61  |     await page.getByRole('link', { name: '⚙' }).click()
+  62  |     await expect(page.getByRole('heading', { name: /Impostazioni/ })).toBeVisible()
+  63  |     await expect(page.getByText('Fasce orarie configurabili')).toBeVisible()
+  64  |     console.log('Verifica permessi admin OK, FINE TEST')
+  65  | })
+  66  | import { test, expect } from '@playwright/test'
+  67  | import { loginOrRegisterSeededUser } from './helpers/login'
+  68  | 
+  69  | test.beforeEach(async ({ page }) => {
+  70  |     let gistCreated = false
+  71  | 
+  72  |     await page.route('https://api.github.com/user', async route => {
+  73  |         await route.fulfill({
+  74  |             status: 200,
+  75  |             contentType: 'application/json',
+  76  |             body: JSON.stringify({
+  77  |                 login: 'seeded-gh-user',
+  78  |                 name: 'Seeded User',
+  79  |                 avatar_url: 'https://avatars.githubusercontent.com/u/1?v=4',
+  80  |             }),
+  81  |         })
+  82  |     })
+  83  | 
+  84  |     await page.route('https://api.github.com/gists*', async route => {
+  85  |         const req = route.request()
+  86  |         const method = req.method()
+  87  |         const url = req.url()
+  88  | 
+  89  |         if (method === 'GET' && url.includes('/gists?')) {
+  90  |             await route.fulfill({
+  91  |                 status: 200,
+  92  |                 contentType: 'application/json',
+  93  |                 body: JSON.stringify(gistCreated ? [{ id: 'gist-seeded-id', description: 'MediTrace — dati personali (non modificare manualmente)' }] : []),
+  94  |             })
+  95  |             return
+  96  |         }
+  97  | 
+  98  |         if (method === 'POST' && url.endsWith('/gists')) {
+  99  |             gistCreated = true
+  100 |             const payload = JSON.parse(req.postData() || '{}')
+  101 |             const files = payload.files || {}
+  102 | 
+  103 |             await route.fulfill({
+  104 |                 status: 201,
+  105 |                 contentType: 'application/json',
+  106 |                 body: JSON.stringify({
+  107 |                     id: 'gist-seeded-id',
+  108 |                     updated_at: new Date().toISOString(),
+  109 |                     files: Object.fromEntries(
+  110 |                         Object.entries(files).map(([name, value]) => [name, { filename: name, content: value.content || '{}' }]),
+  111 |                     ),
+  112 |                 }),
+  113 |             })
+  114 |             return
+  115 |         }
+  116 | 
+  117 |         await route.fulfill({ status: 404, contentType: 'application/json', body: JSON.stringify({ message: 'not found' }) })
+  118 |     })
+  119 | })
+  120 | 
+  121 | test('seeded account login, sync, profile update, password change and users section are exercisable automatically', async ({ page }) => {
+  122 |     await page.goto('/')
+  123 |     await loginOrRegisterSeededUser(page)
+  124 | 
+  125 |     await page.getByRole('link', { name: '⚙' }).click()
+  126 |     await expect(page.getByRole('heading', { name: 'Impostazioni' })).toBeVisible()
+  127 |     await expect(page.locator('strong', { hasText: 'Utenti' })).toBeVisible()
+  128 | 
+  129 |     await page.getByRole('button', { name: 'Sincronizza ora' }).click()
+> 130 |     await expect(page.getByText(/sincronizzazione inizializzata con successo/i)).toBeVisible()
+      |                                                                                  ^ Error: expect(locator).toBeVisible() failed
+  131 | 
+  132 |     await page.getByLabel('Sorgente').selectOption('01_CatalogoFarmaci.csv')
+  133 |     await page.locator('input[type="file"][accept=".csv,text/csv"]').setInputFiles({
+  134 |         name: '01_CatalogoFarmaci.csv',
+  135 |         mimeType: 'text/csv',
+  136 |         buffer: Buffer.from('drug_id,principio_attivo\nDRUG-1,Paracetamolo\n'),
+  137 |     })
+  138 |     await page.getByRole('button', { name: 'Avvia import CSV' }).click()
+  139 |     await expect(page.getByText('Accettate: 1')).toBeVisible()
+  140 | 
+  141 |     await page.getByLabel('Nome profilo', { exact: true }).fill('Mario')
+  142 |     await page.getByLabel('Cognome profilo', { exact: true }).fill('Rossi')
+  143 |     await page.getByLabel('Username accesso', { exact: true }).fill('prova')
+  144 |     await page.getByLabel('Telefono profilo', { exact: true }).fill('+39 333 1234567')
+  145 |     await page.getByLabel('Email profilo', { exact: true }).fill('mario.rossi+seed@example.com')
+  146 |     await page.getByRole('button', { name: 'Aggiorna profilo' }).click()
+  147 |     await expect(page.getByText('Profilo aggiornato con successo.')).toBeVisible()
+  148 |     await expect(page.getByText('Telefono: +39 333 1234567')).toBeVisible()
+  149 |     await expect(page.getByText('Email: mario.rossi+seed@example.com')).toBeVisible()
+  150 | 
+  151 |     await page.getByLabel('Password corrente').fill('Prova1234!')
+  152 |     await page.getByLabel('Nuova password', { exact: true }).fill('Prova45678!')
+  153 |     await page.getByLabel('Conferma nuova password').fill('Prova45678!')
+  154 |     await page.getByRole('button', { name: 'Aggiorna password' }).click()
+  155 |     await loginOrRegisterSeededUser(page, { password: 'Prova45678!' })
+  156 | 
+  157 |     // CI-safe: after password change, route directly through navbar to avoid hash-state race.
+  158 |     const settingsHeading = page.getByRole('heading', { name: 'Impostazioni' })
+  159 |     const settingsLink = page.getByRole('link', { name: '⚙' })
+  160 |     if (!(await settingsLink.isVisible().catch(() => false))) {
+  161 |         await loginOrRegisterSeededUser(page, { password: 'Prova45678!' })
+  162 |     }
+  163 |     if (await settingsLink.isVisible().catch(() => false)) {
+  164 |         await settingsLink.click()
+  165 |     } else {
+  166 |         await page.goto('/#/impostazioni')
+  167 |     }
+  168 |     if (!(await settingsHeading.isVisible().catch(() => false))) {
+  169 |         // Fallback: auth state may still be settling in CI, re-login and retry once.
+  170 |         await loginOrRegisterSeededUser(page, { password: 'Prova45678!' })
+  171 |         if (await settingsLink.isVisible().catch(() => false)) {
+  172 |             await settingsLink.click()
+  173 |         } else {
+  174 |             await page.goto('/#/impostazioni')
+  175 |         }
+  176 |     }
+  177 |     await expect(settingsHeading).toBeVisible({ timeout: 15000 })
+  178 | 
+  179 |     // Validate seeded user row and guard on current session user actions
+  180 |     const currentUserRow = page.locator('table.conflict-table tbody tr').filter({ hasText: 'prova (sessione attiva)' }).first()
+  181 |     await expect(currentUserRow).toBeVisible()
+  182 |     await expect(currentUserRow.getByRole('button', { name: 'Elimina' })).toHaveCount(0)
+  183 | })
+  184 | 
+```
