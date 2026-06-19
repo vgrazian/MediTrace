@@ -19,6 +19,7 @@ const currentResidenzaLabel = ref('')
 const showResidenzaDropdown = ref(false)
 const availableResidenze = ref([])
 const residenzaDropdownRef = ref(null)
+const residenzaBadgeRef = ref(null)
 
 const showResidenzaBadge = computed(() => Boolean(currentResidenzaId.value && currentResidenzaLabel.value))
 
@@ -55,7 +56,11 @@ function toggleResidenzaDropdown() {
     showResidenzaDropdown.value = false
   } else {
     loadAvailableResidenze()
-    showResidenzaDropdown.value = true
+    // Use nextTick so the document click listener (closeResidenzaDropdown)
+    // doesn't immediately close the dropdown on the same click
+    nextTick(() => {
+      showResidenzaDropdown.value = true
+    })
   }
 }
 
@@ -72,9 +77,11 @@ async function selectResidenza(roomId) {
 }
 
 function closeResidenzaDropdown(e) {
-  if (residenzaDropdownRef.value && !residenzaDropdownRef.value.contains(e.target)) {
-    showResidenzaDropdown.value = false
-  }
+  // Ignore clicks on the badge itself (toggleResidenzaDropdown handles those)
+  if (residenzaBadgeRef.value && residenzaBadgeRef.value.contains(e.target)) return
+  // Ignore clicks inside the dropdown
+  if (residenzaDropdownRef.value && residenzaDropdownRef.value.contains(e.target)) return
+  showResidenzaDropdown.value = false
 }
 
 // ── Periodic sync (Supabase free‑tier safe) ─────────────────────────────────
@@ -183,7 +190,7 @@ async function handleSync() {
       <span class="brand-title">MediTrace</span>
     </div>
 
-    <span v-if="showResidenzaBadge" class="residenza-badge" :title="`Residenza attiva: ${currentResidenzaLabel} — clicca per cambiare`" @click.stop="toggleResidenzaDropdown" role="button" tabindex="0" style="cursor:pointer">
+    <span v-if="showResidenzaBadge" ref="residenzaBadgeRef" class="residenza-badge" :title="`Residenza attiva: ${currentResidenzaLabel} — clicca per cambiare`" @click.stop="toggleResidenzaDropdown" role="button" tabindex="0" style="cursor:pointer">
       🏠 {{ currentResidenzaLabel }}
       <span class="residenza-chevron">▾</span>
       <div v-if="showResidenzaDropdown" ref="residenzaDropdownRef" class="residenza-dropdown" @click.stop>
