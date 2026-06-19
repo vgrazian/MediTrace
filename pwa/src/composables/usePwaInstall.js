@@ -156,7 +156,9 @@ function showInstallPrompt() {
         return
     }
     // Fallback: usa il banner Vue interno
-}
+    if (canInstall.value && !wasDismissed()) {
+        showPrompt.value = true
+    }
 }
 
 export function usePwaInstall() {
