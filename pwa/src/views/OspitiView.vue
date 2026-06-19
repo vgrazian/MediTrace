@@ -5,7 +5,7 @@ function handleKeyboardShortcut(event) {
   // Focus search (Cerca)
   if (event.key === '/') {
     event.preventDefault()
-    const searchInput = document.querySelector('input[placeholder="Cerca per nome, cognome, codice, iniziali o residenza"]')
+    const searchInput = document.querySelector('input[placeholder="Cerca per nome, cognome o residenza"]')
     if (searchInput) searchInput.focus()
   }
   // Nuovo (Aggiungi ospite)
@@ -86,12 +86,10 @@ const editingHostId = ref(null)
 const isFormOpen = ref(false)
 const panelMode = ref('list')
 const filterQuery = ref('')
-const sortBy = ref('codice')
+const sortBy = ref('nome')
 const formSnapshot = ref('')
 
 const form = ref({
-    codiceInterno: '',
-    iniziali: '',
   nome: '',
   cognome: '',
   luogoNascita: '',
@@ -119,8 +117,6 @@ const filteredRows = computed(() => {
     ? rows.value.filter((host) => {
     const haystack = [
       host.id,
-      host.codiceInterno,
-      host.iniziali,
       host.nome,
       host.cognome,
       formatHostDisplay(host),
@@ -160,8 +156,8 @@ const isDirty = computed(() => {
 
 useUnsavedChangesGuard(isDirty)
 
-const canCreate = computed(() => ((form.value.nome || '').trim() || (form.value.cognome || '').trim() || form.value.codiceInterno.trim() || form.value.iniziali.trim()))
-const canSave = computed(() => ((form.value.nome || '').trim() || (form.value.cognome || '').trim() || form.value.codiceInterno.trim() || form.value.iniziali.trim()))
+const canCreate = computed(() => ((form.value.nome || '').trim() || (form.value.cognome || '').trim()))
+const canSave = computed(() => ((form.value.nome || '').trim() || (form.value.cognome || '').trim()))
 
 const availableBeds = computed(() => {
     const room = roomsData.value.find(r => r.id === form.value.roomId)
@@ -207,6 +203,15 @@ async function loadData() {
     }
 }
 
+function autoCodiceInterno(nome, cognome) {
+  const n = (nome || '').trim().toUpperCase()
+  const c = (cognome || '').trim().toUpperCase()
+  if (!n && !c) return ''
+  const part1 = n.charAt(0)
+  const part2 = c.replace(/[^A-Z]/g, '').slice(0, 5)
+  return (part1 + part2) || 'OSP'
+}
+
 async function handleSave() {
     message.value = ''
     errorMessage.value = ''
@@ -221,6 +226,8 @@ async function handleSave() {
       return
     }
 
+    const codice = autoCodiceInterno(form.value.nome, form.value.cognome)
+
     saving.value = true
     try {
         const roomId = form.value.roomId || null
@@ -231,8 +238,8 @@ async function handleSave() {
         if (editingHostId.value) {
           await updateHost({
             hostId: editingHostId.value,
-            codiceInterno: form.value.codiceInterno,
-            iniziali: form.value.iniziali,
+            codiceInterno: codice,
+            iniziali: codice,
             nome: form.value.nome,
             cognome: form.value.cognome,
             luogoNascita: form.value.luogoNascita,
@@ -248,8 +255,8 @@ async function handleSave() {
           message.value = `Ospite "${editingHostId.value}" aggiornato.`
         } else {
           const created = await createHost({
-            codiceInterno: form.value.codiceInterno,
-            iniziali: form.value.iniziali,
+            codiceInterno: codice,
+            iniziali: codice,
             nome: form.value.nome,
             cognome: form.value.cognome,
             luogoNascita: form.value.luogoNascita,
@@ -383,8 +390,6 @@ function startEdit(host) {
   editingHostId.value = host.id
   panelMode.value = 'edit'
   form.value = {
-    codiceInterno: host.codiceInterno || '',
-    iniziali: host.iniziali || '',
     nome: host.nome || '',
     cognome: host.cognome || '',
     luogoNascita: host.luogoNascita || '',
@@ -404,8 +409,6 @@ function resetForm() {
   editingHostId.value = null
   panelMode.value = 'list'
     form.value = {
-      codiceInterno: '',
-      iniziali: '',
       nome: '',
       cognome: '',
       luogoNascita: '',
@@ -439,14 +442,13 @@ onMounted(() => {
       <CrudFilterBar
         v-model="filterQuery"
         label="Filtra ospiti"
-        placeholder="Cerca per nome, cognome, codice, iniziali o residenza"
+        placeholder="Cerca per nome, cognome o residenza"
         :visible-count="filteredRows.length"
         :total-count="rows.length"
       />
       <label style="margin-top:.5rem;display:flex;align-items:center;gap:.4rem;max-width:22rem">
         Ordina per
         <select v-model="sortBy" aria-label="Ordina ospiti">
-          <option value="codice">Codice interno</option>
           <option value="nome">Cognome/Nome</option>
           <option value="residenza">Residenza</option>
           <option value="terapie">Terapie attive</option>
@@ -469,7 +471,7 @@ onMounted(() => {
           Elimina{{ selectedCount > 0 ? ` (${selectedCount})` : '' }}
         </button>
         <button
-          @click="() => { const searchInput = document.querySelector('input[placeholder=\'Cerca per nome, cognome, codice, iniziali o residenza\']'); if (searchInput) searchInput.focus(); }"
+          @click="() => { const searchInput = document.querySelector('input[placeholder=\'Cerca per nome, cognome o residenza\']'); if (searchInput) searchInput.focus(); }"
           title="Cerca (Scorciatoia: /)"
         >
           Cerca
@@ -495,10 +497,6 @@ onMounted(() => {
               />
             </th>
             <th>Ospite</th>
-            <th>Codice</th>
-            <th>Iniziali</th>
-            <th>Nome</th>
-            <th>Cognome</th>
             <th>Residenza</th>
             <th>Terapie attive</th>
             <th>Azioni</th>
@@ -519,10 +517,6 @@ onMounted(() => {
               />
             </td>
             <td>{{ formatHostDisplay(host) }}</td>
-            <td>{{ host.codiceInterno || '—' }}</td>
-            <td>{{ host.iniziali || '—' }}</td>
-            <td>{{ host.nome || '—' }}</td>
-            <td>{{ host.cognome || '—' }}</td>
             <td>{{ host.stanza || '—' }}</td>
             <td>{{ host.activeTherapies }}</td>
             <td>
@@ -541,7 +535,7 @@ onMounted(() => {
             </td>
           </tr>
           <tr v-if="filteredRows.length === 0 && !loading">
-            <td colspan="9" class="muted">Nessun ospite disponibile.</td>
+            <td colspan="5" class="muted">Nessun ospite disponibile.</td>
           </tr>
         </tbody>
       </table>
@@ -565,14 +559,6 @@ onMounted(() => {
             Pannello guidato: compila i dati essenziali e salva per tornare subito alla lista ospiti.
           </p>
           <div class="import-form" style="margin-top:.65rem">
-            <label>
-              Codice interno
-              <input v-model="form.codiceInterno" type="text" placeholder="Codice operativo" />
-            </label>
-            <label>
-              Iniziali
-              <input v-model="form.iniziali" type="text" placeholder="M.R." />
-            </label>
             <ValidatedInput
               v-model="form.nome"
               field-name="nome"
