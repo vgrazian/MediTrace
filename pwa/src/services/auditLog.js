@@ -191,7 +191,7 @@ export async function buildAuditReferences() {
 
 function labelHost(host) {
     if (!host) return ''
-    const fullName = [host.cognome, host.nome].filter(Boolean).join(' ').trim()
+    const fullName = [host.nome, host.cognome].filter(Boolean).join(' ').trim()
     const code = host.codiceInterno || host.id
     return `[${code}] ${fullName || host.iniziali || host.id}`
 }

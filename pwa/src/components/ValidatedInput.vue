@@ -12,6 +12,7 @@
       :placeholder="placeholder"
       :disabled="disabled"
       :required="required"
+      :list="list"
       v-bind="ariaAttributes"
       @input="handleInput"
       @blur="handleBlur"
@@ -69,6 +70,10 @@ const props = defineProps({
   disabled: {
     type: Boolean,
     default: false
+  },
+  list: {
+    type: String,
+    default: ''
   },
   required: {
     type: Boolean,

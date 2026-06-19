@@ -207,7 +207,7 @@ function formatDate(value) {
 function hostLabel(hostId) {
   const host = hosts.value.find(item => item.id === hostId)
   if (!host) return hostId
-  const fullName = [host.cognome, host.nome].filter(Boolean).join(' ').trim()
+  const fullName = [host.nome, host.cognome].filter(Boolean).join(' ').trim()
   const namePart = fullName || host.iniziali || host.codiceInterno || hostId
   const visibleId = host.codiceInterno || host.id
   return `[${visibleId}] - ${namePart}`
