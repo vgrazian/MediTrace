@@ -30,6 +30,7 @@ export default defineConfig({
         vue(),
         VitePWA({
             registerType: 'autoUpdate',
+            injectRegister: false,
             includeAssets: ['favicon.svg', 'icons/*.png'],
             manifest: {
                 name: 'MediTrace',

@@ -12,6 +12,37 @@
 <body>
     <div id="app"></div>
     <script type="module" src="/src/main.js"></script>
+    <script>
+        // Custom SW registration with update notification
+        if ('serviceWorker' in navigator) {
+            var BASE = '/MediTrace/'
+            window.addEventListener('load', function () {
+                navigator.serviceWorker.register(BASE + 'sw.js', { scope: BASE }).then(function (reg) {
+                    reg.update().catch(function () { })
+                    reg.addEventListener('updatefound', function () {
+                        var w = reg.installing
+                        if (!w) return
+                        w.addEventListener('statechange', function () {
+                            if (w.state === 'installed' && navigator.serviceWorker.controller) {
+                                var b = document.createElement('div')
+                                b.id = 'mt-update'
+                                b.innerHTML = '<div style="position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#2563eb;color:#fff;padding:0.75rem 1.25rem;border-radius:10px;box-shadow:0 4px 16px rgba(0,0,0,0.25);z-index:99999;display:flex;align-items:center;gap:0.75rem;font-family:sans-serif;font-size:0.9rem;max-width:90vw"><span>&#x1F504; Nuova versione disponibile</span><button id="mt-update-btn" style="background:#fff;color:#2563eb;border:none;padding:0.35rem 0.75rem;border-radius:6px;font-weight:600;cursor:pointer;font-size:0.85rem">Aggiorna</button></div>'
+                                document.body.appendChild(b)
+                                document.getElementById('mt-update-btn').addEventListener('click', function () {
+                                    b.remove()
+                                    w.postMessage({ type: 'SKIP_WAITING' })
+                                })
+                            }
+                        })
+                    })
+                    var r = false
+                    navigator.serviceWorker.addEventListener('controllerchange', function () {
+                        if (r) return; r = true; window.location.reload()
+                    })
+                }).catch(function (e) { console.warn('SW reg failed', e) })
+            })
+        }
+    </script>
 </body>
 
 </html>
