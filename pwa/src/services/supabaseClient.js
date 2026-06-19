@@ -1,0 +1,36 @@
+import { createClient } from '@supabase/supabase-js'
+
+const supabaseUrl = String(import.meta.env.VITE_SUPABASE_URL || '').trim()
+const supabasePublishableKey = String(import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || '').trim()
+
+export const isSupabaseConfigured = Boolean(supabaseUrl && supabasePublishableKey)
+
+export function getSupabaseConfigStatus() {
+    const missingVars = []
+    if (!supabaseUrl) missingVars.push('VITE_SUPABASE_URL')
+    if (!supabasePublishableKey) missingVars.push('VITE_SUPABASE_PUBLISHABLE_KEY')
+    return {
+        configured: isSupabaseConfigured,
+        missingVars,
+    }
+}
+
+export const supabase = isSupabaseConfigured
+    ? createClient(supabaseUrl, supabasePublishableKey, {
+        auth: {
+            persistSession: true,
+            autoRefreshToken: true,
+            detectSessionInUrl: true,
+        },
+    })
+    : null
+
+export function getSupabaseRedirectTo(defaultPath = '/#/impostazioni') {
+    const explicit = String(import.meta.env.VITE_SUPABASE_REDIRECT_TO || '').trim()
+    if (explicit) return explicit
+
+    const origin = typeof window !== 'undefined' && window.location?.origin
+        ? window.location.origin
+        : 'http://localhost:5173'
+    return `${origin}${defaultPath}`
+}

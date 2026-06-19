@@ -1,0 +1,1940 @@
+{
+  "rooms": [
+    {
+      "id": 1,
+      "codice": "Girasole 1",
+      "descrizione": "Stanza girasole e confortevole"
+    },
+    {
+      "id": 2,
+      "codice": "Girasole 2",
+      "descrizione": "Stanza girasole e confortevole"
+    },
+    {
+      "id": 3,
+      "codice": "Magnolia 1",
+      "descrizione": "Stanza magnolia e confortevole"
+    },
+    {
+      "id": 4,
+      "codice": "Magnolia 2",
+      "descrizione": "Stanza magnolia e confortevole"
+    },
+    {
+      "id": 5,
+      "codice": "Cedro 1",
+      "descrizione": "Stanza cedro e confortevole"
+    },
+    {
+      "id": 6,
+      "codice": "Cedro 2",
+      "descrizione": "Stanza cedro e confortevole"
+    },
+    {
+      "id": 7,
+      "codice": "Ulivo 1",
+      "descrizione": "Stanza ulivo e confortevole"
+    },
+    {
+      "id": 8,
+      "codice": "Ulivo 2",
+      "descrizione": "Stanza ulivo e confortevole"
+    },
+    {
+      "id": 9,
+      "codice": "Lavanda 1",
+      "descrizione": "Stanza lavanda e confortevole"
+    },
+    {
+      "id": 10,
+      "codice": "Lavanda 2",
+      "descrizione": "Stanza lavanda e confortevole"
+    },
+    {
+      "id": 11,
+      "codice": "Rosa 1",
+      "descrizione": "Stanza rosa e confortevole"
+    },
+    {
+      "id": 12,
+      "codice": "Rosa 2",
+      "descrizione": "Stanza rosa e confortevole"
+    },
+    {
+      "id": 13,
+      "codice": "Quercia 1",
+      "descrizione": "Stanza quercia e confortevole"
+    },
+    {
+      "id": 14,
+      "codice": "Quercia 2",
+      "descrizione": "Stanza quercia e confortevole"
+    },
+    {
+      "id": 15,
+      "codice": "Loto 1",
+      "descrizione": "Stanza loto e confortevole"
+    },
+    {
+      "id": 16,
+      "codice": "Loto 2",
+      "descrizione": "Stanza loto e confortevole"
+    },
+    {
+      "id": 17,
+      "codice": "Papavero 1",
+      "descrizione": "Stanza papavero e confortevole"
+    },
+    {
+      "id": 18,
+      "codice": "Papavero 2",
+      "descrizione": "Stanza papavero e confortevole"
+    },
+    {
+      "id": 19,
+      "codice": "Edera 1",
+      "descrizione": "Stanza edera e confortevole"
+    },
+    {
+      "id": 20,
+      "codice": "Edera 2",
+      "descrizione": "Stanza edera e confortevole"
+    }
+  ],
+  "beds": [
+    {
+      "id": 1,
+      "roomId": 1,
+      "numero": 1,
+      "occupato": true
+    },
+    {
+      "id": 2,
+      "roomId": 1,
+      "numero": 2,
+      "occupato": true
+    },
+    {
+      "id": 3,
+      "roomId": 1,
+      "numero": 3,
+      "occupato": true
+    },
+    {
+      "id": 4,
+      "roomId": 2,
+      "numero": 1,
+      "occupato": true
+    },
+    {
+      "id": 5,
+      "roomId": 2,
+      "numero": 2,
+      "occupato": true
+    },
+    {
+      "id": 6,
+      "roomId": 2,
+      "numero": 3,
+      "occupato": true
+    },
+    {
+      "id": 7,
+      "roomId": 3,
+      "numero": 1,
+      "occupato": true
+    },
+    {
+      "id": 8,
+      "roomId": 3,
+      "numero": 2,
+      "occupato": true
+    },
+    {
+      "id": 9,
+      "roomId": 3,
+      "numero": 3,
+      "occupato": true
+    },
+    {
+      "id": 10,
+      "roomId": 4,
+      "numero": 1,
+      "occupato": true
+    },
+    {
+      "id": 11,
+      "roomId": 4,
+      "numero": 2,
+      "occupato": true
+    },
+    {
+      "id": 12,
+      "roomId": 4,
+      "numero": 3,
+      "occupato": true
+    },
+    {
+      "id": 13,
+      "roomId": 5,
+      "numero": 1,
+      "occupato": true
+    },
+    {
+      "id": 14,
+      "roomId": 5,
+      "numero": 2,
+      "occupato": true
+    },
+    {
+      "id": 15,
+      "roomId": 5,
+      "numero": 3,
+      "occupato": true
+    },
+    {
+      "id": 16,
+      "roomId": 6,
+      "numero": 1,
+      "occupato": true
+    },
+    {
+      "id": 17,
+      "roomId": 6,
+      "numero": 2,
+      "occupato": true
+    },
+    {
+      "id": 18,
+      "roomId": 6,
+      "numero": 3,
+      "occupato": true
+    },
+    {
+      "id": 19,
+      "roomId": 7,
+      "numero": 1,
+      "occupato": true
+    },
+    {
+      "id": 20,
+      "roomId": 7,
+      "numero": 2,
+      "occupato": true
+    },
+    {
+      "id": 21,
+      "roomId": 7,
+      "numero": 3,
+      "occupato": true
+    },
+    {
+      "id": 22,
+      "roomId": 8,
+      "numero": 1,
+      "occupato": true
+    },
+    {
+      "id": 23,
+      "roomId": 8,
+      "numero": 2,
+      "occupato": true
+    },
+    {
+      "id": 24,
+      "roomId": 8,
+      "numero": 3,
+      "occupato": true
+    },
+    {
+      "id": 25,
+      "roomId": 9,
+      "numero": 1,
+      "occupato": true
+    },
+    {
+      "id": 26,
+      "roomId": 9,
+      "numero": 2,
+      "occupato": true
+    },
+    {
+      "id": 27,
+      "roomId": 9,
+      "numero": 3,
+      "occupato": true
+    },
+    {
+      "id": 28,
+      "roomId": 10,
+      "numero": 1,
+      "occupato": true
+    },
+    {
+      "id": 29,
+      "roomId": 10,
+      "numero": 2,
+      "occupato": true
+    },
+    {
+      "id": 30,
+      "roomId": 10,
+      "numero": 3,
+      "occupato": true
+    },
+    {
+      "id": 31,
+      "roomId": 11,
+      "numero": 1,
+      "occupato": true
+    },
+    {
+      "id": 32,
+      "roomId": 11,
+      "numero": 2,
+      "occupato": true
+    },
+    {
+      "id": 33,
+      "roomId": 11,
+      "numero": 3,
+      "occupato": true
+    },
+    {
+      "id": 34,
+      "roomId": 12,
+      "numero": 1,
+      "occupato": true
+    },
+    {
+      "id": 35,
+      "roomId": 12,
+      "numero": 2,
+      "occupato": true
+    },
+    {
+      "id": 36,
+      "roomId": 12,
+      "numero": 3,
+      "occupato": true
+    },
+    {
+      "id": 37,
+      "roomId": 13,
+      "numero": 1,
+      "occupato": true
+    },
+    {
+      "id": 38,
+      "roomId": 13,
+      "numero": 2,
+      "occupato": true
+    },
+    {
+      "id": 39,
+      "roomId": 13,
+      "numero": 3,
+      "occupato": true
+    },
+    {
+      "id": 40,
+      "roomId": 14,
+      "numero": 1,
+      "occupato": true
+    },
+    {
+      "id": 41,
+      "roomId": 14,
+      "numero": 2,
+      "occupato": true
+    },
+    {
+      "id": 42,
+      "roomId": 14,
+      "numero": 3,
+      "occupato": true
+    },
+    {
+      "id": 43,
+      "roomId": 15,
+      "numero": 1,
+      "occupato": true
+    },
+    {
+      "id": 44,
+      "roomId": 15,
+      "numero": 2,
+      "occupato": true
+    },
+    {
+      "id": 45,
+      "roomId": 15,
+      "numero": 3,
+      "occupato": true
+    },
+    {
+      "id": 46,
+      "roomId": 16,
+      "numero": 1,
+      "occupato": true
+    },
+    {
+      "id": 47,
+      "roomId": 16,
+      "numero": 2,
+      "occupato": true
+    },
+    {
+      "id": 48,
+      "roomId": 16,
+      "numero": 3,
+      "occupato": true
+    },
+    {
+      "id": 49,
+      "roomId": 17,
+      "numero": 1,
+      "occupato": true
+    },
+    {
+      "id": 50,
+      "roomId": 17,
+      "numero": 2,
+      "occupato": true
+    },
+    {
+      "id": 51,
+      "roomId": 17,
+      "numero": 3,
+      "occupato": true
+    },
+    {
+      "id": 52,
+      "roomId": 18,
+      "numero": 1,
+      "occupato": true
+    },
+    {
+      "id": 53,
+      "roomId": 18,
+      "numero": 2,
+      "occupato": true
+    },
+    {
+      "id": 54,
+      "roomId": 18,
+      "numero": 3,
+      "occupato": true
+    },
+    {
+      "id": 55,
+      "roomId": 19,
+      "numero": 1,
+      "occupato": true
+    },
+    {
+      "id": 56,
+      "roomId": 19,
+      "numero": 2,
+      "occupato": true
+    },
+    {
+      "id": 57,
+      "roomId": 19,
+      "numero": 3,
+      "occupato": true
+    },
+    {
+      "id": 58,
+      "roomId": 20,
+      "numero": 1,
+      "occupato": true
+    },
+    {
+      "id": 59,
+      "roomId": 20,
+      "numero": 2,
+      "occupato": true
+    },
+    {
+      "id": 60,
+      "roomId": 20,
+      "numero": 3,
+      "occupato": true
+    }
+  ],
+  "hosts": [
+    {
+      "id": 1,
+      "codiceInterno": "OSP-001",
+      "nome": "Lucia",
+      "cognome": "Romano",
+      "patologie": [
+        "Parkinson"
+      ],
+      "roomId": 1,
+      "bedId": 1
+    },
+    {
+      "id": 2,
+      "codiceInterno": "OSP-002",
+      "nome": "Giovanni",
+      "cognome": "Rossi",
+      "patologie": [
+        "Insufficienza cardiaca"
+      ],
+      "roomId": 1,
+      "bedId": 2
+    },
+    {
+      "id": 3,
+      "codiceInterno": "OSP-003",
+      "nome": "Antonio",
+      "cognome": "Esposito",
+      "patologie": [
+        "Parkinson"
+      ],
+      "roomId": 1,
+      "bedId": 3
+    },
+    {
+      "id": 4,
+      "codiceInterno": "OSP-004",
+      "nome": "Lucia",
+      "cognome": "Romano",
+      "patologie": [
+        "Insufficienza cardiaca"
+      ],
+      "roomId": 2,
+      "bedId": 4
+    },
+    {
+      "id": 5,
+      "codiceInterno": "OSP-005",
+      "nome": "Antonio",
+      "cognome": "Esposito",
+      "patologie": [
+        "Esiti di ictus"
+      ],
+      "roomId": 2,
+      "bedId": 5
+    },
+    {
+      "id": 6,
+      "codiceInterno": "OSP-006",
+      "nome": "Franco",
+      "cognome": "Greco",
+      "patologie": [
+        "SLA"
+      ],
+      "roomId": 2,
+      "bedId": 6
+    },
+    {
+      "id": 7,
+      "codiceInterno": "OSP-007",
+      "nome": "Giovanni",
+      "cognome": "Rossi",
+      "patologie": [
+        "Parkinson"
+      ],
+      "roomId": 3,
+      "bedId": 7
+    },
+    {
+      "id": 8,
+      "codiceInterno": "OSP-008",
+      "nome": "Lucia",
+      "cognome": "Romano",
+      "patologie": [
+        "Insufficienza respiratoria"
+      ],
+      "roomId": 3,
+      "bedId": 8
+    },
+    {
+      "id": 9,
+      "codiceInterno": "OSP-009",
+      "nome": "Maria",
+      "cognome": "Bianchi",
+      "patologie": [
+        "Esiti di ictus"
+      ],
+      "roomId": 3,
+      "bedId": 9
+    },
+    {
+      "id": 10,
+      "codiceInterno": "OSP-010",
+      "nome": "Franco",
+      "cognome": "Greco",
+      "patologie": [
+        "Insufficienza cardiaca"
+      ],
+      "roomId": 4,
+      "bedId": 10
+    },
+    {
+      "id": 11,
+      "codiceInterno": "OSP-011",
+      "nome": "Franco",
+      "cognome": "Greco",
+      "patologie": [
+        "Insufficienza respiratoria"
+      ],
+      "roomId": 4,
+      "bedId": 11
+    },
+    {
+      "id": 12,
+      "codiceInterno": "OSP-012",
+      "nome": "Maria",
+      "cognome": "Bianchi",
+      "patologie": [
+        "Insufficienza cardiaca"
+      ],
+      "roomId": 4,
+      "bedId": 12
+    },
+    {
+      "id": 13,
+      "codiceInterno": "OSP-013",
+      "nome": "Maria",
+      "cognome": "Bianchi",
+      "patologie": [
+        "Parkinson"
+      ],
+      "roomId": 5,
+      "bedId": 13
+    },
+    {
+      "id": 14,
+      "codiceInterno": "OSP-014",
+      "nome": "Antonio",
+      "cognome": "Esposito",
+      "patologie": [
+        "Insufficienza cardiaca"
+      ],
+      "roomId": 5,
+      "bedId": 14
+    },
+    {
+      "id": 15,
+      "codiceInterno": "OSP-015",
+      "nome": "Lucia",
+      "cognome": "Romano",
+      "patologie": [
+        "Insufficienza cardiaca"
+      ],
+      "roomId": 5,
+      "bedId": 15
+    },
+    {
+      "id": 16,
+      "codiceInterno": "OSP-016",
+      "nome": "Lucia",
+      "cognome": "Romano",
+      "patologie": [
+        "Insufficienza cardiaca"
+      ],
+      "roomId": 6,
+      "bedId": 16
+    },
+    {
+      "id": 17,
+      "codiceInterno": "OSP-017",
+      "nome": "Antonio",
+      "cognome": "Esposito",
+      "patologie": [
+        "SLA"
+      ],
+      "roomId": 6,
+      "bedId": 17
+    },
+    {
+      "id": 18,
+      "codiceInterno": "OSP-018",
+      "nome": "Franco",
+      "cognome": "Greco",
+      "patologie": [
+        "Parkinson"
+      ],
+      "roomId": 6,
+      "bedId": 18
+    },
+    {
+      "id": 19,
+      "codiceInterno": "OSP-019",
+      "nome": "Antonio",
+      "cognome": "Esposito",
+      "patologie": [
+        "Esiti di ictus"
+      ],
+      "roomId": 7,
+      "bedId": 19
+    },
+    {
+      "id": 20,
+      "codiceInterno": "OSP-020",
+      "nome": "Antonio",
+      "cognome": "Esposito",
+      "patologie": [
+        "SLA"
+      ],
+      "roomId": 7,
+      "bedId": 20
+    },
+    {
+      "id": 21,
+      "codiceInterno": "OSP-021",
+      "nome": "Antonio",
+      "cognome": "Esposito",
+      "patologie": [
+        "Parkinson"
+      ],
+      "roomId": 7,
+      "bedId": 21
+    },
+    {
+      "id": 22,
+      "codiceInterno": "OSP-022",
+      "nome": "Franco",
+      "cognome": "Greco",
+      "patologie": [
+        "Insufficienza respiratoria"
+      ],
+      "roomId": 8,
+      "bedId": 22
+    },
+    {
+      "id": 23,
+      "codiceInterno": "OSP-023",
+      "nome": "Giovanni",
+      "cognome": "Rossi",
+      "patologie": [
+        "Alzheimer"
+      ],
+      "roomId": 8,
+      "bedId": 23
+    },
+    {
+      "id": 24,
+      "codiceInterno": "OSP-024",
+      "nome": "Giovanni",
+      "cognome": "Rossi",
+      "patologie": [
+        "SLA"
+      ],
+      "roomId": 8,
+      "bedId": 24
+    },
+    {
+      "id": 25,
+      "codiceInterno": "OSP-025",
+      "nome": "Antonio",
+      "cognome": "Esposito",
+      "patologie": [
+        "SLA"
+      ],
+      "roomId": 9,
+      "bedId": 25
+    },
+    {
+      "id": 26,
+      "codiceInterno": "OSP-026",
+      "nome": "Franco",
+      "cognome": "Greco",
+      "patologie": [
+        "Esiti di ictus"
+      ],
+      "roomId": 9,
+      "bedId": 26
+    },
+    {
+      "id": 27,
+      "codiceInterno": "OSP-027",
+      "nome": "Antonio",
+      "cognome": "Esposito",
+      "patologie": [
+        "Esiti di ictus"
+      ],
+      "roomId": 9,
+      "bedId": 27
+    },
+    {
+      "id": 28,
+      "codiceInterno": "OSP-028",
+      "nome": "Giovanni",
+      "cognome": "Rossi",
+      "patologie": [
+        "SLA"
+      ],
+      "roomId": 10,
+      "bedId": 28
+    },
+    {
+      "id": 29,
+      "codiceInterno": "OSP-029",
+      "nome": "Antonio",
+      "cognome": "Esposito",
+      "patologie": [
+        "Insufficienza cardiaca"
+      ],
+      "roomId": 10,
+      "bedId": 29
+    },
+    {
+      "id": 30,
+      "codiceInterno": "OSP-030",
+      "nome": "Franco",
+      "cognome": "Greco",
+      "patologie": [
+        "Esiti di ictus"
+      ],
+      "roomId": 10,
+      "bedId": 30
+    },
+    {
+      "id": 31,
+      "codiceInterno": "OSP-031",
+      "nome": "Lucia",
+      "cognome": "Romano",
+      "patologie": [
+        "Parkinson"
+      ],
+      "roomId": 11,
+      "bedId": 31
+    },
+    {
+      "id": 32,
+      "codiceInterno": "OSP-032",
+      "nome": "Maria",
+      "cognome": "Bianchi",
+      "patologie": [
+        "Insufficienza respiratoria"
+      ],
+      "roomId": 11,
+      "bedId": 32
+    },
+    {
+      "id": 33,
+      "codiceInterno": "OSP-033",
+      "nome": "Antonio",
+      "cognome": "Esposito",
+      "patologie": [
+        "Insufficienza cardiaca"
+      ],
+      "roomId": 11,
+      "bedId": 33
+    },
+    {
+      "id": 34,
+      "codiceInterno": "OSP-034",
+      "nome": "Maria",
+      "cognome": "Bianchi",
+      "patologie": [
+        "Alzheimer"
+      ],
+      "roomId": 12,
+      "bedId": 34
+    },
+    {
+      "id": 35,
+      "codiceInterno": "OSP-035",
+      "nome": "Maria",
+      "cognome": "Bianchi",
+      "patologie": [
+        "Parkinson"
+      ],
+      "roomId": 12,
+      "bedId": 35
+    },
+    {
+      "id": 36,
+      "codiceInterno": "OSP-036",
+      "nome": "Maria",
+      "cognome": "Bianchi",
+      "patologie": [
+        "Insufficienza respiratoria"
+      ],
+      "roomId": 12,
+      "bedId": 36
+    },
+    {
+      "id": 37,
+      "codiceInterno": "OSP-037",
+      "nome": "Franco",
+      "cognome": "Greco",
+      "patologie": [
+        "Alzheimer"
+      ],
+      "roomId": 13,
+      "bedId": 37
+    },
+    {
+      "id": 38,
+      "codiceInterno": "OSP-038",
+      "nome": "Antonio",
+      "cognome": "Esposito",
+      "patologie": [
+        "Insufficienza respiratoria"
+      ],
+      "roomId": 13,
+      "bedId": 38
+    },
+    {
+      "id": 39,
+      "codiceInterno": "OSP-039",
+      "nome": "Antonio",
+      "cognome": "Esposito",
+      "patologie": [
+        "Alzheimer"
+      ],
+      "roomId": 13,
+      "bedId": 39
+    },
+    {
+      "id": 40,
+      "codiceInterno": "OSP-040",
+      "nome": "Lucia",
+      "cognome": "Romano",
+      "patologie": [
+        "Insufficienza cardiaca"
+      ],
+      "roomId": 14,
+      "bedId": 40
+    },
+    {
+      "id": 41,
+      "codiceInterno": "OSP-041",
+      "nome": "Maria",
+      "cognome": "Bianchi",
+      "patologie": [
+        "Parkinson"
+      ],
+      "roomId": 14,
+      "bedId": 41
+    },
+    {
+      "id": 42,
+      "codiceInterno": "OSP-042",
+      "nome": "Franco",
+      "cognome": "Greco",
+      "patologie": [
+        "Insufficienza cardiaca"
+      ],
+      "roomId": 14,
+      "bedId": 42
+    },
+    {
+      "id": 43,
+      "codiceInterno": "OSP-043",
+      "nome": "Maria",
+      "cognome": "Bianchi",
+      "patologie": [
+        "Esiti di ictus"
+      ],
+      "roomId": 15,
+      "bedId": 43
+    },
+    {
+      "id": 44,
+      "codiceInterno": "OSP-044",
+      "nome": "Lucia",
+      "cognome": "Romano",
+      "patologie": [
+        "Insufficienza respiratoria"
+      ],
+      "roomId": 15,
+      "bedId": 44
+    },
+    {
+      "id": 45,
+      "codiceInterno": "OSP-045",
+      "nome": "Franco",
+      "cognome": "Greco",
+      "patologie": [
+        "Insufficienza cardiaca"
+      ],
+      "roomId": 15,
+      "bedId": 45
+    },
+    {
+      "id": 46,
+      "codiceInterno": "OSP-046",
+      "nome": "Giovanni",
+      "cognome": "Rossi",
+      "patologie": [
+        "Insufficienza cardiaca"
+      ],
+      "roomId": 16,
+      "bedId": 46
+    },
+    {
+      "id": 47,
+      "codiceInterno": "OSP-047",
+      "nome": "Franco",
+      "cognome": "Greco",
+      "patologie": [
+        "Insufficienza respiratoria"
+      ],
+      "roomId": 16,
+      "bedId": 47
+    },
+    {
+      "id": 48,
+      "codiceInterno": "OSP-048",
+      "nome": "Lucia",
+      "cognome": "Romano",
+      "patologie": [
+        "Alzheimer"
+      ],
+      "roomId": 16,
+      "bedId": 48
+    },
+    {
+      "id": 49,
+      "codiceInterno": "OSP-049",
+      "nome": "Giovanni",
+      "cognome": "Rossi",
+      "patologie": [
+        "Parkinson"
+      ],
+      "roomId": 17,
+      "bedId": 49
+    },
+    {
+      "id": 50,
+      "codiceInterno": "OSP-050",
+      "nome": "Franco",
+      "cognome": "Greco",
+      "patologie": [
+        "Esiti di ictus"
+      ],
+      "roomId": 17,
+      "bedId": 50
+    },
+    {
+      "id": 51,
+      "codiceInterno": "OSP-051",
+      "nome": "Giovanni",
+      "cognome": "Rossi",
+      "patologie": [
+        "Insufficienza respiratoria"
+      ],
+      "roomId": 17,
+      "bedId": 51
+    },
+    {
+      "id": 52,
+      "codiceInterno": "OSP-052",
+      "nome": "Giovanni",
+      "cognome": "Rossi",
+      "patologie": [
+        "SLA"
+      ],
+      "roomId": 18,
+      "bedId": 52
+    },
+    {
+      "id": 53,
+      "codiceInterno": "OSP-053",
+      "nome": "Giovanni",
+      "cognome": "Rossi",
+      "patologie": [
+        "Insufficienza respiratoria"
+      ],
+      "roomId": 18,
+      "bedId": 53
+    },
+    {
+      "id": 54,
+      "codiceInterno": "OSP-054",
+      "nome": "Antonio",
+      "cognome": "Esposito",
+      "patologie": [
+        "SLA"
+      ],
+      "roomId": 18,
+      "bedId": 54
+    },
+    {
+      "id": 55,
+      "codiceInterno": "OSP-055",
+      "nome": "Maria",
+      "cognome": "Bianchi",
+      "patologie": [
+        "Esiti di ictus"
+      ],
+      "roomId": 19,
+      "bedId": 55
+    },
+    {
+      "id": 56,
+      "codiceInterno": "OSP-056",
+      "nome": "Franco",
+      "cognome": "Greco",
+      "patologie": [
+        "Esiti di ictus"
+      ],
+      "roomId": 19,
+      "bedId": 56
+    },
+    {
+      "id": 57,
+      "codiceInterno": "OSP-057",
+      "nome": "Lucia",
+      "cognome": "Romano",
+      "patologie": [
+        "Insufficienza respiratoria"
+      ],
+      "roomId": 19,
+      "bedId": 57
+    },
+    {
+      "id": 58,
+      "codiceInterno": "OSP-058",
+      "nome": "Antonio",
+      "cognome": "Esposito",
+      "patologie": [
+        "Esiti di ictus"
+      ],
+      "roomId": 20,
+      "bedId": 58
+    },
+    {
+      "id": 59,
+      "codiceInterno": "OSP-059",
+      "nome": "Giovanni",
+      "cognome": "Rossi",
+      "patologie": [
+        "Insufficienza cardiaca"
+      ],
+      "roomId": 20,
+      "bedId": 59
+    },
+    {
+      "id": 60,
+      "codiceInterno": "OSP-060",
+      "nome": "Franco",
+      "cognome": "Greco",
+      "patologie": [
+        "Parkinson"
+      ],
+      "roomId": 20,
+      "bedId": 60
+    }
+  ],
+  "therapies": [
+    {
+      "id": 1,
+      "hostId": 1,
+      "drugId": 4,
+      "dataInizio": "2026-02-28",
+      "dataFine": null,
+      "dosaggio": "1 compressa",
+      "frequenza": "1 volta/die",
+      "notaTerapia": "Seguire indicazioni mediche e monitorare risposta"
+    },
+    {
+      "id": 2,
+      "hostId": 2,
+      "drugId": 7,
+      "dataInizio": "2026-03-25",
+      "dataFine": null,
+      "dosaggio": "1 compressa",
+      "frequenza": "ogni 8 ore",
+      "notaTerapia": "Seguire indicazioni mediche e monitorare risposta"
+    },
+    {
+      "id": 3,
+      "hostId": 3,
+      "drugId": 4,
+      "dataInizio": "2026-01-05",
+      "dataFine": null,
+      "dosaggio": "1 compressa",
+      "frequenza": "ogni 8 ore",
+      "notaTerapia": "Seguire indicazioni mediche e monitorare risposta"
+    },
+    {
+      "id": 4,
+      "hostId": 4,
+      "drugId": 6,
+      "dataInizio": "2026-01-20",
+      "dataFine": null,
+      "dosaggio": "1 compressa",
+      "frequenza": "ogni 8 ore",
+      "notaTerapia": "Seguire indicazioni mediche e monitorare risposta"
+    },
+    {
+      "id": 5,
+      "hostId": 4,
+      "drugId": 7,
+      "dataInizio": "2026-02-05",
+      "dataFine": null,
+      "dosaggio": "1 compressa",
+      "frequenza": "1 volta/die",
+      "notaTerapia": "Seguire indicazioni mediche e monitorare risposta"
+    },
+    {
+      "id": 6,
+      "hostId": 5,
+      "drugId": 9,
+      "dataInizio": "2026-03-13",
+      "dataFine": null,
+      "dosaggio": "1 compressa",
+      "frequenza": "ogni 8 ore",
+      "notaTerapia": "Seguire indicazioni mediche e monitorare risposta"
+    },
+    {
+      "id": 7,
+      "hostId": 5,
+      "drugId": 10,
+      "dataInizio": "2026-01-27",
+      "dataFine": null,
+      "dosaggio": "1 compressa",
+      "frequenza": "ogni 8 ore",
+      "notaTerapia": "Seguire indicazioni mediche e monitorare risposta"
+    },
+    {
+      "id": 8,
+      "hostId": 6,
+      "drugId": 5,
+      "dataInizio": "2026-02-21",
+      "dataFine": null,
+      "dosaggio": "1 compressa",
+      "frequenza": "1 volta/die",
+      "notaTerapia": "Seguire indicazioni mediche e monitorare risposta"
+    },
+    {
+      "id": 9,
+      "hostId": 7,
+      "drugId": 4,
+      "dataInizio": "2026-02-25",
+      "dataFine": null,
+      "dosaggio": "1 compressa",
+      "frequenza": "al bisogno",
+      "notaTerapia": "Seguire indicazioni mediche e monitorare risposta"
+    },
+    {
+      "id": 10,
+      "hostId": 8,
+      "drugId": 8,
+      "dataInizio": "2026-01-31",
+      "dataFine": null,
+      "dosaggio": "1 compressa",
+      "frequenza": "2 volte/die",
+      "notaTerapia": "Seguire indicazioni mediche e monitorare risposta"
+    },
+    {
+      "id": 11,
+      "hostId": 9,
+      "drugId": 10,
+      "dataInizio": "2026-01-12",
+      "dataFine": null,
+      "dosaggio": "1 compressa",
+      "frequenza": "ogni 8 ore",
+      "notaTerapia": "Seguire indicazioni mediche e monitorare risposta"
+    },
+    {
+      "id": 12,
+      "hostId": 9,
+      "drugId": 9,
+      "dataInizio": "2026-01-09",
+      "dataFine": null,
+      "dosaggio": "1 compressa",
+      "frequenza": "1 volta/die",
+      "notaTerapia": "Seguire indicazioni mediche e monitorare risposta"
+    },
+    {
+      "id": 13,
+      "hostId": 10,
+      "drugId": 7,
+      "dataInizio": "2026-03-24",
+      "dataFine": null,
+      "dosaggio": "1 compressa",
+      "frequenza": "ogni 8 ore",
+      "notaTerapia": "Seguire indicazioni mediche e monitorare risposta"
+    },
+    {
+      "id": 14,
+      "hostId": 11,
+      "drugId": 8,
+      "dataInizio": "2026-03-15",
+      "dataFine": null,
+      "dosaggio": "1 compressa",
+      "frequenza": "2 volte/die",
+      "notaTerapia": "Seguire indicazioni mediche e monitorare risposta"
+    },
+    {
+      "id": 15,
+      "hostId": 12,
+      "drugId": 6,
+      "dataInizio": "2026-03-16",
+      "dataFine": null,
+      "dosaggio": "1 compressa",
+      "frequenza": "al bisogno",
+      "notaTerapia": "Seguire indicazioni mediche e monitorare risposta"
+    },
+    {
+      "id": 16,
+      "hostId": 12,
+      "drugId": 7,
+      "dataInizio": "2026-02-23",
+      "dataFine": null,
+      "dosaggio": "1 compressa",
+      "frequenza": "al bisogno",
+      "notaTerapia": "Seguire indicazioni mediche e monitorare risposta"
+    },
+    {
+      "id": 17,
+      "hostId": 13,
+      "drugId": 4,
+      "dataInizio": "2026-02-28",
+      "dataFine": null,
+      "dosaggio": "1 compressa",
+      "frequenza": "ogni 8 ore",
+      "notaTerapia": "Seguire indicazioni mediche e monitorare risposta"
+    },
+    {
+      "id": 18,
+      "hostId": 14,
+      "drugId": 6,
+      "dataInizio": "2026-02-28",
+      "dataFine": null,
+      "dosaggio": "1 compressa",
+      "frequenza": "ogni 8 ore",
+      "notaTerapia": "Seguire indicazioni mediche e monitorare risposta"
+    },
+    {
+      "id": 19,
+      "hostId": 14,
+      "drugId": 7,
+      "dataInizio": "2026-02-11",
+      "dataFine": null,
+      "dosaggio": "1 compressa",
+      "frequenza": "1 volta/die",
+      "notaTerapia": "Seguire indicazioni mediche e monitorare risposta"
+    },
+    {
+      "id": 20,
+      "hostId": 15,
+      "drugId": 6,
+      "dataInizio": "2026-02-24",
+      "dataFine": null,
+      "dosaggio": "1 compressa",
+      "frequenza": "al bisogno",
+      "notaTerapia": "Seguire indicazioni mediche e monitorare risposta"
+    },
+    {
+      "id": 21,
+      "hostId": 16,
+      "drugId": 6,
+      "dataInizio": "2026-01-31",
+      "dataFine": null,
+      "dosaggio": "1 compressa",
+      "frequenza": "ogni 8 ore",
+      "notaTerapia": "Seguire indicazioni mediche e monitorare risposta"
+    },
+    {
+      "id": 22,
+      "hostId": 17,
+      "drugId": 5,
+      "dataInizio": "2026-02-12",
+      "dataFine": null,
+      "dosaggio": "1 compressa",
+      "frequenza": "ogni 8 ore",
+      "notaTerapia": "Seguire indicazioni mediche e monitorare risposta"
+    },
+    {
+      "id": 23,
+      "hostId": 18,
+      "drugId": 4,
+      "dataInizio": "2026-03-26",
+      "dataFine": null,
+      "dosaggio": "1 compressa",
+      "frequenza": "al bisogno",
+      "notaTerapia": "Seguire indicazioni mediche e monitorare risposta"
+    },
+    {
+      "id": 24,
+      "hostId": 19,
+      "drugId": 10,
+      "dataInizio": "2026-01-19",
+      "dataFine": null,
+      "dosaggio": "1 compressa",
+      "frequenza": "1 volta/die",
+      "notaTerapia": "Seguire indicazioni mediche e monitorare risposta"
+    },
+    {
+      "id": 25,
+      "hostId": 20,
+      "drugId": 5,
+      "dataInizio": "2026-01-30",
+      "dataFine": null,
+      "dosaggio": "1 compressa",
+      "frequenza": "al bisogno",
+      "notaTerapia": "Seguire indicazioni mediche e monitorare risposta"
+    },
+    {
+      "id": 26,
+      "hostId": 21,
+      "drugId": 4,
+      "dataInizio": "2026-01-20",
+      "dataFine": null,
+      "dosaggio": "1 compressa",
+      "frequenza": "al bisogno",
+      "notaTerapia": "Seguire indicazioni mediche e monitorare risposta"
+    },
+    {
+      "id": 27,
+      "hostId": 22,
+      "drugId": 8,
+      "dataInizio": "2026-02-28",
+      "dataFine": null,
+      "dosaggio": "1 compressa",
+      "frequenza": "al bisogno",
+      "notaTerapia": "Seguire indicazioni mediche e monitorare risposta"
+    },
+    {
+      "id": 28,
+      "hostId": 23,
+      "drugId": 1,
+      "dataInizio": "2026-03-22",
+      "dataFine": null,
+      "dosaggio": "1 compressa",
+      "frequenza": "ogni 8 ore",
+      "notaTerapia": "Seguire indicazioni mediche e monitorare risposta"
+    },
+    {
+      "id": 29,
+      "hostId": 23,
+      "drugId": 3,
+      "dataInizio": "2026-03-02",
+      "dataFine": null,
+      "dosaggio": "1 compressa",
+      "frequenza": "al bisogno",
+      "notaTerapia": "Seguire indicazioni mediche e monitorare risposta"
+    },
+    {
+      "id": 30,
+      "hostId": 23,
+      "drugId": 2,
+      "dataInizio": "2026-03-30",
+      "dataFine": null,
+      "dosaggio": "1 compressa",
+      "frequenza": "ogni 8 ore",
+      "notaTerapia": "Seguire indicazioni mediche e monitorare risposta"
+    },
+    {
+      "id": 31,
+      "hostId": 24,
+      "drugId": 5,
+      "dataInizio": "2026-01-22",
+      "dataFine": null,
+      "dosaggio": "1 compressa",
+      "frequenza": "ogni 8 ore",
+      "notaTerapia": "Seguire indicazioni mediche e monitorare risposta"
+    },
+    {
+      "id": 32,
+      "hostId": 25,
+      "drugId": 5,
+      "dataInizio": "2026-01-14",
+      "dataFine": null,
+      "dosaggio": "1 compressa",
+      "frequenza": "1 volta/die",
+      "notaTerapia": "Seguire indicazioni mediche e monitorare risposta"
+    },
+    {
+      "id": 33,
+      "hostId": 26,
+      "drugId": 9,
+      "dataInizio": "2026-03-19",
+      "dataFine": null,
+      "dosaggio": "1 compressa",
+      "frequenza": "al bisogno",
+      "notaTerapia": "Seguire indicazioni mediche e monitorare risposta"
+    },
+    {
+      "id": 34,
+      "hostId": 27,
+      "drugId": 9,
+      "dataInizio": "2026-02-14",
+      "dataFine": null,
+      "dosaggio": "1 compressa",
+      "frequenza": "1 volta/die",
+      "notaTerapia": "Seguire indicazioni mediche e monitorare risposta"
+    },
+    {
+      "id": 35,
+      "hostId": 27,
+      "drugId": 10,
+      "dataInizio": "2026-03-14",
+      "dataFine": null,
+      "dosaggio": "1 compressa",
+      "frequenza": "ogni 8 ore",
+      "notaTerapia": "Seguire indicazioni mediche e monitorare risposta"
+    },
+    {
+      "id": 36,
+      "hostId": 28,
+      "drugId": 5,
+      "dataInizio": "2026-02-15",
+      "dataFine": null,
+      "dosaggio": "1 compressa",
+      "frequenza": "1 volta/die",
+      "notaTerapia": "Seguire indicazioni mediche e monitorare risposta"
+    },
+    {
+      "id": 37,
+      "hostId": 29,
+      "drugId": 6,
+      "dataInizio": "2026-02-16",
+      "dataFine": null,
+      "dosaggio": "1 compressa",
+      "frequenza": "1 volta/die",
+      "notaTerapia": "Seguire indicazioni mediche e monitorare risposta"
+    },
+    {
+      "id": 38,
+      "hostId": 30,
+      "drugId": 9,
+      "dataInizio": "2026-03-29",
+      "dataFine": null,
+      "dosaggio": "1 compressa",
+      "frequenza": "al bisogno",
+      "notaTerapia": "Seguire indicazioni mediche e monitorare risposta"
+    },
+    {
+      "id": 39,
+      "hostId": 30,
+      "drugId": 10,
+      "dataInizio": "2026-02-27",
+      "dataFine": null,
+      "dosaggio": "1 compressa",
+      "frequenza": "2 volte/die",
+      "notaTerapia": "Seguire indicazioni mediche e monitorare risposta"
+    },
+    {
+      "id": 40,
+      "hostId": 31,
+      "drugId": 4,
+      "dataInizio": "2026-03-22",
+      "dataFine": null,
+      "dosaggio": "1 compressa",
+      "frequenza": "al bisogno",
+      "notaTerapia": "Seguire indicazioni mediche e monitorare risposta"
+    },
+    {
+      "id": 41,
+      "hostId": 32,
+      "drugId": 8,
+      "dataInizio": "2026-01-07",
+      "dataFine": null,
+      "dosaggio": "1 compressa",
+      "frequenza": "2 volte/die",
+      "notaTerapia": "Seguire indicazioni mediche e monitorare risposta"
+    },
+    {
+      "id": 42,
+      "hostId": 33,
+      "drugId": 6,
+      "dataInizio": "2026-03-09",
+      "dataFine": null,
+      "dosaggio": "1 compressa",
+      "frequenza": "al bisogno",
+      "notaTerapia": "Seguire indicazioni mediche e monitorare risposta"
+    },
+    {
+      "id": 43,
+      "hostId": 34,
+      "drugId": 2,
+      "dataInizio": "2026-01-05",
+      "dataFine": null,
+      "dosaggio": "1 compressa",
+      "frequenza": "al bisogno",
+      "notaTerapia": "Seguire indicazioni mediche e monitorare risposta"
+    },
+    {
+      "id": 44,
+      "hostId": 34,
+      "drugId": 3,
+      "dataInizio": "2026-03-17",
+      "dataFine": null,
+      "dosaggio": "1 compressa",
+      "frequenza": "al bisogno",
+      "notaTerapia": "Seguire indicazioni mediche e monitorare risposta"
+    },
+    {
+      "id": 45,
+      "hostId": 34,
+      "drugId": 1,
+      "dataInizio": "2026-01-13",
+      "dataFine": null,
+      "dosaggio": "1 compressa",
+      "frequenza": "2 volte/die",
+      "notaTerapia": "Seguire indicazioni mediche e monitorare risposta"
+    },
+    {
+      "id": 46,
+      "hostId": 35,
+      "drugId": 4,
+      "dataInizio": "2026-02-13",
+      "dataFine": null,
+      "dosaggio": "1 compressa",
+      "frequenza": "1 volta/die",
+      "notaTerapia": "Seguire indicazioni mediche e monitorare risposta"
+    },
+    {
+      "id": 47,
+      "hostId": 36,
+      "drugId": 8,
+      "dataInizio": "2026-03-06",
+      "dataFine": null,
+      "dosaggio": "1 compressa",
+      "frequenza": "2 volte/die",
+      "notaTerapia": "Seguire indicazioni mediche e monitorare risposta"
+    },
+    {
+      "id": 48,
+      "hostId": 37,
+      "drugId": 2,
+      "dataInizio": "2026-01-12",
+      "dataFine": null,
+      "dosaggio": "1 compressa",
+      "frequenza": "2 volte/die",
+      "notaTerapia": "Seguire indicazioni mediche e monitorare risposta"
+    },
+    {
+      "id": 49,
+      "hostId": 37,
+      "drugId": 3,
+      "dataInizio": "2026-04-04",
+      "dataFine": null,
+      "dosaggio": "1 compressa",
+      "frequenza": "ogni 8 ore",
+      "notaTerapia": "Seguire indicazioni mediche e monitorare risposta"
+    },
+    {
+      "id": 50,
+      "hostId": 38,
+      "drugId": 8,
+      "dataInizio": "2026-03-09",
+      "dataFine": null,
+      "dosaggio": "1 compressa",
+      "frequenza": "2 volte/die",
+      "notaTerapia": "Seguire indicazioni mediche e monitorare risposta"
+    },
+    {
+      "id": 51,
+      "hostId": 39,
+      "drugId": 2,
+      "dataInizio": "2026-02-20",
+      "dataFine": null,
+      "dosaggio": "1 compressa",
+      "frequenza": "1 volta/die",
+      "notaTerapia": "Seguire indicazioni mediche e monitorare risposta"
+    },
+    {
+      "id": 52,
+      "hostId": 39,
+      "drugId": 3,
+      "dataInizio": "2026-01-24",
+      "dataFine": null,
+      "dosaggio": "1 compressa",
+      "frequenza": "1 volta/die",
+      "notaTerapia": "Seguire indicazioni mediche e monitorare risposta"
+    },
+    {
+      "id": 53,
+      "hostId": 40,
+      "drugId": 6,
+      "dataInizio": "2026-02-06",
+      "dataFine": null,
+      "dosaggio": "1 compressa",
+      "frequenza": "1 volta/die",
+      "notaTerapia": "Seguire indicazioni mediche e monitorare risposta"
+    },
+    {
+      "id": 54,
+      "hostId": 40,
+      "drugId": 7,
+      "dataInizio": "2026-01-12",
+      "dataFine": null,
+      "dosaggio": "1 compressa",
+      "frequenza": "1 volta/die",
+      "notaTerapia": "Seguire indicazioni mediche e monitorare risposta"
+    },
+    {
+      "id": 55,
+      "hostId": 41,
+      "drugId": 4,
+      "dataInizio": "2026-02-24",
+      "dataFine": null,
+      "dosaggio": "1 compressa",
+      "frequenza": "ogni 8 ore",
+      "notaTerapia": "Seguire indicazioni mediche e monitorare risposta"
+    },
+    {
+      "id": 56,
+      "hostId": 42,
+      "drugId": 7,
+      "dataInizio": "2026-02-28",
+      "dataFine": null,
+      "dosaggio": "1 compressa",
+      "frequenza": "1 volta/die",
+      "notaTerapia": "Seguire indicazioni mediche e monitorare risposta"
+    },
+    {
+      "id": 57,
+      "hostId": 42,
+      "drugId": 6,
+      "dataInizio": "2026-03-16",
+      "dataFine": null,
+      "dosaggio": "1 compressa",
+      "frequenza": "2 volte/die",
+      "notaTerapia": "Seguire indicazioni mediche e monitorare risposta"
+    },
+    {
+      "id": 58,
+      "hostId": 43,
+      "drugId": 9,
+      "dataInizio": "2026-03-27",
+      "dataFine": null,
+      "dosaggio": "1 compressa",
+      "frequenza": "1 volta/die",
+      "notaTerapia": "Seguire indicazioni mediche e monitorare risposta"
+    },
+    {
+      "id": 59,
+      "hostId": 44,
+      "drugId": 8,
+      "dataInizio": "2026-03-29",
+      "dataFine": null,
+      "dosaggio": "1 compressa",
+      "frequenza": "ogni 8 ore",
+      "notaTerapia": "Seguire indicazioni mediche e monitorare risposta"
+    },
+    {
+      "id": 60,
+      "hostId": 45,
+      "drugId": 7,
+      "dataInizio": "2026-02-09",
+      "dataFine": null,
+      "dosaggio": "1 compressa",
+      "frequenza": "2 volte/die",
+      "notaTerapia": "Seguire indicazioni mediche e monitorare risposta"
+    },
+    {
+      "id": 61,
+      "hostId": 45,
+      "drugId": 6,
+      "dataInizio": "2026-01-24",
+      "dataFine": null,
+      "dosaggio": "1 compressa",
+      "frequenza": "al bisogno",
+      "notaTerapia": "Seguire indicazioni mediche e monitorare risposta"
+    },
+    {
+      "id": 62,
+      "hostId": 46,
+      "drugId": 7,
+      "dataInizio": "2026-01-09",
+      "dataFine": null,
+      "dosaggio": "1 compressa",
+      "frequenza": "ogni 8 ore",
+      "notaTerapia": "Seguire indicazioni mediche e monitorare risposta"
+    },
+    {
+      "id": 63,
+      "hostId": 46,
+      "drugId": 6,
+      "dataInizio": "2026-03-16",
+      "dataFine": null,
+      "dosaggio": "1 compressa",
+      "frequenza": "ogni 8 ore",
+      "notaTerapia": "Seguire indicazioni mediche e monitorare risposta"
+    },
+    {
+      "id": 64,
+      "hostId": 47,
+      "drugId": 8,
+      "dataInizio": "2026-03-19",
+      "dataFine": null,
+      "dosaggio": "1 compressa",
+      "frequenza": "ogni 8 ore",
+      "notaTerapia": "Seguire indicazioni mediche e monitorare risposta"
+    },
+    {
+      "id": 65,
+      "hostId": 48,
+      "drugId": 1,
+      "dataInizio": "2026-01-10",
+      "dataFine": null,
+      "dosaggio": "1 compressa",
+      "frequenza": "ogni 8 ore",
+      "notaTerapia": "Seguire indicazioni mediche e monitorare risposta"
+    },
+    {
+      "id": 66,
+      "hostId": 48,
+      "drugId": 2,
+      "dataInizio": "2026-03-08",
+      "dataFine": null,
+      "dosaggio": "1 compressa",
+      "frequenza": "1 volta/die",
+      "notaTerapia": "Seguire indicazioni mediche e monitorare risposta"
+    },
+    {
+      "id": 67,
+      "hostId": 49,
+      "drugId": 4,
+      "dataInizio": "2026-04-02",
+      "dataFine": null,
+      "dosaggio": "1 compressa",
+      "frequenza": "2 volte/die",
+      "notaTerapia": "Seguire indicazioni mediche e monitorare risposta"
+    },
+    {
+      "id": 68,
+      "hostId": 50,
+      "drugId": 10,
+      "dataInizio": "2026-03-26",
+      "dataFine": null,
+      "dosaggio": "1 compressa",
+      "frequenza": "al bisogno",
+      "notaTerapia": "Seguire indicazioni mediche e monitorare risposta"
+    },
+    {
+      "id": 69,
+      "hostId": 51,
+      "drugId": 8,
+      "dataInizio": "2026-01-31",
+      "dataFine": null,
+      "dosaggio": "1 compressa",
+      "frequenza": "1 volta/die",
+      "notaTerapia": "Seguire indicazioni mediche e monitorare risposta"
+    },
+    {
+      "id": 70,
+      "hostId": 52,
+      "drugId": 5,
+      "dataInizio": "2026-02-05",
+      "dataFine": null,
+      "dosaggio": "1 compressa",
+      "frequenza": "1 volta/die",
+      "notaTerapia": "Seguire indicazioni mediche e monitorare risposta"
+    },
+    {
+      "id": 71,
+      "hostId": 53,
+      "drugId": 8,
+      "dataInizio": "2026-03-09",
+      "dataFine": null,
+      "dosaggio": "1 compressa",
+      "frequenza": "2 volte/die",
+      "notaTerapia": "Seguire indicazioni mediche e monitorare risposta"
+    },
+    {
+      "id": 72,
+      "hostId": 54,
+      "drugId": 5,
+      "dataInizio": "2026-02-13",
+      "dataFine": null,
+      "dosaggio": "1 compressa",
+      "frequenza": "ogni 8 ore",
+      "notaTerapia": "Seguire indicazioni mediche e monitorare risposta"
+    },
+    {
+      "id": 73,
+      "hostId": 55,
+      "drugId": 9,
+      "dataInizio": "2026-01-08",
+      "dataFine": null,
+      "dosaggio": "1 compressa",
+      "frequenza": "2 volte/die",
+      "notaTerapia": "Seguire indicazioni mediche e monitorare risposta"
+    },
+    {
+      "id": 74,
+      "hostId": 55,
+      "drugId": 10,
+      "dataInizio": "2026-02-15",
+      "dataFine": null,
+      "dosaggio": "1 compressa",
+      "frequenza": "ogni 8 ore",
+      "notaTerapia": "Seguire indicazioni mediche e monitorare risposta"
+    },
+    {
+      "id": 75,
+      "hostId": 56,
+      "drugId": 9,
+      "dataInizio": "2026-04-03",
+      "dataFine": null,
+      "dosaggio": "1 compressa",
+      "frequenza": "1 volta/die",
+      "notaTerapia": "Seguire indicazioni mediche e monitorare risposta"
+    },
+    {
+      "id": 76,
+      "hostId": 56,
+      "drugId": 10,
+      "dataInizio": "2026-03-08",
+      "dataFine": null,
+      "dosaggio": "1 compressa",
+      "frequenza": "al bisogno",
+      "notaTerapia": "Seguire indicazioni mediche e monitorare risposta"
+    },
+    {
+      "id": 77,
+      "hostId": 57,
+      "drugId": 8,
+      "dataInizio": "2026-02-22",
+      "dataFine": null,
+      "dosaggio": "1 compressa",
+      "frequenza": "al bisogno",
+      "notaTerapia": "Seguire indicazioni mediche e monitorare risposta"
+    },
+    {
+      "id": 78,
+      "hostId": 58,
+      "drugId": 9,
+      "dataInizio": "2026-03-11",
+      "dataFine": null,
+      "dosaggio": "1 compressa",
+      "frequenza": "2 volte/die",
+      "notaTerapia": "Seguire indicazioni mediche e monitorare risposta"
+    },
+    {
+      "id": 79,
+      "hostId": 58,
+      "drugId": 10,
+      "dataInizio": "2026-03-05",
+      "dataFine": null,
+      "dosaggio": "1 compressa",
+      "frequenza": "1 volta/die",
+      "notaTerapia": "Seguire indicazioni mediche e monitorare risposta"
+    },
+    {
+      "id": 80,
+      "hostId": 59,
+      "drugId": 7,
+      "dataInizio": "2026-02-21",
+      "dataFine": null,
+      "dosaggio": "1 compressa",
+      "frequenza": "1 volta/die",
+      "notaTerapia": "Seguire indicazioni mediche e monitorare risposta"
+    },
+    {
+      "id": 81,
+      "hostId": 60,
+      "drugId": 4,
+      "dataInizio": "2026-03-09",
+      "dataFine": null,
+      "dosaggio": "1 compressa",
+      "frequenza": "al bisogno",
+      "notaTerapia": "Seguire indicazioni mediche e monitorare risposta"
+    }
+  ]
+}
