@@ -107,9 +107,9 @@ async function handleSync() {
     <RouterLink to="/movimenti">Movimenti</RouterLink>
     <RouterLink to="/terapie">Terapie</RouterLink>
     <RouterLink to="/promemoria">Promemoria</RouterLink>
-    <RouterLink to="/manuale">Guida</RouterLink>
     <RouterLink v-if="currentUser?.role === 'admin'" to="/operatori">Operatori</RouterLink>
     <RouterLink v-if="currentUser?.role === 'admin'" to="/audit">Audit</RouterLink>
+    <RouterLink to="/manuale">Guida</RouterLink>
 
     <div class="sync-indicator-area">
       <span
