@@ -11,7 +11,7 @@ import { pruneStaleData } from '../services/dataPruning'
 const { currentUser, signOut } = useAuth()
 const logoSrc = `${import.meta.env.BASE_URL}branding/logo-header.svg`
 
-const { statoSync, dettagli } = useSyncState()
+const { statoSync, dettagli, flushLocalSyncQueue } = useSyncState()
 
 // ── Residenza corrente ──────────────────────────────────────────────────────
 const currentResidenzaId = ref('')
@@ -168,17 +168,29 @@ onUnmounted(() => {
 // ── End periodic sync ────────────────────────────────────────────────────────
 
 async function handleSignOut() {
+  // Try sync before logout
+  if (isSupabaseConfigured) {
+    try { await fullSync() } catch {}
+  } else {
+    await flushLocalSyncQueue()
+  }
   await signOut()
 }
 
 async function handleSync() {
-  try {
-    await fullSync()
-  } catch (e) {
-    // opzionale: mostra errore
-  } finally {
-    window.location.reload()
+  if (isSupabaseConfigured) {
+    try {
+      await fullSync()
+    } catch {
+      // silent fail
+    }
+  } else {
+    await flushLocalSyncQueue()
   }
+}
+
+async function handleSyncIndicatorClick() {
+  await handleSync()
 }
 </script>
 
@@ -230,7 +242,7 @@ async function handleSync() {
         :data-state="statoSync"
         :title="dettagli"
         aria-label="Stato sincronizzazione"
-        @click="maybeAutoSync"
+        @click="handleSyncIndicatorClick"
         role="button"
         tabindex="0"
         style="cursor:pointer"

@@ -68,7 +68,7 @@ const form = ref({
 })
 
 const stateFilterOptions = [
-  { value: 'DA_ESEGUIRE', label: 'Da eseguire' },
+  { value: 'DA_ESEGUIRE', label: 'Ripristina' },
   { value: 'POSTICIPATO', label: 'Posticipato' },
   { value: 'ESEGUITO', label: 'Eseguito' },
   { value: 'SALTATO', label: 'Saltato' },
@@ -248,13 +248,13 @@ async function setReminderPending(reminderId) {
       await db.activityLog.add({
         entityType: 'reminders',
         entityId: reminderId,
-        action: 'reminder_reset_pending',
+        action: 'reminder_restored',
         deviceId,
         operatorId: currentUser.value?.login ?? null,
         ts: now,
       })
     })
-    message.value = 'Promemoria riportato a Da eseguire.'
+    message.value = 'Promemoria ripristinato.'
     await loadData()
   } catch (err) {
     errorMessage.value = `Errore: ${err.message}`
@@ -311,7 +311,7 @@ async function setPendingBulk() {
         await db.activityLog.add({
           entityType: 'reminders',
           entityId: reminderId,
-          action: 'reminder_reset_pending',
+          action: 'reminder_restored',
           deviceId,
           operatorId: currentUser.value?.login ?? null,
           ts: now,
@@ -537,7 +537,7 @@ watch(residenzaFilter, async (value) => {
         <button class="reminder-action-btn" :disabled="!canRunBulkActions" @click="applyOutcomeBulk('ESEGUITO')">Eseguito</button>
         <button class="reminder-action-btn" :disabled="!canRunBulkActions" @click="applyOutcomeBulk('POSTICIPATO')">Posticipato</button>
         <button class="reminder-action-btn" :disabled="!canRunBulkActions" @click="applyOutcomeBulk('SALTATO')">Saltato</button>
-        <button class="reminder-action-btn" :disabled="!canRunBulkActions" @click="setPendingBulk">Da eseguire</button>
+        <button class="reminder-action-btn" :disabled="!canRunBulkActions" @click="setPendingBulk">Ripristina</button>
         <span class="muted" style="font-size:.82rem">
           Selezionati: {{ selectedActionableIds.length }} / {{ actionableRows.length }}
         </span>
@@ -637,7 +637,7 @@ watch(residenzaFilter, async (value) => {
                 style="margin-top:.2rem"
                 @click="setReminderPending(reminder.id)"
               >
-                Da eseguire
+                Ripristina
               </button>
             </td>
             <td>
@@ -679,7 +679,7 @@ watch(residenzaFilter, async (value) => {
             <label>
               Stato
               <select v-model="form.stato" :disabled="!editingReminderId || savingEdit">
-                <option value="DA_ESEGUIRE">Da eseguire</option>
+                <option value="DA_ESEGUIRE">Ripristina</option>
                 <option value="ESEGUITO">Eseguito</option>
                 <option value="SALTATO">Saltato</option>
                 <option value="POSTICIPATO">Posticipato</option>
