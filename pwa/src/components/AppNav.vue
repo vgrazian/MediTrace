@@ -5,11 +5,19 @@ import { fullSync } from '../services/sync'
 import { isSupabaseConfigured } from '../services/supabaseClient'
 import { db, getSetting } from '../db'
 import { useSyncState, SYNC_STATES } from '../composables/useSyncState'
+import { usePwaInstall } from '../composables/usePwaInstall.js'
 
 const { currentUser, signOut } = useAuth()
 const logoSrc = `${import.meta.env.BASE_URL}branding/logo-header.svg`
 
 const { statoSync, dettagli } = useSyncState()
+
+// ── PWA Install ──────────────────────────────────────────────────────────────
+const { canInstall, isInstalled, showInstallPrompt } = usePwaInstall()
+
+function handleInstallClick() {
+  showInstallPrompt()
+}
 
 // ── Periodic sync (Supabase free‑tier safe) ─────────────────────────────────
 // Each sync uploads ~185 KB. At 15‑min intervals with only‑when‑dirty,
@@ -133,6 +141,34 @@ async function handleSync() {
     </div>
 
     <div class="user-area">
+      <!-- Pulsante Installa App (visibile solo quando installabile) -->
+      <button
+        v-if="canInstall"
+        class="install-app-btn"
+        @click="handleInstallClick"
+        title="Installa MediTrace sul dispositivo"
+        aria-label="Installa app"
+      >
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+          <polyline points="7 10 12 15 17 10"/>
+          <line x1="12" y1="15" x2="12" y2="3"/>
+        </svg>
+        <span class="install-label">Installa app</span>
+      </button>
+
+      <!-- Indicatore app installata (visibile in standalone) -->
+      <span
+        v-if="isInstalled"
+        class="installed-badge"
+        title="App installata — accesso rapido dalla Home"
+        aria-label="App installata"
+      >
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M20 6L9 17l-5-5"/>
+        </svg>
+      </span>
+
       <button class="sync-btn" @click="handleSync" title="Sincronizza dati e aggiorna app" aria-label="Sincronizza">
         <svg width="22" height="22" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg" style="vertical-align:middle">
           <path d="M11 2v2.5M11 17.5V20M4.22 4.22l1.77 1.77M16.01 16.01l1.77 1.77M2 11h2.5M17.5 11H20M4.22 17.78l1.77-1.77M16.01 5.99l1.77-1.77" stroke="#2563eb" stroke-width="2" stroke-linecap="round"/>
@@ -147,6 +183,55 @@ async function handleSync() {
 </template>
 
 <style scoped>
+/* ── Pulsante Installa App ── */
+.install-app-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #2563eb;
+  color: #ffffff;
+  border: none;
+  border-radius: 8px;
+  padding: 6px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.1s;
+  white-space: nowrap;
+}
+
+.install-app-btn:hover {
+  background: #1d4ed8;
+}
+
+.install-app-btn:active {
+  transform: scale(0.97);
+}
+
+.install-label {
+  display: inline;
+}
+
+/* Su schermi piccoli nascondiamo il testo, mostriamo solo icona */
+@media (max-width: 480px) {
+  .install-label {
+    display: none;
+  }
+  .install-app-btn {
+    padding: 6px 10px;
+  }
+}
+
+/* ── Badge App Installata ── */
+.installed-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 4px;
+  color: #22c55e;
+  vertical-align: middle;
+}
+
+/* ── Sync button ── */
 .sync-btn {
   background: none;
   border: none;
