@@ -1,6 +1,14 @@
 import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import { VitePWA } from 'vite-plugin-pwa'
+import { execSync } from 'child_process'
+
+function gitShortHash() {
+    try { return execSync('git rev-parse --short HEAD', { encoding: 'utf8' }).trim() } catch { return '' }
+}
+function gitCommitDate() {
+    try { return execSync('git log -1 --format=%cI', { encoding: 'utf8' }).trim() } catch { return '' }
+}
 
 export default defineConfig({
     // Set VITE_BASE_URL=/medi-trace/ in CI for GitHub Pages; default to / for local dev
@@ -14,6 +22,8 @@ export default defineConfig({
 
     define: {
         __BUILD_TIMESTAMP__: JSON.stringify(new Date().toISOString()),
+        __GIT_COMMIT__: JSON.stringify(gitShortHash()),
+        __GIT_COMMIT_DATE__: JSON.stringify(gitCommitDate()),
     },
 
     plugins: [

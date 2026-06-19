@@ -5,7 +5,7 @@ import AppNav from './components/AppNav.vue'
 import HelpDrawer from './components/HelpDrawer.vue'
 import ConfirmDialog from './components/ConfirmDialog.vue'
 import { initAuth, sanitizeEmailInput, sanitizeUsernameInput, useAuth } from './services/auth'
-import { formatBuildTimestamp, getBuildTimestampIso } from './services/buildInfo'
+import { formatBuildTimestamp, getBuildTimestampIso, getDeployLabel } from './services/buildInfo'
 
 const { currentUser, hasUsers, isInitialized, signIn, register, requestPasswordResetByEmail, supportsEmailReset } = useAuth()
 const route = useRoute()
@@ -28,6 +28,7 @@ const loginError = ref('')
 const loginBusy = ref(false)
 const buildTimestampLabel = formatBuildTimestamp('it-IT')
 const buildTimestampIso = getBuildTimestampIso()
+const deployLabel = getDeployLabel()
 
 onMounted(() => initAuth())
 
@@ -226,6 +227,7 @@ async function handleRegister() {
 
         <p class="build-meta" :title="`Build ISO: ${buildTimestampIso}`">
           Build: {{ buildTimestampLabel }}
+          <span v-if="deployLabel" class="deploy-label"> &middot; {{ deployLabel }}</span>
           <button class="refresh-btn" @click="handleForceRefresh" title="Forza il refresh dell'app eliminando la cache del service worker">⟳ Aggiorna app</button>
         </p>
       </div>
