@@ -23,6 +23,18 @@ const residenzaBadgeRef = ref(null)
 
 const showResidenzaBadge = computed(() => Boolean(currentResidenzaId.value && currentResidenzaLabel.value))
 
+// Sync button color based on state
+const syncColor = computed(() => {
+  switch (statoSync.value) {
+    case SYNC_STATES.SYNCED: return '#22c55e'
+    case SYNC_STATES.PENDING: return '#f59e42'
+    case SYNC_STATES.CONFLICT: return '#ef4444'
+    case SYNC_STATES.ERROR: return '#a21caf'
+    case SYNC_STATES.OFFLINE: return '#64748b'
+    default: return '#93c5fd'
+  }
+})
+
 async function loadCurrentResidenza() {
   const savedId = await getSetting(CURRENT_RESIDENZA_SETTING_KEY, '')
   currentResidenzaId.value = String(savedId || '')
@@ -267,12 +279,12 @@ async function handleSyncIndicatorClick() {
 
     <div class="user-area">
       <button class="sync-btn" @click="handleSync" title="Sincronizza dati e aggiorna app" aria-label="Sincronizza">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#93c5fd" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" :stroke="syncColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle">
           <polyline points="23 4 23 10 17 10"/>
           <polyline points="1 20 1 14 7 14"/>
           <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
         </svg>
-        <span class="sync-label">Sync</span>
+        <span class="sync-label" :style="{ color: syncColor }">Sync</span>
       </button>
       <RouterLink to="/impostazioni" class="user-name user-name-link">{{ currentUser?.name }}</RouterLink>
       <RouterLink to="/impostazioni" title="Impostazioni" aria-label="Impostazioni">
@@ -301,7 +313,6 @@ async function handleSyncIndicatorClick() {
 }
 .sync-label {
   font-size: .72em;
-  color: #93c5fd;
   margin-left: .25em;
 }
 
