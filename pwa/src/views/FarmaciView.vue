@@ -198,6 +198,29 @@ const existingBatchNames = computed(() => {
   return [...names].sort((a, b) => a.localeCompare(b, 'it', { sensitivity: 'base' }))
 })
 
+// ── Stacked bar chart data ─────────────────────────────────────────────────
+const drugBatchStacks = computed(() => {
+  const map = new Map()
+  for (const b of batches.value) {
+    if (!b.drugId) continue
+    const entry = map.get(b.drugId) || { drugId: b.drugId, label: drugLabel(b.drugId), stacks: [], total: 0 }
+    entry.stacks.push({ name: b.nomeCommerciale || b.id, qty: Number(b.quantitaAttuale || 0) })
+    entry.total += Number(b.quantitaAttuale || 0)
+    map.set(b.drugId, entry)
+  }
+  return [...map.values()].filter(e => e.total > 0).sort((a, b) => b.total - a.total).slice(0, 12)
+})
+
+const chartMaxQty = computed(() => {
+  const max = Math.max(1, ...drugBatchStacks.value.map(d => d.total))
+  return Math.ceil(max / 10) * 10 || 10
+})
+
+function stackColors(i) {
+  const palette = ['#2563eb', '#7c3aed', '#db2777', '#ea580c', '#16a34a', '#0891b2', '#4f46e5', '#b91c1c', '#a21caf', '#0d9488']
+  return palette[i % palette.length]
+}
+
 const filteredBatches = computed(() => {
   const q = normalizedFilter.value
   const baseRows = q
@@ -1135,6 +1158,44 @@ onMounted(() => {
           </p>
         </div>
       </details>
+    </div>
+
+    <!-- ── Grafico stacked farmaci/confezioni ── -->
+    <div v-if="drugBatchStacks.length > 0" class="card">
+      <p><strong>📊 Farmaci e quantità per confezione</strong></p>
+      <div style="margin-top:.75rem;overflow-x:auto">
+        <svg :viewBox="'0 0 ' + (drugBatchStacks.length * 70 + 80) + ' 220'" width="100%" height="220" style="max-width:100%">
+          <text x="5" y="15" font-size="9" fill="#94a3b8">{{ chartMaxQty }}</text>
+          <text x="5" y="115" font-size="9" fill="#94a3b8">{{ Math.round(chartMaxQty / 2) }}</text>
+          <text x="5" y="205" font-size="9" fill="#94a3b8">0</text>
+          <line x1="30" y1="10" :x2="drugBatchStacks.length * 70 + 70" y2="10" stroke="#e2e8f0" stroke-width="1"/>
+          <line x1="30" y1="110" :x2="drugBatchStacks.length * 70 + 70" y2="110" stroke="#e2e8f0" stroke-width="1"/>
+          <g v-for="(drug, di) in drugBatchStacks" :key="drug.drugId">
+            <g v-for="(stack, si) in drug.stacks" :key="si">
+              <rect
+                :x="di * 70 + 45"
+                :y="210 - ((drug.stacks.slice(0, si + 1).reduce((a,b) => a + b.qty, 0)) / chartMaxQty) * 200"
+                width="45"
+                :height="(stack.qty / chartMaxQty) * 200"
+                :fill="stackColors(si)"
+                opacity="0.85"
+              >
+                <title>{{ stack.name }}: {{ stack.qty }}</title>
+              </rect>
+            </g>
+            <text :x="di * 70 + 67" y="218" text-anchor="middle" font-size="8" fill="#64748b">{{ drug.label.slice(0, 12) }}</text>
+          </g>
+        </svg>
+      </div>
+      <!-- Legend -->
+      <div style="display:flex;flex-wrap:wrap;gap:.4rem .8rem;margin-top:.5rem;font-size:.72rem">
+        <template v-for="(drug, di) in drugBatchStacks" :key="'lg-' + drug.drugId">
+          <span v-for="(stack, si) in drug.stacks" :key="si" style="display:inline-flex;align-items:center;gap:.2rem">
+            <span :style="{ display:'inline-block', width:'10px', height:'10px', borderRadius:'2px', background: stackColors(si) }"></span>
+            {{ stack.name }} ({{ stack.qty }})
+          </span>
+        </template>
+      </div>
     </div>
 
     <UndoDeleteBanner
