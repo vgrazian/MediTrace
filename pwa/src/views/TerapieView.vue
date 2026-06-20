@@ -500,7 +500,7 @@ onMounted(() => {
         <button :disabled="selectedCount !== 1" @click="openEditForm" title="Modifica selezionata">Modifica</button>
         <button
           :disabled="selectedCount === 0"
-          style="background:#d35f55"
+          class="btn-danger"
           @click="deleteSelectedTherapies"
           title="Elimina selezionata (Scorciatoia: D)"
         >
@@ -567,7 +567,7 @@ onMounted(() => {
             <td>{{ formatDate(therapy.dataFine) }}</td>
             <td>
               <button style="margin-right:.35rem" @click="startEditTherapy(therapy)">Modifica</button>
-              <button style="background:#d35f55" @click="deleteTherapy(therapy)">Elimina</button>
+              <button class="btn-danger" @click="deleteTherapy(therapy)">Elimina</button>
             </td>
           </tr>
           <tr v-if="filteredTherapies.length === 0 && !loading">

@@ -648,7 +648,7 @@ watch(residenzaFilter, async (value) => {
             <td>
               <div style="display:flex;gap:.4rem;flex-wrap:wrap">
                 <button class="reminder-secondary-btn" :disabled="markingId === reminder.id || savingEdit" @click="startEdit(reminder)">Modifica</button>
-                <button class="reminder-secondary-btn" :disabled="markingId === reminder.id || savingEdit" style="background:#d35f55" @click="deleteReminder(reminder.id)">Elimina</button>
+                <button class="reminder-secondary-btn btn-danger" :disabled="markingId === reminder.id || savingEdit" @click="deleteReminder(reminder.id)">Elimina</button>
               </div>
             </td>
           </tr>

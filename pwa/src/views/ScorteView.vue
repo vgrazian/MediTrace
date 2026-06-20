@@ -697,7 +697,7 @@ onMounted(() => {
             <td>{{ row.warningReason }}</td>
             <td>
               <button style="margin-right:.35rem" @click="startEditDrug(row.drugId)">Modifica</button>
-              <button style="background:#d35f55" @click="deleteDrug(row.drugId)">Elimina</button>
+              <button class="btn-danger" @click="deleteDrug(row.drugId)">Elimina</button>
             </td>
           </tr>
           <tr v-if="filteredReportRows.length === 0">
@@ -807,7 +807,7 @@ onMounted(() => {
             <td>{{ batch.scadenza || '—' }}</td>
             <td>
               <button style="margin-right:.35rem" @click="startEditBatch(batch)">Modifica</button>
-              <button style="background:#d35f55" @click="deleteBatch(batch.id)">Elimina</button>
+              <button class="btn-danger" @click="deleteBatch(batch.id)">Elimina</button>
             </td>
           </tr>
           <tr v-if="!hasBatches && !reportLoading">

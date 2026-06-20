@@ -464,7 +464,7 @@ onMounted(() => {
         <button :disabled="selectedCount !== 1" @click="openEditForm" title="Modifica selezionato">Modifica</button>
         <button
           :disabled="selectedCount === 0"
-          style="background:#d35f55"
+          class="btn-danger"
           @click="deleteSelectedHosts"
           title="Elimina selezionato (Scorciatoia: D)"
         >
@@ -527,7 +527,7 @@ onMounted(() => {
                 Modifica
               </button>
               <button
-                style="padding:.2rem .55rem;font-size:.8rem;background:#d35f55"
+                class="btn-danger btn-sm"
                 @click="handleDeactivate(host.id)"
               >
                 Elimina

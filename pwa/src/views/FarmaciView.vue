@@ -768,7 +768,7 @@ onMounted(() => {
         <button :disabled="selectedDrugsCount !== 1" @click="openEditDrugForm" title="Modifica selezionato">Modifica</button>
         <button
           :disabled="selectedDrugsCount === 0"
-          style="background:#d35f55"
+          class="btn-danger"
           @click="deleteSelectedDrugs"
           title="Elimina selezionato (Scorciatoia: D)"
         >
@@ -829,7 +829,7 @@ onMounted(() => {
             <td>{{ drug.sogliaGiorniAutonomia ?? 30 }}</td>
             <td>
               <button style="margin-right:.35rem" @click="startEditDrug(drug)">Modifica</button>
-              <button style="background:#d35f55" @click="deleteDrugRecord(drug)">Elimina</button>
+              <button class="btn-danger" @click="deleteDrugRecord(drug)">Elimina</button>
             </td>
           </tr>
           <tr v-if="filteredDrugs.length === 0 && !loading">
@@ -855,7 +855,7 @@ onMounted(() => {
         <button :disabled="selectedBatchesCount !== 1" @click="openEditBatchForm" title="Modifica selezionata">Modifica</button>
         <button
           :disabled="selectedBatchesCount === 0"
-          style="background:#d35f55"
+          class="btn-danger"
           @click="deleteSelectedBatches"
           title="Elimina selezionata (Scorciatoia: D)"
         >
@@ -917,7 +917,7 @@ onMounted(() => {
             <td>{{ formatDate(batch.scadenza) }}</td>
             <td>
               <button style="margin-right:.35rem" @click="startEditBatch(batch)">Modifica</button>
-              <button style="background:#d35f55" @click="deactivateBatchUI(batch)">Elimina</button>
+              <button class="btn-danger" @click="deactivateBatchUI(batch)">Elimina</button>
             </td>
           </tr>
           <tr v-if="filteredBatches.length === 0 && !loading">

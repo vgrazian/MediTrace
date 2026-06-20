@@ -193,8 +193,8 @@ onMounted(() => void loadData())
               <td>{{ item.postiDisponibili }}</td>
               <td>{{ item.note || '—' }}</td>
               <td>
-                <button style="padding:.2rem .55rem;font-size:.8rem;margin-right:.35rem" @click="startEdit(item)">Modifica</button>
-                <button style="padding:.2rem .55rem;font-size:.8rem;background:#d35f55" @click="handleDelete(item)">Elimina</button>
+                <button class="btn-sm" style="margin-right:.35rem" @click="startEdit(item)">Modifica</button>
+                <button class="btn-danger btn-sm" @click="handleDelete(item)">Elimina</button>
               </td>
             </tr>
             <tr v-if="filteredResidenze.length === 0 && !loading">
