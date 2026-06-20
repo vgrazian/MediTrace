@@ -129,12 +129,15 @@ export async function listResidenze() {
                 maxOspiti,
                 ospitiAttivi,
                 postiDisponibili: Math.max(0, maxOspiti - ospitiAttivi),
+                indirizzo: room.metadata?.indirizzo || room.indirizzo || '',
+                telefono: room.metadata?.telefono || room.telefono || '',
+                email: room.metadata?.email || room.email || '',
             }
         })
         .sort((a, b) => String(a.codice || '').localeCompare(String(b.codice || '')))
 }
 
-export async function createResidenza({ codice, note = '', maxOspiti = DEFAULT_MAX_OSPITI, operatorId = null }) {
+export async function createResidenza({ codice, note = '', maxOspiti = DEFAULT_MAX_OSPITI, indirizzo = '', telefono = '', email = '', operatorId = null }) {
     const cleanCode = String(codice || '').trim()
     if (!cleanCode) throw new Error('Nome residenza obbligatorio')
 
@@ -147,6 +150,9 @@ export async function createResidenza({ codice, note = '', maxOspiti = DEFAULT_M
     const metadata = {
         ...(created.metadata || {}),
         maxOspiti: parseMaxOspiti(maxOspiti),
+        indirizzo: String(indirizzo || '').trim(),
+        telefono: String(telefono || '').trim(),
+        email: String(email || '').trim(),
     }
 
     await db.rooms.put({
@@ -160,7 +166,7 @@ export async function createResidenza({ codice, note = '', maxOspiti = DEFAULT_M
     }
 }
 
-export async function updateResidenza({ roomId, codice, note = '', maxOspiti = DEFAULT_MAX_OSPITI, operatorId = null }) {
+export async function updateResidenza({ roomId, codice, note = '', maxOspiti = DEFAULT_MAX_OSPITI, indirizzo = '', telefono = '', email = '', operatorId = null }) {
     const cleanCode = String(codice || '').trim()
     if (!cleanCode) throw new Error('Nome residenza obbligatorio')
 
@@ -176,6 +182,9 @@ export async function updateResidenza({ roomId, codice, note = '', maxOspiti = D
     const metadata = {
         ...(updated.metadata || {}),
         maxOspiti: parseMaxOspiti(maxOspiti),
+        indirizzo: String(indirizzo || '').trim(),
+        telefono: String(telefono || '').trim(),
+        email: String(email || '').trim(),
     }
 
     await db.rooms.put({

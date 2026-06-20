@@ -27,10 +27,14 @@ const filterQuery = ref('')
 const residenze = ref([])
 const isFormOpen = ref(false)
 const editId = ref('')
+const editName = ref('')
 
 const form = ref({
   codice: '',
   maxOspiti: '10',
+  indirizzo: '',
+  telefono: '',
+  email: '',
   note: '',
 })
 
@@ -38,7 +42,7 @@ const filteredResidenze = computed(() => {
   const q = filterQuery.value.trim().toLowerCase()
   if (!q) return residenze.value
   return residenze.value.filter(item => {
-    const text = [item.codice, item.note, String(item.maxOspiti), String(item.ospitiAttivi)].filter(Boolean).join(' ').toLowerCase()
+    const text = [item.codice, item.indirizzo, item.telefono, item.email, item.note, String(item.maxOspiti), String(item.ospitiAttivi)].filter(Boolean).join(' ').toLowerCase()
     return text.includes(q)
   })
 })
@@ -51,18 +55,27 @@ const canSave = computed(() => {
 
 function resetForm() {
   editId.value = ''
+  editName.value = ''
   form.value = {
     codice: '',
     maxOspiti: '10',
+    indirizzo: '',
+    telefono: '',
+    email: '',
     note: '',
   }
 }
 
 function startEdit(item) {
   editId.value = item.id
+  editName.value = item.codice || item.id
+  const m = item.metadata || {}
   form.value = {
     codice: item.codice || '',
     maxOspiti: String(item.maxOspiti || 10),
+    indirizzo: m.indirizzo || item.indirizzo || '',
+    telefono: m.telefono || item.telefono || '',
+    email: m.email || item.email || '',
     note: item.note || '',
   }
   isFormOpen.value = true
@@ -94,6 +107,9 @@ async function handleSave() {
     const payload = {
       codice: form.value.codice.trim(),
       maxOspiti: form.value.maxOspiti,
+      indirizzo: form.value.indirizzo.trim(),
+      telefono: form.value.telefono.trim(),
+      email: form.value.email.trim(),
       note: form.value.note,
       operatorId: currentUser.value?.login ?? null,
     }
@@ -180,8 +196,11 @@ onMounted(() => void loadData())
           <thead>
             <tr>
               <th>Residenza</th>
+              <th>Indirizzo</th>
+              <th>Telefono</th>
+              <th>Email</th>
               <th>Capienza</th>
-              <th>Posti disponibili</th>
+              <th>Posti disp.</th>
               <th>Note</th>
               <th>Azioni</th>
             </tr>
@@ -189,6 +208,9 @@ onMounted(() => void loadData())
           <tbody>
             <tr v-for="item in filteredResidenze" :key="item.id">
               <td>{{ item.codice }}</td>
+              <td>{{ item.indirizzo || (item.metadata && item.metadata.indirizzo) || '—' }}</td>
+              <td>{{ item.telefono || (item.metadata && item.metadata.telefono) || '—' }}</td>
+              <td>{{ item.email || (item.metadata && item.metadata.email) || '—' }}</td>
               <td>{{ formatCapienza(item) }}</td>
               <td>{{ item.postiDisponibili }}</td>
               <td>{{ item.note || '—' }}</td>
@@ -198,7 +220,7 @@ onMounted(() => void loadData())
               </td>
             </tr>
             <tr v-if="filteredResidenze.length === 0 && !loading">
-              <td colspan="5" class="muted">Nessuna residenza disponibile.</td>
+              <td colspan="8" class="muted">Nessuna residenza disponibile.</td>
             </tr>
           </tbody>
         </table>
@@ -213,7 +235,7 @@ onMounted(() => void loadData())
       <details class="deep-panel" :open="isFormOpen" @toggle="isFormOpen = $event.target.open">
         <summary><strong>Gestione Residenze</strong></summary>
         <div style="margin-top:.75rem">
-          <p><strong>{{ editId ? `Modifica residenza ${editId}` : 'Nuova residenza' }}</strong></p>
+          <p><strong>{{ editId ? `Modifica residenza: ${editName}` : 'Nuova residenza' }}</strong></p>
           <div class="import-form" style="margin-top:.65rem">
             <label>
               Nome residenza
@@ -222,6 +244,18 @@ onMounted(() => void loadData())
             <label>
               Max ospiti
               <input v-model="form.maxOspiti" type="number" min="1" step="1" placeholder="10" />
+            </label>
+            <label>
+              Indirizzo
+              <input v-model="form.indirizzo" type="text" placeholder="Via Roma 123, Milano" />
+            </label>
+            <label>
+              Telefono
+              <input v-model="form.telefono" type="tel" placeholder="+39 02 1234567" />
+            </label>
+            <label>
+              Email
+              <input v-model="form.email" type="email" placeholder="residenza@esempio.it" />
             </label>
             <label>
               Note
