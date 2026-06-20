@@ -12,7 +12,9 @@ import {
 import { useHelpNavigation } from '../composables/useHelpNavigation'
 import { openConfirmDialog } from '../services/confirmDialog'
 import { useUndoDelete } from '../composables/useUndoDelete'
-import CrudFilterBar from '../components/CrudFilterBar.vue'import { db } from '../db'
+import CrudFilterBar from '../components/CrudFilterBar.vue'
+import { db } from '../db'
+
 const { currentUser } = useAuth()
 const { goToHelpSection } = useHelpNavigation()
 const { pendingUndo, scheduleUndo, executeUndo } = useUndoDelete(10_000)
