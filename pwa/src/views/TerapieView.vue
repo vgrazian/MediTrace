@@ -214,9 +214,7 @@ function hostLabel(hostId) {
   const host = hosts.value.find(item => item.id === hostId)
   if (!host) return hostId
   const fullName = [host.nome, host.cognome].filter(Boolean).join(' ').trim()
-  const namePart = fullName || host.iniziali || host.codiceInterno || hostId
-  const visibleId = host.codiceInterno || host.id
-  return `[${visibleId}] - ${namePart}`
+  return fullName || host.iniziali || host.codiceInterno || hostId
 }
 
 function drugLabel(drugId) {
@@ -268,7 +266,11 @@ async function loadData() {
 
     hosts.value = rawHosts
       .filter(row => !row.deletedAt)
-      .sort((a, b) => (a.codiceInterno || a.id).localeCompare(b.codiceInterno || b.id))
+      .sort((a, b) => {
+        const nameA = [a.nome, a.cognome].filter(Boolean).join(' ').trim().toLowerCase()
+        const nameB = [b.nome, b.cognome].filter(Boolean).join(' ').trim().toLowerCase()
+        return nameA.localeCompare(nameB)
+      })
 
     drugs.value = rawDrugs
       .filter(row => !row.deletedAt)

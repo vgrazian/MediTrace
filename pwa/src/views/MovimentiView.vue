@@ -210,9 +210,7 @@ function hostLabel(hostId) {
   const host = hosts.value.find((item) => item.id === hostId)
   if (!host) return 'Ospite non disponibile'
   const fullName = [host.nome, host.cognome].filter(Boolean).join(' ').trim()
-  const namePart = fullName || host.iniziali || host.codiceInterno || hostId
-  const visibleId = host.codiceInterno || host.id
-  return `[${visibleId}] - ${namePart}`
+  return fullName || host.iniziali || host.codiceInterno || hostId
 }
 
 function therapyLabel(therapyId) {
