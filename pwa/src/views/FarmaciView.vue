@@ -162,7 +162,7 @@ const filteredDrugs = computed(() => {
 // Existing drug names for autocomplete datalist
 const existingDrugNames = computed(() => {
   const names = new Set()
-  for (const d of allDrugs.value) {
+  for (const d of drugs.value) {
     const name = (d.nomeFarmaco || '').trim()
     if (name) names.add(name)
   }
