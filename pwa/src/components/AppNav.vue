@@ -1,9 +1,9 @@
 <script setup>
-import { ref, onMounted, onUnmounted, computed } from 'vue'
+import { ref, onMounted, onUnmounted, computed, nextTick, watch } from 'vue'
 import { useAuth } from '../services/auth'
 import { fullSync } from '../services/sync'
 import { isSupabaseConfigured } from '../services/supabaseClient'
-import { db, getSetting } from '../db'
+import { db, getSetting, setSetting } from '../db'
 import { useSyncState, SYNC_STATES } from '../composables/useSyncState'
 import { CURRENT_RESIDENZA_SETTING_KEY } from '../services/promemoria'
 import { pruneStaleData } from '../services/dataPruning'
@@ -11,11 +11,15 @@ import { pruneStaleData } from '../services/dataPruning'
 const { currentUser, signOut } = useAuth()
 const logoSrc = `${import.meta.env.BASE_URL}branding/logo-header.svg`
 
-const { statoSync, dettagli } = useSyncState()
+const { statoSync, dettagli, flushLocalSyncQueue } = useSyncState()
 
 // ── Residenza corrente ──────────────────────────────────────────────────────
 const currentResidenzaId = ref('')
 const currentResidenzaLabel = ref('')
+const showResidenzaDropdown = ref(false)
+const availableResidenze = ref([])
+const residenzaDropdownRef = ref(null)
+const residenzaBadgeRef = ref(null)
 
 const showResidenzaBadge = computed(() => Boolean(currentResidenzaId.value && currentResidenzaLabel.value))
 
@@ -33,6 +37,51 @@ async function loadCurrentResidenza() {
   }
   currentResidenzaId.value = ''
   currentResidenzaLabel.value = ''
+}
+
+async function loadAvailableResidenze() {
+  try {
+    const rooms = await db.rooms.toArray()
+    availableResidenze.value = rooms
+      .filter(r => !r.deletedAt)
+      .map(r => ({ id: r.id, label: r.codice || r.nome || r.id }))
+      .sort((a, b) => a.label.localeCompare(b.label))
+  } catch {
+    availableResidenze.value = []
+  }
+}
+
+function toggleResidenzaDropdown() {
+  if (showResidenzaDropdown.value) {
+    showResidenzaDropdown.value = false
+  } else {
+    loadAvailableResidenze()
+    // Use nextTick so the document click listener (closeResidenzaDropdown)
+    // doesn't immediately close the dropdown on the same click
+    nextTick(() => {
+      showResidenzaDropdown.value = true
+    })
+  }
+}
+
+async function selectResidenza(roomId) {
+  await setSetting(CURRENT_RESIDENZA_SETTING_KEY, roomId)
+  currentResidenzaId.value = roomId
+  const room = availableResidenze.value.find(r => r.id === roomId)
+  currentResidenzaLabel.value = room?.label || roomId
+  showResidenzaDropdown.value = false
+  // Dispatch event so views can react
+  window.dispatchEvent(new CustomEvent('medi-trace:residenza-changed', { detail: { roomId } }))
+  // Reload to refresh all data for the new residenza
+  window.location.reload()
+}
+
+function closeResidenzaDropdown(e) {
+  // Ignore clicks on the badge itself (toggleResidenzaDropdown handles those)
+  if (residenzaBadgeRef.value && residenzaBadgeRef.value.contains(e.target)) return
+  // Ignore clicks inside the dropdown
+  if (residenzaDropdownRef.value && residenzaDropdownRef.value.contains(e.target)) return
+  showResidenzaDropdown.value = false
 }
 
 // ── Periodic sync (Supabase free‑tier safe) ─────────────────────────────────
@@ -98,6 +147,7 @@ async function maybeAutoSync() {
 
 onMounted(() => {
   loadCurrentResidenza()
+  document.addEventListener('click', closeResidenzaDropdown)
   if (isSupabaseConfigured) {
     // Check every 30 seconds; debounce prevents sync during active edits
     periodicTimer = setInterval(maybeAutoSync, 30_000)
@@ -113,21 +163,34 @@ onMounted(() => {
 onUnmounted(() => {
   if (periodicTimer) clearInterval(periodicTimer)
   window.removeEventListener('medi-trace:local-change', onLocalChange)
+  document.removeEventListener('click', closeResidenzaDropdown)
 })
 // ── End periodic sync ────────────────────────────────────────────────────────
 
 async function handleSignOut() {
+  // Try sync before logout
+  if (isSupabaseConfigured) {
+    try { await fullSync() } catch {}
+  } else {
+    await flushLocalSyncQueue()
+  }
   await signOut()
 }
 
 async function handleSync() {
-  try {
-    await fullSync()
-  } catch (e) {
-    // opzionale: mostra errore
-  } finally {
-    window.location.reload()
+  if (isSupabaseConfigured) {
+    try {
+      await fullSync()
+    } catch {
+      // silent fail
+    }
+  } else {
+    await flushLocalSyncQueue()
   }
+}
+
+async function handleSyncIndicatorClick() {
+  await handleSync()
 }
 </script>
 
@@ -139,21 +202,39 @@ async function handleSync() {
       <span class="brand-title">MediTrace</span>
     </div>
 
-    <span v-if="showResidenzaBadge" class="residenza-badge" :title="`Residenza attiva: ${currentResidenzaLabel}`">
+    <span v-if="showResidenzaBadge" ref="residenzaBadgeRef" class="residenza-badge" :title="`Residenza attiva: ${currentResidenzaLabel} — clicca per cambiare`" @click.stop="toggleResidenzaDropdown" role="button" tabindex="0" style="cursor:pointer">
       🏠 {{ currentResidenzaLabel }}
+      <span class="residenza-chevron">▾</span>
+      <div v-if="showResidenzaDropdown" ref="residenzaDropdownRef" class="residenza-dropdown" @click.stop>
+        <div class="residenza-dropdown-header">Cambia residenza</div>
+        <button
+          v-for="r in availableResidenze"
+          :key="r.id"
+          class="residenza-dropdown-item"
+          :class="{ active: r.id === currentResidenzaId }"
+          @click="selectResidenza(r.id)"
+        >
+          <span v-if="r.id === currentResidenzaId" class="residenza-check">✓</span>
+          <span v-else class="residenza-check-placeholder"></span>
+          {{ r.label }}
+        </button>
+        <div v-if="availableResidenze.length === 0" class="residenza-dropdown-empty">
+          Nessuna residenza disponibile
+        </div>
+      </div>
     </span>
 
-    <RouterLink to="/">Cruscotto</RouterLink>
-    <RouterLink to="/promemoria">Promemoria</RouterLink>
-    <RouterLink to="/terapie">Terapie</RouterLink>
-    <RouterLink to="/scorte">Scorte</RouterLink>
-    <RouterLink to="/movimenti">Movimenti</RouterLink>
-    <RouterLink to="/ospiti">Ospiti</RouterLink>
-    <RouterLink to="/farmaci">Farmaci</RouterLink>
-    <RouterLink to="/residenze">Residenze</RouterLink>
-    <RouterLink to="/manuale">Guida</RouterLink>
-    <RouterLink v-if="currentUser?.role === 'admin'" to="/operatori">Operatori</RouterLink>
-    <RouterLink v-if="currentUser?.role === 'admin'" to="/audit">Audit</RouterLink>
+    <RouterLink to="/" title="Cruscotto — riepilogo e KPI">Cruscotto</RouterLink>
+    <RouterLink to="/promemoria" title="Promemoria somministrazioni">Promemoria</RouterLink>
+    <RouterLink to="/terapie" title="Terapie attive per ospite">Terapie</RouterLink>
+    <RouterLink to="/scorte" title="Scorte e report consumi">Scorte</RouterLink>
+    <RouterLink to="/movimenti" title="Movimenti di carico/scarico">Movimenti</RouterLink>
+    <RouterLink to="/ospiti" title="Registro ospiti">Ospiti</RouterLink>
+    <RouterLink to="/farmaci" title="Catalogo farmaci e confezioni">Farmaci</RouterLink>
+    <RouterLink to="/residenze" title="Gestione residenze">Residenze</RouterLink>
+    <RouterLink to="/manuale" title="Guida utente">Guida</RouterLink>
+    <RouterLink v-if="currentUser?.role === 'admin'" to="/operatori" title="Gestione operatori e permessi">Operatori</RouterLink>
+    <RouterLink v-if="currentUser?.role === 'admin'" to="/audit" title="Registro audit e attività">Audit</RouterLink>
 
     <div class="sync-indicator-area">
       <span
@@ -161,7 +242,7 @@ async function handleSync() {
         :data-state="statoSync"
         :title="dettagli"
         aria-label="Stato sincronizzazione"
-        @click="maybeAutoSync"
+        @click="handleSyncIndicatorClick"
         role="button"
         tabindex="0"
         style="cursor:pointer"
@@ -186,13 +267,20 @@ async function handleSync() {
 
     <div class="user-area">
       <button class="sync-btn" @click="handleSync" title="Sincronizza dati e aggiorna app" aria-label="Sincronizza">
-        <svg width="22" height="22" viewBox="0 0 22 22" fill="none" xmlns="http://www.w3.org/2000/svg" style="vertical-align:middle">
-          <path d="M11 2v2.5M11 17.5V20M4.22 4.22l1.77 1.77M16.01 16.01l1.77 1.77M2 11h2.5M17.5 11H20M4.22 17.78l1.77-1.77M16.01 5.99l1.77-1.77" stroke="#2563eb" stroke-width="2" stroke-linecap="round"/>
-          <circle cx="11" cy="11" r="7" stroke="#2563eb" stroke-width="2"/>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#93c5fd" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle">
+          <polyline points="23 4 23 10 17 10"/>
+          <polyline points="1 20 1 14 7 14"/>
+          <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
         </svg>
+        <span class="sync-label">Sync</span>
       </button>
       <RouterLink to="/impostazioni" class="user-name user-name-link">{{ currentUser?.name }}</RouterLink>
-      <RouterLink to="/impostazioni">⚙</RouterLink>
+      <RouterLink to="/impostazioni" title="Impostazioni" aria-label="Impostazioni">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#93c5fd" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle">
+          <circle cx="12" cy="12" r="3"/>
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+        </svg>
+      </RouterLink>
       <button type="button" @click="handleSignOut">Logout</button>
     </div>
   </nav>
@@ -210,6 +298,11 @@ async function handleSync() {
 .sync-btn:hover {
   background: #e0e7ff;
   border-radius: 6px;
+}
+.sync-label {
+  font-size: .72em;
+  color: #93c5fd;
+  margin-left: .25em;
 }
 
 .sync-indicator-area {
@@ -238,5 +331,71 @@ async function handleSync() {
   font-weight: 500;
   white-space: nowrap;
   vertical-align: middle;
+  user-select: none;
+  position: relative;
+}
+.residenza-badge:hover {
+  background: #bfdbfe;
+}
+.residenza-chevron {
+  font-size: 0.7em;
+  margin-left: 0.2em;
+  opacity: 0.6;
+}
+.residenza-dropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  min-width: 220px;
+  max-width: 320px;
+  background: #fff;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.12);
+  z-index: 1000;
+  overflow: hidden;
+}
+.residenza-dropdown-header {
+  padding: 0.5em 0.8em;
+  font-size: 0.75em;
+  font-weight: 600;
+  color: #64748b;
+  background: #f8fafc;
+  border-bottom: 1px solid #e2e8f0;
+}
+.residenza-dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 0.4em;
+  width: 100%;
+  padding: 0.55em 0.8em;
+  border: none;
+  background: none;
+  font-size: 0.88em;
+  color: #1e293b;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.15s;
+}
+.residenza-dropdown-item:hover {
+  background: #eff6ff;
+}
+.residenza-dropdown-item.active {
+  background: #dbeafe;
+  font-weight: 600;
+}
+.residenza-check {
+  color: #2563eb;
+  font-weight: 700;
+  width: 1.2em;
+}
+.residenza-check-placeholder {
+  width: 1.2em;
+}
+.residenza-dropdown-empty {
+  padding: 1em 0.8em;
+  font-size: 0.85em;
+  color: #94a3b8;
+  text-align: center;
 }
 </style>

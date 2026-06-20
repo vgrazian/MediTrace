@@ -97,7 +97,7 @@ function normalizeReminderState(reminder) {
 
 function formatHostDisplay(host, fallbackHostId = '') {
     if (!host) return fallbackHostId || '—'
-    const fullName = [host.cognome, host.nome].filter(Boolean).join(' ').trim()
+    const fullName = [host.nome, host.cognome].filter(Boolean).join(' ').trim()
     if (fullName) return fullName
     return host.codiceInterno || host.iniziali || host.id || fallbackHostId || '—'
 }

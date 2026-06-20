@@ -207,7 +207,7 @@ function hostLabel(hostId) {
   if (!hostId) return '—'
   const host = hosts.value.find((item) => item.id === hostId)
   if (!host) return 'Ospite non disponibile'
-  const fullName = [host.cognome, host.nome].filter(Boolean).join(' ').trim()
+  const fullName = [host.nome, host.cognome].filter(Boolean).join(' ').trim()
   const namePart = fullName || host.iniziali || host.codiceInterno || hostId
   const visibleId = host.codiceInterno || host.id
   return `[${visibleId}] - ${namePart}`
@@ -514,7 +514,7 @@ onMounted(() => {
         <button :disabled="selectedCount !== 1" @click="openEditForm" title="Modifica selezionato">Modifica</button>
         <button
           :disabled="selectedCount === 0 || !canDeleteMovements"
-          style="background:#d35f55"
+          class="btn-danger"
           @click="deleteSelectedMovements"
           title="Elimina selezionato (Scorciatoia: D)"
         >
@@ -580,7 +580,7 @@ onMounted(() => {
             <td>{{ movement.note || '—' }}</td>
             <td>
               <button style="margin-right:.35rem" @click="startEditMovement(movement)">Modifica</button>
-              <button v-if="canDeleteMovements" style="background:#d35f55" @click="deleteMovement(movement)">Elimina</button>
+              <button v-if="canDeleteMovements" class="btn-danger" @click="deleteMovement(movement)">Elimina</button>
             </td>
           </tr>
           <tr v-if="filteredMovements.length === 0">

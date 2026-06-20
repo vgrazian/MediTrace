@@ -311,6 +311,14 @@ export async function loadDemoData(options = {}) {
 
     await upsertDemoAuthUsers()
 
+    // Pre-configure fasce orarie with production defaults
+    await setSetting('fasceOrarieConfig', [
+        { nome: 'Mattina', inizio: '06:00', fine: '11:59' },
+        { nome: 'Pomeriggio', inizio: '12:00', fine: '17:59' },
+        { nome: 'Sera', inizio: '18:00', fine: '23:59' },
+        { nome: 'Notte', inizio: '00:00', fine: '05:59' },
+    ])
+
     return getDemoStats()
 }
 

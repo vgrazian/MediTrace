@@ -353,6 +353,7 @@ function toSessionUser(authUser) {
         isSeeded: Boolean(authUser.isSeeded),
         createdAt: authUser.createdAt ?? null,
         updatedAt: authUser.updatedAt ?? null,
+        defaultResidenzaId: authUser.defaultResidenzaId || null,
     }
 }
 
@@ -484,6 +485,7 @@ function summarizeUser(authUser) {
         updatedAt: authUser.updatedAt,
         createdAt: authUser.createdAt,
         isCurrent: state.currentUser?.username === authUser.username,
+        defaultResidenzaId: authUser.defaultResidenzaId || null,
     }
 }
 
@@ -511,10 +513,11 @@ async function buildAuthUser({ username, password, githubToken, firstName, lastN
         updatedAt: now,
         disabled: false,
         isSeeded: false,
+        defaultResidenzaId: null, // null = "ultima utilizzata", UUID = residenza specifica
     }
 }
 
-async function buildLocalAuthUser({ username, password, firstName, lastName, email, phone = '', role = 'operator' }) {
+async function buildLocalAuthUser({ username, password, firstName, lastName, email, phone = '', role = 'operator', defaultResidenzaId = null }) {
     const passwordSalt = randomSaltHex()
     const passwordHash = await hashPassword(password, passwordSalt)
     const now = new Date().toISOString()
@@ -541,6 +544,7 @@ async function buildLocalAuthUser({ username, password, firstName, lastName, ema
         updatedAt: now,
         disabled: false,
         isSeeded: false,
+        defaultResidenzaId: defaultResidenzaId || null,
     }
 }
 
@@ -1019,6 +1023,13 @@ export function useAuth() {
             await writeSession(user)
             await setSetting('lastUser', { login: user.githubLogin, name: user.displayName ?? user.githubLogin })
             await appendAuthAudit('auth_signin_success', user.username, { githubLogin: user.githubLogin })
+
+            // ── Apply default residenza ──────────────────────────────────
+            // If user has a specific defaultResidenzaId, set it.
+            // If null, keep whatever was last used (no-op).
+            if (user.defaultResidenzaId) {
+                await setSetting('promemoriaCurrentResidenzaId', user.defaultResidenzaId)
+            }
         },
 
         async changePassword({ currentPassword, newPassword, confirmPassword }) {
@@ -1465,7 +1476,7 @@ export function useAuth() {
             })
         },
 
-        async createUser({ username, password, firstName, lastName, email, phone = '', role = 'operator', isSeeded = false }) {
+        async createUser({ username, password, firstName, lastName, email, phone = '', role = 'operator', isSeeded = false, defaultResidenzaId = null }) {
             if (isSupabaseConfigured && supabase) {
                 const normalized = assertValidUsername(username)
                 const normalizedEmail = assertValidEmail(email)
@@ -1507,6 +1518,7 @@ export function useAuth() {
                 email: normalizedEmail,
                 phone: normalizedPhone,
                 role,
+                defaultResidenzaId,
             })
             newUser.isSeeded = Boolean(isSeeded)
             users.push(newUser)
@@ -1554,6 +1566,29 @@ export function useAuth() {
                     targetUser: normalized,
                 })
             }
+            return summarizeUser(users[idx])
+        },
+
+        async setUserDefaultResidenza({ username, defaultResidenzaId }) {
+            const adminUser = await requireAdminSession()
+            const normalized = normalizeUsername(username)
+            const users = await loadUsers()
+            const idx = users.findIndex(u => u.username === normalized)
+            if (idx < 0) throw new Error('Utente non trovato')
+            users[idx] = {
+                ...users[idx],
+                defaultResidenzaId: defaultResidenzaId || null,
+                updatedAt: nowIso(),
+            }
+            await saveUsers(users)
+            // Update currentUser if modifying self
+            if (state.currentUser?.username === normalized) {
+                state.currentUser = { ...state.currentUser, defaultResidenzaId: defaultResidenzaId || null }
+            }
+            await appendAuthAudit('auth_user_default_residenza', adminUser.username, {
+                targetUser: normalized,
+                defaultResidenzaId: defaultResidenzaId || null,
+            })
             return summarizeUser(users[idx])
         },
 

@@ -982,15 +982,7 @@ async function handleCreateUser() {
               <th>Telefono</th>
               <th>Email</th>
               <th>Admin</th>
-<<<<<<< HEAD
-<<<<<<< HEAD
               <th>Prova</th>
-=======
-              <th>Prova</th>
->>>>>>> e43e62c (fix(e2e): robust selectors and admin-only time slot config section; all E2E tests green)
-=======
-              <th>Prova</th>
->>>>>>> 2a10e8f (fix(ui): aggiorna label utente di prova/standard e colonna in impostazioni)
               <th>Disabilitato</th>
               <th>Ultima attività</th>
               <th>Creato il</th>
@@ -1015,15 +1007,7 @@ async function handleCreateUser() {
                 />
               </td>
               <td>
-<<<<<<< HEAD
-<<<<<<< HEAD
                 <span v-if="user.isSeeded" style="color:#b45309;font-weight:bold">✔</span>
-=======
-                <span v-if="user.isSeeded" style="color:#b45309;font-weight:bold">✔</span>
->>>>>>> e43e62c (fix(e2e): robust selectors and admin-only time slot config section; all E2E tests green)
-=======
-                <span v-if="user.isSeeded" style="color:#b45309;font-weight:bold">✔</span>
->>>>>>> 2a10e8f (fix(ui): aggiorna label utente di prova/standard e colonna in impostazioni)
               </td>
               <td>
                 <span v-if="user.disabled" style="color:#dc2626;font-weight:bold">✔</span>
@@ -1039,15 +1023,7 @@ async function handleCreateUser() {
                 <button v-if="canManageUsers && user.username !== currentUser?.username && !user.disabled" style="margin-left:.25rem" @click="handleForceLogout(user)">Logout</button>
               </td>
                 <p v-if="userRoleMessage" class="muted" style="margin-top:.5rem;font-size:.8rem">{{ userRoleMessage }}</p>
-<<<<<<< HEAD
-<<<<<<< HEAD
               <td>{{ user.isSeeded ? 'prova' : 'standard' }}</td>
-=======
-              <td>{{ user.isSeeded ? 'prova' : 'standard' }}</td>
->>>>>>> e43e62c (fix(e2e): robust selectors and admin-only time slot config section; all E2E tests green)
-=======
-              <td>{{ user.isSeeded ? 'prova' : 'standard' }}</td>
->>>>>>> 2a10e8f (fix(ui): aggiorna label utente di prova/standard e colonna in impostazioni)
               <td>{{ user.disabled ? 'disattivato' : 'attivo' }}</td>
               <td>
                 <button

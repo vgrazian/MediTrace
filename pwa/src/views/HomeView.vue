@@ -4,7 +4,7 @@ import { ref, onMounted } from 'vue'
 import { RouterLink } from 'vue-router'
 import { buildHomeDashboardKpis } from '../services/homeDashboard'
 import { useHelpNavigation } from '../composables/useHelpNavigation'
-import { formatBuildTimestamp, getBuildTimestampIso } from '../services/buildInfo'
+import { formatBuildTimestamp, getBuildTimestampIso, getDeployLabel } from '../services/buildInfo'
 
 
 const { currentUser } = useAuth()
@@ -14,6 +14,7 @@ const syncStatus = ref('—')
 const homeKpi = ref(null)
 const buildTimestampLabel = formatBuildTimestamp('it-IT')
 const buildTimestampIso = getBuildTimestampIso()
+const deployLabel = getDeployLabel()
 
 import { computed } from 'vue'
 const attentionItems = computed(() => {
@@ -177,6 +178,7 @@ onMounted(async () => {
       <p><strong>Versione build</strong></p>
       <p class="muted" :title="`Build ISO: ${buildTimestampIso}`">
         Data/ora build: {{ buildTimestampLabel }}
+        <span v-if="deployLabel"><br/>Deploy: {{ deployLabel }}</span>
       </p>
     </div>
   </div>

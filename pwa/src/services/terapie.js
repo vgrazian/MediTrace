@@ -49,6 +49,7 @@ export async function upsertTherapy({
         id: persistedTherapyId,
         hostId: form.hostId,
         drugId: form.drugId,
+        stockBatchId: form.stockBatchId || existing?.stockBatchId || null,
         dosePerSomministrazione: Number(form.dosePerSomministrazione || 0),
         somministrazioniGiornaliere: Number(form.somministrazioniGiornaliere || 0),
         orariSomministrazione: Array.isArray(form.orariSomministrazione) ? form.orariSomministrazione.slice(0, 6) : [],

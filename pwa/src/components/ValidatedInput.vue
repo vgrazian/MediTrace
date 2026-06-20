@@ -12,6 +12,7 @@
       :placeholder="placeholder"
       :disabled="disabled"
       :required="required"
+      :list="list"
       v-bind="ariaAttributes"
       @input="handleInput"
       @blur="handleBlur"
@@ -69,6 +70,10 @@ const props = defineProps({
   disabled: {
     type: Boolean,
     default: false
+  },
+  list: {
+    type: String,
+    default: ''
   },
   required: {
     type: Boolean,
@@ -145,16 +150,20 @@ function handleFocus(event) {
 
 .form-field input {
   width: 100%;
-  padding: 0.5rem;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  font-size: 1rem;
+  padding: .45rem .55rem;
+  border: 1px solid var(--line, #d6e0ec);
+  border-radius: .375rem;
+  font-size: .9rem;
+  font-family: inherit;
+  background: #fff;
+  color: var(--ink, #1a2e4f);
+  transition: border-color .15s, box-shadow .15s;
 }
 
 .form-field input:focus {
   outline: none;
-  border-color: #3498db;
-  box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+  border-color: var(--accent, #3d68c7);
+  box-shadow: 0 0 0 3px rgba(61, 104, 199, 0.12);
 }
 
 .form-field.has-error input {

@@ -1,5 +1,6 @@
 <script setup>
 import { computed, onMounted, onUnmounted, ref } from 'vue'
+import { useRoute } from 'vue-router'
 // --- Keyboard Shortcuts (Scorciatoie da tastiera) ---
 function handleKeyboardShortcut(event) {
   // Focus search (Cerca)
@@ -48,6 +49,7 @@ import UndoDeleteBanner from '../components/UndoDeleteBanner.vue'
 import { useSessionViewState } from '../composables/useSessionViewState'
 
 const { currentUser } = useAuth()
+const route = useRoute()
 const { goToHelpSection } = useHelpNavigation()
 const { pendingUndo, scheduleUndo, executeUndo } = useUndoDelete(10_000)
 
@@ -78,6 +80,7 @@ const {
 const hosts = ref([])
 const drugs = ref([])
 const therapies = ref([])
+const batches = ref([])
 const editingTherapyId = ref(null)
 const loading = ref(false)
 const saving = ref(false)
@@ -93,6 +96,7 @@ const BLANK_ORARI = ['', '', '', '', '', '']
 const form = ref({
   hostId: '',
   drugId: '',
+  stockBatchId: '',
   dosePerSomministrazione: '',
   somministrazioniGiornaliere: '',
   orariSomministrazione: [...BLANK_ORARI],
@@ -207,7 +211,7 @@ function formatDate(value) {
 function hostLabel(hostId) {
   const host = hosts.value.find(item => item.id === hostId)
   if (!host) return hostId
-  const fullName = [host.cognome, host.nome].filter(Boolean).join(' ').trim()
+  const fullName = [host.nome, host.cognome].filter(Boolean).join(' ').trim()
   const namePart = fullName || host.iniziali || host.codiceInterno || hostId
   const visibleId = host.codiceInterno || host.id
   return `[${visibleId}] - ${namePart}`
@@ -218,6 +222,18 @@ function drugLabel(drugId) {
   if (!drug) return drugId
   return drug.nomeFarmaco || drug.principioAttivo || 'Farmaco senza nome'
 }
+
+function batchLabel(batchId) {
+  if (!batchId) return '—'
+  const batch = batches.value.find(b => b.id === batchId)
+  if (!batch) return batchId
+  return batch.nomeCommerciale || batch.id
+}
+
+const availableBatches = computed(() => {
+  if (!form.value.drugId) return []
+  return batches.value.filter(b => b.drugId === form.value.drugId)
+})
 
 function isActiveHost(host) {
   if (!host) return false
@@ -241,10 +257,11 @@ async function loadData() {
   errorMessage.value = ''
 
   try {
-    const [rawHosts, rawDrugs, rawTherapies] = await Promise.all([
+    const [rawHosts, rawDrugs, rawTherapies, rawBatches] = await Promise.all([
       db.hosts.toArray(),
       db.drugs.toArray(),
       db.therapies.toArray(),
+      db.stockBatches.toArray(),
     ])
 
     hosts.value = rawHosts
@@ -255,6 +272,10 @@ async function loadData() {
       .filter(row => !row.deletedAt)
       .sort((a, b) => (a.principioAttivo || a.id).localeCompare(b.principioAttivo || b.id))
 
+    batches.value = rawBatches
+      .filter(row => !row.deletedAt)
+      .sort((a, b) => (a.nomeCommerciale || a.id).localeCompare(b.nomeCommerciale || b.id))
+
     therapies.value = rawTherapies
       .filter(row => !row.deletedAt)
       .sort((a, b) => new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0))
@@ -262,6 +283,15 @@ async function loadData() {
     errorMessage.value = `Errore caricamento terapie: ${err.message}`
   } finally {
     loading.value = false
+  }
+
+  // Apply ospite filter from query param (e.g., ?ospite=HOST_ID)
+  const ospiteId = String(route.query.ospite || '').trim()
+  if (ospiteId) {
+    const host = hosts.value.find(h => h.id === ospiteId)
+    if (host) {
+      filterQuery.value = [host.nome, host.cognome].filter(Boolean).join(' ').trim()
+    }
   }
 }
 
@@ -286,6 +316,7 @@ async function saveTherapy() {
     form.value = {
       hostId: '',
       drugId: '',
+      stockBatchId: '',
       dosePerSomministrazione: '',
       somministrazioniGiornaliere: '',
       consumoMedioSettimanale: '',
@@ -318,6 +349,7 @@ function startEditTherapy(therapy) {
   form.value = {
     hostId: therapy.hostId || '',
     drugId: therapy.drugId || '',
+    stockBatchId: therapy.stockBatchId || '',
     dosePerSomministrazione: therapy.dosePerSomministrazione ?? '',
     somministrazioniGiornaliere: therapy.somministrazioniGiornaliere ?? '',
     orariSomministrazione: Array.isArray(therapy.orariSomministrazione) ? [...therapy.orariSomministrazione, ...BLANK_ORARI].slice(0,6) : [...BLANK_ORARI],
@@ -349,6 +381,7 @@ function resetForm() {
   form.value = {
     hostId: '',
     drugId: '',
+    stockBatchId: '',
     dosePerSomministrazione: '',
     somministrazioniGiornaliere: '',
     orariSomministrazione: [...BLANK_ORARI],
@@ -500,7 +533,7 @@ onMounted(() => {
         <button :disabled="selectedCount !== 1" @click="openEditForm" title="Modifica selezionata">Modifica</button>
         <button
           :disabled="selectedCount === 0"
-          style="background:#d35f55"
+          class="btn-danger"
           @click="deleteSelectedTherapies"
           title="Elimina selezionata (Scorciatoia: D)"
         >
@@ -536,6 +569,7 @@ onMounted(() => {
             </th>
             <th>Ospite</th>
             <th>Farmaco</th>
+            <th>Confezione</th>
             <th>Dose</th>
             <th>Freq./giorno</th>
             <!-- <th>Consumo sett.</th> -->
@@ -560,6 +594,7 @@ onMounted(() => {
             </td>
             <td>{{ hostLabel(therapy.hostId) }}</td>
             <td>{{ drugLabel(therapy.drugId) }}</td>
+            <td>{{ batchLabel(therapy.stockBatchId) }}</td>
             <td>{{ therapy.dosePerSomministrazione ?? '—' }}</td>
             <td>{{ therapy.somministrazioniGiornaliere ?? '—' }}</td>
             <!-- <td>{{ therapy.consumoMedioSettimanale ?? '—' }}</td> -->
@@ -567,11 +602,11 @@ onMounted(() => {
             <td>{{ formatDate(therapy.dataFine) }}</td>
             <td>
               <button style="margin-right:.35rem" @click="startEditTherapy(therapy)">Modifica</button>
-              <button style="background:#d35f55" @click="deleteTherapy(therapy)">Elimina</button>
+              <button class="btn-danger" @click="deleteTherapy(therapy)">Elimina</button>
             </td>
           </tr>
           <tr v-if="filteredTherapies.length === 0 && !loading">
-            <td colspan="9" class="muted">Nessuna terapia attiva disponibile.</td>
+            <td colspan="10" class="muted">Nessuna terapia attiva disponibile.</td>
           </tr>
         </tbody>
       </table>
@@ -632,6 +667,19 @@ onMounted(() => {
               <span v-if="errors.drugId" id="drugId-error" class="error-message" role="alert">
                 {{ errors.drugId }}
               </span>
+            </label>
+
+            <label>
+              Confezione
+              <select
+                v-model="form.stockBatchId"
+                :disabled="saving || !form.drugId"
+              >
+                <option value="">— qualsiasi —</option>
+                <option v-for="batch in availableBatches" :key="batch.id" :value="batch.id">
+                  {{ batch.nomeCommerciale || batch.id }}
+                </option>
+              </select>
             </label>
 
             <ValidatedInput

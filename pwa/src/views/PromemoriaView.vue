@@ -68,7 +68,7 @@ const form = ref({
 })
 
 const stateFilterOptions = [
-  { value: 'DA_ESEGUIRE', label: 'Da eseguire' },
+  { value: 'DA_ESEGUIRE', label: 'Ripristina' },
   { value: 'POSTICIPATO', label: 'Posticipato' },
   { value: 'ESEGUITO', label: 'Eseguito' },
   { value: 'SALTATO', label: 'Saltato' },
@@ -228,11 +228,14 @@ async function applyOutcome(reminderId, outcome) {
 async function setReminderPending(reminderId) {
   message.value = ''
   errorMessage.value = ''
+  const existing = await db.reminders.get(reminderId)
+  if (!existing || existing.deletedAt) {
+    errorMessage.value = 'Promemoria non trovato.'
+    return
+  }
+  if (!confirm(`Ripristinare questo promemoria a "Da eseguire"?`)) return
   markingId.value = reminderId
   try {
-    const existing = await db.reminders.get(reminderId)
-    if (!existing || existing.deletedAt) throw new Error('Promemoria non trovato')
-
     const now = new Date().toISOString()
     const deviceId = await getSetting('deviceId', 'unknown')
     await db.transaction('rw', db.reminders, db.syncQueue, db.activityLog, async () => {
@@ -248,13 +251,13 @@ async function setReminderPending(reminderId) {
       await db.activityLog.add({
         entityType: 'reminders',
         entityId: reminderId,
-        action: 'reminder_reset_pending',
+        action: 'reminder_restored',
         deviceId,
         operatorId: currentUser.value?.login ?? null,
         ts: now,
       })
     })
-    message.value = 'Promemoria riportato a Da eseguire.'
+    message.value = 'Promemoria ripristinato.'
     await loadData()
   } catch (err) {
     errorMessage.value = `Errore: ${err.message}`
@@ -288,6 +291,8 @@ async function applyOutcomeBulk(outcome) {
 
 async function setPendingBulk() {
   if (!canRunBulkActions.value) return
+  const count = selectedActionableIds.value.length
+  if (!confirm(`Ripristinare ${count} promemoria a "Da eseguire"?`)) return
   message.value = ''
   errorMessage.value = ''
   bulkBusy.value = true
@@ -311,7 +316,7 @@ async function setPendingBulk() {
         await db.activityLog.add({
           entityType: 'reminders',
           entityId: reminderId,
-          action: 'reminder_reset_pending',
+          action: 'reminder_restored',
           deviceId,
           operatorId: currentUser.value?.login ?? null,
           ts: now,
@@ -537,7 +542,7 @@ watch(residenzaFilter, async (value) => {
         <button class="reminder-action-btn" :disabled="!canRunBulkActions" @click="applyOutcomeBulk('ESEGUITO')">Eseguito</button>
         <button class="reminder-action-btn" :disabled="!canRunBulkActions" @click="applyOutcomeBulk('POSTICIPATO')">Posticipato</button>
         <button class="reminder-action-btn" :disabled="!canRunBulkActions" @click="applyOutcomeBulk('SALTATO')">Saltato</button>
-        <button class="reminder-action-btn" :disabled="!canRunBulkActions" @click="setPendingBulk">Da eseguire</button>
+        <button class="reminder-action-btn" :disabled="!canRunBulkActions" @click="setPendingBulk">Ripristina</button>
         <span class="muted" style="font-size:.82rem">
           Selezionati: {{ selectedActionableIds.length }} / {{ actionableRows.length }}
         </span>
@@ -637,13 +642,13 @@ watch(residenzaFilter, async (value) => {
                 style="margin-top:.2rem"
                 @click="setReminderPending(reminder.id)"
               >
-                Da eseguire
+                Ripristina
               </button>
             </td>
             <td>
               <div style="display:flex;gap:.4rem;flex-wrap:wrap">
                 <button class="reminder-secondary-btn" :disabled="markingId === reminder.id || savingEdit" @click="startEdit(reminder)">Modifica</button>
-                <button class="reminder-secondary-btn" :disabled="markingId === reminder.id || savingEdit" style="background:#d35f55" @click="deleteReminder(reminder.id)">Elimina</button>
+                <button class="reminder-secondary-btn btn-danger" :disabled="markingId === reminder.id || savingEdit" @click="deleteReminder(reminder.id)">Elimina</button>
               </div>
             </td>
           </tr>
@@ -679,7 +684,7 @@ watch(residenzaFilter, async (value) => {
             <label>
               Stato
               <select v-model="form.stato" :disabled="!editingReminderId || savingEdit">
-                <option value="DA_ESEGUIRE">Da eseguire</option>
+                <option value="DA_ESEGUIRE">Ripristina</option>
                 <option value="ESEGUITO">Eseguito</option>
                 <option value="SALTATO">Saltato</option>
                 <option value="POSTICIPATO">Posticipato</option>

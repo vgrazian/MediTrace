@@ -159,6 +159,16 @@ const filteredDrugs = computed(() => {
   return result.sort((a, b) => String(a.nomeFarmaco || a.principioAttivo || a.id).localeCompare(String(b.nomeFarmaco || b.principioAttivo || b.id)))
 })
 
+// Existing drug names for autocomplete datalist
+const existingDrugNames = computed(() => {
+  const names = new Set()
+  for (const d of drugs.value) {
+    const name = (d.nomeFarmaco || '').trim()
+    if (name) names.add(name)
+  }
+  return [...names].sort((a, b) => a.localeCompare(b, 'it', { sensitivity: 'base' }))
+})
+
 const filteredBatches = computed(() => {
   const q = normalizedFilter.value
   const baseRows = q
@@ -341,8 +351,14 @@ async function createDrug() {
     editingDrugId.value = null
     message.value = existing && !existing.deletedAt ? 'Farmaco aggiornato.' : `Farmaco salvato (ID: ${saved.id}).`
     await loadData()
-    isFormOpen.value = false
-    panelMode.value = 'list'
+    // Auto-switch to batch panel for new drugs
+    if (!existing || existing.deletedAt) {
+      batchForm.value.drugId = saved.id
+      panelMode.value = 'create-batch'
+    } else {
+      isFormOpen.value = false
+      panelMode.value = 'list'
+    }
     markFormSnapshot()
   } catch (err) {
     errorMessage.value = `Errore salvataggio farmaco: ${err.message}`
@@ -752,7 +768,7 @@ onMounted(() => {
         <button :disabled="selectedDrugsCount !== 1" @click="openEditDrugForm" title="Modifica selezionato">Modifica</button>
         <button
           :disabled="selectedDrugsCount === 0"
-          style="background:#d35f55"
+          class="btn-danger"
           @click="deleteSelectedDrugs"
           title="Elimina selezionato (Scorciatoia: D)"
         >
@@ -813,7 +829,7 @@ onMounted(() => {
             <td>{{ drug.sogliaGiorniAutonomia ?? 30 }}</td>
             <td>
               <button style="margin-right:.35rem" @click="startEditDrug(drug)">Modifica</button>
-              <button style="background:#d35f55" @click="deleteDrugRecord(drug)">Elimina</button>
+              <button class="btn-danger" @click="deleteDrugRecord(drug)">Elimina</button>
             </td>
           </tr>
           <tr v-if="filteredDrugs.length === 0 && !loading">
@@ -839,7 +855,7 @@ onMounted(() => {
         <button :disabled="selectedBatchesCount !== 1" @click="openEditBatchForm" title="Modifica selezionata">Modifica</button>
         <button
           :disabled="selectedBatchesCount === 0"
-          style="background:#d35f55"
+          class="btn-danger"
           @click="deleteSelectedBatches"
           title="Elimina selezionata (Scorciatoia: D)"
         >
@@ -901,7 +917,7 @@ onMounted(() => {
             <td>{{ formatDate(batch.scadenza) }}</td>
             <td>
               <button style="margin-right:.35rem" @click="startEditBatch(batch)">Modifica</button>
-              <button style="background:#d35f55" @click="deactivateBatchUI(batch)">Elimina</button>
+              <button class="btn-danger" @click="deactivateBatchUI(batch)">Elimina</button>
             </td>
           </tr>
           <tr v-if="filteredBatches.length === 0 && !loading">
@@ -946,8 +962,12 @@ onMounted(() => {
               :error="drugErrors.nomeFarmaco"
               :required="true"
               placeholder="Tachipirina"
+              list="drug-name-suggestions"
               @validate="(field, value) => validateDrugField(field, value)"
             />
+            <datalist id="drug-name-suggestions">
+              <option v-for="name in existingDrugNames" :key="name" :value="name" />
+            </datalist>
 
             <ValidatedInput
               v-model="drugForm.principioAttivo"
@@ -1085,3 +1105,12 @@ onMounted(() => {
     />
   </div>
 </template>
+
+<style scoped>
+.card {
+  padding: 0.5rem 0.75rem;
+}
+.deep-panel {
+  padding: 0.6rem;
+}
+</style>
