@@ -1592,6 +1592,50 @@ export function useAuth() {
             return summarizeUser(users[idx])
         },
 
+        async setUserProfile({ username, firstName, lastName, email, phone, role, isSeeded }) {
+            const adminUser = await requireAdminSession()
+            const normalized = normalizeUsername(username)
+            const users = await loadUsers()
+            const idx = users.findIndex(u => u.username === normalized)
+            if (idx < 0) throw new Error('Utente non trovato')
+            const normalizedRole = normalizeRole(role || users[idx].role)
+            const normalizedEmail = normalizeEmail(email || users[idx].email)
+            const normalizedPhone = normalizePhone(phone ?? users[idx].phone ?? '')
+            const normalizedFirstName = String(firstName ?? users[idx].firstName ?? '').trim()
+            const normalizedLastName = String(lastName ?? users[idx].lastName ?? '').trim()
+            if (!normalizedFirstName || !normalizedLastName) {
+                throw new Error('Nome e cognome sono obbligatori')
+            }
+
+            // Check email uniqueness
+            if (normalizedEmail && users.some((u, i) => i !== idx && !u.disabled && normalizeEmail(u.email) === normalizedEmail)) {
+                throw new Error('Email già esistente')
+            }
+
+            users[idx] = {
+                ...users[idx],
+                firstName: normalizedFirstName,
+                lastName: normalizedLastName,
+                displayName: [normalizedFirstName, normalizedLastName].filter(Boolean).join(' ').trim() || users[idx].username,
+                email: normalizedEmail,
+                phone: normalizedPhone,
+                role: normalizedRole,
+                isSeeded: isSeeded !== undefined ? Boolean(isSeeded) : users[idx].isSeeded,
+                updatedAt: nowIso(),
+            }
+
+            await saveUsers(users)
+            // Update currentUser if modifying self
+            if (state.currentUser?.username === normalized) {
+                state.currentUser = toSessionUser(users[idx])
+            }
+            await appendAuthAudit('auth_user_profile_updated', adminUser.username, {
+                targetUser: normalized,
+                fields: { firstName: normalizedFirstName, lastName: normalizedLastName, email: normalizedEmail, role: normalizedRole },
+            })
+            return summarizeUser(users[idx])
+        },
+
         async deleteUser(username) {
             if (isSupabaseConfigured && supabase) {
                 const normalized = normalizeUsername(username)

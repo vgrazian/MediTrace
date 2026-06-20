@@ -4,7 +4,7 @@ import { useAuth } from '../services/auth'
 import { useHelpNavigation } from '../composables/useHelpNavigation'
 import { db } from '../db'
 
-const { currentUser, listUsers, createUser, setUserDisabled, deleteUser, setUserDefaultResidenza } = useAuth()
+const { currentUser, listUsers, createUser, setUserDisabled, deleteUser, setUserDefaultResidenza, setUserProfile } = useAuth()
 const { goToHelpSection } = useHelpNavigation()
 
 const canManage = computed(() => currentUser.value?.role === 'admin')
@@ -12,7 +12,17 @@ const users = ref([])
 const usersBusy = ref(false)
 const usersMessage = ref('')
 
-// New user form
+// Edit user form
+const editingUsername = ref('')
+const editFirstName = ref('')
+const editLastName = ref('')
+const editEmail = ref('')
+const editPhone = ref('')
+const editRole = ref('operator')
+const editIsSeeded = ref(false)
+const editBusy = ref(false)
+const editMessage = ref('')
+const isFormOpen = ref(false)
 const newUsername = ref('')
 const newFirstName = ref('')
 const newLastName = ref('')
@@ -152,6 +162,50 @@ function residenzaLabel(residenzaId) {
   return r ? r.label : residenzaId
 }
 
+function canEditUser(user) {
+  // Admin can edit anyone; any user can edit themselves
+  return canManage.value || user.username === currentUser.value?.username
+}
+
+function startEditUser(user) {
+  editingUsername.value = user.username
+  editFirstName.value = user.firstName || ''
+  editLastName.value = user.lastName || ''
+  editEmail.value = user.email || ''
+  editPhone.value = user.phone || ''
+  editRole.value = user.role || 'operator'
+  editIsSeeded.value = Boolean(user.isSeeded)
+  editMessage.value = ''
+  isFormOpen.value = true
+}
+
+async function handleEditUser() {
+  editBusy.value = true
+  editMessage.value = ''
+  try {
+    await setUserProfile({
+      username: editingUsername.value,
+      firstName: editFirstName.value.trim(),
+      lastName: editLastName.value.trim(),
+      email: editEmail.value.trim(),
+      phone: editPhone.value.trim(),
+      role: editRole.value,
+      isSeeded: editIsSeeded.value,
+    })
+    editMessage.value = `Operatore ${editingUsername.value} aggiornato.`
+    await refreshUsers()
+  } catch (e) {
+    editMessage.value = 'Errore: ' + e.message
+  } finally {
+    editBusy.value = false
+  }
+}
+
+function closeForm() {
+  isFormOpen.value = false
+  editingUsername.value = ''
+}
+
 onMounted(() => {
   refreshUsers()
   loadResidenze()
@@ -171,60 +225,13 @@ onMounted(() => {
 
     <template v-if="canManage">
       <div class="card">
-        <p><strong>Aggiungi operatore</strong></p>
-        <div class="import-form" style="margin-top:.5rem">
-          <label>Nome <input v-model="newFirstName" type="text" autocomplete="given-name" /></label>
-          <label>Cognome <input v-model="newLastName" type="text" autocomplete="family-name" /></label>
-          <label>
-            Username
-            <input
-              v-model="newUsername"
-              type="text"
-              autocomplete="username"
-              :placeholder="suggestUsername(newFirstName, newLastName)"
-            />
-          </label>
-          <label>Email <input v-model="newEmail" type="email" autocomplete="email" /></label>
-          <label>Telefono <input v-model="newPhone" type="tel" placeholder="+39 333 1234567" /></label>
-          <label>Password iniziale <input v-model="newPassword" type="password" /></label>
-          <p class="muted" style="font-size:.8rem">
-            {{ passwordPolicy.minLength ? '✅' : '❌' }} 10+ caratteri
-            {{ passwordPolicy.hasUppercase ? '✅' : '❌' }} maiuscola
-            {{ passwordPolicy.hasLowercase ? '✅' : '❌' }} minuscola
-            {{ passwordPolicy.hasDigit ? '✅' : '❌' }} numero
-            {{ passwordPolicy.hasSymbol ? '✅' : '❌' }} simbolo
-          </p>
-          <label>Ruolo
-            <select v-model="newRole">
-              <option value="operator">Operatore</option>
-              <option value="admin">Amministratore</option>
-            </select>
-          </label>
-          <label>Residenza predefinita
-            <select v-model="newDefaultResidenzaId">
-              <option value="">Ultima utilizzata</option>
-              <option v-for="r in residenze" :key="r.id" :value="r.id">{{ r.label }}</option>
-            </select>
-          </label>
-          <label style="display:flex;align-items:center;gap:.5rem">
-            <input v-model="newIsSeeded" type="checkbox" />
-            Utente di prova
-          </label>
-          <button
-            :disabled="newBusy || !newUsername || !newFirstName || !newLastName || !newEmail || !newPassword"
-            @click="handleCreateUser"
-          >
-            {{ newBusy ? 'Creazione…' : 'Crea operatore' }}
-          </button>
-          <p v-if="newMessage" class="muted" style="margin-top:.5rem">{{ newMessage }}</p>
-        </div>
-      </div>
-
-      <div class="card">
         <p><strong>Elenco operatori</strong> ({{ users.length }})</p>
         <p v-if="usersMessage" class="muted">{{ usersMessage }}</p>
-        <div class="dataset-frame" style="margin-top:.5rem;max-height:24rem">
-          <table class="conflict-table" style="min-width:800px">
+        <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.5rem;margin-bottom:.5rem">
+          <button @click="isFormOpen = true">Aggiungi</button>
+        </div>
+        <div class="dataset-frame" style="max-height:24rem">
+          <table class="conflict-table" style="min-width:900px">
             <thead>
               <tr>
                 <th>Username</th>
@@ -258,7 +265,13 @@ onMounted(() => {
                 <td>{{ user.isSeeded ? 'Sì' : 'No' }}</td>
                 <td>{{ user.disabled ? 'Disattivato' : 'Attivo' }}</td>
                 <td style="white-space:nowrap">
-                  <template v-if="user.username !== currentUser?.username">
+                  <button
+                    v-if="canEditUser(user)"
+                    class="btn-sm"
+                    style="margin-right:.25rem"
+                    @click="startEditUser(user)"
+                  >Modifica</button>
+                  <template v-if="user.username !== currentUser?.username && canManage">
                     <button
                       v-if="user.disabled"
                       @click="handleEnableUser(user.username)"
@@ -268,11 +281,12 @@ onMounted(() => {
                       @click="handleDisableUser(user.username)"
                     >Disattiva</button>
                     <button
-                      style="margin-left:.25rem;background:#dc2626"
+                      class="btn-danger btn-sm"
+                      style="margin-left:.25rem"
                       @click="handleDeleteUser(user.username)"
                     >Elimina</button>
                   </template>
-                  <span v-else class="muted">—</span>
+                  <span v-else-if="!canEditUser(user)" class="muted">—</span>
                 </td>
               </tr>
               <tr v-if="users.length === 0 && !usersBusy">
@@ -281,6 +295,88 @@ onMounted(() => {
             </tbody>
           </table>
         </div>
+      </div>
+
+      <!-- ── Pannello Aggiungi / Modifica ── -->
+      <div v-if="isFormOpen" class="card">
+        <details class="deep-panel add-panel" open @toggle="(e) => { if (!e.target.open) closeForm() }">
+          <summary><strong>{{ editingUsername ? `Modifica operatore: ${editingUsername}` : 'Aggiungi operatore' }}</strong></summary>
+          <div style="margin-top:.75rem">
+            <div class="panel-breadcrumb">
+              <button type="button" class="panel-breadcrumb-link" @click="closeForm">Operatori</button>
+              <span class="panel-breadcrumb-current">/</span>
+              <span class="panel-breadcrumb-current">{{ editingUsername ? 'Modifica' : 'Aggiungi' }}</span>
+              <button type="button" class="panel-close-btn" @click="closeForm">Chiudi</button>
+            </div>
+
+            <!-- Nuovo operatore -->
+            <template v-if="!editingUsername">
+              <div class="import-form">
+                <label>Nome <input v-model="newFirstName" type="text" autocomplete="given-name" /></label>
+                <label>Cognome <input v-model="newLastName" type="text" autocomplete="family-name" /></label>
+                <label>
+                  Username
+                  <input v-model="newUsername" type="text" autocomplete="username" :placeholder="suggestUsername(newFirstName, newLastName)" />
+                </label>
+                <label>Email <input v-model="newEmail" type="email" autocomplete="email" /></label>
+                <label>Telefono <input v-model="newPhone" type="tel" placeholder="+39 333 1234567" /></label>
+                <label>Password iniziale <input v-model="newPassword" type="password" /></label>
+                <p class="muted" style="font-size:.8rem">
+                  {{ passwordPolicy.minLength ? '✅' : '❌' }} 10+ caratteri
+                  {{ passwordPolicy.hasUppercase ? '✅' : '❌' }} maiuscola
+                  {{ passwordPolicy.hasLowercase ? '✅' : '❌' }} minuscola
+                  {{ passwordPolicy.hasDigit ? '✅' : '❌' }} numero
+                  {{ passwordPolicy.hasSymbol ? '✅' : '❌' }} simbolo
+                </p>
+                <label>Ruolo
+                  <select v-model="newRole">
+                    <option value="operator">Operatore</option>
+                    <option value="admin">Amministratore</option>
+                  </select>
+                </label>
+                <label>Residenza predefinita
+                  <select v-model="newDefaultResidenzaId">
+                    <option value="">Ultima utilizzata</option>
+                    <option v-for="r in residenze" :key="r.id" :value="r.id">{{ r.label }}</option>
+                  </select>
+                </label>
+                <label style="display:flex;align-items:center;gap:.5rem">
+                  <input v-model="newIsSeeded" type="checkbox" />
+                  Utente di prova
+                </label>
+                <button :disabled="newBusy || !newUsername || !newFirstName || !newLastName || !newEmail || !newPassword" @click="handleCreateUser">
+                  {{ newBusy ? 'Creazione…' : 'Crea operatore' }}
+                </button>
+                <p v-if="newMessage" class="muted">{{ newMessage }}</p>
+              </div>
+            </template>
+
+            <!-- Modifica operatore -->
+            <template v-else>
+              <div class="import-form">
+                <label>Nome <input v-model="editFirstName" type="text" /></label>
+                <label>Cognome <input v-model="editLastName" type="text" /></label>
+                <label>Email <input v-model="editEmail" type="email" /></label>
+                <label>Telefono <input v-model="editPhone" type="tel" /></label>
+                <label>Ruolo
+                  <select v-model="editRole">
+                    <option value="operator">Operatore</option>
+                    <option value="admin">Amministratore</option>
+                  </select>
+                </label>
+                <label style="display:flex;align-items:center;gap:.5rem">
+                  <input v-model="editIsSeeded" type="checkbox" />
+                  Utente di prova
+                </label>
+                <button :disabled="editBusy || !editFirstName || !editLastName || !editEmail" @click="handleEditUser">
+                  {{ editBusy ? 'Salvataggio…' : 'Salva modifiche' }}
+                </button>
+                <button type="button" :disabled="editBusy" @click="closeForm">Annulla</button>
+                <p v-if="editMessage" class="muted">{{ editMessage }}</p>
+              </div>
+            </template>
+          </div>
+        </details>
       </div>
     </template>
   </div>
