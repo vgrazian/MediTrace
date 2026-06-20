@@ -408,14 +408,8 @@ async function createDrug() {
     editingDrugId.value = null
     message.value = existing && !existing.deletedAt ? 'Farmaco aggiornato.' : `Farmaco salvato (ID: ${saved.id}).`
     await loadData()
-    // Auto-switch to batch panel for new drugs
-    if (!existing || existing.deletedAt) {
-      batchForm.value.drugId = saved.id
-      panelMode.value = 'create-batch'
-    } else {
-      isFormOpen.value = false
-      panelMode.value = 'list'
-    }
+    isFormOpen.value = false
+    panelMode.value = 'list'
     markFormSnapshot()
   } catch (err) {
     errorMessage.value = `Errore salvataggio farmaco: ${err.message}`
