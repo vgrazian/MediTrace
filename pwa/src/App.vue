@@ -30,7 +30,29 @@ const buildTimestampLabel = formatBuildTimestamp('it-IT')
 const buildTimestampIso = getBuildTimestampIso()
 const deployLabel = getDeployLabel()
 
-onMounted(() => initAuth())
+// ── CDN status check ──────────────────────────────────────────────────────
+const cdnStatus = ref('')
+const cdnAge = ref('')
+
+async function checkCdnStatus() {
+  try {
+    const res = await fetch(window.location.href.split('#')[0].split('?')[0], { method: 'HEAD', cache: 'no-store' })
+    const lastMod = res.headers.get('last-modified')
+    if (lastMod) {
+      const cdnTime = new Date(lastMod).getTime()
+      const buildTime = new Date(buildTimestampIso).getTime()
+      if (!Number.isNaN(cdnTime) && !Number.isNaN(buildTime)) {
+        const diff = Math.round((buildTime - cdnTime) / 60000)
+        cdnAge.value = new Date(lastMod).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })
+        cdnStatus.value = diff > 0 ? `CDN: ${cdnAge.value} (${diff} min indietro)` : `CDN: ${cdnAge.value} (aggiornato)`
+        return
+      }
+    }
+    cdnStatus.value = ''
+  } catch { cdnStatus.value = '' }
+}
+
+onMounted(() => { initAuth(); checkCdnStatus() })
 
 function handleUsernameInput(event) {
   username.value = sanitizeUsernameInput(event.target.value)
@@ -230,6 +252,7 @@ async function handleRegister() {
           <span v-if="deployLabel" class="deploy-label"> &middot; {{ deployLabel }}</span>
           <button class="refresh-btn" @click="handleForceRefresh" title="Forza il refresh dell'app eliminando la cache del service worker">⟳ Aggiorna app</button>
         </p>
+        <p v-if="cdnStatus" class="cdn-meta">{{ cdnStatus }}</p>
       </div>
     </template>
 
