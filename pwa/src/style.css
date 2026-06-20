@@ -318,7 +318,7 @@ main { padding: .75rem 1rem; max-width: 100%; margin: 0 auto; }
 
 .dashboard-nav {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: .75rem;
   margin-top: .65rem;
 }
