@@ -601,7 +601,7 @@ onMounted(() => {
             <td>{{ formatDate(therapy.dataInizio) }}</td>
             <td>{{ formatDate(therapy.dataFine) }}</td>
             <td>
-              <button style="margin-right:.35rem" @click="startEditTherapy(therapy)">Modifica</button>
+              <button @click="startEditTherapy(therapy)">Modifica</button>
               <button class="btn-danger" @click="deleteTherapy(therapy)">Elimina</button>
             </td>
           </tr>

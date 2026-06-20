@@ -778,7 +778,7 @@ onMounted(() => {
             <td>{{ row.warningPriority }}</td>
             <td>{{ row.warningReason }}</td>
             <td>
-              <button style="margin-right:.35rem" @click="startEditDrug(row.drugId)">Modifica</button>
+              <button @click="startEditDrug(row.drugId)">Modifica</button>
               <button class="btn-danger" @click="deleteDrug(row.drugId)">Elimina</button>
             </td>
           </tr>
@@ -940,7 +940,7 @@ onMounted(() => {
             <td>{{ formatNumber(batch.sogliaRiordino) }}</td>
             <td>{{ batch.scadenza || '—' }}</td>
             <td>
-              <button style="margin-right:.35rem" @click="startEditBatch(batch)">Modifica</button>
+              <button @click="startEditBatch(batch)">Modifica</button>
               <button class="btn-danger" @click="deleteBatch(batch.id)">Elimina</button>
             </td>
           </tr>

@@ -1,0 +1,1 @@
+import{e as a,f as n}from"./index-P8yo7DQx.js";function p(){const t=a(),u=n();function e(o){const r=`#${o}`;t.push({path:"/manuale",hash:r,query:{from:u.fullPath,helpFrom:o}})}return{goToHelpSection:e}}export{p as u};

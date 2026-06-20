@@ -127,6 +127,13 @@ button.btn-sm {
   font-size: .78rem;
   min-height: 1.5rem;
 }
+/* Spacing between adjacent buttons in action cells */
+td button + button,
+td button + a.btn,
+td a.btn + button,
+td .btn + .btn {
+  margin-left: .3rem;
+}
 
 /* ── navigation (compact tab bar) ── */
 .app-nav {

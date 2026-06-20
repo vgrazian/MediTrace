@@ -828,7 +828,7 @@ onMounted(() => {
             <td>{{ drug.scortaMinima ?? 0 }}</td>
             <td>{{ drug.sogliaGiorniAutonomia ?? 30 }}</td>
             <td>
-              <button style="margin-right:.35rem" @click="startEditDrug(drug)">Modifica</button>
+              <button @click="startEditDrug(drug)">Modifica</button>
               <button class="btn-danger" @click="deleteDrugRecord(drug)">Elimina</button>
             </td>
           </tr>
@@ -916,7 +916,7 @@ onMounted(() => {
             <td>{{ batch.sogliaRiordino ?? 0 }}</td>
             <td>{{ formatDate(batch.scadenza) }}</td>
             <td>
-              <button style="margin-right:.35rem" @click="startEditBatch(batch)">Modifica</button>
+              <button @click="startEditBatch(batch)">Modifica</button>
               <button class="btn-danger" @click="deactivateBatchUI(batch)">Elimina</button>
             </td>
           </tr>

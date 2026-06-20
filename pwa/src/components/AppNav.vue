@@ -23,6 +23,18 @@ const residenzaBadgeRef = ref(null)
 
 const showResidenzaBadge = computed(() => Boolean(currentResidenzaId.value && currentResidenzaLabel.value))
 
+// Sync button color based on state
+const syncColor = computed(() => {
+  switch (statoSync.value) {
+    case SYNC_STATES.SYNCED: return '#22c55e'
+    case SYNC_STATES.PENDING: return '#f59e42'
+    case SYNC_STATES.CONFLICT: return '#ef4444'
+    case SYNC_STATES.ERROR: return '#a21caf'
+    case SYNC_STATES.OFFLINE: return '#64748b'
+    default: return '#93c5fd'
+  }
+})
+
 async function loadCurrentResidenza() {
   const savedId = await getSetting(CURRENT_RESIDENZA_SETTING_KEY, '')
   currentResidenzaId.value = String(savedId || '')
@@ -188,10 +200,6 @@ async function handleSync() {
     await flushLocalSyncQueue()
   }
 }
-
-async function handleSyncIndicatorClick() {
-  await handleSync()
-}
 </script>
 
 
@@ -232,47 +240,18 @@ async function handleSyncIndicatorClick() {
     <RouterLink to="/ospiti" title="Registro ospiti">Ospiti</RouterLink>
     <RouterLink to="/farmaci" title="Catalogo farmaci e confezioni">Farmaci</RouterLink>
     <RouterLink to="/residenze" title="Gestione residenze">Residenze</RouterLink>
-    <RouterLink to="/manuale" title="Guida utente">Guida</RouterLink>
     <RouterLink v-if="currentUser?.role === 'admin'" to="/operatori" title="Gestione operatori e permessi">Operatori</RouterLink>
     <RouterLink v-if="currentUser?.role === 'admin'" to="/audit" title="Registro audit e attività">Audit</RouterLink>
-
-    <div class="sync-indicator-area">
-      <span
-        class="sync-indicator"
-        :data-state="statoSync"
-        :title="dettagli"
-        aria-label="Stato sincronizzazione"
-        @click="handleSyncIndicatorClick"
-        role="button"
-        tabindex="0"
-        style="cursor:pointer"
-      >
-        <template v-if="statoSync === SYNC_STATES.SYNCED">
-          <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="9" r="7" stroke="#22c55e" stroke-width="2"/><circle cx="9" cy="9" r="3" fill="#22c55e"/></svg>
-        </template>
-        <template v-else-if="statoSync === SYNC_STATES.PENDING">
-          <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="9" r="7" stroke="#f59e42" stroke-width="2"/><circle cx="9" cy="9" r="3" fill="#f59e42"/></svg>
-        </template>
-        <template v-else-if="statoSync === SYNC_STATES.CONFLICT">
-          <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="9" r="7" stroke="#ef4444" stroke-width="2"/><circle cx="9" cy="9" r="3" fill="#ef4444"/></svg>
-        </template>
-        <template v-else-if="statoSync === SYNC_STATES.ERROR">
-          <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="9" r="7" stroke="#a21caf" stroke-width="2"/><circle cx="9" cy="9" r="3" fill="#a21caf"/></svg>
-        </template>
-        <template v-else-if="statoSync === SYNC_STATES.OFFLINE">
-          <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="9" r="7" stroke="#64748b" stroke-width="2"/><circle cx="9" cy="9" r="3" fill="#64748b"/></svg>
-        </template>
-      </span>
-    </div>
+    <RouterLink to="/manuale" title="Guida utente">Guida</RouterLink>
 
     <div class="user-area">
-      <button class="sync-btn" @click="handleSync" title="Sincronizza dati e aggiorna app" aria-label="Sincronizza">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#93c5fd" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle">
+      <button class="sync-btn" @click="handleSync" :title="dettagli" aria-label="Sincronizza">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" :stroke="syncColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle">
           <polyline points="23 4 23 10 17 10"/>
           <polyline points="1 20 1 14 7 14"/>
           <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
         </svg>
-        <span class="sync-label">Sync</span>
+        <span class="sync-label" :style="{ color: syncColor }">Sync</span>
       </button>
       <RouterLink to="/impostazioni" class="user-name user-name-link">{{ currentUser?.name }}</RouterLink>
       <RouterLink to="/impostazioni" title="Impostazioni" aria-label="Impostazioni">
@@ -301,21 +280,12 @@ async function handleSyncIndicatorClick() {
 }
 .sync-label {
   font-size: .72em;
-  color: #93c5fd;
   margin-left: .25em;
 }
 
-.sync-indicator-area {
-  display: inline-block;
-  margin-left: 1em;
-  vertical-align: middle;
-}
-.sync-indicator {
-  display: inline-block;
-  width: 22px;
-  height: 22px;
-  vertical-align: middle;
-  cursor: pointer;
+.sync-label {
+  font-size: .72em;
+  margin-left: .25em;
 }
 
 .residenza-badge {
