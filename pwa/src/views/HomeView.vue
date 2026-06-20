@@ -79,16 +79,6 @@ onMounted(async () => {
 
 <template>
   <div class="view home-view">
-    <div class="card home-intro">
-      <div class="view-heading">
-        <h2>Cruscotto MediTrace</h2>
-        <button class="help-btn" @click="goToHelpSection('home')">Aiuto</button>
-      </div>
-      <p class="muted" style="margin-top:.35rem">
-        Monitoraggio scorte, terapie e promemoria con controllo operativo continuo.
-      </p>
-    </div>
-
     <div class="card attention-panel" v-if="attentionItems.length">
       <p><strong>⚠️ Attenzione</strong></p>
       <ul class="attention-list">
@@ -99,6 +89,9 @@ onMounted(async () => {
         </li>
       </ul>
     </div>
+    <p v-else class="muted" style="text-align:center;margin-bottom:.5rem;font-size:.85rem">
+      Monitoraggio scorte, terapie e promemoria con controllo operativo continuo.
+    </p>
 
     <!-- Row 1: Riepilogo + Benvenuto -->
     <div class="card-grid">
