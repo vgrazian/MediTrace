@@ -228,11 +228,14 @@ async function applyOutcome(reminderId, outcome) {
 async function setReminderPending(reminderId) {
   message.value = ''
   errorMessage.value = ''
+  const existing = await db.reminders.get(reminderId)
+  if (!existing || existing.deletedAt) {
+    errorMessage.value = 'Promemoria non trovato.'
+    return
+  }
+  if (!confirm(`Ripristinare questo promemoria a "Da eseguire"?`)) return
   markingId.value = reminderId
   try {
-    const existing = await db.reminders.get(reminderId)
-    if (!existing || existing.deletedAt) throw new Error('Promemoria non trovato')
-
     const now = new Date().toISOString()
     const deviceId = await getSetting('deviceId', 'unknown')
     await db.transaction('rw', db.reminders, db.syncQueue, db.activityLog, async () => {
@@ -288,6 +291,8 @@ async function applyOutcomeBulk(outcome) {
 
 async function setPendingBulk() {
   if (!canRunBulkActions.value) return
+  const count = selectedActionableIds.value.length
+  if (!confirm(`Ripristinare ${count} promemoria a "Da eseguire"?`)) return
   message.value = ''
   errorMessage.value = ''
   bulkBusy.value = true
