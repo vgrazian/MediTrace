@@ -86,6 +86,16 @@ function batchLabel(batch) {
   return `${drugLabel(batch.drugId)} - ${batch.nomeCommerciale || 'Confezione'}`
 }
 
+// Existing batch names for autocomplete
+const existingBatchNames = computed(() => {
+  const names = new Set()
+  for (const b of stockBatches.value) {
+    const name = (b.nomeCommerciale || '').trim()
+    if (name) names.add(name)
+  }
+  return [...names].sort((a, b) => a.localeCompare(b, 'it', { sensitivity: 'base' }))
+})
+
 function formatNumber(value) {
   return Number(value ?? 0).toFixed(2)
 }
@@ -989,7 +999,10 @@ onMounted(() => {
           </label>
           <label>
             Nome commerciale
-            <input v-model="batchForm.nomeCommerciale" type="text" :disabled="!canEditBatchForm || savingBatch" />
+            <input v-model="batchForm.nomeCommerciale" type="text" :disabled="!canEditBatchForm || savingBatch" list="scorte-batch-suggestions" />
+            <datalist id="scorte-batch-suggestions">
+              <option v-for="n in existingBatchNames" :key="n" :value="n" />
+            </datalist>
           </label>
           <label>
             Dosaggio

@@ -102,6 +102,25 @@ const form = ref({
     note: '',
 })
 
+// Existing values for autocomplete datalists
+const existingLuoghi = computed(() => {
+  const values = new Set()
+  for (const h of allHosts.value) {
+    const v = (h.luogoNascita || '').trim()
+    if (v) values.add(v)
+  }
+  return [...values].sort((a, b) => a.localeCompare(b, 'it', { sensitivity: 'base' }))
+})
+
+const existingPatologie = computed(() => {
+  const values = new Set()
+  for (const h of allHosts.value) {
+    const v = (h.patologie || '').trim()
+    if (v) values.add(v)
+  }
+  return [...values].sort((a, b) => a.localeCompare(b, 'it', { sensitivity: 'base' }))
+})
+
 const rows = computed(() => buildHostRows({
     hosts: allHosts.value,
     therapies: therapies.value,
@@ -584,8 +603,11 @@ onMounted(() => {
             />
             <label>
               Luogo di nascita
-              <input v-model="form.luogoNascita" type="text" placeholder="Roma" />
+              <input v-model="form.luogoNascita" type="text" placeholder="Roma" list="luogo-suggestions" />
             </label>
+            <datalist id="luogo-suggestions">
+              <option v-for="l in existingLuoghi" :key="l" :value="l" />
+            </datalist>
             <ValidatedInput
               v-model="form.dataNascita"
               field-name="dataNascita"
@@ -613,8 +635,11 @@ onMounted(() => {
             />
             <label>
               Patologie
-              <input v-model="form.patologie" type="text" placeholder="Patologie o note cliniche" />
+              <input v-model="form.patologie" type="text" placeholder="Patologie o note cliniche" list="patologie-suggestions" />
             </label>
+            <datalist id="patologie-suggestions">
+              <option v-for="p in existingPatologie" :key="p" :value="p" />
+            </datalist>
             <label>
               Residenza
               <select

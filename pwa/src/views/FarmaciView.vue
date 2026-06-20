@@ -169,6 +169,35 @@ const existingDrugNames = computed(() => {
   return [...names].sort((a, b) => a.localeCompare(b, 'it', { sensitivity: 'base' }))
 })
 
+// Existing principle/class values for autocomplete
+const existingPrinciples = computed(() => {
+  const values = new Set()
+  for (const d of drugs.value) {
+    const v = (d.principioAttivo || '').trim()
+    if (v) values.add(v)
+  }
+  return [...values].sort((a, b) => a.localeCompare(b, 'it', { sensitivity: 'base' }))
+})
+
+const existingClasses = computed(() => {
+  const values = new Set()
+  for (const d of drugs.value) {
+    const v = (d.classeTerapeutica || '').trim()
+    if (v) values.add(v)
+  }
+  return [...values].sort((a, b) => a.localeCompare(b, 'it', { sensitivity: 'base' }))
+})
+
+// Existing batch commercial names
+const existingBatchNames = computed(() => {
+  const names = new Set()
+  for (const b of batches.value) {
+    const name = (b.nomeCommerciale || '').trim()
+    if (name) names.add(name)
+  }
+  return [...names].sort((a, b) => a.localeCompare(b, 'it', { sensitivity: 'base' }))
+})
+
 const filteredBatches = computed(() => {
   const q = normalizedFilter.value
   const baseRows = q
@@ -976,8 +1005,12 @@ onMounted(() => {
               :error="drugErrors.principioAttivo"
               :required="true"
               placeholder="Paracetamolo"
+              list="principle-suggestions"
               @validate="(field, value) => validateDrugField(field, value)"
             />
+            <datalist id="principle-suggestions">
+              <option v-for="p in existingPrinciples" :key="p" :value="p" />
+            </datalist>
 
             <ValidatedInput
               v-model="drugForm.classeTerapeutica"
@@ -985,8 +1018,12 @@ onMounted(() => {
               label="Classe terapeutica"
               :error="drugErrors.classeTerapeutica"
               placeholder="Analgesici"
+              list="class-suggestions"
               @validate="(field, value) => validateDrugField(field, value)"
             />
+            <datalist id="class-suggestions">
+              <option v-for="c in existingClasses" :key="c" :value="c" />
+            </datalist>
 
             <ValidatedInput
               v-model="drugForm.scortaMinima"
@@ -1043,8 +1080,12 @@ onMounted(() => {
               :error="batchErrors.nomeCommerciale"
               :required="true"
               placeholder="Tachipirina"
+              list="batch-name-suggestions"
               @validate="(field, value) => validateBatchField(field, value)"
             />
+            <datalist id="batch-name-suggestions">
+              <option v-for="n in existingBatchNames" :key="n" :value="n" />
+            </datalist>
 
             <ValidatedInput
               v-model="batchForm.dosaggio"
