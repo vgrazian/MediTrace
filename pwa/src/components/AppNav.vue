@@ -180,7 +180,7 @@ onUnmounted(() => {
 // ── End periodic sync ────────────────────────────────────────────────────────
 
 async function handleSignOut() {
-  // Try sync before logout
+  if (!confirm('Vuoi uscire da MediTrace?')) return
   if (isSupabaseConfigured) {
     try { await fullSync() } catch {}
   } else {
@@ -234,10 +234,10 @@ async function handleSync() {
 
     <RouterLink to="/" title="Cruscotto — riepilogo e KPI">Cruscotto</RouterLink>
     <RouterLink to="/promemoria" title="Promemoria somministrazioni">Promemoria</RouterLink>
+    <RouterLink to="/ospiti" title="Registro ospiti">Ospiti</RouterLink>
     <RouterLink to="/terapie" title="Terapie attive per ospite">Terapie</RouterLink>
     <RouterLink to="/scorte" title="Scorte e report consumi">Scorte</RouterLink>
     <RouterLink to="/movimenti" title="Movimenti di carico/scarico">Movimenti</RouterLink>
-    <RouterLink to="/ospiti" title="Registro ospiti">Ospiti</RouterLink>
     <RouterLink to="/farmaci" title="Catalogo farmaci e confezioni">Farmaci</RouterLink>
     <RouterLink to="/residenze" title="Gestione residenze">Residenze</RouterLink>
     <RouterLink v-if="currentUser?.role === 'admin'" to="/operatori" title="Gestione operatori e permessi">Operatori</RouterLink>

@@ -238,6 +238,7 @@ async function handleRegister() {
       <main>
         <RouterView />
       </main>
+      <button class="scroll-top-btn" @click="window.scrollTo({ top: 0, behavior: 'smooth' })" title="Torna in cima" aria-label="Torna in cima">↑</button>
       <HelpDrawer />
     </template>
     <ConfirmDialog />
