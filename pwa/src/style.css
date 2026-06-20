@@ -641,6 +641,11 @@ details.add-panel[open] > div {
   margin-top: .15rem;
 }
 
+.refresh-btn-bottom {
+  display: block;
+  margin: .6rem auto 0;
+}
+
 .info-panel {
   border-left: 4px solid #3d68c7;
 }

@@ -250,9 +250,9 @@ async function handleRegister() {
         <p class="build-meta" :title="`Build ISO: ${buildTimestampIso}`">
           Build: {{ buildTimestampLabel }}
           <span v-if="deployLabel" class="deploy-label"> &middot; {{ deployLabel }}</span>
-          <button class="refresh-btn" @click="handleForceRefresh" title="Forza il refresh dell'app eliminando la cache del service worker">⟳ Aggiorna app</button>
         </p>
         <p v-if="cdnStatus" class="cdn-meta">{{ cdnStatus }}</p>
+        <button class="refresh-btn refresh-btn-bottom" @click="handleForceRefresh" title="Forza il refresh dell'app eliminando la cache del service worker">⟳ Aggiorna app</button>
       </div>
     </template>
 
