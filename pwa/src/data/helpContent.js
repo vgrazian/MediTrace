@@ -34,37 +34,47 @@ export const helpContent = {
     farmaci: {
         titolo: 'Catalogo Farmaci — Guida',
         intro:
-            'Questa sezione contiene l\'elenco di tutti i farmaci registrati nella struttura, con le rispettive confezioni (lotti) disponibili in magazzino.',
+            'Questa sezione contiene l\'elenco di tutti i farmaci registrati nella struttura, con le rispettive confezioni (lotti) disponibili in magazzino. Ogni farmaco può avere più confezioni.',
         sezioni: [
             {
                 titolo: 'Cosa sono i farmaci e le confezioni?',
                 testo:
-                    'Un farmaco è la scheda generale del principio attivo (es. Paracetamolo). Una confezione è la versione specifica in magazzino (es. Tachipirina 500mg, scadenza giu 2026, quantità 24 compresse). Ogni farmaco può avere più confezioni.',
+                    'Un farmaco è la scheda generale del principio attivo (es. Paracetamolo). Una confezione è la versione specifica in magazzino: ha un nome commerciale (es. Tachipirina 500 mg), un dosaggio, una quantità, una soglia di riordino e una data di scadenza. Ogni farmaco può avere più confezioni. Le confezioni sono quelle che vengono effettivamente somministrate agli ospiti e tracciate nelle scorte.',
             },
             {
-                titolo: 'Come aggiungere un nuovo farmaco',
+                titolo: 'Flusso completo: aggiungere farmaco + confezione',
                 testo:
-                    'Apri il pannello "Gestisci Farmaci", compila Nome farmaco e Principio attivo (obbligatori). Il campo Nome farmaco ha un autocompletamento che suggerisce i nomi già presenti in catalogo. Dopo il salvataggio, il pannello passa automaticamente alla creazione della confezione per quel farmaco.',
+                    'Il flusso consigliato è: (1) clicca "Aggiungi" nella sezione Farmaci registrati, (2) digita il nome del farmaco — il campo ha un autocompletamento che suggerisce i farmaci già presenti nel catalogo, così eviti duplicati, (3) inserisci il principio attivo e la classe terapeutica, (4) clicca "Salva farmaco". Appena salvato, il pannello passa automaticamente alla creazione della confezione con il farmaco già selezionato. (5) Inserisci nome commerciale, dosaggio, quantità, soglia riordino e scadenza, (6) clicca "Aggiungi confezione". La confezione apparirà nella tabella "Confezioni attive" e sarà disponibile per terapie e movimenti.',
             },
             {
-                titolo: 'Come aggiungere una confezione',
+                titolo: 'Autocompletamento del nome farmaco',
                 testo:
-                    'Seleziona il farmaco dal menù a tendina nel pannello confezioni, compila Nome commerciale e gli altri campi, poi premi "Salva confezione". La confezione verrà aggiunta alla tabella.',
+                    'Quando inizi a digitare nel campo "Nome farmaco", appare un menu a tendina con i nomi dei farmaci già presenti in catalogo. Puoi cliccare su un suggerimento per compilare automaticamente il campo. Questo aiuta a non creare duplicati: se il farmaco esiste già, ti basta aggiungere una nuova confezione invece di ricreare il farmaco.',
+            },
+            {
+                titolo: 'Auto-switch alla confezione',
+                testo:
+                    'Dopo aver salvato un nuovo farmaco, il pannello non si chiude ma passa automaticamente alla modalità "crea confezione" con il farmaco appena creato già selezionato. Puoi così inserire subito la prima confezione senza dover riaprire il pannello e riselezionare il farmaco. Se stai modificando un farmaco esistente, il pannello si chiude normalmente.',
+            },
+            {
+                titolo: 'Come aggiungere una confezione a un farmaco esistente',
+                testo:
+                    'Nella sezione "Confezioni attive" (seconda metà della pagina), clicca "Aggiungi". Seleziona il farmaco dal menu a tendina, compila Nome commerciale, Dosaggio, Quantità attuale, Soglia riordino e Scadenza, poi premi "Aggiungi confezione". La confezione comparirà nella tabella sottostante.',
             },
             {
                 titolo: 'Modificare un farmaco o una confezione',
                 testo:
-                    'Spunta la casellina a sinistra della riga che vuoi modificare, poi premi il pulsante "Modifica" nella barra in alto. Si aprirà il modulo già compilato: correggi i dati e premi "Salva modifica".',
+                    'Spunta la casellina a sinistra della riga, poi premi "Modifica" nella barra azioni. Si apre il modulo già compilato: correggi i dati e salva. Puoi modificare un solo elemento alla volta.',
             },
             {
                 titolo: 'Eliminare un farmaco o una confezione',
                 testo:
-                    'Spunta una o più righe, poi premi "Elimina" nella barra azioni. Verrà richiesta conferma prima di procedere. L\'operazione è reversibile solo dal pannello Audit entro 30 giorni.',
+                    'Spunta una o più righe e premi "Elimina". Verrà chiesta conferma. Attenzione: se elimini un farmaco, tutte le sue confezioni e terapie associate vengono disattivate. L\'operazione è reversibile dal pannello Audit.',
             },
             {
-                titolo: 'Scorta minima',
+                titolo: 'Scorta minima e soglia di riordino',
                 testo:
-                    'Se la quantità di una confezione scende sotto la soglia di riordino, il sistema la evidenzia in rosso nel Cruscotto. Imposta questo valore quando crei o modifichi una confezione.',
+                    'La soglia di riordino è la quantità minima sotto la quale il sistema segnala che è necessario ordinare nuove confezioni. Quando la quantità attuale scende sotto questa soglia, il farmaco viene evidenziato in rosso nella sezione Scorte e nel Cruscotto.',
             },
         ],
     },
