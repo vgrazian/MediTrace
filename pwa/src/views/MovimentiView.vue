@@ -579,7 +579,7 @@ onMounted(() => {
             <td>{{ hostLabel(movement.hostId) }}</td>
             <td>{{ movement.note || '—' }}</td>
             <td>
-              <button style="margin-right:.35rem" @click="startEditMovement(movement)">Modifica</button>
+              <button @click="startEditMovement(movement)">Modifica</button>
               <button v-if="canDeleteMovements" class="btn-danger" @click="deleteMovement(movement)">Elimina</button>
             </td>
           </tr>

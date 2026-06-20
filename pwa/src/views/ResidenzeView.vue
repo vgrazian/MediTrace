@@ -215,7 +215,7 @@ onMounted(() => void loadData())
               <td>{{ item.postiDisponibili }}</td>
               <td>{{ item.note || '—' }}</td>
               <td>
-                <button class="btn-sm" style="margin-right:.35rem" @click="startEdit(item)">Modifica</button>
+                <button class="btn-sm" @click="startEdit(item)">Modifica</button>
                 <button class="btn-danger btn-sm" @click="handleDelete(item)">Elimina</button>
               </td>
             </tr>

@@ -1020,7 +1020,7 @@ async function handleCreateUser() {
               </td>
               <td style="white-space:nowrap">
                 <button v-if="canManageUsers && user.username !== currentUser?.username && !user.disabled" @click="handleResetPassword(user)">Reset PW</button>
-                <button v-if="canManageUsers && user.username !== currentUser?.username && !user.disabled" style="margin-left:.25rem" @click="handleForceLogout(user)">Logout</button>
+                <button v-if="canManageUsers && user.username !== currentUser?.username && !user.disabled" @click="handleForceLogout(user)">Logout</button>
               </td>
                 <p v-if="userRoleMessage" class="muted" style="margin-top:.5rem;font-size:.8rem">{{ userRoleMessage }}</p>
               <td>{{ user.isSeeded ? 'prova' : 'standard' }}</td>
@@ -1043,7 +1043,7 @@ async function handleCreateUser() {
                 <span v-else class="muted">—</span>
                 <button
                   v-if="!user.isCurrent"
-                  style="margin-left:.35rem;background:#dc2626"
+                  class="btn-danger"
                   :disabled="usersBusy"
                   @click="handleDeleteUser(user.username)"
                 >

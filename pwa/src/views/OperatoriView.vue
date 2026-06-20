@@ -268,21 +268,21 @@ onMounted(() => {
                   <button
                     v-if="canEditUser(user)"
                     class="btn-sm"
-                    style="margin-right:.25rem"
                     @click="startEditUser(user)"
                   >Modifica</button>
                   <template v-if="user.username !== currentUser?.username && canManage">
                     <button
                       v-if="user.disabled"
+                      class="btn-sm"
                       @click="handleEnableUser(user.username)"
                     >Riattiva</button>
                     <button
                       v-else
+                      class="btn-sm"
                       @click="handleDisableUser(user.username)"
                     >Disattiva</button>
                     <button
                       class="btn-danger btn-sm"
-                      style="margin-left:.25rem"
                       @click="handleDeleteUser(user.username)"
                     >Elimina</button>
                   </template>

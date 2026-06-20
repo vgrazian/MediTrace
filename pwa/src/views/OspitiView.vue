@@ -521,7 +521,7 @@ onMounted(() => {
             <td>{{ host.activeTherapies }}</td>
             <td>
               <button
-                style="padding:.2rem .55rem;font-size:.8rem;margin-right:.35rem"
+                class="btn-sm"
                 @click="startEdit(host)"
               >
                 Modifica
