@@ -6,27 +6,27 @@ export const helpContent = {
     home: {
         titolo: 'Cruscotto — Panoramica generale',
         intro:
-            'Il Cruscotto è la pagina di partenza di MediTrace. Da qui puoi vedere in un colpo d\'occhio lo stato della struttura e raggiungere rapidamente le sezioni principali.',
+            'Il Cruscotto mostra in un colpo d\'occhio lo stato della struttura: promemoria del giorno, benvenuto, stato sincronizzazione e navigazione rapida verso le sezioni principali.',
         sezioni: [
+            {
+                titolo: 'Riepilogo turno di oggi',
+                testo:
+                    'Mostra i promemoria del giorno suddivisi per stato: eseguiti, da eseguire, posticipati e saltati, con conteggio aggiornato in tempo reale.',
+            },
             {
                 titolo: 'Stato sincronizzazione',
                 testo:
-                    'Indica se i dati salvati sul dispositivo sono allineati con il server. "Allineato" significa tutto a posto. Se vedi "operazioni in coda", i dati verranno inviati al server non appena la connessione sarà disponibile. Non è necessario fare nulla.',
+                    'Indica se i dati salvati sul dispositivo sono allineati. La spia Sync nella barra in alto cambia colore: verde = tutto ok, arancione = operazioni in coda, rosso = conflitto.',
             },
             {
-                titolo: 'Azioni rapide',
+                titolo: 'Navigazione rapida',
                 testo:
-                    'Pulsanti di collegamento diretto alle sezioni più usate: Catalogo farmaci, Residenze, Ospiti, Scorte, Terapie. Cliccane uno per aprire direttamente quella sezione.',
+                    'Griglia di collegamenti diretti a tutte le sezioni dell\'applicazione. Clicca su una card per aprire direttamente quella sezione.',
             },
             {
-                titolo: 'Indicatori KPI',
+                titolo: 'Versione build e deploy',
                 testo:
-                    'Numeri di sintesi aggiornati in tempo reale: scorte in esaurimento, terapie attive, promemoria aperti e ospiti presenti. Un numero evidenziato in arancione o rosso segnala una situazione che richiede attenzione.',
-            },
-            {
-                titolo: 'Versione dataset',
-                testo:
-                    'Numero progressivo che si aggiorna ad ogni sincronizzazione riuscita. Serve principalmente per il supporto tecnico: non è necessario tenerlo sotto controllo durante l\'uso quotidiano.',
+                    'In fondo alla pagina trovi la data/ora di build e il commit GitHub Pages. Utile per verificare che l\'app sia aggiornata all\'ultima versione.',
             },
         ],
     },
@@ -44,7 +44,7 @@ export const helpContent = {
             {
                 titolo: 'Come aggiungere un nuovo farmaco',
                 testo:
-                    'Apri il pannello "Gestisci Farmaci", compila i campi Nome farmaco e Principio attivo (obbligatori), poi premi "Salva farmaco". Il farmaco comparirà nella tabella in basso.',
+                    'Apri il pannello "Gestisci Farmaci", compila Nome farmaco e Principio attivo (obbligatori). Il campo Nome farmaco ha un autocompletamento che suggerisce i nomi già presenti in catalogo. Dopo il salvataggio, il pannello passa automaticamente alla creazione della confezione per quel farmaco.',
             },
             {
                 titolo: 'Come aggiungere una confezione',
@@ -72,17 +72,22 @@ export const helpContent = {
     ospiti: {
         titolo: 'Ospiti — Guida',
         intro:
-            'In questa sezione gestisci l\'anagrafica degli ospiti della struttura: le generalità, il letto assegnato e il collegamento con le terapie attive.',
+            'In questa sezione gestisci l\'anagrafica degli ospiti della struttura: generalità, residenza assegnata e collegamento con le terapie attive.',
         sezioni: [
             {
                 titolo: 'Come aggiungere un ospite',
                 testo:
-                    'Apri il modulo con il pulsante "Aggiungi", compila almeno Nome, Cognome e Stanza, poi premi "Salva ospite". L\'ospite apparirà nella tabella.',
+                    'Apri il pannello "Gestione Ospiti", inserisci Nome e Cognome (obbligatori). Il codice interno viene generato automaticamente. Completa i campi opzionali e scegli la residenza, poi salva.',
             },
             {
-                titolo: 'Codice interno',
+                titolo: 'Visualizzazione',
                 testo:
-                    'Il codice interno (es. OSP-01) viene assegnato automaticamente dal sistema. Non è necessario inserirlo a mano.',
+                    'Gli ospiti sono mostrati in formato "Nome Cognome" (es. Mario Rossi) ordinati per cognome. La tabella mostra Ospite, Residenza e Terapie attive.',
+            },
+            {
+                titolo: 'Pulsante Terapie',
+                testo:
+                    'Nella colonna Azioni trovi il pulsante "Terapie" che apre la sezione Terapie già filtrata per quell\'ospite, per modificare le terapie assegnate.',
             },
             {
                 titolo: 'Modificare i dati di un ospite',
@@ -90,14 +95,9 @@ export const helpContent = {
                     'Spunta la casellina accanto all\'ospite, premi "Modifica", correggi i dati nel modulo e premi "Salva modifica".',
             },
             {
-                titolo: 'Terapie associate',
+                titolo: 'Ospiti disattivati',
                 testo:
-                    'Espandi la riga di un ospite per vedere le sue terapie attive. Per aggiungere o modificare una terapia, vai alla sezione "Terapie".',
-            },
-            {
-                titolo: 'Ospiti dimessi',
-                testo:
-                    'Gli ospiti dimessi vengono nascosti dalla lista principale. Puoi visualizzarli attivando il filtro "Mostra tutti" nella barra di ricerca.',
+                    'Gli ospiti disattivati vengono nascosti dalla lista principale. Puoi visualizzarli attivando il filtro "Mostra anche disattivati".',
             },
         ],
     },
@@ -110,7 +110,7 @@ export const helpContent = {
             {
                 titolo: 'Anagrafica residenze',
                 testo:
-                    'Ogni residenza contiene nome, capienza massima e note operative. In avvio sono preconfigurate: Il Rifugio, Via Bellani, Residenza 3 e Residenza 4.',
+                    'Ogni residenza contiene nome, capienza massima, indirizzo, telefono, email e note operative. In avvio sono preconfigurate: Il Rifugio, Via Bellani e Residenza Demo.',
             },
             {
                 titolo: 'Come aggiungere una residenza',
@@ -133,12 +133,22 @@ export const helpContent = {
     scorte: {
         titolo: 'Scorte — Guida',
         intro:
-            'La sezione Scorte mostra la situazione attuale del magazzino farmaci: quantità disponibili, soglie di riordino e confezioni prossime alla scadenza.',
+            'La sezione Scorte mostra la situazione del magazzino farmaci: quantità, soglie di riordino, grafico consumi e confezioni in scadenza.',
         sezioni: [
             {
                 titolo: 'Cosa vedo in questa pagina?',
                 testo:
-                    'Una tabella con tutte le confezioni di farmaci presenti in magazzino, con la quantità attuale e la soglia minima. Le righe evidenziate in rosso indicano scorte insufficienti.',
+                    'Una tabella con tutte le confezioni di farmaci in magazzino. In alto trovi il grafico consumi mensili (barre SVG con gli scarichi degli ultimi 6 mesi) e la lista delle confezioni scadute o in scadenza.',
+            },
+            {
+                titolo: 'Grafico consumi',
+                testo:
+                    'Il grafico a barre mostra il numero di movimenti di scarico per ciascuno degli ultimi 6 mesi. Utile per monitorare l\'andamento dei consumi nel tempo.',
+            },
+            {
+                titolo: 'Confezioni scadute / in scadenza',
+                testo:
+                    'Una card dedicata elenca tutte le confezioni entro 60 giorni dalla scadenza, con sfondo rosso (scaduta), giallo (in scadenza) o grigio (prossima). Puoi cestinare le confezioni scadute con il pulsante Cestina.',
             },
             {
                 titolo: 'Scorta sotto soglia',
@@ -194,12 +204,12 @@ export const helpContent = {
     terapie: {
         titolo: 'Terapie Attive — Guida',
         intro:
-            'In questa sezione inserisci e gestisci le terapie farmacologiche in corso per ogni ospite: farmaco somministrato, dose, frequenza e periodo di trattamento.',
+            'In questa sezione inserisci e gestisci le terapie farmacologiche in corso per ogni ospite: farmaco, confezione, dose, frequenza e periodo di trattamento.',
         sezioni: [
             {
                 titolo: 'Come aggiungere una terapia',
                 testo:
-                    'Premi "Aggiungi", seleziona l\'ospite e il farmaco, inserisci dose e numero di somministrazioni giornaliere, imposta la data di inizio. La data di fine è opzionale. Premi "Salva terapia".',
+                    'Premi "Aggiungi", seleziona l\'ospite e il farmaco. Puoi opzionalmente scegliere la confezione specifica (per tracciare i consumi per lotto). Inserisci dose e somministrazioni giornaliere, data inizio. Premi "Salva terapia".',
             },
             {
                 titolo: 'Dose e somministrazioni',
@@ -227,17 +237,22 @@ export const helpContent = {
     promemoria: {
         titolo: 'Promemoria — Guida',
         intro:
-            'I promemoria ti ricordano le attività quotidiane legate alle terapie e alla gestione degli ospiti. Possono essere generati automaticamente o inseriti manualmente.',
+            'I promemoria ti ricordano le attività quotidiane legate alle terapie. Puoi segnare l\'esito di ogni somministrazione e ripristinare quelle segnate per errore.',
         sezioni: [
             {
                 titolo: 'Cosa sono i promemoria?',
                 testo:
-                    'Sono avvisi collegati a un ospite o a una terapia. Per esempio: "Somministrare Tachipirina alle 08:00 a Mario Rossi". Compaiono nella lista appena è il momento di agire.',
+                    'Sono avvisi collegati a un ospite e a una terapia. Per esempio: "Somministrare Tachipirina alle 08:00 a Mario Rossi". Compaiono nella lista quando è il momento di agire.',
             },
             {
-                titolo: 'Segnare un promemoria come completato',
+                titolo: 'Registrare l\'esito',
                 testo:
-                    'Spunta la casellina a sinistra del promemoria, poi premi "Segna completato". Il promemoria sparirà dalla lista attiva e verrà archiviato.',
+                    'Seleziona uno o più promemoria e premi Eseguito, Posticipato o Saltato. Lo stato viene aggiornato immediatamente.',
+            },
+            {
+                titolo: 'Ripristina (annulla esito)',
+                testo:
+                    'Se hai segnato un promemoria per errore, selezionalo e premi "Ripristina". Ti verrà chiesta conferma prima di riportarlo a "Da eseguire". Funziona sia per singoli promemoria che in blocco.',
             },
             {
                 titolo: 'Residenza operativa',
@@ -258,6 +273,34 @@ export const helpContent = {
                 titolo: 'Notifiche',
                 testo:
                     'Se il browser ha il permesso di inviare notifiche, riceverai un avviso anche quando l\'applicazione è in background. Puoi gestire questo permesso nelle Impostazioni del browser.',
+            },
+        ],
+    },
+
+    operatori: {
+        titolo: 'Operatori — Guida',
+        intro:
+            'Questa sezione (visibile solo agli amministratori) permette di gestire gli account degli operatori: creazione, modifica profilo, disattivazione e assegnazione ruoli.',
+        sezioni: [
+            {
+                titolo: 'Aggiungere un operatore',
+                testo:
+                    'Clicca "Aggiungi" per aprire il pannello di creazione. Compila Nome, Cognome, Username, Email e Password iniziale. Scegli il Ruolo (Operatore o Amministratore) e opzionalmente la Residenza predefinita.',
+            },
+            {
+                titolo: 'Residenza predefinita',
+                testo:
+                    'Ogni operatore può avere una residenza predefinita: "Ultima utilizzata" mantiene l\'ultima residenza attiva, oppure puoi assegnarne una fissa che verrà applicata a ogni login.',
+            },
+            {
+                titolo: 'Modificare un operatore',
+                testo:
+                    'Clicca "Modifica" sulla riga dell\'operatore per cambiarne Nome, Cognome, Email, Telefono e Ruolo. Puoi modificare il tuo profilo in qualsiasi momento.',
+            },
+            {
+                titolo: 'Disattivare / Eliminare',
+                testo:
+                    'Puoi disattivare temporaneamente un operatore (Riattiva per ripristinarlo) o eliminarlo definitivamente. L\'eliminazione richiede conferma.',
             },
         ],
     },
@@ -326,11 +369,12 @@ export const manualeSezioni = [
     { key: 'home', etichetta: 'Cruscotto' },
     { key: 'farmaci', etichetta: 'Farmaci' },
     { key: 'ospiti', etichetta: 'Ospiti' },
-    { key: 'stanze', etichetta: 'Stanze e Letti' },
+    { key: 'stanze', etichetta: 'Residenze' },
     { key: 'scorte', etichetta: 'Scorte' },
     { key: 'movimenti', etichetta: 'Movimenti' },
     { key: 'terapie', etichetta: 'Terapie' },
     { key: 'promemoria', etichetta: 'Promemoria' },
+    { key: 'operatori', etichetta: 'Operatori' },
     { key: 'audit', etichetta: 'Registro Operazioni' },
     { key: 'impostazioni', etichetta: 'Impostazioni' },
 ]
