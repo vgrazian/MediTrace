@@ -287,6 +287,8 @@ async function handleSync() {
   font-size: .72em;
   margin-left: .25em;
 }
+
+.residenza-badge {
   display: inline-flex;
   align-items: center;
   gap: 0.3em;
