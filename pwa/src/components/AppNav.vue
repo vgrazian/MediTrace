@@ -224,17 +224,17 @@ async function handleSyncIndicatorClick() {
       </div>
     </span>
 
-    <RouterLink to="/">Cruscotto</RouterLink>
-    <RouterLink to="/promemoria">Promemoria</RouterLink>
-    <RouterLink to="/terapie">Terapie</RouterLink>
-    <RouterLink to="/scorte">Scorte</RouterLink>
-    <RouterLink to="/movimenti">Movimenti</RouterLink>
-    <RouterLink to="/ospiti">Ospiti</RouterLink>
-    <RouterLink to="/farmaci">Farmaci</RouterLink>
-    <RouterLink to="/residenze">Residenze</RouterLink>
-    <RouterLink to="/manuale">Guida</RouterLink>
-    <RouterLink v-if="currentUser?.role === 'admin'" to="/operatori">Operatori</RouterLink>
-    <RouterLink v-if="currentUser?.role === 'admin'" to="/audit">Audit</RouterLink>
+    <RouterLink to="/" title="Cruscotto — riepilogo e KPI">Cruscotto</RouterLink>
+    <RouterLink to="/promemoria" title="Promemoria somministrazioni">Promemoria</RouterLink>
+    <RouterLink to="/terapie" title="Terapie attive per ospite">Terapie</RouterLink>
+    <RouterLink to="/scorte" title="Scorte e report consumi">Scorte</RouterLink>
+    <RouterLink to="/movimenti" title="Movimenti di carico/scarico">Movimenti</RouterLink>
+    <RouterLink to="/ospiti" title="Registro ospiti">Ospiti</RouterLink>
+    <RouterLink to="/farmaci" title="Catalogo farmaci e confezioni">Farmaci</RouterLink>
+    <RouterLink to="/residenze" title="Gestione residenze">Residenze</RouterLink>
+    <RouterLink to="/manuale" title="Guida utente">Guida</RouterLink>
+    <RouterLink v-if="currentUser?.role === 'admin'" to="/operatori" title="Gestione operatori e permessi">Operatori</RouterLink>
+    <RouterLink v-if="currentUser?.role === 'admin'" to="/audit" title="Registro audit e attività">Audit</RouterLink>
 
     <div class="sync-indicator-area">
       <span
@@ -267,11 +267,12 @@ async function handleSyncIndicatorClick() {
 
     <div class="user-area">
       <button class="sync-btn" @click="handleSync" title="Sincronizza dati e aggiorna app" aria-label="Sincronizza">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#93c5fd" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#93c5fd" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle">
           <polyline points="23 4 23 10 17 10"/>
           <polyline points="1 20 1 14 7 14"/>
           <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
         </svg>
+        <span class="sync-label">Sync</span>
       </button>
       <RouterLink to="/impostazioni" class="user-name user-name-link">{{ currentUser?.name }}</RouterLink>
       <RouterLink to="/impostazioni" title="Impostazioni" aria-label="Impostazioni">
@@ -297,6 +298,11 @@ async function handleSyncIndicatorClick() {
 .sync-btn:hover {
   background: #e0e7ff;
   border-radius: 6px;
+}
+.sync-label {
+  font-size: .72em;
+  color: #93c5fd;
+  margin-left: .25em;
 }
 
 .sync-indicator-area {
