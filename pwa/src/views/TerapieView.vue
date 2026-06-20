@@ -1,5 +1,6 @@
 <script setup>
 import { computed, onMounted, onUnmounted, ref } from 'vue'
+import { useRoute } from 'vue-router'
 // --- Keyboard Shortcuts (Scorciatoie da tastiera) ---
 function handleKeyboardShortcut(event) {
   // Focus search (Cerca)
@@ -48,6 +49,7 @@ import UndoDeleteBanner from '../components/UndoDeleteBanner.vue'
 import { useSessionViewState } from '../composables/useSessionViewState'
 
 const { currentUser } = useAuth()
+const route = useRoute()
 const { goToHelpSection } = useHelpNavigation()
 const { pendingUndo, scheduleUndo, executeUndo } = useUndoDelete(10_000)
 
@@ -262,6 +264,15 @@ async function loadData() {
     errorMessage.value = `Errore caricamento terapie: ${err.message}`
   } finally {
     loading.value = false
+  }
+
+  // Apply ospite filter from query param (e.g., ?ospite=HOST_ID)
+  const ospiteId = String(route.query.ospite || '').trim()
+  if (ospiteId) {
+    const host = hosts.value.find(h => h.id === ospiteId)
+    if (host) {
+      filterQuery.value = [host.nome, host.cognome].filter(Boolean).join(' ').trim()
+    }
   }
 }
 

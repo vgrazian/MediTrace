@@ -526,6 +526,12 @@ onMounted(() => {
               >
                 Modifica
               </button>
+              <a
+                :href="'#/terapie?ospite=' + host.id"
+                class="btn btn-sm"
+                style="text-decoration:none;margin-right:.35rem"
+                title="Vai alle terapie di questo ospite"
+              >Terapie</a>
               <button
                 class="btn-danger btn-sm"
                 @click="handleDeactivate(host.id)"
