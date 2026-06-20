@@ -904,7 +904,7 @@ onMounted(() => {
             <td>{{ b.scadenza }}</td>
             <td>{{ formatGiorniScadenza(b.giorniScadenza) }}</td>
             <td>
-              <button class="btn-danger btn-sm" @click="deleteExpiredBatch(b.id)">Cestina</button>
+              <button class="btn-danger" @click="deleteExpiredBatch(b.id)">Cestina</button>
             </td>
           </tr>
         </tbody>
