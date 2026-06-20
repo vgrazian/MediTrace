@@ -244,9 +244,9 @@ async function handleSyncIndicatorClick() {
     <RouterLink to="/ospiti" title="Registro ospiti">Ospiti</RouterLink>
     <RouterLink to="/farmaci" title="Catalogo farmaci e confezioni">Farmaci</RouterLink>
     <RouterLink to="/residenze" title="Gestione residenze">Residenze</RouterLink>
-    <RouterLink to="/manuale" title="Guida utente">Guida</RouterLink>
     <RouterLink v-if="currentUser?.role === 'admin'" to="/operatori" title="Gestione operatori e permessi">Operatori</RouterLink>
     <RouterLink v-if="currentUser?.role === 'admin'" to="/audit" title="Registro audit e attività">Audit</RouterLink>
+    <RouterLink to="/manuale" title="Guida utente">Guida</RouterLink>
 
     <div class="sync-indicator-area">
       <span
