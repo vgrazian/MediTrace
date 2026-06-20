@@ -90,7 +90,7 @@ async function normalizeHostPlacement({ roomId, stanza }) {
 
 export function formatHostDisplay(host) {
     if (!host) return '—'
-    const fullName = [host.nome, host.cognome].filter(Boolean).join(' ').trim()
+    const fullName = [host.nome, host.cognome].map(s => String(s || '').trim()).filter(Boolean).join(' ').trim()
     return fullName || host.iniziali || host.codiceInterno || host.id
 }
 
