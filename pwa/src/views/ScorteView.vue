@@ -104,6 +104,87 @@ function formatWeekLabel(weekKey) {
   return String(weekKey || '').replace('-W', ' W')
 }
 
+// ── Consumption chart ─────────────────────────────────────────────────────
+const consumoMensile = ref([])
+const chartMax = computed(() => {
+  const max = Math.max(1, ...consumoMensile.value.map(m => m.total))
+  return Math.ceil(max / 5) * 5 || 10
+})
+
+async function loadConsumoMensile() {
+  try {
+    const movements = await db.movements.toArray()
+    const now = new Date()
+    const months = []
+    // Last 6 months
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1)
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+      const label = d.toLocaleDateString('it-IT', { month: 'short', year: '2-digit' })
+      months.push({ key, label, total: 0 })
+    }
+
+    for (const m of movements) {
+      if (m.deletedAt || m.type !== 'scarico') continue
+      const date = new Date(m.updatedAt || m.createdAt || 0)
+      if (Number.isNaN(date.getTime())) continue
+      const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
+      const month = months.find(mo => mo.key === key)
+      if (month) month.total += Number(m.quantita || 1)
+    }
+    consumoMensile.value = months
+  } catch { /* ignore */ }
+}
+
+// ── Expired / expiring batches ────────────────────────────────────────────
+const EXPIRY_WARN_DAYS = 60
+const expiredBatches = computed(() => {
+  const now = new Date()
+  now.setHours(0, 0, 0, 0)
+  const warnDate = new Date(now)
+  warnDate.setDate(warnDate.getDate() + EXPIRY_WARN_DAYS)
+
+  return stockBatches.value
+    .filter(b => {
+      if (!b.scadenza) return false
+      const scad = new Date(b.scadenza)
+      return !Number.isNaN(scad.getTime()) && scad <= warnDate
+    })
+    .map(b => {
+      const scad = new Date(b.scadenza)
+      const giorni = Math.ceil((scad.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
+      return {
+        ...b,
+        giorniScadenza: giorni,
+        stato: giorni < 0 ? 'scaduta' : giorni <= 30 ? 'in scadenza' : 'prossima',
+      }
+    })
+    .sort((a, b) => a.giorniScadenza - b.giorniScadenza)
+})
+
+async function deleteExpiredBatch(batchId) {
+  const batch = stockBatches.value.find(b => b.id === batchId)
+  if (!batch) return
+  const name = batch.nomeCommerciale || batchId
+  if (!confirm(`Eliminare definitivamente la confezione "${name}"?`)) return
+  try {
+    const now = new Date().toISOString()
+    await db.stockBatches.put({ ...batch, deletedAt: now, updatedAt: now, syncStatus: 'pending' })
+    await enqueue('stockBatches', batchId, 'upsert')
+    actionMessage.value = `Confezione "${name}" eliminata.`
+    await refreshReport()
+    await loadConsumoMensile()
+  } catch (err) {
+    actionError.value = `Errore eliminazione: ${err.message}`
+  }
+}
+
+function formatGiorniScadenza(giorni) {
+  if (giorni < 0) return `Scaduta da ${Math.abs(giorni)} gg`
+  if (giorni === 0) return 'Scade oggi'
+  return `Tra ${giorni} gg`
+}
+
 async function refreshReport() {
   reportLoading.value = true
   reportError.value = ''
@@ -571,6 +652,7 @@ function cancelOrderDraft() {
 
 onMounted(() => {
   void refreshReport()
+  void loadConsumoMensile()
 })
 </script>
 
@@ -772,6 +854,58 @@ onMounted(() => {
           </tr>
           <tr v-if="(report.adherenceHostRows || []).length === 0">
             <td colspan="7" class="muted">Nessun dato aderenza disponibile nella finestra analizzata.</td>
+          </tr>
+        </tbody>
+      </table>
+      </div>
+    </div>
+
+    <!-- ── Andamento consumi mensili ── -->
+    <div v-if="consumoMensile.length > 0" class="card">
+      <p><strong>📊 Andamento consumi (scarichi per mese)</strong></p>
+      <p class="muted" style="margin-top:.25rem">Conteggio movimenti di scarico negli ultimi 6 mesi.</p>
+      <div style="margin-top:.75rem;overflow-x:auto">
+        <svg :viewBox="'0 0 ' + (consumoMensile.length * 70 + 50) + ' 180'" width="100%" height="180" style="max-width:100%">
+          <text x="5" y="15" font-size="10" fill="#94a3b8">{{ chartMax }}</text>
+          <text x="5" y="95" font-size="10" fill="#94a3b8">{{ Math.round(chartMax / 2) }}</text>
+          <text x="5" y="170" font-size="10" fill="#94a3b8">0</text>
+          <line x1="30" :y1="10" :x2="consumoMensile.length * 70 + 40" y2="10" stroke="#e2e8f0" stroke-width="1"/>
+          <line x1="30" :y1="90" :x2="consumoMensile.length * 70 + 40" y2="90" stroke="#e2e8f0" stroke-width="1"/>
+          <g v-for="(m, i) in consumoMensile" :key="m.key">
+            <rect :x="i * 70 + 40" :y="170 - (m.total / chartMax) * 160" width="50" :height="(m.total / chartMax) * 160" rx="3" fill="#2563eb" opacity="0.85"/>
+            <text :x="i * 70 + 65" :y="168 - (m.total / chartMax) * 160" text-anchor="middle" font-size="10" :fill="m.total > chartMax * 0.15 ? '#fff' : '#1e293b'">{{ m.total }}</text>
+            <text :x="i * 70 + 65" y="178" text-anchor="middle" font-size="9" fill="#64748b">{{ m.label }}</text>
+          </g>
+        </svg>
+      </div>
+    </div>
+
+    <!-- ── Confezioni scadute / in scadenza ── -->
+    <div v-if="expiredBatches.length > 0" class="card" style="border-left: 3px solid #ff6b6b">
+      <p><strong>⚠️ Confezioni scadute o in scadenza (entro {{ EXPIRY_WARN_DAYS }} gg)</strong></p>
+      <p class="muted" style="margin-top:.25rem">{{ expiredBatches.length }} {{ expiredBatches.length === 1 ? 'confezione' : 'confezioni' }} da controllare</p>
+      <div class="dataset-frame" style="margin-top:.75rem;max-height:18rem">
+      <table class="conflict-table">
+        <thead>
+          <tr>
+            <th>Confezione</th>
+            <th>Farmaco</th>
+            <th>Quantità</th>
+            <th>Scadenza</th>
+            <th>Stato</th>
+            <th>Azione</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="b in expiredBatches" :key="b.id" :style="{ background: b.stato === 'scaduta' ? '#fee2e2' : b.stato === 'in scadenza' ? '#fff3cd' : '#f8fafc' }">
+            <td>{{ b.nomeCommerciale || '—' }}</td>
+            <td>{{ drugLabel(b.drugId) }}</td>
+            <td>{{ b.quantitaAttuale }}</td>
+            <td>{{ b.scadenza }}</td>
+            <td>{{ formatGiorniScadenza(b.giorniScadenza) }}</td>
+            <td>
+              <button class="btn-danger btn-sm" @click="deleteExpiredBatch(b.id)">Cestina</button>
+            </td>
           </tr>
         </tbody>
       </table>
