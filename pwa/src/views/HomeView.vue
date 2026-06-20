@@ -79,6 +79,9 @@ onMounted(async () => {
 
 <template>
   <div class="view home-view">
+    <p class="muted" style="text-align:center;margin-bottom:.25rem;font-size:.85rem">
+      Monitoraggio scorte, terapie e promemoria con controllo operativo continuo.
+    </p>
     <div class="card attention-panel" v-if="attentionItems.length">
       <p><strong>⚠️ Attenzione</strong></p>
       <ul class="attention-list">
@@ -89,9 +92,6 @@ onMounted(async () => {
         </li>
       </ul>
     </div>
-    <p v-else class="muted" style="text-align:center;margin-bottom:.5rem;font-size:.85rem">
-      Monitoraggio scorte, terapie e promemoria con controllo operativo continuo.
-    </p>
 
     <!-- Row 1: Riepilogo + Benvenuto -->
     <div class="card-grid">
