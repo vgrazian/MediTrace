@@ -235,6 +235,7 @@ function startEditBatch(batch) {
 function resetBatchForm() {
   editingBatchId.value = ''
   creatingBatch.value = false
+  isFormOpen.value = false
   batchForm.value = {
     drugId: '',
     nomeCommerciale: '',
@@ -277,6 +278,7 @@ function startEditDrug(drugId) {
 
 function resetDrugForm() {
   editingDrugId.value = ''
+  isFormOpen.value = false
   drugForm.value = {
     principioAttivo: '',
     classeTerapeutica: '',

@@ -57,6 +57,7 @@ const canSave = computed(() => {
 function resetForm() {
   editId.value = ''
   editName.value = ''
+  isFormOpen.value = false
   form.value = {
     codice: '',
     maxOspiti: '10',

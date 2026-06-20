@@ -102,6 +102,7 @@ async function handleCreateUser() {
     newPassword.value = ''
     newDefaultResidenzaId.value = ''
     newMessage.value = 'Utente creato con successo'
+    closeForm()
     await refreshUsers()
   } catch (e) {
     newMessage.value = 'Errore: ' + e.message
@@ -193,6 +194,7 @@ async function handleEditUser() {
       isSeeded: editIsSeeded.value,
     })
     editMessage.value = `Operatore ${editingUsername.value} aggiornato.`
+    closeForm()
     await refreshUsers()
   } catch (e) {
     editMessage.value = 'Errore: ' + e.message
