@@ -100,33 +100,35 @@ onMounted(async () => {
       </ul>
     </div>
 
-    <div class="card">
-      <p><strong>📋 Riepilogo turno di oggi</strong></p>
-      <div v-if="homeKpi && homeKpi.remindersToday > 0" style="display:flex;gap:1.5em;flex-wrap:wrap;margin-top:.5rem">
-        <span style="color:#22c55e;font-weight:600">✅ Eseguiti: {{ homeKpi.remindersDone }}</span>
-        <span style="color:#f59e42;font-weight:600">⏳ Da eseguire: {{ homeKpi.remindersPending }}</span>
-        <span v-if="homeKpi.remindersPostponed > 0" style="color:#3b82f6;font-weight:600">🔄 Posticipati: {{ homeKpi.remindersPostponed }}</span>
-        <span v-if="homeKpi.remindersSkipped > 0" style="color:#ef4444;font-weight:600">❌ Saltati: {{ homeKpi.remindersSkipped }}</span>
+    <!-- Row 1: Riepilogo + Benvenuto -->
+    <div class="card-grid">
+      <div class="card">
+        <p><strong>📋 Riepilogo turno di oggi</strong></p>
+        <div v-if="homeKpi && homeKpi.remindersToday > 0" style="display:flex;gap:1.5em;flex-wrap:wrap;margin-top:.5rem">
+          <span style="color:#22c55e;font-weight:600">✅ Eseguiti: {{ homeKpi.remindersDone }}</span>
+          <span style="color:#f59e42;font-weight:600">⏳ Da eseguire: {{ homeKpi.remindersPending }}</span>
+          <span v-if="homeKpi.remindersPostponed > 0" style="color:#3b82f6;font-weight:600">🔄 Posticipati: {{ homeKpi.remindersPostponed }}</span>
+          <span v-if="homeKpi.remindersSkipped > 0" style="color:#ef4444;font-weight:600">❌ Saltati: {{ homeKpi.remindersSkipped }}</span>
+        </div>
+        <p v-else class="muted" style="margin-top:.5rem">Nessun promemoria pianificato per oggi.</p>
+        <div v-if="homeKpi && homeKpi.remindersToday > 0" style="margin-top:.5rem">
+          <RouterLink to="/promemoria" class="attention-link">Vai ai promemoria →</RouterLink>
+        </div>
       </div>
-      <p v-else class="muted" style="margin-top:.5rem">Nessun promemoria pianificato per oggi.</p>
-      <div v-if="homeKpi && homeKpi.remindersToday > 0" style="margin-top:.5rem">
-        <RouterLink to="/promemoria" class="attention-link">Vai ai promemoria →</RouterLink>
+
+      <div class="card">
+        <p>Benvenuto/a, <strong>{{ currentUser?.name }}</strong></p>
+        <p class="muted">Ruolo attivo: {{ currentUser?.role === 'admin' ? 'amministratore' : 'operatore' }}</p>
+        <div style="margin-top:.75rem">
+          <p><strong>Stato sincronizzazione</strong></p>
+          <p class="muted" style="margin-top:.25rem">
+            Stato: {{ syncStatus }}<br />
+            Ultima sincronizzazione: {{ formatDateTime(homeKpi?.lastSyncAt) }}
+          </p>
+        </div>
       </div>
     </div>
 
-    <div class="card">
-      <p>Benvenuto/a, <strong>{{ currentUser?.name }}</strong></p>
-      <p class="muted">Ruolo attivo: {{ currentUser?.role === 'admin' ? 'amministratore' : 'operatore' }}</p>
-    </div>
-
-    <div class="card">
-      <p><strong>Stato sincronizzazione</strong></p>
-      <p class="muted">
-        Versione dataset locale: {{ datasetVersion ?? '—' }}<br />
-        Stato: {{ syncStatus }}<br />
-        Ultima sincronizzazione: {{ formatDateTime(homeKpi?.lastSyncAt) }}
-      </p>
-    </div>
 
     <div class="card">
       <p><strong>Navigazione rapida</strong></p>
@@ -174,12 +176,10 @@ onMounted(async () => {
       </div>
     </div>
 
-    <div class="card">
-      <p><strong>Versione build</strong></p>
-      <p class="muted" :title="`Build ISO: ${buildTimestampIso}`">
-        Data/ora build: {{ buildTimestampLabel }}
-        <span v-if="deployLabel"><br/>Deploy: {{ deployLabel }}</span>
-      </p>
-    </div>
+    <!-- Versione build (compact footer) -->
+    <p class="muted" style="text-align:center;font-size:.78rem;margin-top:.5rem" :title="`Build ISO: ${buildTimestampIso}`">
+      Build: {{ buildTimestampLabel }}
+      <span v-if="deployLabel"> · {{ deployLabel }}</span>
+    </p>
   </div>
 </template>
