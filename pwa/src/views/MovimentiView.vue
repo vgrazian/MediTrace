@@ -2,13 +2,15 @@
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 // --- Keyboard Shortcuts (Scorciatoie da tastiera) ---
 function handleKeyboardShortcut(event) {
-  // Focus search (Cerca)
+  const tag = (event.target?.tagName || '').toLowerCase()
+  const isInput = tag === 'input' || tag === 'textarea' || tag === 'select'
   if (event.key === '/') {
+    if (isInput) return
     event.preventDefault()
     const searchInput = document.querySelector('input[placeholder="Cerca per tipo, confezione, ospite o note"]')
     if (searchInput) searchInput.focus()
   }
-  // Nuovo (Aggiungi movimento)
+  if (isInput) return
   if (event.key === 'n' && !event.ctrlKey && !event.metaKey) {
     event.preventDefault()
     openAddForm()

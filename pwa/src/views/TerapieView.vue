@@ -3,13 +3,15 @@ import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 // --- Keyboard Shortcuts (Scorciatoie da tastiera) ---
 function handleKeyboardShortcut(event) {
-  // Focus search (Cerca)
+  const tag = (event.target?.tagName || '').toLowerCase()
+  const isInput = tag === 'input' || tag === 'textarea' || tag === 'select'
   if (event.key === '/') {
+    if (isInput) return
     event.preventDefault()
     const searchInput = document.querySelector('input[placeholder="Cerca per ospite, farmaco, dose o note"]')
     if (searchInput) searchInput.focus()
   }
-  // Nuovo (Aggiungi terapia)
+  if (isInput) return
   if (event.key === 'n' && !event.ctrlKey && !event.metaKey) {
     event.preventDefault()
     openAddForm()

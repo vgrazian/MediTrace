@@ -2,13 +2,18 @@
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 // --- Keyboard Shortcuts (Scorciatoie da tastiera) ---
 function handleKeyboardShortcut(event) {
-  // Focus search (Cerca)
+  // Ignore shortcuts when typing in input fields
+  const tag = (event.target?.tagName || '').toLowerCase()
+  const isInput = tag === 'input' || tag === 'textarea' || tag === 'select' || event.target?.isContentEditable
+  // Focus search (Cerca) — always works
   if (event.key === '/') {
+    if (isInput) return // don't focus search if already in an input
     event.preventDefault()
     const searchInput = document.querySelector('input[placeholder="Cerca per nome farmaco, principio attivo, confezione o dosaggio"]')
     if (searchInput) searchInput.focus()
   }
-  // Nuovo (Aggiungi farmaco)
+  // Nuovo / Elimina — only when NOT in an input
+  if (isInput) return
   if (event.key === 'n' && !event.ctrlKey && !event.metaKey) {
     event.preventDefault()
     openAddDrugForm()
