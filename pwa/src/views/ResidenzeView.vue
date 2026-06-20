@@ -215,8 +215,8 @@ onMounted(() => void loadData())
               <td>{{ item.postiDisponibili }}</td>
               <td>{{ item.note || '—' }}</td>
               <td>
-                <button class="btn-sm" @click="startEdit(item)">Modifica</button>
-                <button class="btn-danger btn-sm" @click="handleDelete(item)">Elimina</button>
+                <button @click="startEdit(item)">Modifica</button>
+                <button class="btn-danger" @click="handleDelete(item)">Elimina</button>
               </td>
             </tr>
             <tr v-if="filteredResidenze.length === 0 && !loading">

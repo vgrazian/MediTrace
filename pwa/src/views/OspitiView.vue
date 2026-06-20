@@ -521,19 +521,18 @@ onMounted(() => {
             <td>{{ host.activeTherapies }}</td>
             <td>
               <button
-                class="btn-sm"
                 @click="startEdit(host)"
               >
                 Modifica
               </button>
               <a
                 :href="'#/terapie?ospite=' + host.id"
-                class="btn btn-sm"
-                style="text-decoration:none;margin-right:.35rem"
+                class="btn"
+                style="text-decoration:none"
                 title="Vai alle terapie di questo ospite"
               >Terapie</a>
               <button
-                class="btn-danger btn-sm"
+                class="btn-danger"
                 @click="handleDeactivate(host.id)"
               >
                 Elimina
