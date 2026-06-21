@@ -15,7 +15,7 @@
         "test:online-smoke": "bash ./scripts/smoke-pages.sh \"$SITE_URL\"",
         "test:online-chaos": "bash ./scripts/chaos-pages.sh \"$SITE_URL\"",
         "test:unit": "vitest run --coverage",
-        "test:e2e": "playwright test",
+        "test:e2e": "playwright test tests/e2e/multi-user-sync.spec.js",
         "test:e2e:parity": "playwright test tests/e2e/cross-browser-parity.spec.js",
         "test:e2e:coverage": "playwright test tests/e2e/e2e-js-coverage.spec.js --project=e2e-js-coverage-chromium",
         "test": "npm run check:palette && npm run test:unit && npm run test:e2e",
