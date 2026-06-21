@@ -10,6 +10,7 @@ import { formatBuildTimestamp, getBuildTimestampIso, getDeployLabel } from './se
 const { currentUser, hasUsers, isInitialized, signIn, register, requestPasswordResetByEmail, supportsEmailReset } = useAuth()
 const route = useRoute()
 const isAuthRecoveryRoute = computed(() => route.path === '/auth/reset-password')
+const logoSrc = `${import.meta.env.BASE_URL}branding/logo-header.svg`
 
 const username = ref('')
 const password = ref('')
@@ -154,7 +155,12 @@ async function handleRegister() {
 
 <template>
   <div id="app-root">
-    <div v-if="!isInitialized" class="loading">Caricamento...</div>
+    <div v-if="!isInitialized" class="loading" role="status" aria-label="Caricamento in corso">
+      <div class="loading-skeleton" style="max-width:320px;margin:40vh auto 0">
+        <div class="loading-skeleton-row"></div>
+        <div class="loading-skeleton-row"></div>
+      </div>
+    </div>
 
     <template v-else-if="!currentUser">
       <main v-if="isAuthRecoveryRoute">
@@ -162,6 +168,7 @@ async function handleRegister() {
       </main>
 
       <div v-else class="login-screen">
+        <img :src="logoSrc" alt="MediTrace" class="login-logo" width="96" height="96" />
         <h1>MediTrace</h1>
         <p>Accesso con utenza e password</p>
 
@@ -257,11 +264,12 @@ async function handleRegister() {
     </template>
 
     <template v-else>
+      <a href="#main-content" class="skip-link">Salta al contenuto principale</a>
       <AppNav />
-      <main>
+      <main id="main-content">
         <RouterView />
       </main>
-      <button class="scroll-top-btn" @click="window.scrollTo({ top: 0, behavior: 'smooth' })" title="Torna in cima" aria-label="Torna in cima">↑</button>
+      <button class="scroll-top-btn" @click="window.scrollTo({ top: 0, behavior: 'smooth' })" title="Torna in cima" aria-label="Torna in cima">&uarr;</button>
       <HelpDrawer />
     </template>
     <ConfirmDialog />

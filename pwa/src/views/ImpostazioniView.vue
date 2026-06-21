@@ -832,6 +832,11 @@ async function handleCreateUser() {
       <p class="muted">Backend sincronizzazione: {{ syncBackendLabel }}</p>
       <button style="margin-top:.75rem" @click="handleSignOut">Esci</button>
 
+      <div class="legal-links">
+        <a href="#/privacy">Privacy policy</a>
+        <a href="#/termini">Termini di servizio</a>
+      </div>
+
       <template v-if="currentUser?.isSeeded">
         <button
           style="margin-top:.5rem;background:#dc2626"

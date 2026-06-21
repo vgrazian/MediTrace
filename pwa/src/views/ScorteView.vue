@@ -3,6 +3,7 @@ import { computed, onMounted, ref } from 'vue'
 import { db, enqueue, getSetting } from '../db'
 import { buildOperationalReport, buildOrderDraftText, operationalReportToCsv } from '../services/reporting'
 import { confirmDeleteDrug, confirmDeleteBatch } from '../services/confirmations'
+import { openConfirmDialog } from '../services/confirmDialog'
 import { useAuth } from '../services/auth'
 import { useHelpNavigation } from '../composables/useHelpNavigation'
 import CrudFilterBar from '../components/CrudFilterBar.vue'
@@ -176,7 +177,14 @@ async function deleteExpiredBatch(batchId) {
   const batch = stockBatches.value.find(b => b.id === batchId)
   if (!batch) return
   const name = batch.nomeCommerciale || batchId
-  if (!confirm(`Eliminare definitivamente la confezione "${name}"?`)) return
+  const confirmed = await openConfirmDialog({
+    title: 'Elimina confezione',
+    message: `Eliminare definitivamente la confezione "${name}"?`,
+    confirmText: 'Elimina',
+    cancelText: 'Annulla',
+    tone: 'danger',
+  })
+  if (!confirmed) return
   try {
     const now = new Date().toISOString()
     await db.stockBatches.put({ ...batch, deletedAt: now, updatedAt: now, syncStatus: 'pending' })
@@ -712,10 +720,11 @@ onMounted(() => {
         KPI avanzati: scorte, consumo trend per farmaco, vista per ospite/paziente, export CSV multi-sezione.
       </p>
 
-      <div style="margin-top:.75rem;display:flex;gap:.5rem;flex-wrap:wrap">
+      <div style="margin-top:.75rem;display:flex;gap:.5rem;flex-wrap:wrap;align-items:center">
         <button :disabled="reportLoading" @click="refreshReport">
-          {{ reportLoading ? 'Aggiornamento...' : 'Aggiorna report' }}
+          Aggiorna report
         </button>
+        <span v-if="reportLoading" class="loading-skeleton-row" style="width:8rem;display:inline-block;vertical-align:middle" role="status" aria-label="Aggiornamento in corso"></span>
         <button :disabled="!report" @click="exportReportCsv">
           Esporta report CSV
         </button>
@@ -727,9 +736,9 @@ onMounted(() => {
         </button>
       </div>
 
-      <p v-if="reportError" class="import-error" style="margin-top:.5rem">Errore report: {{ reportError }}</p>
+      <p v-if="reportError" class="import-error" role="alert">Errore report: {{ reportError }}</p>
       <p v-if="reportActionMessage" class="muted" style="margin-top:.5rem">{{ reportActionMessage }}</p>
-      <p v-if="reportActionError" class="import-error" style="margin-top:.5rem">{{ reportActionError }}</p>
+      <p v-if="reportActionError" class="import-error" role="alert">{{ reportActionError }}</p>
 
       <div v-if="isOrderDraftOpen" class="dataset-frame" style="margin-top:.75rem;padding:.75rem;background:#fff8db;border:1px solid #f3e3a1">
         <p><strong>Bozza testo ordine farmaci</strong></p>
@@ -795,7 +804,9 @@ onMounted(() => {
             </td>
           </tr>
           <tr v-if="filteredReportRows.length === 0">
-            <td colspan="8" class="muted">Nessun farmaco disponibile nel dataset locale.</td>
+            <td colspan="8" class="muted">
+              Nessun farmaco nel dataset. Importa dati CSV o aggiungi farmaci manualmente dalla sezione Farmaci.
+            </td>
           </tr>
         </tbody>
       </table>
@@ -957,7 +968,9 @@ onMounted(() => {
             </td>
           </tr>
           <tr v-if="!hasBatches && !reportLoading">
-            <td colspan="5" class="muted">Nessuna confezione attiva disponibile.</td>
+            <td colspan="5" class="muted">
+              Nessuna confezione attiva. Aggiungi una confezione dalla sezione Farmaci.
+            </td>
           </tr>
         </tbody>
       </table>
@@ -1031,7 +1044,7 @@ onMounted(() => {
       </details>
 
       <p v-if="actionMessage" class="muted" style="margin-top:.5rem">{{ actionMessage }}</p>
-      <p v-if="actionError" class="import-error" style="margin-top:.5rem">Errore azione: {{ actionError }}</p>
+      <p v-if="actionError" class="import-error" role="alert">Errore azione: {{ actionError }}</p>
     </div>
   </div>
 </template>

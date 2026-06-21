@@ -70,6 +70,11 @@ const routes = [
         component: () => import('../views/ManualeView.vue'),
         meta: { title: 'Guida' },
     },
+    {
+        path: '/:pathMatch(.*)*',
+        component: () => import('../views/NotFoundView.vue'),
+        meta: { title: 'Pagina non trovata' },
+    },
 ]
 
 const router = createRouter({

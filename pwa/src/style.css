@@ -14,6 +14,8 @@
   --accent: #3d68c7;
 }
 
+html { scroll-behavior: smooth; }
+
 body {
   font-family: 'Roboto', 'Segoe UI', sans-serif;
   background:
@@ -22,6 +24,25 @@ body {
     var(--bg);
   color: var(--ink);
   min-height: 100vh;
+  line-height: 1.5;
+}
+
+/* ── skip-to-content (accessibility) ── */
+.skip-link {
+  position: absolute;
+  top: -100%;
+  left: .75rem;
+  padding: .5rem .85rem;
+  background: var(--accent);
+  color: #fff;
+  border-radius: .25rem;
+  font-size: .85rem;
+  font-weight: 600;
+  text-decoration: none;
+  z-index: 100;
+}
+.skip-link:focus {
+  top: .5rem;
 }
 
 /* ── Base form elements ── */
@@ -81,6 +102,10 @@ button:hover:not(:disabled),
 .btn:hover:not(:disabled) {
   background: #dfeafb;
   border-color: #7ea9d4;
+}
+button:active:not(:disabled),
+.btn:active:not(:disabled) {
+  transform: scale(0.97);
 }
 button:focus-visible,
 .btn:focus-visible {
@@ -226,7 +251,16 @@ td .btn + .btn {
 .app-nav button:hover { background: rgba(255,255,255,.12); }
 
 /* ── main content ── */
-main { padding: .75rem 1rem; max-width: 100%; margin: 0 auto; }
+main { padding: .75rem 1rem; max-width: 1200px; margin: 0 auto; }
+
+/* ── z-index scale ──
+   50   scroll-to-top button
+   80   add-panel overlay, various fixed panels
+   90   sticky app-nav
+   900  help drawer backdrop
+   901  help drawer panel
+   1200 confirm dialog
+────────────────────────── */
 
 /* ── Scroll-to-top button ── */
 .scroll-top-btn {
@@ -262,6 +296,7 @@ main { padding: .75rem 1rem; max-width: 100%; margin: 0 auto; }
 .view h2,
 .card strong {
   font-family: 'Domine', Georgia, serif;
+  text-wrap: balance;
 }
 
 .card {
@@ -371,6 +406,7 @@ main { padding: .75rem 1rem; max-width: 100%; margin: 0 auto; }
   border: 1px solid var(--line);
   padding: .4rem .5rem;
   font-size: .85rem;
+  font-variant-numeric: tabular-nums;
 }
 
 .conflict-table th {
@@ -416,12 +452,6 @@ main { padding: .75rem 1rem; max-width: 100%; margin: 0 auto; }
   display: flex !important;
   align-items: center;
   gap: .45rem;
-}
-
-.import-error {
-  color: #b91c1c;
-  margin-top: .6rem;
-  font-size: .9rem;
 }
 
 .import-report {
@@ -575,6 +605,13 @@ details.add-panel[open] > div {
   text-align: center;
 }
 .login-screen h1 { font-size: 2rem; color: var(--brand-800); }
+.login-logo {
+  display: block;
+  width: 96px;
+  height: 96px;
+  border-radius: 1.5rem;
+  box-shadow: 0 8px 24px rgba(9, 30, 53, 0.18);
+}
 .login-screen p { color: var(--muted); }
 /* ── credentials auth form ── */
 .auth-form {
@@ -659,8 +696,85 @@ details.add-panel[open] > div {
   margin-top: .35rem;
 }
 
-/* ── loading ── */
-.loading { text-align: center; padding: 4rem; color: #94a3b8; }
+/* ── password policy indicators ── */
+.pw-policy-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .35rem .6rem;
+  font-size: .78rem;
+  margin: 0;
+}
+.pw-policy-list span {
+  display: inline-flex;
+  align-items: center;
+  gap: .25em;
+  padding: .12rem .4rem;
+  border-radius: .2rem;
+  font-weight: 500;
+}
+.pw-policy-list span::before {
+  content: '';
+  display: inline-block;
+  width: .4rem;
+  height: .4rem;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.pw-pass { background: #d1fae5; color: #065f46; }
+.pw-pass::before { background: #22c55e; }
+.pw-fail { background: #f1f5f9; color: #94a3b8; }
+.pw-fail::before { background: #cbd5e1; }
+
+/* ── legal links ── */
+.legal-links {
+  margin-top: .65rem;
+  font-size: .78rem;
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+.legal-links a {
+  color: var(--muted);
+  text-decoration: underline;
+}
+.legal-links a:hover { color: var(--accent); }
+
+/* ── loading skeleton ── */
+.loading {
+  text-align: center;
+  padding: 1.5rem;
+  color: #94a3b8;
+}
+.loading-skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: .5rem;
+  padding: .75rem;
+}
+.loading-skeleton-row {
+  height: 1rem;
+  background: linear-gradient(90deg, #e8eef6 25%, #dce4f0 50%, #e8eef6 75%);
+  background-size: 200% 100%;
+  border-radius: .25rem;
+  animation: skeleton-pulse 1.5s ease-in-out infinite;
+}
+.loading-skeleton-row:last-child { width: 60%; }
+
+@keyframes skeleton-pulse {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* ── error message ── */
+.import-error {
+  color: #b91c1c;
+  margin-top: .6rem;
+  font-size: .9rem;
+  padding: .45rem .65rem;
+  background: #fef2f2;
+  border-left: 3px solid #ef4444;
+  border-radius: .25rem;
+}
 
 .reminder-highlight {
   background: #e4efff;
@@ -681,6 +795,34 @@ details.add-panel[open] > div {
 .state-pending { background: #e0e7ef; color: #1e3a5f; }
 .state-cancel  { background: #fee2e2; color: #991b1b; }
 
+/* ── home dashboard status indicators ── */
+.kpi-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: .35em;
+  padding: .15rem .5rem;
+  border-radius: .25rem;
+  font-size: .78rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.kpi-badge::before {
+  content: '';
+  display: inline-block;
+  width: .5rem;
+  height: .5rem;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.kpi-done       { background: #d1fae5; color: #065f46; }
+.kpi-done::before       { background: #22c55e; }
+.kpi-pending    { background: #fef3c7; color: #92400e; }
+.kpi-pending::before    { background: #f59e42; }
+.kpi-postponed  { background: #dbeafe; color: #1e40af; }
+.kpi-postponed::before  { background: #3b82f6; }
+.kpi-skipped    { background: #fee2e2; color: #991b1b; }
+.kpi-skipped::before    { background: #ef4444; }
+
 /* ── help button (? next to headings) ── */
 .view-heading {
   display: flex;
@@ -695,7 +837,7 @@ details.add-panel[open] > div {
   align-items: center;
   justify-content: center;
   padding: .24rem .72rem;
-  border-radius: 999px;
+  border-radius: .375rem;
   border: 1.5px solid var(--accent);
   background: transparent;
   color: var(--accent);
@@ -713,7 +855,7 @@ details.add-panel[open] > div {
   align-items: center;
   justify-content: center;
   padding: .15rem .45rem;
-  border-radius: 999px;
+  border-radius: .375rem;
   border: 1.5px solid var(--accent);
   color: var(--accent);
   font-size: .75rem;

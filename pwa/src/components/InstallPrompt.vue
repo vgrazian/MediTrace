@@ -53,7 +53,7 @@ async function handleInstall() {
   const { outcome } = await install()
 
   if (outcome === 'accepted') {
-    installMessage.value = '✅ App installata con successo!'
+    installMessage.value = 'App installata con successo!'
   } else if (outcome === 'dismissed') {
     installMessage.value = ''
     dismiss()
@@ -92,9 +92,16 @@ function handleDismiss() {
       <div class="install-prompt-content">
         <!-- Icona app -->
         <div class="install-icon" aria-hidden="true">
-          <svg width="40" height="40" viewBox="0 0 40 40" fill="none">
-            <rect width="40" height="40" rx="8" fill="#2563eb" />
-            <text x="20" y="27" text-anchor="middle" fill="white" font-size="22" font-weight="bold">M</text>
+          <svg width="40" height="40" viewBox="0 0 120 120" fill="none">
+            <rect width="120" height="120" rx="26" fill="url(#installGrad)"/>
+            <defs>
+              <linearGradient id="installGrad" x1="0" x2="1" y1="0" y2="1">
+                <stop offset="0%" stop-color="#1a2e4f"/>
+                <stop offset="100%" stop-color="#223d78"/>
+              </linearGradient>
+            </defs>
+            <rect x="44" y="28" width="32" height="64" rx="4" fill="#f0f4fc"/>
+            <rect x="28" y="44" width="64" height="32" rx="4" fill="#f0f4fc"/>
           </svg>
         </div>
 

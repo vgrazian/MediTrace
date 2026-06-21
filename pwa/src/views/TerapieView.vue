@@ -556,9 +556,13 @@ onMounted(() => {
         <button type="button" style="margin-left:.4rem" @click="clearSelection">Deseleziona tutto</button>
       </p>
 
-      <p v-if="loading" class="muted" style="margin-top:.5rem">Caricamento...</p>
+      <div v-if="loading" class="loading-skeleton" role="status" aria-label="Caricamento in corso">
+        <div class="loading-skeleton-row"></div>
+        <div class="loading-skeleton-row"></div>
+        <div class="loading-skeleton-row"></div>
+      </div>
 
-      <div class="dataset-frame" style="margin-top:.75rem">
+      <div class="dataset-frame" style="margin-top:.75rem" v-if="!loading">
       <table class="conflict-table">
         <thead>
           <tr>
@@ -610,13 +614,15 @@ onMounted(() => {
             </td>
           </tr>
           <tr v-if="filteredTherapies.length === 0 && !loading">
-            <td colspan="10" class="muted">Nessuna terapia attiva disponibile.</td>
+            <td colspan="10" class="muted">
+              Nessuna terapia attiva. Premi <strong>N</strong> o clicca <strong>Aggiungi</strong> per creare la prima terapia.
+            </td>
           </tr>
         </tbody>
       </table>
       </div>
       <p v-if="message" class="muted" style="margin-top:.5rem">{{ message }}</p>
-      <p v-if="errorMessage" class="import-error" style="margin-top:.5rem">{{ errorMessage }}</p>
+      <p v-if="errorMessage" class="import-error" role="alert">{{ errorMessage }}</p>
     </div>
 
     <div class="card">

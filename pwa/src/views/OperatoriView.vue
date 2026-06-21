@@ -3,6 +3,7 @@ import { computed, ref, onMounted } from 'vue'
 import { useAuth } from '../services/auth'
 import { useHelpNavigation } from '../composables/useHelpNavigation'
 import { db } from '../db'
+import { openConfirmDialog } from '../services/confirmDialog'
 
 const { currentUser, listUsers, createUser, setUserDisabled, deleteUser, setUserDefaultResidenza, setUserProfile } = useAuth()
 const { goToHelpSection } = useHelpNavigation()
@@ -137,7 +138,14 @@ async function handleEnableUser(username) {
 }
 
 async function handleDeleteUser(username) {
-  if (!confirm(`Eliminare definitivamente l'utente ${username}?`)) return
+  const confirmed = await openConfirmDialog({
+    title: 'Elimina utente',
+    message: `Eliminare definitivamente l'utente ${username}?`,
+    confirmText: 'Elimina',
+    cancelText: 'Annulla',
+    tone: 'danger',
+  })
+  if (!confirmed) return
   try {
     await deleteUser(username)
     usersMessage.value = `Utente ${username} eliminato`
@@ -320,12 +328,12 @@ onMounted(() => {
                 <label>Email <input v-model="newEmail" type="email" autocomplete="email" /></label>
                 <label>Telefono <input v-model="newPhone" type="tel" placeholder="+39 333 1234567" /></label>
                 <label>Password iniziale <input v-model="newPassword" type="password" /></label>
-                <p class="muted" style="font-size:.8rem">
-                  {{ passwordPolicy.minLength ? '✅' : '❌' }} 10+ caratteri
-                  {{ passwordPolicy.hasUppercase ? '✅' : '❌' }} maiuscola
-                  {{ passwordPolicy.hasLowercase ? '✅' : '❌' }} minuscola
-                  {{ passwordPolicy.hasDigit ? '✅' : '❌' }} numero
-                  {{ passwordPolicy.hasSymbol ? '✅' : '❌' }} simbolo
+                <p class="pw-policy-list">
+                  <span :class="passwordPolicy.minLength ? 'pw-pass' : 'pw-fail'">10+ caratteri</span>
+                  <span :class="passwordPolicy.hasUppercase ? 'pw-pass' : 'pw-fail'">maiuscola</span>
+                  <span :class="passwordPolicy.hasLowercase ? 'pw-pass' : 'pw-fail'">minuscola</span>
+                  <span :class="passwordPolicy.hasDigit ? 'pw-pass' : 'pw-fail'">numero</span>
+                  <span :class="passwordPolicy.hasSymbol ? 'pw-pass' : 'pw-fail'">simbolo</span>
                 </p>
                 <label>Ruolo
                   <select v-model="newRole">

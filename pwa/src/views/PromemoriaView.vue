@@ -29,6 +29,7 @@ import { db, enqueue, getSetting, setSetting } from '../db'
 import { useAuth } from '../services/auth'
 import { BED_SEQUENCE_SETTING_KEY, CURRENT_RESIDENZA_SETTING_KEY, buildReminderRows, markReminder, reminderStateBadge, reminderActionButtonColor, REMINDER_OUTCOMES, assertUniqueReminderSlot } from '../services/promemoria'
 import { confirmDeleteReminder } from '../services/confirmations'
+import { openConfirmDialog } from '../services/confirmDialog'
 import { useFormValidation } from '../services/formValidation'
 import ValidatedInput from '../components/ValidatedInput.vue'
 import { useHelpNavigation } from '../composables/useHelpNavigation'
@@ -233,7 +234,14 @@ async function setReminderPending(reminderId) {
     errorMessage.value = 'Promemoria non trovato.'
     return
   }
-  if (!confirm(`Ripristinare questo promemoria a "Da eseguire"?`)) return
+  const confirmedSingle = await openConfirmDialog({
+    title: 'Ripristina promemoria',
+    message: 'Ripristinare questo promemoria a "Da eseguire"?',
+    confirmText: 'Ripristina',
+    cancelText: 'Annulla',
+    tone: 'primary',
+  })
+  if (!confirmedSingle) return
   markingId.value = reminderId
   try {
     const now = new Date().toISOString()
@@ -292,7 +300,14 @@ async function applyOutcomeBulk(outcome) {
 async function setPendingBulk() {
   if (!canRunBulkActions.value) return
   const count = selectedActionableIds.value.length
-  if (!confirm(`Ripristinare ${count} promemoria a "Da eseguire"?`)) return
+  const confirmedBulk = await openConfirmDialog({
+    title: 'Ripristina promemoria',
+    message: `Ripristinare ${count} promemoria a "Da eseguire"?`,
+    confirmText: 'Ripristina',
+    cancelText: 'Annulla',
+    tone: 'primary',
+  })
+  if (!confirmedBulk) return
   message.value = ''
   errorMessage.value = ''
   bulkBusy.value = true
@@ -653,15 +668,21 @@ watch(residenzaFilter, async (value) => {
             </td>
           </tr>
           <tr v-if="rows.length === 0 && !loading">
-            <td colspan="12" class="muted">Nessun promemoria per il filtro selezionato.</td>
+            <td colspan="12" class="muted">
+              Nessun promemoria per il filtro selezionato. Prova a modificare i filtri o a cambiare data.
+            </td>
           </tr>
         </tbody>
       </table>
       </div>
 
-      <p v-if="loading" class="muted" style="margin-top:.55rem">Caricamento...</p>
+      <div v-if="loading" class="loading-skeleton" role="status" aria-label="Caricamento in corso">
+        <div class="loading-skeleton-row"></div>
+        <div class="loading-skeleton-row"></div>
+        <div class="loading-skeleton-row"></div>
+      </div>
       <p v-if="message" class="muted" style="margin-top:.55rem">{{ message }}</p>
-      <p v-if="errorMessage" class="import-error">{{ errorMessage }}</p>
+      <p v-if="errorMessage" class="import-error" role="alert">{{ errorMessage }}</p>
     </div>
 
     <div class="card">

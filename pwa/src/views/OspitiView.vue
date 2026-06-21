@@ -561,12 +561,18 @@ onMounted(() => {
             </td>
           </tr>
           <tr v-if="filteredRows.length === 0 && !loading">
-            <td colspan="5" class="muted">Nessun ospite disponibile.</td>
+            <td colspan="5" class="muted">
+              Nessun ospite registrato. Premi <strong>N</strong> o clicca <strong>Aggiungi</strong> per inserire il primo ospite.
+            </td>
           </tr>
         </tbody>
       </table>
       </div>
-      <p v-if="loading" class="muted" style="margin-top:.55rem">Caricamento...</p>
+      <div v-if="loading" class="loading-skeleton" role="status" aria-label="Caricamento in corso">
+        <div class="loading-skeleton-row"></div>
+        <div class="loading-skeleton-row"></div>
+        <div class="loading-skeleton-row"></div>
+      </div>
     </div>
 
     <div class="card">
@@ -685,7 +691,7 @@ onMounted(() => {
     </div>
 
     <p v-if="message" class="muted" style="margin-top:.5rem">{{ message }}</p>
-    <p v-if="errorMessage" class="import-error" style="margin-top:.5rem">{{ errorMessage }}</p>
+    <p v-if="errorMessage" class="import-error" role="alert">{{ errorMessage }}</p>
 
     <UndoDeleteBanner
       v-if="pendingUndo"

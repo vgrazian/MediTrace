@@ -273,15 +273,21 @@ onMounted(() => void loadData())
               </td>
             </tr>
             <tr v-if="filteredResidenze.length === 0 && !loading">
-              <td colspan="8" class="muted">Nessuna residenza disponibile.</td>
+              <td colspan="8" class="muted">
+                Nessuna residenza configurata. Premi <strong>N</strong> o clicca <strong>Aggiungi</strong> per configurare la prima residenza.
+              </td>
             </tr>
           </tbody>
         </table>
       </div>
 
-      <p v-if="loading" class="muted" style="margin-top:.55rem">Caricamento...</p>
+      <div v-if="loading" class="loading-skeleton" role="status" aria-label="Caricamento in corso">
+        <div class="loading-skeleton-row"></div>
+        <div class="loading-skeleton-row"></div>
+        <div class="loading-skeleton-row"></div>
+      </div>
       <p v-if="message" class="muted" style="margin-top:.55rem">{{ message }}</p>
-      <p v-if="errorMessage" class="import-error" style="margin-top:.55rem">{{ errorMessage }}</p>
+      <p v-if="errorMessage" class="import-error" role="alert">{{ errorMessage }}</p>
     </div>
 
     <div class="card">

@@ -836,9 +836,13 @@ onMounted(() => {
         {{ selectedDrugsCount }} farmac{{ selectedDrugsCount > 1 ? 'i' : 'o' }} selezionat{{ selectedDrugsCount > 1 ? 'i' : 'o' }}.
         <button type="button" style="margin-left:.4rem" @click="clearDrugSelection">Deseleziona tutto</button>
       </p>
-      <p v-if="loading" class="muted" style="margin-top:.5rem">Caricamento...</p>
+      <div v-if="loading" class="loading-skeleton" role="status" aria-label="Caricamento in corso">
+        <div class="loading-skeleton-row"></div>
+        <div class="loading-skeleton-row"></div>
+        <div class="loading-skeleton-row"></div>
+      </div>
 
-      <div class="dataset-frame" style="margin-top:.75rem">
+      <div class="dataset-frame" style="margin-top:.75rem" v-if="!loading">
       <table class="conflict-table">
         <thead>
           <tr>
@@ -884,7 +888,9 @@ onMounted(() => {
             </td>
           </tr>
           <tr v-if="filteredDrugs.length === 0 && !loading">
-            <td colspan="6" class="muted">Nessun farmaco disponibile.</td>
+            <td colspan="6" class="muted">
+              Nessun farmaco registrato. Premi <strong>N</strong> o clicca <strong>Aggiungi</strong> per inserire il primo farmaco.
+            </td>
           </tr>
         </tbody>
       </table>
@@ -972,7 +978,9 @@ onMounted(() => {
             </td>
           </tr>
           <tr v-if="filteredBatches.length === 0 && !loading">
-            <td colspan="8" class="muted">Nessuna confezione attiva disponibile.</td>
+            <td colspan="8" class="muted">
+              Nessuna confezione attiva. Aggiungi una confezione dal pannello Gestione Farmaci qui sotto.
+            </td>
           </tr>
         </tbody>
       </table>

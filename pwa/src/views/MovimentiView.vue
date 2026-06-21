@@ -584,13 +584,19 @@ onMounted(() => {
             </td>
           </tr>
           <tr v-if="filteredMovements.length === 0">
-            <td colspan="8" class="muted">Nessun movimento registrato nel dataset locale.</td>
+            <td colspan="8" class="muted">
+              Nessun movimento registrato. Premi <strong>N</strong> o clicca <strong>Aggiungi</strong> per registrare il primo movimento.
+            </td>
           </tr>
         </tbody>
       </table>
       </div>
 
-      <p v-if="loading" class="muted" style="margin-top:.55rem">Aggiornamento dati...</p>
+      <div v-if="loading" class="loading-skeleton" role="status" aria-label="Aggiornamento in corso">
+        <div class="loading-skeleton-row"></div>
+        <div class="loading-skeleton-row"></div>
+        <div class="loading-skeleton-row"></div>
+      </div>
     </div>
 
     <div class="card">
@@ -708,7 +714,7 @@ onMounted(() => {
     </div>
 
     <p v-if="message" class="muted" style="margin-top:.55rem">{{ message }}</p>
-    <p v-if="errorMessage" class="import-error">{{ errorMessage }}</p>
+    <p v-if="errorMessage" class="import-error" role="alert">{{ errorMessage }}</p>
 
     <UndoDeleteBanner
       v-if="pendingUndo"

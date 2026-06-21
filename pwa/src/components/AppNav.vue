@@ -7,6 +7,7 @@ import { db, getSetting, setSetting } from '../db'
 import { useSyncState, SYNC_STATES } from '../composables/useSyncState'
 import { CURRENT_RESIDENZA_SETTING_KEY } from '../services/promemoria'
 import { pruneStaleData } from '../services/dataPruning'
+import { openConfirmDialog } from '../services/confirmDialog'
 
 const { currentUser, signOut } = useAuth()
 const logoSrc = `${import.meta.env.BASE_URL}branding/logo-header.svg`
@@ -180,7 +181,14 @@ onUnmounted(() => {
 // ── End periodic sync ────────────────────────────────────────────────────────
 
 async function handleSignOut() {
-  if (!confirm('Vuoi uscire da MediTrace?')) return
+  const confirmed = await openConfirmDialog({
+    title: 'Esci da MediTrace',
+    message: 'Vuoi uscire da MediTrace?',
+    confirmText: 'Esci',
+    cancelText: 'Annulla',
+    tone: 'primary',
+  })
+  if (!confirmed) return
   if (isSupabaseConfigured) {
     try { await fullSync() } catch {}
   } else {
