@@ -139,16 +139,16 @@ const DEMO_ROOMS = [
 ]
 
 const DEMO_DRUGS = [
-    { id: '__demo__drug-1', principioAttivo: 'Paracetamolo', classeTerapeutica: 'Analgesici / Antipiretici', scortaMinima: 10, fornitore: 'Farmacia Centrale', note: '', updatedAt: NOW, deletedAt: null, syncStatus: 'pending', _seeded: true },
-    { id: '__demo__drug-2', principioAttivo: 'Ibuprofene', classeTerapeutica: 'FANS', scortaMinima: 8, fornitore: 'Farmacia Centrale', note: '', updatedAt: NOW, deletedAt: null, syncStatus: 'pending', _seeded: true },
-    { id: '__demo__drug-3', principioAttivo: 'Ramipril', classeTerapeutica: 'ACE inibitori', scortaMinima: 6, fornitore: 'Fornitore Salute SpA', note: '', updatedAt: NOW, deletedAt: null, syncStatus: 'pending', _seeded: true },
-    { id: '__demo__drug-4', principioAttivo: 'Metformina', classeTerapeutica: 'Antidiabetici orali', scortaMinima: 12, fornitore: 'Fornitore Salute SpA', note: '', updatedAt: NOW, deletedAt: null, syncStatus: 'pending', _seeded: true },
-    { id: '__demo__drug-5', principioAttivo: 'Lorazepam', classeTerapeutica: 'Ansiolitici', scortaMinima: 4, fornitore: 'Farmacia Ospedaliera', note: '', updatedAt: NOW, deletedAt: null, syncStatus: 'pending', _seeded: true },
-    { id: '__demo__drug-6', principioAttivo: 'Amlodipina', classeTerapeutica: 'Antiipertensivi CA', scortaMinima: 8, fornitore: 'Fornitore Salute SpA', note: '', updatedAt: NOW, deletedAt: null, syncStatus: 'pending', _seeded: true },
-    { id: '__demo__drug-7', principioAttivo: 'Furosemide', classeTerapeutica: 'Diuretici', scortaMinima: 5, fornitore: 'Farmacia Centrale', note: '', updatedAt: NOW, deletedAt: null, syncStatus: 'pending', _seeded: true },
-    { id: '__demo__drug-8', principioAttivo: 'Omeprazolo', classeTerapeutica: 'Inibitori pompa protonica', scortaMinima: 10, fornitore: 'Fornitore Salute SpA', note: '', updatedAt: NOW, deletedAt: null, syncStatus: 'pending', _seeded: true },
-    { id: '__demo__drug-9', principioAttivo: 'Levotiroxina', classeTerapeutica: 'Ormoni tiroidei', scortaMinima: 6, fornitore: 'Farmacia Centrale', note: '', updatedAt: NOW, deletedAt: null, syncStatus: 'pending', _seeded: true },
-    { id: '__demo__drug-10', principioAttivo: 'Atenololo', classeTerapeutica: 'Beta bloccanti', scortaMinima: 7, fornitore: 'Fornitore Salute SpA', note: '', updatedAt: NOW, deletedAt: null, syncStatus: 'pending', _seeded: true },
+    { id: '__demo__drug-1', nomeFarmaco: 'Tachipirina', principioAttivo: 'Paracetamolo', classeTerapeutica: 'Analgesici / Antipiretici', scortaMinima: 10, fornitore: 'Farmacia Centrale', note: '', updatedAt: NOW, deletedAt: null, syncStatus: 'pending', _seeded: true },
+    { id: '__demo__drug-2', nomeFarmaco: 'Moment', principioAttivo: 'Ibuprofene', classeTerapeutica: 'FANS', scortaMinima: 8, fornitore: 'Farmacia Centrale', note: '', updatedAt: NOW, deletedAt: null, syncStatus: 'pending', _seeded: true },
+    { id: '__demo__drug-3', nomeFarmaco: 'Triatec', principioAttivo: 'Ramipril', classeTerapeutica: 'ACE inibitori', scortaMinima: 6, fornitore: 'Fornitore Salute SpA', note: '', updatedAt: NOW, deletedAt: null, syncStatus: 'pending', _seeded: true },
+    { id: '__demo__drug-4', nomeFarmaco: 'Glucophage', principioAttivo: 'Metformina', classeTerapeutica: 'Antidiabetici orali', scortaMinima: 12, fornitore: 'Fornitore Salute SpA', note: '', updatedAt: NOW, deletedAt: null, syncStatus: 'pending', _seeded: true },
+    { id: '__demo__drug-5', nomeFarmaco: 'Tavor', principioAttivo: 'Lorazepam', classeTerapeutica: 'Ansiolitici', scortaMinima: 4, fornitore: 'Farmacia Ospedaliera', note: '', updatedAt: NOW, deletedAt: null, syncStatus: 'pending', _seeded: true },
+    { id: '__demo__drug-6', nomeFarmaco: 'Norvasc', principioAttivo: 'Amlodipina', classeTerapeutica: 'Antiipertensivi CA', scortaMinima: 8, fornitore: 'Fornitore Salute SpA', note: '', updatedAt: NOW, deletedAt: null, syncStatus: 'pending', _seeded: true },
+    { id: '__demo__drug-7', nomeFarmaco: 'Lasix', principioAttivo: 'Furosemide', classeTerapeutica: 'Diuretici', scortaMinima: 5, fornitore: 'Farmacia Centrale', note: '', updatedAt: NOW, deletedAt: null, syncStatus: 'pending', _seeded: true },
+    { id: '__demo__drug-8', nomeFarmaco: 'Antra', principioAttivo: 'Omeprazolo', classeTerapeutica: 'Inibitori pompa protonica', scortaMinima: 10, fornitore: 'Fornitore Salute SpA', note: '', updatedAt: NOW, deletedAt: null, syncStatus: 'pending', _seeded: true },
+    { id: '__demo__drug-9', nomeFarmaco: 'Eutirox', principioAttivo: 'Levotiroxina', classeTerapeutica: 'Ormoni tiroidei', scortaMinima: 6, fornitore: 'Farmacia Centrale', note: '', updatedAt: NOW, deletedAt: null, syncStatus: 'pending', _seeded: true },
+    { id: '__demo__drug-10', nomeFarmaco: 'Tenormin', principioAttivo: 'Atenololo', classeTerapeutica: 'Beta bloccanti', scortaMinima: 7, fornitore: 'Fornitore Salute SpA', note: '', updatedAt: NOW, deletedAt: null, syncStatus: 'pending', _seeded: true },
 ]
 
 const DEMO_HOSTS = [
