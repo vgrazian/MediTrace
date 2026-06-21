@@ -913,20 +913,8 @@ async function handleCreateUser() {
       <p v-if="passwordMessage" class="muted" style="margin-top:.5rem;font-size:.8rem">{{ passwordMessage }}</p>
     </div>
 
-    <div class="card">
-      <p><strong>Utenti</strong></p>
-      <p class="muted" style="margin-top:.25rem">Gestione utenti tramite la sezione <RouterLink to="/operatori">Operatori</RouterLink>.</p>
-
-      <p v-if="!canManageUsers" class="muted" style="margin-top:.5rem">
-        Il tuo account non ha privilegi amministratore: puoi visualizzare solo il tuo profilo.
-      </p>
-
-      <p v-if="canManageUsers" class="muted" style="margin-top:.5rem">
-        Gestisci gli utenti dalla sezione <RouterLink to="/operatori">Operatori</RouterLink>.
-      </p>
-
-      <div v-if="canManageTestData" style="margin-top:.85rem;padding:.75rem;border:1px dashed #d8b154;border-radius:.55rem">
-        <p><strong>Dati demo (live)</strong></p>
+    <div v-if="canManageTestData" class="card">
+      <p><strong>Dati demo (live)</strong></p>
         <p class="muted" style="margin-top:.25rem">
           Usa questo pulsante per importare rapidamente dati dimostrativi o per ripulirli.
           I dati vengono creati nella residenza "Demo", lasciando "Il Rifugio" e "Via Bellani" vuote.
@@ -943,9 +931,6 @@ async function handleCreateUser() {
           Stato: dati demo presenti sul dispositivo.
         </p>
         <p v-if="seedMessage" class="muted" style="margin-top:.5rem;font-size:.8rem">{{ seedMessage }}</p>
-      </div>
-
-      <p v-if="usersMessage" class="muted" style="margin-top:.5rem;font-size:.8rem">{{ usersMessage }}</p>
     </div>
 
     <div class="card">
@@ -992,38 +977,6 @@ async function handleCreateUser() {
         </button>
       </div>
 
-      <p style="margin-top:.95rem"><strong>Promemoria prossime 24h (pending)</strong></p>
-      <p class="muted" style="margin-top:.25rem">
-        Questa lista supporta il controllo operativo dei reminder candidati alla notifica nelle prossime 24 ore.
-      </p>
-      <button style="margin-top:.5rem" :disabled="notificationBusy" @click="refreshUpcomingReminderRows">
-        Aggiorna lista 24h
-      </button>
-
-      <div class="dataset-frame" style="margin-top:.75rem">
-      <table class="conflict-table" style="min-width:700px">
-        <thead>
-          <tr>
-            <th>Orario</th>
-            <th>Ospite</th>
-            <th>Farmaco</th>
-            <th>Stato</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="reminder in upcomingReminderRows" :key="reminder.id">
-            <td>{{ formatScheduledAt(reminder.scheduledAt) }}</td>
-            <td>{{ reminder.hostLabel }}</td>
-            <td>{{ reminder.drugLabel }}</td>
-            <td>{{ reminder.stato }}</td>
-          </tr>
-          <tr v-if="upcomingReminderRows.length === 0">
-            <td colspan="4" class="muted">Nessun promemoria pending nelle prossime 24 ore.</td>
-          </tr>
-        </tbody>
-      </table>
-      </div>
-
       <p v-if="notificationMessage" class="muted" style="margin-top:.5rem;font-size:.8rem">{{ notificationMessage }}</p>
     </div>
 
@@ -1037,36 +990,6 @@ async function handleCreateUser() {
       <p class="muted">Scadenza credenziali: {{ credentialPolicy?.expiresAt ?? '—' }}</p>
 
       <button style="margin-top:.75rem" @click="refreshSecurityInfo">Aggiorna stato sicurezza</button>
-
-      <div class="import-form" style="margin-top:.75rem">
-        <label>
-          Filtro audit accessi
-          <input v-model="authEventFilter" type="text" placeholder="es. accesso, scadenza, amministratore" />
-        </label>
-        <button @click="applyAuthEventFilter">Applica filtro</button>
-      </div>
-
-      <div class="dataset-frame" style="margin-top:.75rem">
-      <table class="conflict-table" style="min-width:620px">
-        <thead>
-          <tr>
-            <th>Timestamp</th>
-            <th>Azione</th>
-            <th>Operatore</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="event in authEvents" :key="event.id">
-            <td>{{ event.ts }}</td>
-            <td>{{ event.action }}</td>
-            <td>{{ event.operatorId ?? 'anonimo' }}</td>
-          </tr>
-          <tr v-if="authEvents.length === 0">
-            <td colspan="3" class="muted">Nessun evento accessi disponibile.</td>
-          </tr>
-        </tbody>
-      </table>
-      </div>
     </div>
 
     <div class="card">
