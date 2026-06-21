@@ -19,7 +19,7 @@ Gestione terapie farmacologiche — offline-first PWA per strutture di assistenz
 ## Stack
 
 | Tecnologia | Dettaglio |
-|---|---|
+| --- | --- |
 | **Framework** | Vue 3 (Composition API, `<script setup>`) |
 | **Build** | Vite 5 |
 | **Stile** | CSS vanilla (NO Tailwind) |
@@ -27,7 +27,7 @@ Gestione terapie farmacologiche — offline-first PWA per strutture di assistenz
 | **Auth** | Supabase (produzione) + fallback locale (sviluppo/offline) |
 | **Sync** | Supabase Realtime (cross-dispositivo in produzione) |
 | **PWA** | vite-plugin-pwa (Workbox) |
-| **Test** | Vitest (79 test) + Playwright (6 test E2E) |
+| **Test** | Vitest (83 unit) + Playwright (7 E2E) |
 
 ## Sviluppo
 
