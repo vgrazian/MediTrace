@@ -213,7 +213,7 @@ const residenzaOptions = computed(() => {
   return sorted.map(room => ({ id: room.id, label: room.codice || room.id }))
 })
 
-const actionableRows = computed(() => rows.value.filter((item) => item.stato === 'DA_ESEGUIRE'))
+const actionableRows = computed(() => rows.value.filter((item) => item.stato === 'DA_ESEGUIRE' || item.stato === 'SALTATO'))
 
 const selectedActionableIds = computed(() => {
   const allowed = new Set(actionableRows.value.map((item) => item.id))
@@ -297,7 +297,7 @@ function isReminderSelected(reminderId) {
 }
 
 function isReminderActionable(reminder) {
-  return reminder.stato === 'DA_ESEGUIRE' || reminder.stato === 'POSTICIPATO'
+  return reminder.stato === 'DA_ESEGUIRE' || reminder.stato === 'SALTATO'
 }
 
 async function applyOutcome(reminderId, outcome) {
@@ -702,7 +702,7 @@ watch(() => route.fullPath, () => void loadData())
           <tr
             v-for="reminder in rows"
             :key="reminder.id"
-            :class="{ 'reminder-highlight': isHighlighted(reminder.id) }"
+            :class="{ 'reminder-highlight': isHighlighted(reminder.id), 'reminder-skipped': reminder.stato === 'SALTATO' }"
           >
             <td>
               <input
@@ -722,7 +722,7 @@ watch(() => route.fullPath, () => void loadData())
               </span>
             </td>
             <td>
-              <div v-if="reminder.stato === 'DA_ESEGUIRE'" style="display:flex;gap:.3rem;flex-wrap:wrap;margin-bottom:.35rem">
+              <div v-if="reminder.stato === 'DA_ESEGUIRE' || reminder.stato === 'SALTATO'" style="display:flex;gap:.3rem;flex-wrap:wrap;margin-bottom:.35rem">
                 <button
                   class="reminder-action-btn reminder-action-compact"
                   :disabled="markingId === reminder.id"
@@ -890,7 +890,8 @@ watch(() => route.fullPath, () => void loadData())
   cursor: pointer;
   transition: background .2s;
 }
-.expand-btn:active, .expand-btn[aria-pressed="true"] {
-  background: #dbeafe;
+.reminder-skipped {
+  background: #fff8e7;
+  border-left: 3px solid #f59e42;
 }
 </style>
