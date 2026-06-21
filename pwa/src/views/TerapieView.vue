@@ -553,7 +553,11 @@ onMounted(() => {
       </label>
 
       <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.75rem">
-        <button @click="openAddForm" title="Aggiungi (Scorciatoia: N)">Aggiungi</button>
+        <button
+          :disabled="!canCreate"
+          :title="!canCreate ? 'Servono Ospiti e Farmaci nel dataset per creare terapie' : 'Aggiungi (Scorciatoia: N)'"
+          @click="openAddForm"
+        >Aggiungi</button>
         <button :disabled="selectedCount !== 1" @click="openEditForm" title="Modifica selezionata">Modifica</button>
         <button
           :disabled="selectedCount === 0"
@@ -635,7 +639,9 @@ onMounted(() => {
           </tr>
           <tr v-if="filteredTherapies.length === 0 && !loading">
             <td colspan="10" class="muted">
-              Nessuna terapia attiva. Premi <strong>N</strong> o clicca <strong>Aggiungi</strong> per creare la prima terapia.
+              Nessuna terapia attiva.
+              <template v-if="!canCreate">⚠️ Aggiungi prima Ospiti e Farmaci dalle rispettive sezioni.</template>
+              <template v-else>Premi <strong>N</strong> o clicca <strong>Aggiungi</strong> per creare la prima terapia.</template>
             </td>
           </tr>
         </tbody>
@@ -783,8 +789,9 @@ onMounted(() => {
             <button type="button" :disabled="saving" @click="() => { resetForm(); isFormOpen = false }">Annulla</button>
           </div>
 
-          <p v-if="!canCreate" class="muted" style="margin-top:.5rem;font-size:.85rem">
-            Per creare terapie servono almeno un ospite e un farmaco nel dataset locale.
+          <p v-if="!canCreate" class="muted" style="margin-top:.5rem;font-size:.85rem;background:#fff3cd;padding:.5rem;border-radius:6px;border:1px solid #f2d09a;color:#6b3b0a">
+            ⚠️ Per creare una terapia servono almeno un <strong>Ospite</strong> e un <strong>Farmaco</strong> nel dataset.
+            <br />Vai su <RouterLink to="/ospiti">Ospiti</RouterLink> e <RouterLink to="/farmaci">Farmaci</RouterLink> per inserirli.
           </p>
         </div>
       </details>
