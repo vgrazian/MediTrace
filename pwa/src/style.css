@@ -296,7 +296,14 @@ main { padding: .75rem 1rem; max-width: 1200px; margin: 0 auto; }
 .view h2,
 .card strong {
   font-family: 'Domine', Georgia, serif;
-  text-wrap: balance;
+  max-width: 30em;
+}
+@supports (text-wrap: balance) {
+  .view h2,
+  .card strong {
+    text-wrap: balance;
+    max-width: none;
+  }
 }
 
 .card {
