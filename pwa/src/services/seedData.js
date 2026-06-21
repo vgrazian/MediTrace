@@ -270,11 +270,16 @@ export async function loadDemoData(options = {}) {
         if (!record) return record
         const patched = { ...record }
         if (patched.roomId === '__demo__residenza-demo') patched.roomId = demoRoomId
-        // Don't overwrite the existing room — skip demo room creation
         return patched
     }
 
     const patchedHosts = DEMO_HOSTS.map(patchRoomId)
+
+    // Also patch residenzaId on stock batches
+    const patchedBatches = DEMO_STOCK_BATCHES.map(b => ({
+        ...b,
+        residenzaId: b.residenzaId === '__demo__residenza-demo' ? demoRoomId : b.residenzaId
+    }))
 
     const availableStores = await getAvailableStoreNames(DEMO_STORE_NAMES)
     const transactionTables = [
@@ -292,7 +297,7 @@ export async function loadDemoData(options = {}) {
             // Skip DEMO_ROOMS — "Residenza Demo" is now a permanent default residence
             if (availableStores.has('hosts')) for (const record of patchedHosts) await db.hosts.put(record)
             if (availableStores.has('drugs')) for (const record of DEMO_DRUGS) await db.drugs.put(record)
-            if (availableStores.has('stockBatches')) for (const record of DEMO_STOCK_BATCHES) await db.stockBatches.put(record)
+            if (availableStores.has('stockBatches')) for (const record of patchedBatches) await db.stockBatches.put(record)
             if (availableStores.has('therapies')) for (const record of DEMO_THERAPIES) await db.therapies.put(record)
             if (availableStores.has('movements')) for (const record of DEMO_MOVEMENTS) await db.movements.put(record)
             if (availableStores.has('reminders')) for (const record of DEMO_REMINDERS) await db.reminders.put(record)

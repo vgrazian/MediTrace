@@ -25,6 +25,7 @@ import {
   getDemoStats,
 } from '../services/seedData'
 import { useHelpNavigation } from '../composables/useHelpNavigation'
+import { setCurrentResidenza } from '../composables/useCurrentResidenza'
 import { openConfirmDialog } from '../services/confirmDialog'
 
 // ── Fasce orarie globali ──────────────────────────────────────────────────
@@ -451,6 +452,15 @@ async function handleToggleTestData() {
       seedActionMode.value = 'clear'
       seedMessage.value = `Importati dati demo: ${stats.drugs} farmaci, ${stats.hosts} ospiti, ${stats.stockBatches} confezioni, ${stats.therapies} terapie, ${stats.movements} movimenti, ${stats.reminders} promemoria (residenza "Demo").`
       
+      // Auto-select Demo residence so batches are visible
+      try {
+        const rooms = await db.rooms.toArray()
+        const demoRoom = rooms.find(r => !r.deletedAt && String(r.codice || '').trim().toLowerCase() === 'demo')
+        if (demoRoom) {
+          await setCurrentResidenza(demoRoom.id)
+        }
+      } catch { /* non-critical */ }
+
       await db.activityLog.add({
         entityType: 'seeds',
         entityId: 'demo_data',
