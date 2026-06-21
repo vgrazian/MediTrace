@@ -121,6 +121,27 @@ export async function ensureDefaultResidenze({ operatorId = null } = {}) {
         }
     }
 
+    // Final cleanup: if there are still multiple active "Demo" residences, keep the one with most hosts
+    const roomsAfter = await db.rooms.toArray()
+    const demoDupes = roomsAfter.filter(r => !r.deletedAt && String(r.codice || '').trim().toLowerCase() === 'demo')
+    if (demoDupes.length > 1) {
+        const hosts = await db.hosts.toArray()
+        const countHosts = (roomId) => hosts.filter(h => !h.deletedAt && h.roomId === roomId).length
+        const sorted = [...demoDupes].sort((a, b) => countHosts(b.id) - countHosts(a.id))
+        const keeper = sorted[0]
+        const now = new Date().toISOString()
+        for (let i = 1; i < sorted.length; i++) {
+            const dupe = sorted[i]
+            // Reassign any hosts on this dupe to keeper
+            for (const host of hosts) {
+                if (!host.deletedAt && host.roomId === dupe.id) {
+                    await db.hosts.put({ ...host, roomId: keeper.id, updatedAt: now, syncStatus: 'pending' })
+                }
+            }
+            await db.rooms.put({ ...dupe, deletedAt: now, updatedAt: now, syncStatus: 'pending' })
+        }
+    }
+
     const existingRooms = await db.rooms.toArray()
     const activeCodes = new Set(
         existingRooms
