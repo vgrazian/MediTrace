@@ -450,7 +450,8 @@ async function handleToggleTestData() {
   const confirmed1 = shouldClear
     ? await openConfirmDialog({
       title: 'Conferma rimozione dati demo',
-      message: 'Rimuovere tutti i dati demo dal database locale?',
+      message: 'Rimuovere tutti i dati demo?',
+      details: 'I dati demo verranno cancellati dal dispositivo locale. Al prossimo sync, la rimozione si propaghera\' agli altri dispositivi.',
       details: 'Questa operazione elimina i dati demo per ripartire da uno stato pulito. Le residenze reali non vengono toccate.',
       confirmText: 'Rimuovi dati',
       cancelText: 'Annulla',
@@ -458,7 +459,8 @@ async function handleToggleTestData() {
     })
     : await openConfirmDialog({
       title: 'Conferma import dati demo',
-      message: 'Generare e importare dati demo nel database locale?',
+      message: 'Generare e importare dati demo?',
+      details: 'I dati demo verranno creati nel dispositivo locale. Al prossimo sync verranno propagati agli altri dispositivi e a Supabase.',
       details: 'I dati demo esistenti verranno prima rimossi, poi ricreati nella residenza "Residenza Demo". Le residenze reali ("Il Rifugio", "Via Bellani") restano vuote.',
       confirmText: 'Importa dati',
       cancelText: 'Annulla',
@@ -1075,7 +1077,7 @@ async function handleCreateUser() {
           {{ testDataActionLabel }}
         </button>
         <p v-if="seedLoaded && !seedMessage" class="muted" style="margin-top:.5rem;font-size:.8rem">
-          Stato: dati demo presenti nel database locale.
+          Stato: dati demo presenti sul dispositivo.
         </p>
         <p v-if="seedMessage" class="muted" style="margin-top:.5rem;font-size:.8rem">{{ seedMessage }}</p>
       </div>
