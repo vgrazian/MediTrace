@@ -36,6 +36,7 @@ const residenze = ref([])
 const isFormOpen = ref(false)
 const editId = ref('')
 const editName = ref('')
+const creatingNew = ref(false)
 
 const form = ref({
   codice: '',
@@ -66,6 +67,7 @@ const canSave = computed(() => {
 function resetForm() {
   editId.value = ''
   editName.value = ''
+  creatingNew.value = false
   isFormOpen.value = false
   form.value = {
     codice: '',
@@ -77,9 +79,36 @@ function resetForm() {
   }
 }
 
+function openCreateForm() {
+  creatingNew.value = true
+  editId.value = ''
+  editName.value = ''
+  form.value = {
+    codice: '',
+    maxOspiti: '10',
+    indirizzo: '',
+    telefono: '',
+    email: '',
+    note: '',
+  }
+  fasceForm.value = [...DEFAULT_FASCE]
+}
+
+function handlePanelToggle(event) {
+  const nextOpen = event.target.open
+  isFormOpen.value = nextOpen
+  // When closing, reset everything
+  if (!nextOpen) {
+    editId.value = ''
+    editName.value = ''
+    creatingNew.value = false
+  }
+}
+
 function startEdit(item) {
   editId.value = item.id
   editName.value = item.codice || item.id
+  creatingNew.value = false
   const m = item.metadata || {}
   form.value = {
     codice: item.codice || '',
@@ -336,9 +365,20 @@ onMounted(() => void loadData())
     </div>
 
     <div class="card">
-      <details class="deep-panel" :open="isFormOpen" @toggle="isFormOpen = $event.target.open">
+      <details class="deep-panel" :open="isFormOpen" @toggle="handlePanelToggle">
         <summary><strong>Gestione Residenze</strong></summary>
         <div style="margin-top:.75rem">
+
+          <!-- Sub-menu when panel opens without a specific action -->
+          <div v-if="!editId && !creatingNew" style="text-align:center;padding:1rem 0">
+            <p class="muted" style="margin-bottom:.75rem">Cosa vuoi fare?</p>
+            <button @click="openCreateForm" style="margin-right:.5rem">➕ Crea nuova residenza</button>
+            <span class="muted" style="margin:0 .5rem">oppure</span>
+            <span class="muted">seleziona una residenza dalla tabella e usa Modifica</span>
+          </div>
+
+          <!-- Create/Edit form -->
+          <div v-else>
           <p><strong>{{ editId ? `Modifica residenza: ${editName}` : 'Nuova residenza' }}</strong></p>
           <div class="import-form" style="margin-top:.65rem">
             <label>
@@ -386,6 +426,7 @@ onMounted(() => void loadData())
 
             <button :disabled="saving || !canSave" @click="handleSave">{{ saving ? 'Salvataggio...' : (editId ? 'Salva modifica' : 'Salva residenza') }}</button>
             <button type="button" :disabled="saving" @click="resetForm">Annulla</button>
+          </div>
           </div>
         </div>
       </details>
