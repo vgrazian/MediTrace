@@ -344,9 +344,9 @@ export const helpContent = {
     },
 
     impostazioni: {
-    titolo: 'Impostazioni — Guida',
+        titolo: 'Impostazioni — Guida',
         intro:
-    'In questa sezione puoi gestire il tuo profilo utente, cambiare la password e configurare le preferenze dell\'applicazione.',
+            'In questa sezione puoi gestire il tuo profilo utente, cambiare la password e configurare le preferenze dell\'applicazione.',
         sezioni: [
             {
                 titolo: 'Cambiare la password',
