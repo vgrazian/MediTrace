@@ -5,7 +5,7 @@ import { useHelpNavigation } from '../composables/useHelpNavigation'
 import { db } from '../db'
 import { openConfirmDialog } from '../services/confirmDialog'
 
-const { currentUser, listUsers, createUser, setUserDisabled, deleteUser, setUserDefaultResidenza, setUserProfile } = useAuth()
+const { currentUser, listUsers, createUser, setUserDisabled, deleteUser, setUserDefaultResidenza, setUserProfile, requestPasswordResetByEmail, supportsEmailReset } = useAuth()
 const { goToHelpSection } = useHelpNavigation()
 
 const canManage = computed(() => currentUser.value?.role === 'admin')
@@ -155,6 +155,27 @@ async function handleDeleteUser(username) {
   }
 }
 
+async function handleResetPassword(user) {
+  if (!user.email) {
+    usersMessage.value = `L'utente ${user.username} non ha un'email configurata.`
+    return
+  }
+  const confirmed = await openConfirmDialog({
+    title: 'Reset password',
+    message: `Inviare un'email di reset password a ${user.email}?`,
+    confirmText: 'Invia',
+    cancelText: 'Annulla',
+    tone: 'primary',
+  })
+  if (!confirmed) return
+  try {
+    await requestPasswordResetByEmail(user.email, { redirectTo: window.location.origin + '/MediTrace/#/auth/reset-password' })
+    usersMessage.value = `Email di reset password inviata a ${user.email}.`
+  } catch (e) {
+    usersMessage.value = 'Errore: ' + e.message
+  }
+}
+
 async function handleDefaultResidenzaChange(user, newValue) {
   try {
     await setUserDefaultResidenza({ username: user.username, defaultResidenzaId: newValue || null })
@@ -277,6 +298,11 @@ onMounted(() => {
                     v-if="canEditUser(user)"
                     @click="startEditUser(user)"
                   >Modifica</button>
+                  <button
+                    v-if="canManage && user.email && (user.username !== currentUser?.username || user.username === currentUser?.username)"
+                    @click="handleResetPassword(user)"
+                    :disabled="!user.email"
+                  >Reset PW</button>
                   <template v-if="user.username !== currentUser?.username && canManage">
                     <button
                       v-if="user.disabled"

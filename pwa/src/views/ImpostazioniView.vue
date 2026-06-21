@@ -64,6 +64,9 @@ async function loadFasceOrarie() {
     const saved = await getSetting(FASCE_ORARIE_KEY, null)
     if (Array.isArray(saved) && saved.length > 0) {
       fasceOrarie.value = saved
+    } else {
+      // Auto-save defaults on first load
+      await setSetting(FASCE_ORARIE_KEY, JSON.parse(JSON.stringify(DEFAULT_FASCE_ORARIE)))
     }
   } catch {}
 }
