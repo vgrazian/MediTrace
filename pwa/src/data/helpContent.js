@@ -148,17 +148,22 @@ export const helpContent = {
     scorte: {
         titolo: 'Scorte — Guida',
         intro:
-            'La sezione Scorte mostra la situazione del magazzino farmaci: quantità, soglie di riordino, grafico consumi e confezioni in scadenza.',
+            'La sezione Scorte mostra le confezioni in magazzino per la residenza corrente, con quantità, soglie, copertura in giorni e trend consumi.',
         sezioni: [
             {
                 titolo: 'Cosa vedo in questa pagina?',
                 testo:
-                    'Una tabella con tutte le confezioni di farmaci in magazzino. In alto trovi il grafico consumi mensili (barre SVG con gli scarichi degli ultimi 6 mesi) e la lista delle confezioni scadute o in scadenza.',
+                    'Una tabella con le confezioni di farmaci della residenza selezionata. In alto: report operativo (riepilogo segnalazioni per principio attivo), trend settimanale consumi, grafico consumi mensili e confezioni scadute/in scadenza. I principi attivi sono globali, le confezioni sono per-residenza.',
             },
             {
-                titolo: 'Grafico consumi',
+                titolo: 'Copertura in giorni',
                 testo:
-                    'Il grafico a barre mostra il numero di movimenti di scarico per ciascuno degli ultimi 6 mesi. Utile per monitorare l\'andamento dei consumi nel tempo.',
+                    'La colonna Copertura indica per quanti giorni la scorta attuale può coprire il consumo settimanale stimato. Il valore è arrotondato al giorno intero. Si basa sul consumo medio settimanale calcolato dalle terapie attive.',
+            },
+            {
+                titolo: 'Vai a Catalogo Farmaci',
+                testo:
+                    'Il pulsante "Catalogo Farmaci" nella sezione Confezioni porta direttamente alla vista Farmaci, dove puoi gestire principi attivi e aggiungere/modificare confezioni.',
             },
             {
                 titolo: 'Confezioni scadute / in scadenza',
@@ -260,6 +265,16 @@ export const helpContent = {
                     'Sono avvisi collegati a un ospite e a una terapia. Per esempio: "Somministrare Tachipirina alle 08:00 a Mario Rossi". Compaiono nella lista quando è il momento di agire.',
             },
             {
+                titolo: 'Filtri data',
+                testo:
+                    'Il selettore Data offre: Oggi (default), Ieri, Domani, Scegli data... (apre un calendario per scegliere un giorno specifico) e Tutti (mostra tutti i promemoria senza filtro data).',
+            },
+            {
+                titolo: 'Saltato vs Annullato',
+                testo:
+                    'Saltato indica una somministrazione dimenticata o non effettuata per errore. Annullato indica una somministrazione deliberatamente non necessaria (es. farmaco sospeso dal medico). La differenza è importante per l\'audit clinico.',
+            },
+            {
                 titolo: 'Registrare l\'esito',
                 testo:
                     'Seleziona uno o più promemoria e premi Eseguito, Posticipato o Saltato. Lo stato viene aggiornato immediatamente. Quando premi Eseguito e il farmaco ha più confezioni attive, ti verrà chiesto di scegliere da quale confezione scaricare la dose.',
@@ -277,7 +292,7 @@ export const helpContent = {
             {
                 titolo: 'Residenza operativa',
                 testo:
-                    'Il selettore della residenza si trova nella barra di navigazione in alto, accanto al tuo nome utente. Clicca su "Residenza" per scegliere la sede. Il filtro "Residenza operativa" nella scheda Promemoria mostra solo i promemoria della sede selezionata.',
+                    'La residenza si seleziona dal badge nella barra di navigazione in alto (accanto al nome utente). Tutte le viste (Ospiti, Terapie, Scorte, Promemoria) si filtrano automaticamente sulla residenza scelta. I farmaci/principi attivi restano globali.',
             },
             {
                 titolo: 'Colonne della tabella',

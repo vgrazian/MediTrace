@@ -1,101 +1,4 @@
-import { openConfirmDialog } from '../services/confirmDialog'
-import { signOut } from '../services/auth'
-async function handleResetPassword(user) {
-  if (!canManageUsers.value || user.username === currentUser.value?.username) return
-  const confirmed = await openConfirmDialog({
-    title: 'Reset password',
-    message: `Vuoi inviare una mail di reset password a ${user.email}?`,
-    confirmText: 'Invia',
-    cancelText: 'Annulla',
-    tone: 'primary',
-  })
-  if (!confirmed) return
-  // TODO: integrare con flusso reale invio reset password
-  userRoleMessage.value = `Reset password richiesto per ${user.username}`
-}
-
-async function handleForceLogout(user) {
-  if (!canManageUsers.value || user.username === currentUser.value?.username) return
-  const confirmed = await openConfirmDialog({
-    title: 'Forza logout',
-    message: `Vuoi forzare il logout per ${user.username}?`,
-    confirmText: 'Forza logout',
-    cancelText: 'Annulla',
-    tone: 'danger',
-  })
-  if (!confirmed) return
-  // TODO: integrare con logica reale di invalidazione sessione
-  userRoleMessage.value = `Logout forzato per ${user.username}`
-}
-import { setUserRole } from '../services/userManagement'
-const userRoleBusy = ref('')
-const userRoleMessage = ref('')
-
-async function handleToggleAdmin(user) {
-  if (!canManageUsers.value) return
-  if (user.username === currentUser.value?.username) return // non puoi cambiare il tuo ruolo
-  userRoleBusy.value = user.username
-  userRoleMessage.value = ''
-  try {
-    const newRole = user.role === 'admin' ? 'operator' : 'admin'
-    await setUserRole({ username: user.username, role: newRole })
-    await refreshUsers()
-    userRoleMessage.value = `Ruolo aggiornato per ${user.username}`
-  } catch (err) {
-    userRoleMessage.value = `Errore ruolo: ${err.message}`
-  } finally {
-    userRoleBusy.value = ''
-  }
-}
-// Fasce orarie configurabili
-const DEFAULT_FASCE_ORARIE = [
-  { nome: 'Mattina', inizio: '06:00', fine: '11:59' },
-  { nome: 'Pomeriggio', inizio: '12:00', fine: '17:59' },
-  { nome: 'Sera', inizio: '18:00', fine: '23:59' },
-  { nome: 'Notte', inizio: '00:00', fine: '05:59' },
-]
-const FASCE_ORARIE_KEY = 'fasceOrarieConfig'
-const fasceOrarie = ref([...DEFAULT_FASCE_ORARIE])
-const fasceOrarieBusy = ref(false)
-const fasceOrarieMessage = ref('')
-
-async function loadFasceOrarie() {
-  try {
-    const saved = await getSetting(FASCE_ORARIE_KEY, null)
-    if (Array.isArray(saved) && saved.length > 0) {
-      fasceOrarie.value = saved
-    } else {
-      // Auto-save defaults on first load
-      await setSetting(FASCE_ORARIE_KEY, JSON.parse(JSON.stringify(DEFAULT_FASCE_ORARIE)))
-    }
-  } catch {}
-}
-
-async function saveFasceOrarie() {
-  fasceOrarieBusy.value = true
-  fasceOrarieMessage.value = ''
-  try {
-    await setSetting(FASCE_ORARIE_KEY, JSON.parse(JSON.stringify(fasceOrarie.value)))
-    fasceOrarieMessage.value = 'Fasce orarie salvate.'
-  } catch (err) {
-    fasceOrarieMessage.value = `Errore salvataggio: ${err.message}`
-  } finally {
-    fasceOrarieBusy.value = false
-  }
-}
-
-function addFasciaOraria() {
-  fasceOrarie.value.push({ nome: '', inizio: '08:00', fine: '12:00' })
-}
-
-function removeFasciaOraria(idx) {
-  fasceOrarie.value.splice(idx, 1)
-}
-
-onMounted(async () => {
-  await loadFasceOrarie()
-})
-  <script setup>
+<script setup>
 import { computed, ref, onMounted, watch } from 'vue'
 import { suggestUsernameFromName, useAuth } from '../services/auth'
 import { canRole } from '../services/rbac'
@@ -123,6 +26,50 @@ import {
 } from '../services/seedData'
 import { useHelpNavigation } from '../composables/useHelpNavigation'
 import { openConfirmDialog } from '../services/confirmDialog'
+
+// ── Fasce orarie globali ──────────────────────────────────────────────────
+const DEFAULT_FASCE_ORARIE = [
+  { nome: 'Mattina', inizio: '06:00', fine: '11:59' },
+  { nome: 'Pomeriggio', inizio: '12:00', fine: '17:59' },
+  { nome: 'Sera', inizio: '18:00', fine: '23:59' },
+  { nome: 'Notte', inizio: '00:00', fine: '05:59' },
+]
+const FASCE_ORARIE_KEY = 'fasceOrarieConfig'
+const fasceOrarie = ref([...DEFAULT_FASCE_ORARIE])
+const fasceOrarieBusy = ref(false)
+const fasceOrarieMessage = ref('')
+
+async function loadFasceOrarie() {
+  try {
+    const saved = await getSetting(FASCE_ORARIE_KEY, null)
+    if (Array.isArray(saved) && saved.length > 0) {
+      fasceOrarie.value = saved
+    } else {
+      await setSetting(FASCE_ORARIE_KEY, JSON.parse(JSON.stringify(DEFAULT_FASCE_ORARIE)))
+    }
+  } catch {}
+}
+
+async function saveFasceOrarie() {
+  fasceOrarieBusy.value = true
+  fasceOrarieMessage.value = ''
+  try {
+    await setSetting(FASCE_ORARIE_KEY, JSON.parse(JSON.stringify(fasceOrarie.value)))
+    fasceOrarieMessage.value = 'Fasce orarie salvate.'
+  } catch (err) {
+    fasceOrarieMessage.value = `Errore salvataggio: ${err.message}`
+  } finally {
+    fasceOrarieBusy.value = false
+  }
+}
+
+function addFasciaOraria() {
+  fasceOrarie.value.push({ nome: '', inizio: '08:00', fine: '12:00' })
+}
+
+function removeFasciaOraria(idx) {
+  fasceOrarie.value.splice(idx, 1)
+}
 
 const {
   accessToken,
@@ -470,19 +417,6 @@ async function handleToggleTestData() {
       tone: 'primary',
     })
   if (!confirmed1) return
-
-  // Second confirmation for loading
-  if (!shouldClear) {
-    const confirmed2 = await openConfirmDialog({
-      title: '⚠️ ATTENZIONE: Ambiente di produzione?',
-      message: 'I dati archiviati verranno danneggiati se si procede in produzione.',
-      details: 'I dati demo sostituiranno i dati effettivi. Utilizzare SOLO in ambiente di sviluppo/test. I dati di produzione saranno PERDUTI.',
-      confirmText: 'Procedi comunque (Sviluppo)',
-      cancelText: 'Annulla (Salva produzione)',
-      tone: 'danger',
-    })
-    if (!confirmed2) return
-  }
 
   seedBusy.value = true
   seedMessage.value = ''

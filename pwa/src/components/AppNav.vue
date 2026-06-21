@@ -221,10 +221,10 @@ async function handleSync() {
 
 <template>
   <nav class="app-nav">
-    <div class="brand" aria-label="MediTrace">
-      <img class="brand-mark" :src="logoSrc" alt="Comunità di Sant'Egidio" />
+    <RouterLink to="/" class="brand" aria-label="MediTrace — Vai al Cruscotto">
+      <img class="brand-mark" :src="logoSrc" alt="MediTrace" />
       <span class="brand-title">MediTrace</span>
-    </div>
+    </RouterLink>
 
     <RouterLink to="/" title="Cruscotto — riepilogo e KPI">Cruscotto</RouterLink>
     <RouterLink to="/promemoria" title="Promemoria somministrazioni">Promemoria</RouterLink>

@@ -614,26 +614,26 @@ details.add-panel[open] > div {
   align-items: center;
   justify-content: center;
   min-height: 100vh;
-  gap: 1.25rem;
+  gap: .75rem;
   padding: 2rem;
   text-align: center;
 }
-.login-screen h1 { font-size: 2rem; color: var(--brand-800); }
+.login-screen h1 { font-size: 1.5rem; color: var(--brand-800); margin: 0; }
 .login-logo {
   display: block;
-  width: 96px;
-  height: 96px;
-  border-radius: 1.5rem;
-  box-shadow: 0 8px 24px rgba(9, 30, 53, 0.18);
+  width: 52px;
+  height: 52px;
+  border-radius: 1rem;
+  box-shadow: 0 4px 12px rgba(9, 30, 53, 0.15);
 }
 .login-screen p { color: var(--muted); }
 /* ── credentials auth form ── */
 .auth-form {
   display: flex;
   flex-direction: column;
-  gap: .6rem;
+  gap: .45rem;
   width: 100%;
-  max-width: 360px;
+  max-width: 340px;
   text-align: left;
 }
 .auth-form label { font-size: .85rem; font-weight: 600; color: #475569; }

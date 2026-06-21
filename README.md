@@ -7,11 +7,12 @@ Gestione terapie farmacologiche — offline-first PWA per strutture di assistenz
 ## Caratteristiche
 
 - 📱 **PWA offline-first** — funziona senza connessione, si installa su Android/iOS
-- 🔄 **Sync multi-dispositivo** — Supabase + Google Drive appDataFolder
-- 💊 **Gestione farmaci** — catalogo principi attivi, confezioni, scorte, scadenze
+- 🔄 **Sync multi-dispositivo** — in produzione la sincronizzazione cross-dispositivo avviene tramite **Supabase** (auth + database realtime). In assenza di Supabase, l'app usa IndexedDB locale (Dexie.js) con fallback auth
+- 🏠 **Gestione multi-residenza** — ogni residenza ha magazzino separato, filtro contestuale in tutte le viste
+- 💊 **Catalogo farmaci globale** — principi attivi condivisi tra tutte le residenze, confezioni per-residenza
 - 👤 **Anagrafica ospiti** — registro, assegnazione residenza, terapie attive
-- ⏰ **Promemoria somministrazioni** — piano terapeutico con orari, esiti, batch picker
-- 📊 **Dashboard KPI** — riepilogo turno, scorte critiche, sincronizzazione
+- ⏰ **Promemoria somministrazioni** — piano terapeutico con orari, esiti, batch picker, filtri data
+- 📊 **Dashboard KPI** — riepilogo turno, scorte critiche, trend consumi, copertura in giorni
 - 📋 **Audit trail** — registro operazioni con statistiche Supabase in tempo reale
 - 🗂️ **Import CSV** — importazione guidata da fogli Google Sheets
 
@@ -19,14 +20,14 @@ Gestione terapie farmacologiche — offline-first PWA per strutture di assistenz
 
 | Tecnologia | Dettaglio |
 |---|---|
-| **Framework** | Vue 3 (Composition API) |
+| **Framework** | Vue 3 (Composition API, `<script setup>`) |
 | **Build** | Vite 5 |
 | **Stile** | CSS vanilla (NO Tailwind) |
 | **Database locale** | Dexie.js (IndexedDB) |
-| **Auth** | Supabase + fallback locale |
-| **Sync** | Supabase Realtime + Google Drive |
+| **Auth** | Supabase (produzione) + fallback locale (sviluppo/offline) |
+| **Sync** | Supabase Realtime (cross-dispositivo in produzione) |
 | **PWA** | vite-plugin-pwa (Workbox) |
-| **Test** | Vitest (79 test) + Playwright (e2e) |
+| **Test** | Vitest (79 test) + Playwright (6 test E2E) |
 
 ## Sviluppo
 
