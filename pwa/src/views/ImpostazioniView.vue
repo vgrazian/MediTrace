@@ -798,7 +798,7 @@ async function handleCreateUser() {
       <button class="help-btn" @click="goToHelpSection('impostazioni')">Aiuto</button>
     </div>
 
-    <div v-if="canManageUsers" class="card">
+    <div class="card">
       <p><strong>Fasce orarie configurabili</strong></p>
       <div>
         <table class="conflict-table" style="min-width:600px">
@@ -1017,15 +1017,12 @@ async function handleCreateUser() {
         <button @click="runSync">Sincronizza ora</button>
       </div>
       <p v-if="syncMessage" class="muted" style="margin-top:.5rem;font-size:.8rem;white-space:pre-line">{{ syncMessage }}</p>
-    </div>
 
-    <div class="card">
-      <p><strong>Conflitti sincronizzazione</strong></p>
-      <p class="muted" style="margin-top:.25rem">
+      <p style="margin-top:.85rem"><strong>Conflitti</strong></p>
+      <p class="muted" style="margin-top:.15rem">
         Conflitti aperti: {{ pendingConflicts.length }}
       </p>
-
-      <p v-if="pendingConflicts.length === 0" class="muted" style="margin-top:.5rem">
+      <p v-if="pendingConflicts.length === 0" class="muted" style="margin-top:.35rem">
         Nessun conflitto aperto.
       </p>
 
@@ -1065,9 +1062,14 @@ async function handleCreateUser() {
           </button>
         </div>
       </div>
+
+      <p v-if="pendingConflicts.length === 0" class="muted" style="margin-top:.35rem">
+        Nessun conflitto aperto.
+      </p>
     </div>
 
     <div class="card">
+      <p><strong>Backup locale</strong></p>
       <p><strong>Backup locale</strong></p>
       <p class="muted">Scarica tutti i dati come file JSON oppure ripristina un backup per upgrade sicuri.</p>
       <div style="margin-top:.75rem;display:flex;gap:.5rem;flex-wrap:wrap">
