@@ -194,6 +194,8 @@ useUnsavedChangesGuard(isDirty)
 
 const canCreate = computed(() => ((form.value.nome || '').trim() || (form.value.cognome || '').trim()))
 const canSave = computed(() => ((form.value.nome || '').trim() || (form.value.cognome || '').trim()))
+const hasResidences = computed(() => roomsData.value.filter(r => !r.deletedAt).length > 0)
+const canAddHost = computed(() => hasResidences.value)
 
 const availableBeds = computed(() => {
     const room = roomsData.value.find(r => r.id === form.value.roomId)
@@ -497,7 +499,11 @@ onMounted(() => {
       </label>
 
       <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.75rem">
-        <button @click="openAddForm" title="Aggiungi (Scorciatoia: N)">Aggiungi</button>
+        <button
+          :disabled="!canAddHost"
+          :title="!canAddHost ? 'Crea prima una Residenza nella sezione Residenze' : 'Aggiungi (Scorciatoia: N)'"
+          @click="openAddForm"
+        >Aggiungi</button>
         <button :disabled="selectedCount !== 1" @click="openEditForm" title="Modifica selezionato">Modifica</button>
         <button
           :disabled="selectedCount === 0"
@@ -578,7 +584,8 @@ onMounted(() => {
           </tr>
           <tr v-if="filteredRows.length === 0 && !loading">
             <td colspan="5" class="muted">
-              Nessun ospite registrato. Premi <strong>N</strong> o clicca <strong>Aggiungi</strong> per inserire il primo ospite.
+              <template v-if="!canAddHost">⚠️ Nessuna residenza disponibile. <RouterLink to="/residenze">Crea prima una residenza →</RouterLink></template>
+              <template v-else>Nessun ospite registrato. Premi <strong>N</strong> o clicca <strong>Aggiungi</strong> per inserire il primo ospite.</template>
             </td>
           </tr>
         </tbody>
@@ -678,6 +685,9 @@ onMounted(() => {
                   {{ room.codice }}
                 </option>
               </select>
+              <span v-if="!hasResidences" class="muted" style="display:block;margin-top:.2rem;font-size:.78rem;color:#b45309">
+                ⚠️ Nessuna residenza disponibile. <RouterLink to="/residenze">Crea una residenza →</RouterLink>
+              </span>
               <span v-if="errors.roomId" id="roomId-error" class="error-message" role="alert">
                 {{ errors.roomId }}
               </span>
