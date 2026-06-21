@@ -1,4 +1,4 @@
-import{N as c}from"./index-CcyxfdyL.js";async function n(e){const{title:a,message:i,consequences:o=[],confirmText:s="Conferma",cancelText:l="Annulla",itemName:m,itemType:t}=e;let r=i;return m&&t&&(r=`${i}
+import{N as c}from"./index-DwG0uRxh.js";async function n(e){const{title:a,message:i,consequences:o=[],confirmText:s="Conferma",cancelText:l="Annulla",itemName:m,itemType:t}=e;let r=i;return m&&t&&(r=`${i}
 
 ${t}: ${m}`),o.length>0&&(r+=`
 
