@@ -921,82 +921,9 @@ async function handleCreateUser() {
         Il tuo account non ha privilegi amministratore: puoi visualizzare solo il tuo profilo.
       </p>
 
-      <div v-if="canManageUsers" class="dataset-frame" style="margin-top:.75rem;max-height:18rem">
-        <table class="conflict-table" style="min-width:940px">
-          <thead>
-            <tr>
-              <th>Username</th>
-              <th>Nome</th>
-              <th>Cognome</th>
-              <th>Telefono</th>
-              <th>Email</th>
-              <th>Admin</th>
-              <th>Disabilitato</th>
-              <th>Ultima attività</th>
-              <th>Creato il</th>
-              <th>Azioni</th>
-              <th>Stato</th>
-              <th>Azione</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="user in users" :key="user.username">
-              <td>{{ user.username }}<span v-if="user.isCurrent"> (sessione attiva)</span></td>
-              <td>{{ user.firstName || '—' }}</td>
-              <td>{{ user.lastName || '—' }}</td>
-              <td>{{ user.phone || '—' }}</td>
-              <td>{{ user.email || '—' }}</td>
-              <td>
-                <input type="checkbox"
-                  :checked="user.role === 'admin'"
-                  :disabled="!canManageUsers || user.username === currentUser?.username || userRoleBusy === user.username"
-                  @change="handleToggleAdmin(user)"
-                />
-              </td>
-              <td>
-                <span v-if="user.disabled" style="color:#dc2626;font-weight:bold">✔</span>
-              </td>
-              <td>
-                <span :title="user.lastActivityAt">{{ user.lastActivityAt ? user.lastActivityAt.slice(0,19).replace('T',' ') : '—' }}</span>
-              </td>
-              <td>
-                <span :title="user.createdAt">{{ user.createdAt ? user.createdAt.slice(0,19).replace('T',' ') : '—' }}</span>
-              </td>
-              <td style="white-space:nowrap">
-                <button v-if="canManageUsers && user.username !== currentUser?.username && !user.disabled" @click="handleResetPassword(user)">Reset PW</button>
-                <button v-if="canManageUsers && user.username !== currentUser?.username && !user.disabled" @click="handleForceLogout(user)">Logout</button>
-              </td>
-                <p v-if="userRoleMessage" class="muted" style="margin-top:.5rem;font-size:.8rem">{{ userRoleMessage }}</p>
-              <td>{{ user.disabled ? 'disattivato' : 'attivo' }}</td>
-              <td>
-                <button
-                  v-if="user.disabled"
-                  :disabled="usersBusy"
-                  @click="handleEnableUser(user.username)"
-                >
-                  Riattiva
-                </button>
-                <button
-                  v-else-if="!user.isCurrent"
-                  :disabled="usersBusy"
-                  @click="handleDisableUser(user.username)"
-                >
-                  Disattiva
-                </button>
-                <span v-else class="muted">—</span>
-                <button
-                  v-if="!user.isCurrent"
-                  class="btn-danger"
-                  :disabled="usersBusy"
-                  @click="handleDeleteUser(user.username)"
-                >
-                  Elimina
-                </button>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+      <p v-if="canManageUsers" class="muted" style="margin-top:.5rem">
+        Gestisci gli utenti dalla sezione <RouterLink to="/operatori">Operatori</RouterLink>.
+      </p>
 
       <div v-if="canManageTestData" style="margin-top:.85rem;padding:.75rem;border:1px dashed #d8b154;border-radius:.55rem">
         <p><strong>Dati demo (live)</strong></p>
