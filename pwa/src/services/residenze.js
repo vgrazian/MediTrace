@@ -96,14 +96,29 @@ export async function ensureDefaultResidenze({ operatorId = null } = {}) {
     const legacyDemo = allRooms.find(
         r => !r.deletedAt && String(r.codice || '').trim().toLowerCase() === 'residenza demo'
     )
+    const newDemo = allRooms.find(
+        r => !r.deletedAt && r.id !== legacyDemo?.id && String(r.codice || '').trim().toLowerCase() === 'demo'
+    )
+
     if (legacyDemo) {
         const now = new Date().toISOString()
-        await db.rooms.put({
-            ...legacyDemo,
-            codice: 'Demo',
-            updatedAt: now,
-            syncStatus: 'pending',
-        })
+        if (newDemo) {
+            // Both exist — reassign hosts from legacy to new, then deactivate legacy
+            const hosts = await db.hosts.toArray()
+            const hostsOnLegacy = hosts.filter(h => !h.deletedAt && h.roomId === legacyDemo.id)
+            for (const host of hostsOnLegacy) {
+                await db.hosts.put({ ...host, roomId: newDemo.id, updatedAt: now, syncStatus: 'pending' })
+            }
+            await db.rooms.put({ ...legacyDemo, deletedAt: now, updatedAt: now, syncStatus: 'pending' })
+        } else {
+            // Only legacy exists — rename it
+            await db.rooms.put({
+                ...legacyDemo,
+                codice: 'Demo',
+                updatedAt: now,
+                syncStatus: 'pending',
+            })
+        }
     }
 
     const existingRooms = await db.rooms.toArray()
