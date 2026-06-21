@@ -146,8 +146,8 @@ const { goToHelpSection } = useHelpNavigation()
 const deviceId = ref(null)
 const datasetVersion = ref(null)
 const syncMessage = ref('')
-const syncIntervalMinutes = ref(1)
-const SYNC_INTERVAL_SETTING = 'syncIntervalMinutes'
+const syncIntervalSeconds = ref(60)
+const SYNC_INTERVAL_SETTING = 'syncIntervalSeconds'
 const pendingConflicts = ref([])
 const resolvingConflictId = ref(null)
 const importSources = listSupportedImportSources()
@@ -421,7 +421,7 @@ async function runCsvImport() {
 onMounted(async () => {
   deviceId.value = await getSetting('deviceId')
   datasetVersion.value = await getSetting('datasetVersion')
-  syncIntervalMinutes.value = Number(await getSetting(SYNC_INTERVAL_SETTING, 1)) || 1
+  syncIntervalSeconds.value = Number(await getSetting(SYNC_INTERVAL_SETTING, 60)) || 60
   await refreshPendingConflicts()
   await refreshUsers()
   await refreshSecurityInfo()
@@ -573,8 +573,9 @@ async function runSync() {
 }
 
 async function saveSyncInterval() {
-  await setSetting(SYNC_INTERVAL_SETTING, syncIntervalMinutes.value)
-  syncMessage.value = `Intervallo sync impostato a ${syncIntervalMinutes.value} minuti`
+  await setSetting(SYNC_INTERVAL_SETTING, syncIntervalSeconds.value)
+  syncMessage.value = `Intervallo sync impostato a ${syncIntervalSeconds.value < 60 ? syncIntervalSeconds.value + ' secondi' : (syncIntervalSeconds.value / 60) + ' minuti'}`
+  window.dispatchEvent(new CustomEvent('medi-trace:sync-interval-changed'))
   setTimeout(() => { if (syncMessage.value.startsWith('Intervallo')) syncMessage.value = '' }, 3000)
 }
 
@@ -1217,12 +1218,15 @@ async function handleCreateUser() {
       <div style="display:flex;align-items:center;gap:1rem;flex-wrap:wrap;margin-top:.5rem">
         <label style="display:flex;align-items:center;gap:.35rem">
           Sincronizza automaticamente ogni
-          <select v-model.number="syncIntervalMinutes" @change="saveSyncInterval" style="width:auto">
-            <option :value="5">5 minuti</option>
-            <option :value="10">10 minuti</option>
-            <option :value="15">15 minuti</option>
-            <option :value="30">30 minuti</option>
-            <option :value="60">60 minuti</option>
+          <select v-model.number="syncIntervalSeconds" @change="saveSyncInterval" style="width:auto">
+            <option :value="15">15 secondi</option>
+            <option :value="30">30 secondi</option>
+            <option :value="60">1 minuto</option>
+            <option :value="300">5 minuti</option>
+            <option :value="600">10 minuti</option>
+            <option :value="900">15 minuti</option>
+            <option :value="1800">30 minuti</option>
+            <option :value="3600">60 minuti</option>
           </select>
         </label>
         <button @click="runSync">Sincronizza ora</button>

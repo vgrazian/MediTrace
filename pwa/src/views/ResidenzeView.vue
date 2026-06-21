@@ -13,11 +13,18 @@ import { useHelpNavigation } from '../composables/useHelpNavigation'
 import { openConfirmDialog } from '../services/confirmDialog'
 import { useUndoDelete } from '../composables/useUndoDelete'
 import CrudFilterBar from '../components/CrudFilterBar.vue'
-import { db } from '../db'
+import { db, getSetting, setSetting } from '../db'
 
 const { currentUser } = useAuth()
 const { goToHelpSection } = useHelpNavigation()
 const { pendingUndo, scheduleUndo, executeUndo } = useUndoDelete(10_000)
+
+const DEFAULT_FASCE = [
+  { nome: 'Mattina', inizio: '06:00', fine: '11:59' },
+  { nome: 'Pomeriggio', inizio: '12:00', fine: '17:59' },
+  { nome: 'Sera', inizio: '18:00', fine: '23:59' },
+  { nome: 'Notte', inizio: '00:00', fine: '05:59' },
+]
 
 const loading = ref(false)
 const saving = ref(false)
@@ -38,6 +45,8 @@ const form = ref({
   email: '',
   note: '',
 })
+
+const fasceForm = ref([...DEFAULT_FASCE])
 
 const filteredResidenze = computed(() => {
   const q = filterQuery.value.trim().toLowerCase()
@@ -80,7 +89,28 @@ function startEdit(item) {
     email: m.email || item.email || '',
     note: item.note || '',
   }
+  loadResidenzaFasce(item.id).then(f => { fasceForm.value = f.length > 0 ? f : [...DEFAULT_FASCE] })
   isFormOpen.value = true
+}
+
+async function loadResidenzaFasce(roomId) {
+  try {
+    const saved = await getSetting(`fasceOrarie_${roomId}`, null)
+    return Array.isArray(saved) ? saved : []
+  } catch { return [] }
+}
+
+async function saveResidenzaFasce(roomId) {
+  const cleaned = fasceForm.value.filter(f => f.nome.trim())
+  await setSetting(`fasceOrarie_${roomId}`, cleaned)
+}
+
+function addFascia() {
+  fasceForm.value.push({ nome: '', inizio: '08:00', fine: '12:00' })
+}
+
+function removeFascia(idx) {
+  fasceForm.value.splice(idx, 1)
 }
 
 function formatCapienza(item) {
@@ -169,9 +199,11 @@ async function handleSave() {
 
     if (editId.value) {
       await updateResidenza({ roomId: editId.value, ...payload })
+      await saveResidenzaFasce(editId.value)
       message.value = 'Residenza aggiornata.'
     } else {
       await createResidenza(payload)
+      await saveResidenzaFasce(payload.codice)
       message.value = 'Residenza creata.'
     }
 
@@ -320,6 +352,24 @@ onMounted(() => void loadData())
               Note
               <input v-model="form.note" type="text" placeholder="Note opzionali" />
             </label>
+
+            <div style="margin-top:.5rem">
+              <p style="font-size:.85rem;font-weight:600;color:#475569;margin-bottom:.35rem">
+                Fasce orarie {{ editId ? '(override locale)' : '(verranno salvate dopo la creazione)' }}
+              </p>
+              <p class="muted" style="font-size:.75rem;margin-bottom:.4rem">
+                Se non configurate, verranno usate le fasce orarie globali dalle Impostazioni.
+              </p>
+              <div v-for="(fascia, idx) in fasceForm" :key="idx" style="display:flex;gap:.35rem;align-items:center;margin-bottom:.3rem">
+                <input v-model="fascia.nome" type="text" placeholder="Nome" style="width:7rem;font-size:.8rem" />
+                <input v-model="fascia.inizio" type="time" style="width:6rem;font-size:.8rem" />
+                <span style="font-size:.8rem;color:var(--muted)">–</span>
+                <input v-model="fascia.fine" type="time" style="width:6rem;font-size:.8rem" />
+                <button type="button" class="btn-sm btn-ghost" @click="removeFascia(idx)" :disabled="fasceForm.length <= 1" title="Rimuovi fascia">✕</button>
+              </div>
+              <button type="button" class="btn-sm" @click="addFascia" style="margin-top:.2rem">+ Aggiungi fascia</button>
+            </div>
+
             <button :disabled="saving || !canSave" @click="handleSave">{{ saving ? 'Salvataggio...' : (editId ? 'Salva modifica' : 'Salva residenza') }}</button>
             <button type="button" :disabled="saving" @click="resetForm">Annulla</button>
           </div>

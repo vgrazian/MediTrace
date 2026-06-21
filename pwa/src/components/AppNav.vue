@@ -119,9 +119,14 @@ function onLocalChange() {
 
 async function getSyncIntervalMs() {
   try {
-    const mins = Number(await getSetting('syncIntervalMinutes', 1)) || 1
-    return Math.max(1, mins) * 60 * 1000
+    const secs = Number(await getSetting('syncIntervalSeconds', 60)) || 60
+    return Math.max(15, secs) * 1000
   } catch { return DEFAULT_SYNC_INTERVAL_MS }
+}
+
+async function getSyncPollIntervalMs() {
+  // Poll twice as fast as the sync interval to catch changes quickly
+  return Math.max(15_000, (await getSyncIntervalMs()) / 2)
 }
 
 async function maybeAutoSync() {
@@ -158,16 +163,24 @@ async function maybeAutoSync() {
   }
 }
 
+async function startPeriodicSync() {
+  if (!isSupabaseConfigured) return
+  const pollMs = await getSyncPollIntervalMs()
+  if (periodicTimer) clearInterval(periodicTimer)
+  periodicTimer = setInterval(maybeAutoSync, pollMs)
+}
+
 onMounted(() => {
   loadCurrentResidenza()
   document.addEventListener('click', closeResidenzaDropdown)
   if (isSupabaseConfigured) {
-    // Check every 30 seconds; debounce prevents sync during active edits
-    periodicTimer = setInterval(maybeAutoSync, 30_000)
+    startPeriodicSync()
     // Also run on first mount (after a 10s warm-up)
     setTimeout(maybeAutoSync, 10_000)
     // Listen for local data changes to reset debounce timer
     window.addEventListener('medi-trace:local-change', onLocalChange)
+    // Listen for sync interval changes
+    window.addEventListener('medi-trace:sync-interval-changed', () => { startPeriodicSync() })
     // Prune stale data once per day (old reminders, movements, activity logs)
     setTimeout(() => { pruneStaleData().catch(() => {}) }, 30_000)
   }
