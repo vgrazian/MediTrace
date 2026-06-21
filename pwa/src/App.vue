@@ -10,6 +10,7 @@ import { formatBuildTimestamp, getBuildTimestampIso, getDeployLabel } from './se
 const { currentUser, hasUsers, isInitialized, signIn, register, requestPasswordResetByEmail, supportsEmailReset } = useAuth()
 const route = useRoute()
 const isAuthRecoveryRoute = computed(() => route.path === '/auth/reset-password')
+const logoSrc = `${import.meta.env.BASE_URL}branding/logo-header.svg`
 
 const username = ref('')
 const password = ref('')
@@ -30,7 +31,29 @@ const buildTimestampLabel = formatBuildTimestamp('it-IT')
 const buildTimestampIso = getBuildTimestampIso()
 const deployLabel = getDeployLabel()
 
-onMounted(() => initAuth())
+// ── CDN status check ──────────────────────────────────────────────────────
+const cdnStatus = ref('')
+const cdnAge = ref('')
+
+async function checkCdnStatus() {
+  try {
+    const res = await fetch(window.location.href.split('#')[0].split('?')[0], { method: 'HEAD', cache: 'no-store' })
+    const lastMod = res.headers.get('last-modified')
+    if (lastMod) {
+      const cdnTime = new Date(lastMod).getTime()
+      const buildTime = new Date(buildTimestampIso).getTime()
+      if (!Number.isNaN(cdnTime) && !Number.isNaN(buildTime)) {
+        const diff = Math.round((buildTime - cdnTime) / 60000)
+        cdnAge.value = new Date(lastMod).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })
+        cdnStatus.value = diff > 0 ? `CDN: ${cdnAge.value} (${diff} min indietro)` : `CDN: ${cdnAge.value} (aggiornato)`
+        return
+      }
+    }
+    cdnStatus.value = ''
+  } catch { cdnStatus.value = '' }
+}
+
+onMounted(() => { initAuth(); checkCdnStatus() })
 
 function handleUsernameInput(event) {
   username.value = sanitizeUsernameInput(event.target.value)
@@ -132,7 +155,12 @@ async function handleRegister() {
 
 <template>
   <div id="app-root">
-    <div v-if="!isInitialized" class="loading">Caricamento...</div>
+    <div v-if="!isInitialized" class="loading" role="status" aria-label="Caricamento in corso">
+      <div class="loading-skeleton" style="max-width:320px;margin:40vh auto 0">
+        <div class="loading-skeleton-row"></div>
+        <div class="loading-skeleton-row"></div>
+      </div>
+    </div>
 
     <template v-else-if="!currentUser">
       <main v-if="isAuthRecoveryRoute">
@@ -140,6 +168,7 @@ async function handleRegister() {
       </main>
 
       <div v-else class="login-screen">
+        <img :src="logoSrc" alt="MediTrace" class="login-logo" width="96" height="96" />
         <h1>MediTrace</h1>
         <p>Accesso con utenza e password</p>
 
@@ -228,16 +257,19 @@ async function handleRegister() {
         <p class="build-meta" :title="`Build ISO: ${buildTimestampIso}`">
           Build: {{ buildTimestampLabel }}
           <span v-if="deployLabel" class="deploy-label"> &middot; {{ deployLabel }}</span>
-          <button class="refresh-btn" @click="handleForceRefresh" title="Forza il refresh dell'app eliminando la cache del service worker">⟳ Aggiorna app</button>
         </p>
+        <p v-if="cdnStatus" class="cdn-meta">{{ cdnStatus }}</p>
+        <button class="refresh-btn refresh-btn-bottom" @click="handleForceRefresh" title="Forza il refresh dell'app eliminando la cache del service worker">⟳ Aggiorna app</button>
       </div>
     </template>
 
     <template v-else>
+      <a href="#main-content" class="skip-link">Salta al contenuto principale</a>
       <AppNav />
-      <main>
+      <main id="main-content">
         <RouterView />
       </main>
+      <button class="scroll-top-btn" @click="window.scrollTo({ top: 0, behavior: 'smooth' })" title="Torna in cima" aria-label="Torna in cima">&uarr;</button>
       <HelpDrawer />
     </template>
     <ConfirmDialog />

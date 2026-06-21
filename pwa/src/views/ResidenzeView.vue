@@ -13,6 +13,7 @@ import { useHelpNavigation } from '../composables/useHelpNavigation'
 import { openConfirmDialog } from '../services/confirmDialog'
 import { useUndoDelete } from '../composables/useUndoDelete'
 import CrudFilterBar from '../components/CrudFilterBar.vue'
+import { db } from '../db'
 
 const { currentUser } = useAuth()
 const { goToHelpSection } = useHelpNavigation()
@@ -56,6 +57,7 @@ const canSave = computed(() => {
 function resetForm() {
   editId.value = ''
   editName.value = ''
+  isFormOpen.value = false
   form.value = {
     codice: '',
     maxOspiti: '10',
@@ -91,11 +93,62 @@ async function loadData() {
   try {
     await ensureDefaultResidenze({ operatorId: currentUser.value?.login ?? null })
     residenze.value = await listResidenze()
+    await loadGenderStats()
   } catch (error) {
     errorMessage.value = `Errore caricamento: ${error.message}`
   } finally {
     loading.value = false
   }
+}
+
+// ── Gender pie chart ──────────────────────────────────────────────────────
+const genderStats = ref([]) // [{ roomId, M: n, F: n, Altro: n, totale: n }]
+
+async function loadGenderStats() {
+  try {
+    const hosts = await db.hosts.toArray()
+    const active = hosts.filter(h => !h.deletedAt && h.attivo !== false)
+    const byRoom = new Map()
+    for (const h of active) {
+      if (!h.roomId) continue
+      const entry = byRoom.get(h.roomId) || { roomId: h.roomId, M: 0, F: 0, Altro: 0, totale: 0 }
+      const s = (h.sesso || '').trim().toUpperCase()
+      if (s === 'M') entry.M++
+      else if (s === 'F') entry.F++
+      else if (s) entry.Altro++
+      entry.totale++
+      byRoom.set(h.roomId, entry)
+    }
+    genderStats.value = [...byRoom.values()]
+  } catch { genderStats.value = [] }
+}
+
+function genderForRoom(roomId) {
+  return genderStats.value.find(g => g.roomId === roomId) || { M: 0, F: 0, Altro: 0, totale: 0 }
+}
+
+function pieArcs(stats, cx, cy, r) {
+  const { M, F, Altro, totale } = stats
+  if (totale === 0) return ''
+  const colors = { M: '#3b82f6', F: '#ec4899', Altro: '#94a3b8' }
+  const parts = [
+    { value: M, color: colors.M },
+    { value: F, color: colors.F },
+    { value: Altro, color: colors.Altro },
+  ].filter(p => p.value > 0)
+  let accumulated = 0
+  return parts.map(p => {
+    const slice = (p.value / totale) * 2 * Math.PI
+    const startAngle = accumulated - Math.PI / 2
+    const endAngle = accumulated + slice - Math.PI / 2
+    accumulated += slice
+    const x1 = cx + r * Math.cos(startAngle)
+    const y1 = cy + r * Math.sin(startAngle)
+    const x2 = cx + r * Math.cos(endAngle)
+    const y2 = cy + r * Math.sin(endAngle)
+    const large = slice > Math.PI ? 1 : 0
+    return `<path d="M${cx},${cy} L${x1},${y1} A${r},${r} 0 ${large} 1 ${x2},${y2} Z" fill="${p.color}" stroke="#fff" stroke-width="1.5"/>`
+  }).join('')
 }
 
 async function handleSave() {
@@ -220,15 +273,21 @@ onMounted(() => void loadData())
               </td>
             </tr>
             <tr v-if="filteredResidenze.length === 0 && !loading">
-              <td colspan="8" class="muted">Nessuna residenza disponibile.</td>
+              <td colspan="8" class="muted">
+                Nessuna residenza configurata. Premi <strong>N</strong> o clicca <strong>Aggiungi</strong> per configurare la prima residenza.
+              </td>
             </tr>
           </tbody>
         </table>
       </div>
 
-      <p v-if="loading" class="muted" style="margin-top:.55rem">Caricamento...</p>
+      <div v-if="loading" class="loading-skeleton" role="status" aria-label="Caricamento in corso">
+        <div class="loading-skeleton-row"></div>
+        <div class="loading-skeleton-row"></div>
+        <div class="loading-skeleton-row"></div>
+      </div>
       <p v-if="message" class="muted" style="margin-top:.55rem">{{ message }}</p>
-      <p v-if="errorMessage" class="import-error" style="margin-top:.55rem">{{ errorMessage }}</p>
+      <p v-if="errorMessage" class="import-error" role="alert">{{ errorMessage }}</p>
     </div>
 
     <div class="card">
@@ -266,6 +325,26 @@ onMounted(() => void loadData())
           </div>
         </div>
       </details>
+    </div>
+
+    <!-- ── Grafico riempimento per genere ── -->
+    <div v-if="residenze.length > 0" class="card">
+      <p><strong>📊 Ripartizione ospiti per genere</strong></p>
+      <div style="display:flex;flex-wrap:wrap;gap:1.5rem;margin-top:.75rem;justify-content:center">
+        <div v-for="r in residenze" :key="r.id" style="text-align:center">
+          <svg width="100" height="100" :viewBox="'0 0 100 100'">
+            <circle cx="50" cy="50" r="42" fill="#f1f5f9" stroke="#e2e8f0" stroke-width="2"/>
+            <g v-html="pieArcs(genderForRoom(r.id), 50, 50, 42)"></g>
+          </svg>
+          <p style="font-size:.78rem;font-weight:600;margin-top:.25rem">{{ r.codice }}</p>
+          <p style="font-size:.7rem;color:#64748b">
+            <span style="color:#3b82f6">♂{{ genderForRoom(r.id).M }}</span>
+            <span style="color:#ec4899"> ♀{{ genderForRoom(r.id).F }}</span>
+            <span v-if="genderForRoom(r.id).Altro > 0" style="color:#94a3b8"> · {{ genderForRoom(r.id).Altro }}</span>
+            &nbsp;/ {{ r.maxOspiti }}
+          </p>
+        </div>
+      </div>
     </div>
 
     <div v-if="pendingUndo" class="undo-banner" role="status" aria-live="polite">

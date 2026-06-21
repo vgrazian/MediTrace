@@ -450,7 +450,8 @@ async function handleToggleTestData() {
   const confirmed1 = shouldClear
     ? await openConfirmDialog({
       title: 'Conferma rimozione dati demo',
-      message: 'Rimuovere tutti i dati demo dal database locale?',
+      message: 'Rimuovere tutti i dati demo?',
+      details: 'I dati demo verranno cancellati dal dispositivo locale. Al prossimo sync, la rimozione si propaghera\' agli altri dispositivi.',
       details: 'Questa operazione elimina i dati demo per ripartire da uno stato pulito. Le residenze reali non vengono toccate.',
       confirmText: 'Rimuovi dati',
       cancelText: 'Annulla',
@@ -458,8 +459,9 @@ async function handleToggleTestData() {
     })
     : await openConfirmDialog({
       title: 'Conferma import dati demo',
-      message: 'Generare e importare dati demo nel database locale?',
-      details: 'I dati demo esistenti verranno prima rimossi, poi ricreati nella residenza "Residenza Demo". Le residenze reali ("Il Rifugio", "Via Bellani") restano vuote.',
+      message: 'Generare e importare dati demo?',
+      details: 'I dati demo verranno creati nel dispositivo locale. Al prossimo sync verranno propagati agli altri dispositivi e a Supabase.',
+      details: 'I dati demo esistenti verranno prima rimossi, poi ricreati nella residenza "Demo". Le residenze reali ("Il Rifugio", "Via Bellani") restano vuote.',
       confirmText: 'Importa dati',
       cancelText: 'Annulla',
       tone: 'primary',
@@ -510,7 +512,7 @@ async function handleToggleTestData() {
       const stats = await loadDemoData({ allowInProduction: true })
       seedLoaded.value = true
       seedActionMode.value = 'clear'
-      seedMessage.value = `Importati dati demo: ${stats.drugs} farmaci, ${stats.hosts} ospiti, ${stats.stockBatches} confezioni, ${stats.therapies} terapie, ${stats.movements} movimenti, ${stats.reminders} promemoria (residenza "Residenza Demo").`
+      seedMessage.value = `Importati dati demo: ${stats.drugs} farmaci, ${stats.hosts} ospiti, ${stats.stockBatches} confezioni, ${stats.therapies} terapie, ${stats.movements} movimenti, ${stats.reminders} promemoria (residenza "Demo").`
       
       await db.activityLog.add({
         entityType: 'seeds',
@@ -832,6 +834,11 @@ async function handleCreateUser() {
       <p class="muted">Backend sincronizzazione: {{ syncBackendLabel }}</p>
       <button style="margin-top:.75rem" @click="handleSignOut">Esci</button>
 
+      <div class="legal-links">
+        <a href="#/privacy">Privacy policy</a>
+        <a href="#/termini">Termini di servizio</a>
+      </div>
+
       <template v-if="currentUser?.isSeeded">
         <button
           style="margin-top:.5rem;background:#dc2626"
@@ -1059,7 +1066,7 @@ async function handleCreateUser() {
         <p><strong>Dati demo (live)</strong></p>
         <p class="muted" style="margin-top:.25rem">
           Usa questo pulsante per importare rapidamente dati dimostrativi o per ripulirli.
-          I dati vengono creati nella residenza "Residenza Demo", lasciando "Il Rifugio" e "Via Bellani" vuote.
+          I dati vengono creati nella residenza "Demo", lasciando "Il Rifugio" e "Via Bellani" vuote.
         </p>
         <p class="muted" style="margin-top:.25rem;font-size:.85rem">
           Pacchetto: {{ seedStats.drugs }} farmaci · {{ seedStats.hosts }} ospiti ·
@@ -1070,7 +1077,7 @@ async function handleCreateUser() {
           {{ testDataActionLabel }}
         </button>
         <p v-if="seedLoaded && !seedMessage" class="muted" style="margin-top:.5rem;font-size:.8rem">
-          Stato: dati demo presenti nel database locale.
+          Stato: dati demo presenti sul dispositivo.
         </p>
         <p v-if="seedMessage" class="muted" style="margin-top:.5rem;font-size:.8rem">{{ seedMessage }}</p>
       </div>

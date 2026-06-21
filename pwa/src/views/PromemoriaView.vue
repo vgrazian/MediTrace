@@ -29,6 +29,7 @@ import { db, enqueue, getSetting, setSetting } from '../db'
 import { useAuth } from '../services/auth'
 import { BED_SEQUENCE_SETTING_KEY, CURRENT_RESIDENZA_SETTING_KEY, buildReminderRows, markReminder, reminderStateBadge, reminderActionButtonColor, REMINDER_OUTCOMES, assertUniqueReminderSlot } from '../services/promemoria'
 import { confirmDeleteReminder } from '../services/confirmations'
+import { openConfirmDialog } from '../services/confirmDialog'
 import { useFormValidation } from '../services/formValidation'
 import ValidatedInput from '../components/ValidatedInput.vue'
 import { useHelpNavigation } from '../composables/useHelpNavigation'
@@ -52,6 +53,84 @@ const therapies = ref([])
 const beds = ref([])
 const rooms = ref([])
 const bedSequence = ref([])
+
+// ── Batch picker per somministrazione ──
+const batchPickerReminderId = ref(null)
+const batchPickerBatches = ref([])
+const batchPickerSelected = ref('')
+const batchPickerBusy = ref(false)
+
+async function loadBatchesForReminder(reminderId) {
+  const reminder = allReminders.value.find(r => r.id === reminderId)
+  if (!reminder) return []
+  try {
+    const allBatches = await db.stockBatches
+      .where('drugId')
+      .equals(reminder.drugId)
+      .toArray()
+    return allBatches.filter(b => !b.deletedAt && b.quantitaAttuale > 0)
+  } catch {
+    return []
+  }
+}
+
+function openBatchPicker(reminderId, batches) {
+  batchPickerReminderId.value = reminderId
+  batchPickerBatches.value = batches
+  // Pre-select default batch, or first batch
+  getDefaultBatchId(reminderId).then(defaultId => {
+    const defaultBatch = defaultId ? batches.find(b => b.id === defaultId) : null
+    batchPickerSelected.value = defaultBatch ? defaultBatch.id : (batches.length > 0 ? batches[0].id : '')
+  })
+}
+
+async function getDefaultBatchId(reminderId) {
+  try {
+    const reminder = allReminders.value.find(r => r.id === reminderId)
+    if (!reminder?.drugId) return null
+    const map = await getSetting('defaultBatchMap', {})
+    return map?.[reminder.drugId] || null
+  } catch { return null }
+}
+
+function closeBatchPicker() {
+  batchPickerReminderId.value = null
+  batchPickerBatches.value = []
+  batchPickerSelected.value = ''
+}
+
+async function confirmBatchAndApply() {
+  if (!batchPickerSelected.value || !batchPickerReminderId.value) return
+  batchPickerBusy.value = true
+  try {
+    await markReminder({
+      reminderId: batchPickerReminderId.value,
+      outcome: 'ESEGUITO',
+      operatorId: currentUser.value?.login ?? null,
+      batchId: batchPickerSelected.value,
+    })
+    message.value = 'Promemoria contrassegnato: ESEGUITO.'
+    await loadData()
+    closeBatchPicker()
+  } catch (err) {
+    errorMessage.value = `Errore: ${err.message}`
+  } finally {
+    batchPickerBusy.value = false
+  }
+}
+
+function batchLabel(batch) {
+  const parts = [batch.nomeCommerciale || 'Confezione']
+  if (batch.dosaggio) parts.push(batch.dosaggio)
+  parts.push(`Qt: ${batch.quantitaAttuale ?? 0}`)
+  if (batch.scadenza) {
+    const scad = new Date(batch.scadenza)
+    if (!Number.isNaN(scad.getTime())) {
+      parts.push(`Scad: ${scad.toLocaleDateString('it-IT')}`)
+    }
+  }
+  return parts.join(' — ')
+}
 
 const dateFilter = ref('today')
 const stateFilter = ref([])
@@ -210,6 +289,21 @@ async function applyOutcome(reminderId, outcome) {
   message.value = ''
   errorMessage.value = ''
   markingId.value = reminderId
+
+  // Se ESEGUITO, verificare se ci sono multiple confezioni attive
+  if (outcome === 'ESEGUITO') {
+    try {
+      const batches = await loadBatchesForReminder(reminderId)
+      if (batches.length > 1) {
+        openBatchPicker(reminderId, batches)
+        markingId.value = null
+        return
+      }
+    } catch {
+      // fallback: procedi senza batch picker
+    }
+  }
+
   try {
     await markReminder({
       reminderId,
@@ -233,7 +327,14 @@ async function setReminderPending(reminderId) {
     errorMessage.value = 'Promemoria non trovato.'
     return
   }
-  if (!confirm(`Ripristinare questo promemoria a "Da eseguire"?`)) return
+  const confirmedSingle = await openConfirmDialog({
+    title: 'Ripristina promemoria',
+    message: 'Ripristinare questo promemoria a "Da eseguire"?',
+    confirmText: 'Ripristina',
+    cancelText: 'Annulla',
+    tone: 'primary',
+  })
+  if (!confirmedSingle) return
   markingId.value = reminderId
   try {
     const now = new Date().toISOString()
@@ -292,7 +393,14 @@ async function applyOutcomeBulk(outcome) {
 async function setPendingBulk() {
   if (!canRunBulkActions.value) return
   const count = selectedActionableIds.value.length
-  if (!confirm(`Ripristinare ${count} promemoria a "Da eseguire"?`)) return
+  const confirmedBulk = await openConfirmDialog({
+    title: 'Ripristina promemoria',
+    message: `Ripristinare ${count} promemoria a "Da eseguire"?`,
+    confirmText: 'Ripristina',
+    cancelText: 'Annulla',
+    tone: 'primary',
+  })
+  if (!confirmedBulk) return
   message.value = ''
   errorMessage.value = ''
   bulkBusy.value = true
@@ -549,7 +657,7 @@ watch(residenzaFilter, async (value) => {
       </div>
 
       <div class="dataset-frame" style="margin-top:.75rem">
-      <table class="conflict-table" style="min-width:1100px">
+      <table class="conflict-table" style="min-width:900px">
         <thead>
           <tr>
             <th>
@@ -562,10 +670,8 @@ watch(residenzaFilter, async (value) => {
             </th>
             <th>Orario</th>
             <th>Ospite</th>
-            <th>Residenza</th>
             <th>Farmaco</th>
             <th>Dose</th>
-            <th>Freq./giorno</th>
             <th>Stato</th>
             <th>Erogazione</th>
             <th>Azioni</th>
@@ -585,12 +691,10 @@ watch(residenzaFilter, async (value) => {
                 @change="toggleReminderSelection(reminder.id, $event.target.checked)"
               />
             </td>
-            <td>{{ formatSchedule(reminder.scheduledAt) }}</td>
+            <td>{{ reminder.dailyScheduleTimes?.join(' / ') ?? reminder.somministrazioniGiornaliere ?? '—' }}</td>
             <td>{{ reminder.hostLabel }}</td>
-            <td>{{ reminder.residenzaLabel }}</td>
             <td>{{ reminder.drugLabel }}</td>
             <td>{{ reminder.dosePerSomministrazione ?? '—' }}</td>
-            <td>{{ reminder.dailyScheduleTimes?.join(' / ') ?? reminder.somministrazioniGiornaliere ?? '—' }}</td>
             <td>
               <span :class="['reminder-state', reminderStateBadge(reminder.stato)]">
                 {{ reminder.stato }}
@@ -653,16 +757,60 @@ watch(residenzaFilter, async (value) => {
             </td>
           </tr>
           <tr v-if="rows.length === 0 && !loading">
-            <td colspan="12" class="muted">Nessun promemoria per il filtro selezionato.</td>
+            <td colspan="8" class="muted">
+              Nessun promemoria per il filtro selezionato. Prova a modificare i filtri o a cambiare data.
+            </td>
           </tr>
         </tbody>
       </table>
       </div>
 
-      <p v-if="loading" class="muted" style="margin-top:.55rem">Caricamento...</p>
+      <div v-if="loading" class="loading-skeleton" role="status" aria-label="Caricamento in corso">
+        <div class="loading-skeleton-row"></div>
+        <div class="loading-skeleton-row"></div>
+        <div class="loading-skeleton-row"></div>
+      </div>
       <p v-if="message" class="muted" style="margin-top:.55rem">{{ message }}</p>
-      <p v-if="errorMessage" class="import-error">{{ errorMessage }}</p>
+      <p v-if="errorMessage" class="import-error" role="alert">{{ errorMessage }}</p>
     </div>
+
+    <!-- Batch picker dialog per somministrazione -->
+    <Teleport to="body">
+      <div v-if="batchPickerReminderId" class="batch-picker-backdrop" @click="closeBatchPicker" @keydown.escape="closeBatchPicker">
+        <div class="batch-picker-dialog" role="dialog" aria-modal="true" aria-label="Seleziona confezione" @click.stop @keydown.enter.prevent="confirmBatchAndApply" @keydown.escape="closeBatchPicker">
+          <h3>Seleziona la confezione da scaricare</h3>
+          <p class="muted" style="margin-top:.25rem">
+            Il farmaco ha più confezioni attive. Clicca sulla confezione da usare, poi conferma.
+          </p>
+          <div class="batch-picker-list">
+            <label
+              v-for="batch in batchPickerBatches"
+              :key="batch.id"
+              class="batch-picker-item"
+              :class="{ selected: batchPickerSelected === batch.id }"
+            >
+              <input
+                type="radio"
+                :value="batch.id"
+                v-model="batchPickerSelected"
+                name="batchPicker"
+              />
+              <span class="batch-picker-label">{{ batchLabel(batch) }}</span>
+            </label>
+          </div>
+          <div class="batch-picker-actions">
+            <button @click="closeBatchPicker" :disabled="batchPickerBusy">Annulla</button>
+            <button
+              class="btn-primary"
+              :disabled="!batchPickerSelected || batchPickerBusy"
+              @click="confirmBatchAndApply"
+            >
+              {{ batchPickerBusy ? 'Registrazione...' : 'Conferma e registra' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </Teleport>
 
     <div class="card">
       <details>

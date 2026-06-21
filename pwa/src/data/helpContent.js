@@ -72,6 +72,11 @@ export const helpContent = {
                     'Spunta una o più righe e premi "Elimina". Verrà chiesta conferma. Attenzione: se elimini un farmaco, tutte le sue confezioni e terapie associate vengono disattivate. L\'operazione è reversibile dal pannello Audit.',
             },
             {
+                titolo: 'Confezione predefinita',
+                testo:
+                    'Quando un farmaco ha più confezioni attive, puoi spuntare "Confezione predefinita" in fase di creazione o modifica. Questa confezione verrà proposta per prima quando un operatore registra una somministrazione nei Promemoria. La spunta compare solo se il farmaco ha già almeno una confezione.',
+            },
+            {
                 titolo: 'Scorta minima e soglia di riordino',
                 testo:
                     'La soglia di riordino è la quantità minima sotto la quale il sistema segnala che è necessario ordinare nuove confezioni. Quando la quantità attuale scende sotto questa soglia, il farmaco viene evidenziato in rosso nella sezione Scorte e nel Cruscotto.',
@@ -120,7 +125,7 @@ export const helpContent = {
             {
                 titolo: 'Anagrafica residenze',
                 testo:
-                    'Ogni residenza contiene nome, capienza massima, indirizzo, telefono, email e note operative. In avvio sono preconfigurate: Il Rifugio, Via Bellani e Residenza Demo.',
+                    'Ogni residenza contiene nome, capienza massima, indirizzo, telefono, email e note operative. In avvio sono preconfigurate: Il Rifugio, Via Bellani e Demo.',
             },
             {
                 titolo: 'Come aggiungere una residenza',
@@ -257,7 +262,12 @@ export const helpContent = {
             {
                 titolo: 'Registrare l\'esito',
                 testo:
-                    'Seleziona uno o più promemoria e premi Eseguito, Posticipato o Saltato. Lo stato viene aggiornato immediatamente.',
+                    'Seleziona uno o più promemoria e premi Eseguito, Posticipato o Saltato. Lo stato viene aggiornato immediatamente. Quando premi Eseguito e il farmaco ha più confezioni attive, ti verrà chiesto di scegliere da quale confezione scaricare la dose.',
+            },
+            {
+                titolo: 'Scelta confezione (batch picker)',
+                testo:
+                    'Se un farmaco ha più confezioni in magazzino (es. Tachipirina 500 mg e Tachipirina 1000 mg), al momento di registrare Eseguito apparirà una finestra di scelta. Clicca sulla confezione desiderata e premi Conferma. La prima confezione è sempre pre-selezionata. Puoi premere Invio per confermare rapidamente.',
             },
             {
                 titolo: 'Ripristina (annulla esito)',
@@ -267,22 +277,12 @@ export const helpContent = {
             {
                 titolo: 'Residenza operativa',
                 testo:
-                    'Usa il filtro "Residenza operativa" per mostrare solo i promemoria della sede in cui stai lavorando. La scelta viene memorizzata sul dispositivo.',
+                    'Il selettore della residenza si trova nella barra di navigazione in alto, accanto al tuo nome utente. Clicca su "Residenza" per scegliere la sede. Il filtro "Residenza operativa" nella scheda Promemoria mostra solo i promemoria della sede selezionata.',
             },
             {
-                titolo: 'Aggiungere un promemoria manuale',
+                titolo: 'Colonne della tabella',
                 testo:
-                    'Premi "Aggiungi", seleziona l\'ospite (se applicabile), scrivi il testo del promemoria e imposta la data/ora. Premi "Salva".',
-            },
-            {
-                titolo: 'Promemoria scaduti',
-                testo:
-                    'I promemoria non completati entro l\'orario previsto vengono evidenziati in rosso. Gestiscili al più presto e poi segnali come completati.',
-            },
-            {
-                titolo: 'Notifiche',
-                testo:
-                    'Se il browser ha il permesso di inviare notifiche, riceverai un avviso anche quando l\'applicazione è in background. Puoi gestire questo permesso nelle Impostazioni del browser.',
+                    'La tabella mostra: Orario (frequenza giornaliera, es. "08:00 / 20:00"), Ospite, Farmaco, Dose, Stato ed Erogazione. La colonna Orario indica gli orari di somministrazione previsti dalla terapia.',
             },
         ],
     },
@@ -318,12 +318,17 @@ export const helpContent = {
     audit: {
         titolo: 'Registro Operazioni — Guida',
         intro:
-            'Il Registro Operazioni (Audit) è un pannello in sola lettura che mostra tutto quello che è stato fatto nell\'applicazione: chi ha fatto cosa e quando.',
+            'Il Registro Operazioni (Audit) è un pannello in sola lettura che mostra tutto quello che è stato fatto nell\'applicazione: chi ha fatto cosa e quando. Include anche le statistiche di connettività al database Supabase.',
         sezioni: [
             {
                 titolo: 'A cosa serve?',
                 testo:
                     'Serve a verificare la tracciabilità delle operazioni: aggiunte, modifiche e cancellazioni di farmaci, terapie, ospiti e movimenti. È uno strumento di controllo, non di lavoro quotidiano.',
+            },
+            {
+                titolo: 'Stato Supabase',
+                testo:
+                    'Il pannello in alto mostra in tempo reale: connessioni attive al database, dimensione occupata, numero di tabelle e una stima del traffico API. Le barre colorate (blu, verde, ambra) indicano il consumo rispetto ai limiti del piano.',
             },
             {
                 titolo: 'Come leggere il registro',
@@ -335,18 +340,13 @@ export const helpContent = {
                 testo:
                     'Usa i campi in alto per filtrare le voci per periodo o per tipo di operazione. Premi "Applica" per aggiornare la lista.',
             },
-            {
-                titolo: 'Non trovo un\'operazione',
-                testo:
-                    'Il registro conserva le operazioni degli ultimi 90 giorni. Per operazioni più vecchie è necessario contattare l\'amministratore di sistema.',
-            },
         ],
     },
 
     impostazioni: {
-        titolo: 'Impostazioni — Guida',
+    titolo: 'Impostazioni — Guida',
         intro:
-            'In questa sezione puoi gestire il tuo profilo utente, cambiare la password e configurare le preferenze dell\'applicazione.',
+    'In questa sezione puoi gestire il tuo profilo utente, cambiare la password e configurare le preferenze dell\'applicazione.',
         sezioni: [
             {
                 titolo: 'Cambiare la password',

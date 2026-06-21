@@ -96,12 +96,12 @@ onMounted(async () => {
     <!-- Row 1: Riepilogo + Benvenuto -->
     <div class="card-grid">
       <div class="card">
-        <p><strong>📋 Riepilogo turno di oggi</strong></p>
-        <div v-if="homeKpi && homeKpi.remindersToday > 0" style="display:flex;gap:1.5em;flex-wrap:wrap;margin-top:.5rem">
-          <span style="color:#22c55e;font-weight:600">✅ Eseguiti: {{ homeKpi.remindersDone }}</span>
-          <span style="color:#f59e42;font-weight:600">⏳ Da eseguire: {{ homeKpi.remindersPending }}</span>
-          <span v-if="homeKpi.remindersPostponed > 0" style="color:#3b82f6;font-weight:600">🔄 Posticipati: {{ homeKpi.remindersPostponed }}</span>
-          <span v-if="homeKpi.remindersSkipped > 0" style="color:#ef4444;font-weight:600">❌ Saltati: {{ homeKpi.remindersSkipped }}</span>
+        <p><strong>Riepilogo turno di oggi</strong></p>
+        <div v-if="homeKpi && homeKpi.remindersToday > 0" style="display:flex;gap:.6em;flex-wrap:wrap;margin-top:.5rem">
+          <span class="kpi-badge kpi-done">Eseguiti: {{ homeKpi.remindersDone }}</span>
+          <span class="kpi-badge kpi-pending">Da eseguire: {{ homeKpi.remindersPending }}</span>
+          <span v-if="homeKpi.remindersPostponed > 0" class="kpi-badge kpi-postponed">Posticipati: {{ homeKpi.remindersPostponed }}</span>
+          <span v-if="homeKpi.remindersSkipped > 0" class="kpi-badge kpi-skipped">Saltati: {{ homeKpi.remindersSkipped }}</span>
         </div>
         <p v-else class="muted" style="margin-top:.5rem">Nessun promemoria pianificato per oggi.</p>
         <div v-if="homeKpi && homeKpi.remindersToday > 0" style="margin-top:.5rem">

@@ -292,7 +292,7 @@ export function endOfDay(date = new Date()) {
  * Se ESEGUITO, deducere la dose dalla terapia e creare movimento in scorte.
  * Aggiorna il record reminder, enquea sync, registra audit log.
  */
-export async function markReminder({ reminderId, outcome, operatorId = null, note = '' }) {
+export async function markReminder({ reminderId, outcome, operatorId = null, note = '', batchId = null }) {
     if (!REMINDER_OUTCOMES.includes(outcome)) {
         throw new Error(`Esito non valido: ${outcome}. Attesi: ${REMINDER_OUTCOMES.join(', ')}`)
     }
@@ -328,7 +328,10 @@ export async function markReminder({ reminderId, outcome, operatorId = null, not
                     .where('drugId')
                     .equals(therapy.drugId)
                     .toArray()
-                const batchDaScarico = batches.find(b => !b.deletedAt && b.quantitaAttuale > 0)
+                const activeBatches = batches.filter(b => !b.deletedAt && b.quantitaAttuale > 0)
+                const batchDaScarico = batchId
+                    ? activeBatches.find(b => b.id === batchId)
+                    : activeBatches[0]
 
                 if (batchDaScarico) {
                     const newQty = Math.max(0, batchDaScarico.quantitaAttuale - dosePerSomministrazione)

@@ -3,13 +3,15 @@ import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useRoute } from 'vue-router'
 // --- Keyboard Shortcuts (Scorciatoie da tastiera) ---
 function handleKeyboardShortcut(event) {
-  // Focus search (Cerca)
+  const tag = (event.target?.tagName || '').toLowerCase()
+  const isInput = tag === 'input' || tag === 'textarea' || tag === 'select'
   if (event.key === '/') {
+    if (isInput) return
     event.preventDefault()
     const searchInput = document.querySelector('input[placeholder="Cerca per ospite, farmaco, dose o note"]')
     if (searchInput) searchInput.focus()
   }
-  // Nuovo (Aggiungi terapia)
+  if (isInput) return
   if (event.key === 'n' && !event.ctrlKey && !event.metaKey) {
     event.preventDefault()
     openAddForm()
@@ -212,9 +214,7 @@ function hostLabel(hostId) {
   const host = hosts.value.find(item => item.id === hostId)
   if (!host) return hostId
   const fullName = [host.nome, host.cognome].filter(Boolean).join(' ').trim()
-  const namePart = fullName || host.iniziali || host.codiceInterno || hostId
-  const visibleId = host.codiceInterno || host.id
-  return `[${visibleId}] - ${namePart}`
+  return fullName || host.iniziali || host.codiceInterno || hostId
 }
 
 function drugLabel(drugId) {
@@ -266,7 +266,11 @@ async function loadData() {
 
     hosts.value = rawHosts
       .filter(row => !row.deletedAt)
-      .sort((a, b) => (a.codiceInterno || a.id).localeCompare(b.codiceInterno || b.id))
+      .sort((a, b) => {
+        const nameA = [a.nome, a.cognome].filter(Boolean).join(' ').trim().toLowerCase()
+        const nameB = [b.nome, b.cognome].filter(Boolean).join(' ').trim().toLowerCase()
+        return nameA.localeCompare(nameB)
+      })
 
     drugs.value = rawDrugs
       .filter(row => !row.deletedAt)
@@ -552,9 +556,13 @@ onMounted(() => {
         <button type="button" style="margin-left:.4rem" @click="clearSelection">Deseleziona tutto</button>
       </p>
 
-      <p v-if="loading" class="muted" style="margin-top:.5rem">Caricamento...</p>
+      <div v-if="loading" class="loading-skeleton" role="status" aria-label="Caricamento in corso">
+        <div class="loading-skeleton-row"></div>
+        <div class="loading-skeleton-row"></div>
+        <div class="loading-skeleton-row"></div>
+      </div>
 
-      <div class="dataset-frame" style="margin-top:.75rem">
+      <div class="dataset-frame" style="margin-top:.75rem" v-if="!loading">
       <table class="conflict-table">
         <thead>
           <tr>
@@ -606,13 +614,15 @@ onMounted(() => {
             </td>
           </tr>
           <tr v-if="filteredTherapies.length === 0 && !loading">
-            <td colspan="10" class="muted">Nessuna terapia attiva disponibile.</td>
+            <td colspan="10" class="muted">
+              Nessuna terapia attiva. Premi <strong>N</strong> o clicca <strong>Aggiungi</strong> per creare la prima terapia.
+            </td>
           </tr>
         </tbody>
       </table>
       </div>
       <p v-if="message" class="muted" style="margin-top:.5rem">{{ message }}</p>
-      <p v-if="errorMessage" class="import-error" style="margin-top:.5rem">{{ errorMessage }}</p>
+      <p v-if="errorMessage" class="import-error" role="alert">{{ errorMessage }}</p>
     </div>
 
     <div class="card">

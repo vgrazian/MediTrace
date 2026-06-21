@@ -2,13 +2,15 @@
 import { onMounted, onUnmounted, ref, computed } from 'vue'
 // --- Keyboard Shortcuts (Scorciatoie da tastiera) ---
 function handleKeyboardShortcut(event) {
-  // Focus search (Cerca)
+  const tag = (event.target?.tagName || '').toLowerCase()
+  const isInput = tag === 'input' || tag === 'textarea' || tag === 'select'
   if (event.key === '/') {
+    if (isInput) return
     event.preventDefault()
     const searchInput = document.querySelector('input[placeholder="Cerca per nome, cognome o residenza"]')
     if (searchInput) searchInput.focus()
   }
-  // Nuovo (Aggiungi ospite)
+  if (isInput) return
   if (event.key === 'n' && !event.ctrlKey && !event.metaKey) {
     event.preventDefault()
     openAddForm()
@@ -100,6 +102,25 @@ const form = ref({
     roomId: '',
 
     note: '',
+})
+
+// Existing values for autocomplete datalists
+const existingLuoghi = computed(() => {
+  const values = new Set()
+  for (const h of allHosts.value) {
+    const v = (h.luogoNascita || '').trim()
+    if (v) values.add(v)
+  }
+  return [...values].sort((a, b) => a.localeCompare(b, 'it', { sensitivity: 'base' }))
+})
+
+const existingPatologie = computed(() => {
+  const values = new Set()
+  for (const h of allHosts.value) {
+    const v = (h.patologie || '').trim()
+    if (v) values.add(v)
+  }
+  return [...values].sort((a, b) => a.localeCompare(b, 'it', { sensitivity: 'base' }))
 })
 
 const rows = computed(() => buildHostRows({
@@ -540,12 +561,18 @@ onMounted(() => {
             </td>
           </tr>
           <tr v-if="filteredRows.length === 0 && !loading">
-            <td colspan="5" class="muted">Nessun ospite disponibile.</td>
+            <td colspan="5" class="muted">
+              Nessun ospite registrato. Premi <strong>N</strong> o clicca <strong>Aggiungi</strong> per inserire il primo ospite.
+            </td>
           </tr>
         </tbody>
       </table>
       </div>
-      <p v-if="loading" class="muted" style="margin-top:.55rem">Caricamento...</p>
+      <div v-if="loading" class="loading-skeleton" role="status" aria-label="Caricamento in corso">
+        <div class="loading-skeleton-row"></div>
+        <div class="loading-skeleton-row"></div>
+        <div class="loading-skeleton-row"></div>
+      </div>
     </div>
 
     <div class="card">
@@ -584,8 +611,11 @@ onMounted(() => {
             />
             <label>
               Luogo di nascita
-              <input v-model="form.luogoNascita" type="text" placeholder="Roma" />
+              <input v-model="form.luogoNascita" type="text" placeholder="Roma" list="luogo-suggestions" />
             </label>
+            <datalist id="luogo-suggestions">
+              <option v-for="l in existingLuoghi" :key="l" :value="l" />
+            </datalist>
             <ValidatedInput
               v-model="form.dataNascita"
               field-name="dataNascita"
@@ -613,8 +643,11 @@ onMounted(() => {
             />
             <label>
               Patologie
-              <input v-model="form.patologie" type="text" placeholder="Patologie o note cliniche" />
+              <input v-model="form.patologie" type="text" placeholder="Patologie o note cliniche" list="patologie-suggestions" />
             </label>
+            <datalist id="patologie-suggestions">
+              <option v-for="p in existingPatologie" :key="p" :value="p" />
+            </datalist>
             <label>
               Residenza
               <select
@@ -658,7 +691,7 @@ onMounted(() => {
     </div>
 
     <p v-if="message" class="muted" style="margin-top:.5rem">{{ message }}</p>
-    <p v-if="errorMessage" class="import-error" style="margin-top:.5rem">{{ errorMessage }}</p>
+    <p v-if="errorMessage" class="import-error" role="alert">{{ errorMessage }}</p>
 
     <UndoDeleteBanner
       v-if="pendingUndo"

@@ -2,13 +2,15 @@
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 // --- Keyboard Shortcuts (Scorciatoie da tastiera) ---
 function handleKeyboardShortcut(event) {
-  // Focus search (Cerca)
+  const tag = (event.target?.tagName || '').toLowerCase()
+  const isInput = tag === 'input' || tag === 'textarea' || tag === 'select'
   if (event.key === '/') {
+    if (isInput) return
     event.preventDefault()
     const searchInput = document.querySelector('input[placeholder="Cerca per tipo, confezione, ospite o note"]')
     if (searchInput) searchInput.focus()
   }
-  // Nuovo (Aggiungi movimento)
+  if (isInput) return
   if (event.key === 'n' && !event.ctrlKey && !event.metaKey) {
     event.preventDefault()
     openAddForm()
@@ -208,9 +210,7 @@ function hostLabel(hostId) {
   const host = hosts.value.find((item) => item.id === hostId)
   if (!host) return 'Ospite non disponibile'
   const fullName = [host.nome, host.cognome].filter(Boolean).join(' ').trim()
-  const namePart = fullName || host.iniziali || host.codiceInterno || hostId
-  const visibleId = host.codiceInterno || host.id
-  return `[${visibleId}] - ${namePart}`
+  return fullName || host.iniziali || host.codiceInterno || hostId
 }
 
 function therapyLabel(therapyId) {
@@ -584,13 +584,19 @@ onMounted(() => {
             </td>
           </tr>
           <tr v-if="filteredMovements.length === 0">
-            <td colspan="8" class="muted">Nessun movimento registrato nel dataset locale.</td>
+            <td colspan="8" class="muted">
+              Nessun movimento registrato. Premi <strong>N</strong> o clicca <strong>Aggiungi</strong> per registrare il primo movimento.
+            </td>
           </tr>
         </tbody>
       </table>
       </div>
 
-      <p v-if="loading" class="muted" style="margin-top:.55rem">Aggiornamento dati...</p>
+      <div v-if="loading" class="loading-skeleton" role="status" aria-label="Aggiornamento in corso">
+        <div class="loading-skeleton-row"></div>
+        <div class="loading-skeleton-row"></div>
+        <div class="loading-skeleton-row"></div>
+      </div>
     </div>
 
     <div class="card">
@@ -708,7 +714,7 @@ onMounted(() => {
     </div>
 
     <p v-if="message" class="muted" style="margin-top:.55rem">{{ message }}</p>
-    <p v-if="errorMessage" class="import-error">{{ errorMessage }}</p>
+    <p v-if="errorMessage" class="import-error" role="alert">{{ errorMessage }}</p>
 
     <UndoDeleteBanner
       v-if="pendingUndo"

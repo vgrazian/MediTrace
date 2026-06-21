@@ -47,6 +47,7 @@ function clearValue() {
 
     <p class="count muted">
       {{ visibleCount }} risultati su {{ totalCount }}
+      <span class="shortcut-hint" title="Premi / per cercare">⌨ /</span>
     </p>
 
     <button v-if="modelValue" type="button" class="clear" @click="clearValue">Pulisci filtro</button>
@@ -74,6 +75,13 @@ function clearValue() {
 .count {
   margin: 0;
   font-size: .85rem;
+}
+
+.shortcut-hint {
+  font-size: .75rem;
+  color: #94a3b8;
+  margin-left: .5rem;
+  cursor: help;
 }
 
 .clear {

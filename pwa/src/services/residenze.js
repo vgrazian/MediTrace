@@ -4,7 +4,7 @@ import { createRoom, updateRoom, restoreRoom } from './stanze'
 export const DEFAULT_RESIDENZE = [
     { codice: 'Il Rifugio', maxOspiti: 5, note: 'Casa alloggio attiva (5 ospiti target)' },
     { codice: 'Via Bellani', maxOspiti: 7, note: 'Casa alloggio attiva (7 ospiti target)' },
-    { codice: 'Residenza Demo', maxOspiti: 10, note: 'Residenza per formazione e dati dimostrativi' },
+    { codice: 'Demo', maxOspiti: 10, note: 'Residenza per formazione e dati dimostrativi' },
 ]
 
 const DEFAULT_MAX_OSPITI = 10
