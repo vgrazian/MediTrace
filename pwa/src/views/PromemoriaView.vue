@@ -564,7 +564,7 @@ watch(residenzaFilter, async (value) => {
       </div>
 
       <div class="dataset-frame" style="margin-top:.75rem">
-      <table class="conflict-table" style="min-width:1100px">
+      <table class="conflict-table" style="min-width:900px">
         <thead>
           <tr>
             <th>
@@ -577,10 +577,8 @@ watch(residenzaFilter, async (value) => {
             </th>
             <th>Orario</th>
             <th>Ospite</th>
-            <th>Residenza</th>
             <th>Farmaco</th>
             <th>Dose</th>
-            <th>Freq./giorno</th>
             <th>Stato</th>
             <th>Erogazione</th>
             <th>Azioni</th>
@@ -600,12 +598,10 @@ watch(residenzaFilter, async (value) => {
                 @change="toggleReminderSelection(reminder.id, $event.target.checked)"
               />
             </td>
-            <td>{{ formatSchedule(reminder.scheduledAt) }}</td>
+            <td>{{ reminder.dailyScheduleTimes?.join(' / ') ?? reminder.somministrazioniGiornaliere ?? '—' }}</td>
             <td>{{ reminder.hostLabel }}</td>
-            <td>{{ reminder.residenzaLabel }}</td>
             <td>{{ reminder.drugLabel }}</td>
             <td>{{ reminder.dosePerSomministrazione ?? '—' }}</td>
-            <td>{{ reminder.dailyScheduleTimes?.join(' / ') ?? reminder.somministrazioniGiornaliere ?? '—' }}</td>
             <td>
               <span :class="['reminder-state', reminderStateBadge(reminder.stato)]">
                 {{ reminder.stato }}
@@ -668,7 +664,7 @@ watch(residenzaFilter, async (value) => {
             </td>
           </tr>
           <tr v-if="rows.length === 0 && !loading">
-            <td colspan="12" class="muted">
+            <td colspan="8" class="muted">
               Nessun promemoria per il filtro selezionato. Prova a modificare i filtri o a cambiare data.
             </td>
           </tr>
