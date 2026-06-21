@@ -250,7 +250,6 @@ onMounted(() => {
                 <th>Email</th>
                 <th>Ruolo</th>
                 <th>Residenza predef.</th>
-                <th>Prova</th>
                 <th>Stato</th>
                 <th>Azioni</th>
               </tr>
@@ -272,7 +271,6 @@ onMounted(() => {
                     <option v-for="r in residenze" :key="r.id" :value="r.id">{{ r.label }}</option>
                   </select>
                 </td>
-                <td>{{ user.isSeeded ? 'Sì' : 'No' }}</td>
                 <td>{{ user.disabled ? 'Disattivato' : 'Attivo' }}</td>
                 <td style="white-space:nowrap">
                   <button
@@ -347,10 +345,6 @@ onMounted(() => {
                     <option v-for="r in residenze" :key="r.id" :value="r.id">{{ r.label }}</option>
                   </select>
                 </label>
-                <label style="display:flex;align-items:center;gap:.5rem">
-                  <input v-model="newIsSeeded" type="checkbox" />
-                  Utente di prova
-                </label>
                 <button :disabled="newBusy || !newUsername || !newFirstName || !newLastName || !newEmail || !newPassword" @click="handleCreateUser">
                   {{ newBusy ? 'Creazione…' : 'Crea operatore' }}
                 </button>
@@ -370,10 +364,6 @@ onMounted(() => {
                     <option value="operator">Operatore</option>
                     <option value="admin">Amministratore</option>
                   </select>
-                </label>
-                <label style="display:flex;align-items:center;gap:.5rem">
-                  <input v-model="editIsSeeded" type="checkbox" />
-                  Utente di prova
                 </label>
                 <button :disabled="editBusy || !editFirstName || !editLastName || !editEmail" @click="handleEditUser">
                   {{ editBusy ? 'Salvataggio…' : 'Salva modifiche' }}
