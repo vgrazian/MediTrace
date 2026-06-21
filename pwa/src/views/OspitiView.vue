@@ -158,9 +158,13 @@ const filteredRows = computed(() => {
     : residenceFiltered
 
   const result = [...baseRows]
-  const byName = (host) => [host.cognome, host.nome].filter(Boolean).join(' ').toLowerCase()
+  const byCognomeNome = (host) => [host.cognome, host.nome].filter(Boolean).join(' ').toLowerCase()
+  if (sortBy.value === 'nomeCognome') {
+    const byNomeCognome = (host) => [host.nome, host.cognome].filter(Boolean).join(' ').toLowerCase()
+    return result.sort((a, b) => byNomeCognome(a).localeCompare(byNomeCognome(b)))
+  }
   if (sortBy.value === 'nome') {
-    return result.sort((a, b) => byName(a).localeCompare(byName(b)))
+    return result.sort((a, b) => byCognomeNome(a).localeCompare(byCognomeNome(b)))
   }
   if (sortBy.value === 'residenza') {
     return result.sort((a, b) => String(a.stanza || '').localeCompare(String(b.stanza || '')))
@@ -482,6 +486,7 @@ onMounted(() => {
         Ordina per
         <select v-model="sortBy" aria-label="Ordina ospiti">
           <option value="nome">Cognome/Nome</option>
+          <option value="nomeCognome">Nome/Cognome</option>
           <option value="residenza">Residenza</option>
           <option value="terapie">Terapie attive</option>
         </select>
