@@ -135,7 +135,7 @@ function assertSeedEnabled(options = {}) {
 // Tutti i dati sono collocati nella residenza "Residenza Demo"
 
 const DEMO_ROOMS = [
-    { id: '__demo__residenza-demo', codice: 'Residenza Demo', descrizione: 'Residenza fittizia per dati dimostrativi', metadata: { maxOspiti: 10 }, updatedAt: NOW, deletedAt: null, syncStatus: 'pending', _seeded: true },
+    { id: '__demo__residenza-demo', codice: 'Demo', descrizione: 'Residenza fittizia per dati dimostrativi', metadata: { maxOspiti: 10 }, updatedAt: NOW, deletedAt: null, syncStatus: 'pending', _seeded: true },
 ]
 
 const DEMO_DRUGS = [
@@ -261,7 +261,7 @@ export async function loadDemoData(options = {}) {
     // Find the "Residenza Demo" room (created by ensureDefaultResidenze or pre-existing)
     const allRooms = await db.rooms.toArray()
     const demoRoom = allRooms.find(
-        r => !r.deletedAt && String(r.codice || '').trim().toLowerCase() === 'residenza demo'
+        r => !r.deletedAt && (String(r.codice || '').trim().toLowerCase() === 'demo' || String(r.codice || '').trim().toLowerCase() === 'residenza demo')
     )
     const demoRoomId = demoRoom?.id || '__demo__residenza-demo'
 

@@ -158,6 +158,14 @@ async function setDefaultBatchId(drugId, batchId) {
 
 const canCreateBatch = computed(() => drugs.value.length > 0)
 
+const showDefaultCheckbox = computed(() => {
+  if (!batchForm.value.drugId) return false
+  const batchesForDrug = stockBatches.value.filter(
+    b => !b.deletedAt && b.drugId === batchForm.value.drugId
+  )
+  return batchesForDrug.length > 0
+})
+
 const normalizedFilter = computed(() => filterQuery.value.trim().toLowerCase())
 
 const filteredDrugs = computed(() => {
@@ -1184,7 +1192,7 @@ onMounted(() => {
               @validate="(field, value) => validateBatchField(field, value)"
             />
 
-            <label class="checkbox-label" style="margin-top:.25rem">
+            <label v-if="showDefaultCheckbox" class="checkbox-label" style="margin-top:.25rem">
               <input v-model="batchForm.isDefault" type="checkbox" />
               Confezione predefinita (proposta per prima nei promemoria)
             </label>
