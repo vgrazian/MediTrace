@@ -19,10 +19,18 @@ export function useSyncState() {
 
     async function updateSyncState() {
         try {
-            // If Supabase is not configured, there's nothing to sync — always show green
+            const pending = await db.syncQueue.count()
+            const conflicts = await getSetting('pendingConflicts', [])
+
+            // If Supabase is not configured, check if there are pending items
             if (!isSupabaseConfigured) {
-                statoSync.value = SYNC_STATES.SYNCED
-                dettagli.value = 'Sync remoto non configurato.'
+                if (pending > 0) {
+                    statoSync.value = SYNC_STATES.PENDING
+                    dettagli.value = `${pending} modifiche in attesa (sync remoto non configurato).`
+                } else {
+                    statoSync.value = SYNC_STATES.SYNCED
+                    dettagli.value = 'Sync remoto non configurato.'
+                }
                 return
             }
 
@@ -33,11 +41,6 @@ export function useSyncState() {
                 dettagli.value = 'Sei offline. Le modifiche verranno sincronizzate appena possibile.'
                 return
             }
-
-            // Check for pending sync operations
-            const pending = await db.syncQueue.count()
-            // Check for unresolved conflicts
-            const conflicts = await getSetting('pendingConflicts', [])
 
             if (conflicts && conflicts.length > 0) {
                 statoSync.value = SYNC_STATES.CONFLICT
