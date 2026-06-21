@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onMounted, onUnmounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 // --- Keyboard Shortcuts (Scorciatoie da tastiera) ---
 function handleKeyboardShortcut(event) {
@@ -30,11 +30,13 @@ function handleKeyboardShortcut(event) {
 
 onMounted(() => {
   window.addEventListener('keydown', handleKeyboardShortcut)
+  stopResidenzaWatch = watch(residenzaId, () => { void loadData() })
   void loadData()
   markFormSnapshot()
 })
 onUnmounted(() => {
   window.removeEventListener('keydown', handleKeyboardShortcut)
+  if (stopResidenzaWatch) stopResidenzaWatch()
 })
 import { db } from '../db'
 import { useAuth } from '../services/auth'
@@ -49,11 +51,14 @@ import { useUnsavedChangesGuard } from '../composables/useUnsavedChangesGuard'
 import { useUndoDelete } from '../composables/useUndoDelete'
 import UndoDeleteBanner from '../components/UndoDeleteBanner.vue'
 import { useSessionViewState } from '../composables/useSessionViewState'
+import { useCurrentResidenza } from '../composables/useCurrentResidenza'
 
 const { currentUser } = useAuth()
 const route = useRoute()
 const { goToHelpSection } = useHelpNavigation()
 const { pendingUndo, scheduleUndo, executeUndo } = useUndoDelete(10_000)
+const { residenzaId } = useCurrentResidenza()
+let stopResidenzaWatch = null
 
 const {
   errors,
@@ -113,8 +118,17 @@ const normalizedFilter = computed(() => filterQuery.value.trim().toLowerCase())
 
 const filteredTherapies = computed(() => {
   const q = normalizedFilter.value
+  // Filter by current residence if selected (via host.roomId)
+  const hostById = new Map(hosts.value.map(h => [h.id, h]))
+  const residenceFiltered = residenzaId.value
+    ? therapies.value.filter(t => {
+        const host = hostById.get(t.hostId)
+        return host && host.roomId === residenzaId.value
+      })
+    : therapies.value
+
   const baseRows = q
-    ? therapies.value.filter((therapy) => {
+    ? residenceFiltered.filter((therapy) => {
     const haystack = [
       therapy.id,
       hostLabel(therapy.hostId),
@@ -125,7 +139,7 @@ const filteredTherapies = computed(() => {
     ].filter(Boolean).join(' ').toLowerCase()
     return haystack.includes(q)
   })
-    : therapies.value
+    : residenceFiltered
 
   const result = [...baseRows]
   if (sortBy.value === 'host') {
@@ -157,9 +171,15 @@ function isTherapyCurrentlyActive(therapy) {
 }
 
 const therapiesByHost = computed(() => {
+  const hostById = new Map(hosts.value.map(h => [h.id, h]))
   const grouped = new Map()
   for (const therapy of therapies.value) {
     if (!isTherapyCurrentlyActive(therapy)) continue
+    // Filter by current residence if selected
+    if (residenzaId.value) {
+      const host = hostById.get(therapy.hostId)
+      if (!host || host.roomId !== residenzaId.value) continue
+    }
     const hostKey = therapy.hostId || 'host-missing'
     const entry = grouped.get(hostKey) ?? {
       hostId: hostKey,

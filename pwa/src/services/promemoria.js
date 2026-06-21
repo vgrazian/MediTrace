@@ -329,9 +329,15 @@ export async function markReminder({ reminderId, outcome, operatorId = null, not
                     .equals(therapy.drugId)
                     .toArray()
                 const activeBatches = batches.filter(b => !b.deletedAt && b.quantitaAttuale > 0)
+
+                // Prefer batch from the same residence as the host
+                const host = await db.hosts.get(existing.hostId)
+                const hostResidenzaId = host?.roomId || ''
+
                 const batchDaScarico = batchId
                     ? activeBatches.find(b => b.id === batchId)
-                    : activeBatches[0]
+                    : (activeBatches.filter(b => b.residenzaId === hostResidenzaId)[0]
+                        || activeBatches[0])
 
                 if (batchDaScarico) {
                     const newQty = Math.max(0, batchDaScarico.quantitaAttuale - dosePerSomministrazione)

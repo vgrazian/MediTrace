@@ -169,6 +169,25 @@ db.version(5).stores({
     })
 })
 
+// v6 — Add residenzaId to stockBatches for per-residence stock management
+db.version(6).stores({
+    settings: '&key',
+    rooms: 'id, codice, updatedAt, syncStatus',
+    hosts: 'id, codiceInterno, cognome, nome, roomId, attivo, updatedAt, syncStatus',
+    drugs: 'id, nomeFarmaco, principioAttivo, classeTerapeutica, updatedAt, syncStatus',
+    stockBatches: 'id, drugId, residenzaId, nomeCommerciale, scadenza, updatedAt, syncStatus',
+    therapies: 'id, hostId, drugId, stockBatchId, dataInizio, dataFine, updatedAt, syncStatus',
+    movements: 'id, stockBatchId, hostId, therapyId, type, updatedAt, syncStatus',
+    reminders: 'id, hostId, therapyId, scheduledAt, stato, updatedAt, syncStatus',
+    syncQueue: '++id, entityType, entityId, operation, createdAt',
+    syncState: '&key',
+    activityLog: '++id, entityType, entityId, action, deviceId, operatorId, ts',
+}).upgrade(async tx => {
+    await tx.table('stockBatches').toCollection().modify(batch => {
+        batch.residenzaId = batch.residenzaId ?? ''
+    })
+})
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 export async function getSetting(key, fallback = null) {

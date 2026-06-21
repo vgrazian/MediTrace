@@ -1,5 +1,5 @@
 <script setup>
-import { onMounted, onUnmounted, ref, computed } from 'vue'
+import { onMounted, onUnmounted, ref, computed, watch } from 'vue'
 // --- Keyboard Shortcuts (Scorciatoie da tastiera) ---
 function handleKeyboardShortcut(event) {
   const tag = (event.target?.tagName || '').toLowerCase()
@@ -29,11 +29,14 @@ function handleKeyboardShortcut(event) {
 
 onMounted(() => {
   window.addEventListener('keydown', handleKeyboardShortcut)
+  // Watch residence changes from the shared composable
+  stopResidenzaWatch = watch(residenzaId, () => { void loadData() })
   void loadData()
   markFormSnapshot()
 })
 onUnmounted(() => {
   window.removeEventListener('keydown', handleKeyboardShortcut)
+  if (stopResidenzaWatch) stopResidenzaWatch()
 })
 import { useAuth } from '../services/auth'
 import { buildHostRows, createHost, deleteHost, formatHostDisplay, restoreHost, updateHost } from '../services/ospiti'
@@ -48,10 +51,13 @@ import { useUnsavedChangesGuard } from '../composables/useUnsavedChangesGuard'
 import { useUndoDelete } from '../composables/useUndoDelete'
 import UndoDeleteBanner from '../components/UndoDeleteBanner.vue'
 import { useSessionViewState } from '../composables/useSessionViewState'
+import { useCurrentResidenza } from '../composables/useCurrentResidenza'
 
 const { currentUser } = useAuth()
 const { goToHelpSection } = useHelpNavigation()
 const { pendingUndo, scheduleUndo, executeUndo } = useUndoDelete(10_000)
+const { residenzaId } = useCurrentResidenza()
+let stopResidenzaWatch = null
 
 const {
   errors,
@@ -134,8 +140,13 @@ const normalizedFilter = computed(() => filterQuery.value.trim().toLowerCase())
 
 const filteredRows = computed(() => {
   const q = normalizedFilter.value
+  // Filter by current residence if selected
+  const residenceFiltered = residenzaId.value
+    ? rows.value.filter(h => h.roomId === residenzaId.value)
+    : rows.value
+
   const baseRows = q
-    ? rows.value.filter((host) => {
+    ? residenceFiltered.filter((host) => {
     const haystack = [
       host.id,
       host.nome,
@@ -144,7 +155,7 @@ const filteredRows = computed(() => {
     ].filter(Boolean).join(' ').toLowerCase()
     return haystack.includes(q)
   })
-    : rows.value
+    : residenceFiltered
 
   const result = [...baseRows]
   const byName = (host) => [host.cognome, host.nome].filter(Boolean).join(' ').toLowerCase()

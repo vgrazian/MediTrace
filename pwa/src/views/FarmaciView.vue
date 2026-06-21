@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onMounted, onUnmounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 // --- Keyboard Shortcuts (Scorciatoie da tastiera) ---
 function handleKeyboardShortcut(event) {
   // Ignore shortcuts when typing in input fields
@@ -34,11 +34,13 @@ function handleKeyboardShortcut(event) {
 
 onMounted(() => {
   window.addEventListener('keydown', handleKeyboardShortcut)
+  stopResidenzaWatch = watch(residenzaId, () => { void loadData() })
   void loadData()
   markFormSnapshot()
 })
 onUnmounted(() => {
   window.removeEventListener('keydown', handleKeyboardShortcut)
+  if (stopResidenzaWatch) stopResidenzaWatch()
 })
 import { db, getSetting, setSetting } from '../db'
 import { useAuth } from '../services/auth'
@@ -53,10 +55,13 @@ import { useUnsavedChangesGuard } from '../composables/useUnsavedChangesGuard'
 import { useUndoDelete } from '../composables/useUndoDelete'
 import UndoDeleteBanner from '../components/UndoDeleteBanner.vue'
 import { useSessionViewState } from '../composables/useSessionViewState'
+import { useCurrentResidenza } from '../composables/useCurrentResidenza'
 
 const { currentUser } = useAuth()
 const { goToHelpSection } = useHelpNavigation()
 const { pendingUndo, scheduleUndo, executeUndo } = useUndoDelete(10_000)
+const { residenzaId } = useCurrentResidenza()
+let stopResidenzaWatch = null
 
 // Validation for drug form
 const {
@@ -391,6 +396,7 @@ async function loadData() {
 
     batches.value = rawBatches
       .filter(item => !item.deletedAt)
+      .filter(item => !residenzaId.value || item.residenzaId === residenzaId.value)
       .sort((a, b) => new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0))
   } catch (err) {
     errorMessage.value = `Errore caricamento catalogo: ${err.message}`
@@ -471,6 +477,7 @@ async function createBatch() {
       nomeCommerciale: name,
       dosaggio: batchForm.value.dosaggio.trim() || '',
       dosi: Number(batchForm.value.dosi || 0),
+      residenzaId: residenzaId.value || '',
       quantitaAttuale: Number(batchForm.value.quantitaAttuale || 0),
       sogliaRiordino: Number(batchForm.value.sogliaRiordino || 0),
       scadenza: batchForm.value.scadenza || null,

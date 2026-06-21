@@ -647,6 +647,7 @@ function generateRealisticStockBatches(drugs) {
                 nomeCommerciale: `${drug.principioAttivo} - Batch ${lotNumber}`,
                 dosaggio: `${(idx % 4 + 1) * 100} mg`,
                 dosi: quantitaIniziale,
+                residenzaId: '',
                 unitaMisura: 'cpr',
                 lotto: lotNumber,
                 scadenza: scadenzaDate.toISOString().split('T')[0],

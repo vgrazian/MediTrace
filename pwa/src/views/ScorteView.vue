@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { db, enqueue, getSetting } from '../db'
 import { buildOperationalReport, buildOrderDraftText, operationalReportToCsv } from '../services/reporting'
 import { confirmDeleteDrug, confirmDeleteBatch } from '../services/confirmations'
@@ -7,9 +7,12 @@ import { openConfirmDialog } from '../services/confirmDialog'
 import { useAuth } from '../services/auth'
 import { useHelpNavigation } from '../composables/useHelpNavigation'
 import CrudFilterBar from '../components/CrudFilterBar.vue'
+import { useCurrentResidenza } from '../composables/useCurrentResidenza'
 
 const { currentUser } = useAuth()
 const { goToHelpSection } = useHelpNavigation()
+const { residenzaId } = useCurrentResidenza()
+let stopResidenzaWatch = null
 
 const report = ref(null)
 const reportLoading = ref(false)
@@ -215,8 +218,10 @@ async function refreshReport() {
     ])
     report.value = nextReport
     drugs.value = rawDrugs.filter(item => !item.deletedAt)
+    // Filter batches by current residence
     stockBatches.value = rawBatches
       .filter(item => !item.deletedAt)
+      .filter(item => !residenzaId.value || item.residenzaId === residenzaId.value)
       .sort((a, b) => new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0))
   } catch (err) {
     reportError.value = err.message
@@ -402,6 +407,7 @@ async function saveBatch() {
         nomeCommerciale: batchForm.value.nomeCommerciale?.trim() || existing.nomeCommerciale,
         dosaggio: batchForm.value.dosaggio?.trim() || '',
         dosi: Number(batchForm.value.dosi || 0),
+        residenzaId: residenzaId.value || existing.residenzaId || '',
         quantitaAttuale: Number(batchForm.value.quantitaAttuale || 0),
         sogliaRiordino: Number(batchForm.value.sogliaRiordino || 0),
         scadenza: batchForm.value.scadenza || null,
@@ -431,6 +437,7 @@ async function saveBatch() {
         nomeCommerciale: batchForm.value.nomeCommerciale.trim(),
         dosaggio: batchForm.value.dosaggio?.trim() || '',
         dosi: Number(batchForm.value.dosi || 0),
+        residenzaId: residenzaId.value || '',
         quantitaAttuale: Number(batchForm.value.quantitaAttuale || 0),
         sogliaRiordino: Number(batchForm.value.sogliaRiordino || 0),
         scadenza: batchForm.value.scadenza || null,
@@ -676,6 +683,7 @@ function cancelOrderDraft() {
 }
 
 onMounted(() => {
+  stopResidenzaWatch = watch(residenzaId, () => { void refreshReport() })
   void refreshReport()
   void loadConsumoMensile()
 })

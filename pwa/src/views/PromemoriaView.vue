@@ -33,10 +33,12 @@ import { openConfirmDialog } from '../services/confirmDialog'
 import { useFormValidation } from '../services/formValidation'
 import ValidatedInput from '../components/ValidatedInput.vue'
 import { useHelpNavigation } from '../composables/useHelpNavigation'
+import { useCurrentResidenza } from '../composables/useCurrentResidenza'
 
 const route = useRoute()
 const { currentUser } = useAuth()
 const { goToHelpSection } = useHelpNavigation()
+const { residenzaId } = useCurrentResidenza()
 
 const loading = ref(false)
 const markingId = ref(null)
@@ -68,7 +70,13 @@ async function loadBatchesForReminder(reminderId) {
       .where('drugId')
       .equals(reminder.drugId)
       .toArray()
-    return allBatches.filter(b => !b.deletedAt && b.quantitaAttuale > 0)
+    const active = allBatches.filter(b => !b.deletedAt && b.quantitaAttuale > 0)
+    // Prefer batches matching the current residence
+    if (residenzaId.value) {
+      const residenceBatches = active.filter(b => b.residenzaId === residenzaId.value)
+      if (residenceBatches.length > 0) return residenceBatches
+    }
+    return active
   } catch {
     return []
   }
@@ -135,7 +143,6 @@ function batchLabel(batch) {
 
 const dateFilter = ref('today')
 const stateFilter = ref([])
-const residenzaFilter = ref('')
 
 const hostIdFilter = ref('')
 const fasciaOrariaFilter = ref('')
@@ -181,7 +188,7 @@ const rows = computed(() => buildReminderRows({
   bedSequence: bedSequence.value,
   dateFilter: dateFilter.value,
   stateFilter: stateFilter.value,
-  residenzaFilter: residenzaFilter.value,
+  residenzaFilter: residenzaId.value,
   hostIdFilter: hostIdFilter.value,
   fasciaOrariaFilter: fasciaOrariaFilter.value,
 }))
@@ -253,14 +260,6 @@ async function loadData() {
     bedSequence.value = Array.isArray(savedBedSequence) ? savedBedSequence : []
     const validIds = new Set(rawReminders.filter(item => !item.deletedAt).map(item => item.id))
     selectedReminderIds.value = selectedReminderIds.value.filter((id) => validIds.has(id))
-
-    const savedResidenza = await getSetting(CURRENT_RESIDENZA_SETTING_KEY, '')
-    const validResidenza = String(savedResidenza || '')
-    if (!validResidenza || rooms.value.some(room => room.id === validResidenza)) {
-      residenzaFilter.value = validResidenza
-    } else {
-      residenzaFilter.value = ''
-    }
   } catch (err) {
     errorMessage.value = `Errore caricamento: ${err.message}`
   } finally {
@@ -564,10 +563,6 @@ async function deleteReminder(reminderId) {
 onMounted(() => void loadData())
 
 watch(() => route.fullPath, () => void loadData())
-
-watch(residenzaFilter, async (value) => {
-  await setSetting(CURRENT_RESIDENZA_SETTING_KEY, String(value || ''))
-})
 </script>
 
 <template>
@@ -628,12 +623,13 @@ watch(residenzaFilter, async (value) => {
         </label>
         <label>
           Residenza operativa
-          <select v-model="residenzaFilter">
+          <select :model-value="residenzaId" disabled style="opacity:0.7">
             <option value="">Tutte le residenze</option>
             <option v-for="residenza in residenzaOptions" :key="residenza.id" :value="residenza.id">
               {{ residenza.label }}
             </option>
           </select>
+          <span class="muted" style="font-size:0.75em">(selezionabile dalla barra superiore)</span>
         </label>
       </div>
     </div>

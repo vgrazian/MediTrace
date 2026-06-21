@@ -6,6 +6,7 @@ import { isSupabaseConfigured } from '../services/supabaseClient'
 import { db, getSetting, setSetting } from '../db'
 import { useSyncState, SYNC_STATES } from '../composables/useSyncState'
 import { CURRENT_RESIDENZA_SETTING_KEY } from '../services/promemoria'
+import { initCurrentResidenza, setCurrentResidenza, useCurrentResidenza } from '../composables/useCurrentResidenza'
 import { pruneStaleData } from '../services/dataPruning'
 import { openConfirmDialog } from '../services/confirmDialog'
 
@@ -14,8 +15,8 @@ const logoSrc = `${import.meta.env.BASE_URL}branding/logo-header.svg`
 
 const { statoSync, dettagli, flushLocalSyncQueue } = useSyncState()
 
-// ── Residenza corrente ──────────────────────────────────────────────────────
-const currentResidenzaId = ref('')
+// ── Residenza corrente (shared reactive) ────────────────────────────────────
+const { residenzaId: currentResidenzaId } = useCurrentResidenza()
 const currentResidenzaLabel = ref('')
 const showResidenzaDropdown = ref(false)
 const availableResidenze = ref([])
@@ -37,8 +38,7 @@ const syncColor = computed(() => {
 })
 
 async function loadCurrentResidenza() {
-  const savedId = await getSetting(CURRENT_RESIDENZA_SETTING_KEY, '')
-  currentResidenzaId.value = String(savedId || '')
+  await initCurrentResidenza()
   if (currentResidenzaId.value) {
     try {
       const room = await db.rooms.get(currentResidenzaId.value)
@@ -48,7 +48,6 @@ async function loadCurrentResidenza() {
       }
     } catch { /* ignore */ }
   }
-  currentResidenzaId.value = ''
   currentResidenzaLabel.value = ''
 }
 
@@ -78,15 +77,11 @@ function toggleResidenzaDropdown() {
 }
 
 async function selectResidenza(roomId) {
-  await setSetting(CURRENT_RESIDENZA_SETTING_KEY, roomId)
-  currentResidenzaId.value = roomId
+  await setCurrentResidenza(roomId)
   const room = availableResidenze.value.find(r => r.id === roomId)
   currentResidenzaLabel.value = room?.label || roomId
   showResidenzaDropdown.value = false
-  // Dispatch event so views can react
-  window.dispatchEvent(new CustomEvent('medi-trace:residenza-changed', { detail: { roomId } }))
-  // Reload to refresh all data for the new residenza
-  window.location.reload()
+  // All views react to currentResidenzaId changes via the composable
 }
 
 function closeResidenzaDropdown(e) {
