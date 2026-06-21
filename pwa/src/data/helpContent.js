@@ -342,12 +342,8 @@ export const helpContent = {
             },
         ],
     },
-    'Il registro conserva le operazioni degli ultimi 90 giorni. Per operazioni più vecchie è necessario contattare l\'amministratore di sistema.',
-},
-        ],
-    },
 
-impostazioni: {
+    impostazioni: {
     titolo: 'Impostazioni — Guida',
         intro:
     'In questa sezione puoi gestire il tuo profilo utente, cambiare la password e configurare le preferenze dell\'applicazione.',
