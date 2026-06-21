@@ -131,6 +131,7 @@ const batchForm = ref({
   drugId: '',
   nomeCommerciale: '',
   dosaggio: '',
+  dosi: '',
   quantitaAttuale: '',
   sogliaRiordino: '',
   scadenza: '',
@@ -469,6 +470,7 @@ async function createBatch() {
       drugId: batchForm.value.drugId,
       nomeCommerciale: name,
       dosaggio: batchForm.value.dosaggio.trim() || '',
+      dosi: Number(batchForm.value.dosi || 0),
       quantitaAttuale: Number(batchForm.value.quantitaAttuale || 0),
       sogliaRiordino: Number(batchForm.value.sogliaRiordino || 0),
       scadenza: batchForm.value.scadenza || null,
@@ -484,6 +486,7 @@ async function createBatch() {
       drugId: '',
       nomeCommerciale: '',
       dosaggio: '',
+      dosi: '',
       quantitaAttuale: '',
       sogliaRiordino: '',
       scadenza: '',
@@ -596,6 +599,7 @@ function startEditBatch(batch) {
       drugId: batch.drugId || '',
       nomeCommerciale: batch.nomeCommerciale || '',
       dosaggio: batch.dosaggio || '',
+      dosi: String(batch.dosi ?? ''),
       quantitaAttuale: String(batch.quantitaAttuale ?? ''),
       sogliaRiordino: String(batch.sogliaRiordino ?? ''),
       scadenza: batch.scadenza ? String(batch.scadenza).slice(0, 10) : '',
@@ -624,6 +628,7 @@ function resetBatchForm() {
     drugId: '',
     nomeCommerciale: '',
     dosaggio: '',
+    dosi: '',
     quantitaAttuale: '',
     sogliaRiordino: '',
     scadenza: '',
@@ -983,6 +988,7 @@ onMounted(() => {
             <th>Farmaco</th>
             <th>Nome commerciale</th>
             <th>Dosaggio</th>
+            <th>Dosi</th>
             <th>Quantita'</th>
             <th>Soglia</th>
             <th>Scadenza</th>
@@ -1006,6 +1012,7 @@ onMounted(() => {
             <td>{{ drugLabel(batch.drugId) }}</td>
             <td>{{ batch.nomeCommerciale }}</td>
             <td>{{ batch.dosaggio || '—' }}</td>
+            <td>{{ batch.dosi ?? 0 }}</td>
             <td>{{ batch.quantitaAttuale ?? 0 }}</td>
             <td>{{ batch.sogliaRiordino ?? 0 }}</td>
             <td>{{ formatDate(batch.scadenza) }}</td>
@@ -1015,7 +1022,7 @@ onMounted(() => {
             </td>
           </tr>
           <tr v-if="filteredBatches.length === 0 && !loading">
-            <td colspan="8" class="muted">
+            <td colspan="9" class="muted">
               Nessuna confezione attiva. Aggiungi una confezione dal pannello Gestione Farmaci qui sotto.
             </td>
           </tr>
@@ -1160,6 +1167,16 @@ onMounted(() => {
               label="Dosaggio"
               :error="batchErrors.dosaggio"
               placeholder="500 mg"
+              @validate="(field, value) => validateBatchField(field, value)"
+            />
+
+            <ValidatedInput
+              v-model="batchForm.dosi"
+              field-name="dosi"
+              label="Dosi (n. compresse/confezione)"
+              type="number"
+              :error="batchErrors.dosi"
+              placeholder="30"
               @validate="(field, value) => validateBatchField(field, value)"
             />
 

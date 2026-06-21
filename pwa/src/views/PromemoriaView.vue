@@ -122,6 +122,7 @@ async function confirmBatchAndApply() {
 function batchLabel(batch) {
   const parts = [batch.nomeCommerciale || 'Confezione']
   if (batch.dosaggio) parts.push(batch.dosaggio)
+  if (batch.dosi) parts.push(`${batch.dosi} dosi`)
   parts.push(`Qt: ${batch.quantitaAttuale ?? 0}`)
   if (batch.scadenza) {
     const scad = new Date(batch.scadenza)

@@ -59,7 +59,7 @@ export const helpContent = {
             {
                 titolo: 'Come aggiungere una confezione a un farmaco esistente',
                 testo:
-                    'Nella sezione "Confezioni attive" (seconda metà della pagina), clicca "Aggiungi". Seleziona il farmaco dal menu a tendina, compila Nome commerciale, Dosaggio, Quantità attuale, Soglia riordino e Scadenza, poi premi "Aggiungi confezione". La confezione comparirà nella tabella sottostante.',
+                    'Nella sezione "Confezioni attive" (seconda metà della pagina), clicca "Aggiungi". Seleziona il farmaco dal menu a tendina, compila Nome commerciale, Dosaggio, Dosi (numero di compresse o unità della confezione), Quantità attuale, Soglia riordino e Scadenza, poi premi "Aggiungi confezione". La confezione comparirà nella tabella sottostante.',
             },
             {
                 titolo: 'Modificare un farmaco o una confezione',

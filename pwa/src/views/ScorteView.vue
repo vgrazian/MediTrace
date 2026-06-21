@@ -38,6 +38,7 @@ const batchForm = ref({
   drugId: '',
   nomeCommerciale: '',
   dosaggio: '',
+  dosi: '',
   quantitaAttuale: '',
   sogliaRiordino: '',
   scadenza: '',
@@ -248,6 +249,7 @@ function resetBatchForm() {
     drugId: '',
     nomeCommerciale: '',
     dosaggio: '',
+    dosi: '',
     quantitaAttuale: '',
     sogliaRiordino: '',
     scadenza: '',
@@ -263,6 +265,7 @@ function openAddBatchForm() {
     drugId: '',
     nomeCommerciale: '',
     dosaggio: '',
+    dosi: '',
     quantitaAttuale: '',
     sogliaRiordino: '',
     scadenza: '',
@@ -398,6 +401,7 @@ async function saveBatch() {
         drugId: batchForm.value.drugId || existing.drugId,
         nomeCommerciale: batchForm.value.nomeCommerciale?.trim() || existing.nomeCommerciale,
         dosaggio: batchForm.value.dosaggio?.trim() || '',
+        dosi: Number(batchForm.value.dosi || 0),
         quantitaAttuale: Number(batchForm.value.quantitaAttuale || 0),
         sogliaRiordino: Number(batchForm.value.sogliaRiordino || 0),
         scadenza: batchForm.value.scadenza || null,
@@ -426,6 +430,7 @@ async function saveBatch() {
         drugId: batchForm.value.drugId,
         nomeCommerciale: batchForm.value.nomeCommerciale.trim(),
         dosaggio: batchForm.value.dosaggio?.trim() || '',
+        dosi: Number(batchForm.value.dosi || 0),
         quantitaAttuale: Number(batchForm.value.quantitaAttuale || 0),
         sogliaRiordino: Number(batchForm.value.sogliaRiordino || 0),
         scadenza: batchForm.value.scadenza || null,
@@ -950,6 +955,7 @@ onMounted(() => {
         <thead>
           <tr>
             <th>Confezione</th>
+            <th>Dosi</th>
             <th>Quantita'</th>
             <th>Soglia</th>
             <th>Scadenza</th>
@@ -959,6 +965,7 @@ onMounted(() => {
         <tbody>
           <tr v-for="batch in stockBatches" :key="batch.id">
             <td>{{ batchLabel(batch) }}</td>
+            <td>{{ batch.dosi ?? 0 }}</td>
             <td>{{ formatNumber(batch.quantitaAttuale) }}</td>
             <td>{{ formatNumber(batch.sogliaRiordino) }}</td>
             <td>{{ batch.scadenza || '—' }}</td>
@@ -968,7 +975,7 @@ onMounted(() => {
             </td>
           </tr>
           <tr v-if="!hasBatches && !reportLoading">
-            <td colspan="5" class="muted">
+            <td colspan="6" class="muted">
               Nessuna confezione attiva. Aggiungi una confezione dalla sezione Farmaci.
             </td>
           </tr>
@@ -1022,6 +1029,10 @@ onMounted(() => {
           <label>
             Dosaggio
             <input v-model="batchForm.dosaggio" type="text" :disabled="!canEditBatchForm || savingBatch" />
+          </label>
+          <label>
+            Dosi (n. compresse/confezione)
+            <input v-model="batchForm.dosi" type="number" min="0" step="1" :disabled="!canEditBatchForm || savingBatch" />
           </label>
           <label>
             Quantita' attuale
