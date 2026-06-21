@@ -218,8 +218,9 @@ async function handleSync() {
       <span class="brand-title">MediTrace</span>
     </div>
 
-    <span v-if="showResidenzaBadge" ref="residenzaBadgeRef" class="residenza-badge" :title="`Residenza attiva: ${currentResidenzaLabel} — clicca per cambiare`" @click.stop="toggleResidenzaDropdown" role="button" tabindex="0" style="cursor:pointer">
-      🏠 {{ currentResidenzaLabel }}
+    <span ref="residenzaBadgeRef" class="residenza-badge" :class="{ 'residenza-badge--empty': !showResidenzaBadge }" :title="showResidenzaBadge ? `Residenza attiva: ${currentResidenzaLabel} — clicca per cambiare` : 'Seleziona una residenza operativa'" @click.stop="toggleResidenzaDropdown" role="button" tabindex="0" style="cursor:pointer">
+      <span v-if="showResidenzaBadge">{{ currentResidenzaLabel }}</span>
+      <span v-else class="residenza-placeholder">Residenza</span>
       <span class="residenza-chevron">▾</span>
       <div v-if="showResidenzaDropdown" ref="residenzaDropdownRef" class="residenza-dropdown" @click.stop>
         <div class="residenza-dropdown-header">Cambia residenza</div>
@@ -314,6 +315,19 @@ async function handleSync() {
 }
 .residenza-badge:hover {
   background: #bfdbfe;
+}
+.residenza-badge--empty {
+  background: transparent;
+  border: 1px dashed rgba(216, 231, 251, .35);
+  color: #b8cef0;
+}
+.residenza-badge--empty:hover {
+  background: rgba(255,255,255,.08);
+  color: #fff;
+}
+.residenza-placeholder {
+  opacity: 0.7;
+  font-style: italic;
 }
 .residenza-chevron {
   font-size: 0.7em;
