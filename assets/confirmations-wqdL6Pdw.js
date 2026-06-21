@@ -1,4 +1,4 @@
-import{K as c}from"./index-92_IEMLC.js";async function a(e){const{title:n,message:i,consequences:t=[],confirmText:s="Conferma",cancelText:m="Annulla",itemName:l,itemType:o}=e;let r=i;return l&&o&&(r=`${i}
+import{K as c}from"./index-Chgke3Hn.js";async function a(e){const{title:n,message:i,consequences:t=[],confirmText:s="Conferma",cancelText:m="Annulla",itemName:l,itemType:o}=e;let r=i;return l&&o&&(r=`${i}
 
 ${o}: ${l}`),t.length>0&&(r+=`
 
