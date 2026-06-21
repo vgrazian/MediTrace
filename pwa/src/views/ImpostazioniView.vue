@@ -839,17 +839,6 @@ async function handleCreateUser() {
         <a href="#/privacy">Privacy policy</a>
         <a href="#/termini">Termini di servizio</a>
       </div>
-
-      <template v-if="currentUser?.isSeeded">
-        <button
-          style="margin-top:.5rem;background:#dc2626"
-          :disabled="testUserBusy"
-          @click="disableTestUser"
-        >
-          {{ testUserBusy ? 'Disattivazione...' : 'Disattiva utente di prova' }}
-        </button>
-        <p v-if="testUserMessage" class="muted" style="margin-top:.5rem;font-size:.8rem">{{ testUserMessage }}</p>
-      </template>
     </div>
 
     <div class="card">
@@ -923,62 +912,11 @@ async function handleCreateUser() {
 
     <div class="card">
       <p><strong>Utenti</strong></p>
-      <p class="muted" style="margin-top:.25rem">Gestione utenti consentita solo ad account amministratore. Gli operatori vengono creati direttamente da questo pannello.</p>
+      <p class="muted" style="margin-top:.25rem">Gestione utenti tramite la sezione <RouterLink to="/operatori">Operatori</RouterLink>.</p>
 
       <p v-if="!canManageUsers" class="muted" style="margin-top:.5rem">
         Il tuo account non ha privilegi amministratore: puoi visualizzare solo il tuo profilo.
       </p>
-
-      <div v-if="canManageUsers" class="import-form" style="margin-top:.75rem">
-        <p><strong>Crea nuovo utente</strong></p>
-        <label>
-          Nome
-          <input v-model="newUserFirstName" type="text" autocomplete="given-name" />
-        </label>
-        <label>
-          Cognome
-          <input v-model="newUserLastName" type="text" autocomplete="family-name" />
-        </label>
-        <label>
-          Username suggerito
-          <input :value="newUserUsername" type="text" autocomplete="username" @input="handleNewUserUsernameInput" />
-        </label>
-        <p class="muted" style="margin-top:-.25rem;font-size:.8rem">Suggerimento: prime 8 lettere del nome + prime 7 del cognome, modificabile manualmente.</p>
-        <label>
-          Email
-          <input v-model="newUserEmail" type="email" autocomplete="email" />
-        </label>
-        <label>
-          Telefono
-          <input v-model="newUserPhone" type="tel" autocomplete="tel" placeholder="+39 333 1234567" />
-        </label>
-        <label>
-          Password iniziale
-          <input v-model="newUserPassword" type="password" autocomplete="new-password" />
-        </label>
-        <p class="muted" style="font-size:.8rem">
-          Regole password: {{ newUserPasswordPolicyState.minLength ? 'ok' : 'no' }} lunghezza ·
-          {{ newUserPasswordPolicyState.hasUppercase ? 'ok' : 'no' }} maiuscola ·
-          {{ newUserPasswordPolicyState.hasLowercase ? 'ok' : 'no' }} minuscola ·
-          {{ newUserPasswordPolicyState.hasDigit ? 'ok' : 'no' }} numero ·
-          {{ newUserPasswordPolicyState.hasSymbol ? 'ok' : 'no' }} simbolo
-        </p>
-        <label>
-          Ruolo
-          <select v-model="newUserRole">
-            <option value="operator">Operatore</option>
-            <option value="admin">Amministratore</option>
-          </select>
-        </label>
-        <label style="display:flex;align-items:center;gap:.5rem">
-          <input v-model="newUserIsSeeded" type="checkbox" />
-          {{ newUserIsSeeded ? 'Segna come utente normale' : 'Marca come utente di prova' }}
-        </label>
-        <button :disabled="newUserBusy || !newUserUsername || !newUserFirstName || !newUserLastName || !newUserEmail || !newUserPassword" @click="handleCreateUser">
-          {{ newUserBusy ? 'Creazione utente…' : 'Crea utente' }}
-        </button>
-        <p v-if="newUserMessage" class="muted" style="margin-top:.5rem;font-size:.8rem">{{ newUserMessage }}</p>
-      </div>
 
       <div v-if="canManageUsers" class="dataset-frame" style="margin-top:.75rem;max-height:18rem">
         <table class="conflict-table" style="min-width:940px">
@@ -990,12 +928,10 @@ async function handleCreateUser() {
               <th>Telefono</th>
               <th>Email</th>
               <th>Admin</th>
-              <th>Prova</th>
               <th>Disabilitato</th>
               <th>Ultima attività</th>
               <th>Creato il</th>
               <th>Azioni</th>
-              <th>Tipo</th>
               <th>Stato</th>
               <th>Azione</th>
             </tr>
@@ -1015,9 +951,6 @@ async function handleCreateUser() {
                 />
               </td>
               <td>
-                <span v-if="user.isSeeded" style="color:#b45309;font-weight:bold">✔</span>
-              </td>
-              <td>
                 <span v-if="user.disabled" style="color:#dc2626;font-weight:bold">✔</span>
               </td>
               <td>
@@ -1031,7 +964,6 @@ async function handleCreateUser() {
                 <button v-if="canManageUsers && user.username !== currentUser?.username && !user.disabled" @click="handleForceLogout(user)">Logout</button>
               </td>
                 <p v-if="userRoleMessage" class="muted" style="margin-top:.5rem;font-size:.8rem">{{ userRoleMessage }}</p>
-              <td>{{ user.isSeeded ? 'prova' : 'standard' }}</td>
               <td>{{ user.disabled ? 'disattivato' : 'attivo' }}</td>
               <td>
                 <button
