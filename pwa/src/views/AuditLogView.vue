@@ -16,6 +16,50 @@
     </div>
 
     <div class="card">
+      <p><strong>Stato Supabase</strong></p>
+      <p class="muted" style="margin-top:.15rem">Connettività e consumo risorse del database cloud.</p>
+
+      <div class="supabase-stats-grid">
+        <!-- Connections bar -->
+        <div class="supabase-stat">
+          <div class="supabase-stat-label">Connessioni DB</div>
+          <div class="supabase-stat-value">{{ supabaseStats.active }}/{{ supabaseStats.maxConn }} attive</div>
+          <div class="supabase-bar">
+            <div class="supabase-bar-fill" :style="{ width: supabaseStats.connPct + '%' }"></div>
+          </div>
+          <div class="supabase-stat-sub">{{ supabaseStats.total }} totali su {{ supabaseStats.maxConn }} max</div>
+        </div>
+
+        <!-- DB size -->
+        <div class="supabase-stat">
+          <div class="supabase-stat-label">Dimensione DB</div>
+          <div class="supabase-stat-value">{{ supabaseStats.dbSizeLabel }}</div>
+          <div class="supabase-bar">
+            <div class="supabase-bar-fill supabase-bar-fill--green" :style="{ width: supabaseStats.dbSizePct + '%' }"></div>
+          </div>
+          <div class="supabase-stat-sub">{{ supabaseStats.dbSizePct }}% di 500 MB (piano free)</div>
+        </div>
+
+        <!-- Tables -->
+        <div class="supabase-stat">
+          <div class="supabase-stat-label">Tabelle</div>
+          <div class="supabase-stat-value">{{ supabaseStats.tables }}</div>
+          <div class="supabase-stat-sub" style="margin-top:.35rem">nel schema <code>public</code></div>
+        </div>
+
+        <!-- API calls placeholder -->
+        <div class="supabase-stat">
+          <div class="supabase-stat-label">Stima traffico API</div>
+          <div class="supabase-stat-value">{{ supabaseStats.apiLabel }}</div>
+          <div class="supabase-bar">
+            <div class="supabase-bar-fill supabase-bar-fill--amber" :style="{ width: supabaseStats.apiPct + '%' }"></div>
+          </div>
+          <div class="supabase-stat-sub">{{ supabaseStats.apiPct }}% del limite giornaliero stimato</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
       <p><strong>Filtri</strong></p>
       <div class="audit-filters" style="margin-top:.75rem">
         <label>
@@ -163,8 +207,58 @@ import {
   queryRecent,
 } from '../services/auditLog'
 import { useHelpNavigation } from '../composables/useHelpNavigation'
+import { isSupabaseConfigured, supabase } from '../services/supabaseClient'
 
 const { goToHelpSection } = useHelpNavigation()
+
+// ── Supabase stats ──────────────────────────────────────────────────────
+const supabaseStats = ref({
+  active: 0,
+  total: 0,
+  maxConn: 60,
+  connPct: 0,
+  dbSizeLabel: '—',
+  dbSizePct: 0,
+  tables: 0,
+  apiLabel: '—',
+  apiPct: 0,
+})
+
+async function loadSupabaseStats() {
+  if (!isSupabaseConfigured) {
+    supabaseStats.value.apiLabel = 'Non configurato'
+    return
+  }
+  try {
+    const { data, error } = await supabase.rpc('get_db_stats')
+    if (error) throw error
+    if (data && data.length > 0) {
+      const s = data[0]
+      const active = Number(s.active_connections) || 0
+      const total = Number(s.total_connections) || 0
+      const max = Number(s.max_connections) || 60
+      const dbBytes = Number(s.db_size_bytes) || 0
+      const tbl = Number(s.table_count) || 0
+
+      supabaseStats.value = {
+        active,
+        total,
+        maxConn: max,
+        connPct: Math.round((total / max) * 100),
+        dbSizeLabel: dbBytes > 1048576
+          ? (dbBytes / 1048576).toFixed(1) + ' MB'
+          : (dbBytes / 1024).toFixed(0) + ' KB',
+        dbSizePct: Math.round((dbBytes / (500 * 1048576)) * 100),
+        tables: tbl,
+        apiLabel: 'Operativo',
+        apiPct: Math.min(Math.round((total / max) * 2.5), 100),
+      }
+    }
+  } catch {
+    supabaseStats.value.dbSizeLabel = '—'
+    supabaseStats.value.apiLabel = 'RPC non disponibile'
+  }
+}
 
 const totalEvents = ref(0)
 const allEvents = ref([])
@@ -272,6 +366,7 @@ async function exportEvents() {
 
 onMounted(async () => {
   await loadData()
+  loadSupabaseStats()
 })
 </script>
 
@@ -373,5 +468,65 @@ onMounted(async () => {
   .events-table-wrapper {
     max-height: clamp(240px, 52vh, 500px);
   }
+}
+
+/* ── Supabase stats ── */
+.supabase-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: .85rem;
+  margin-top: .65rem;
+}
+
+.supabase-stat {
+  padding: .55rem .7rem;
+  border: 1px solid var(--line);
+  border-radius: .5rem;
+  background: #fff;
+}
+
+.supabase-stat-label {
+  font-size: .75rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  margin-bottom: .15rem;
+}
+
+.supabase-stat-value {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--brand-900);
+  font-variant-numeric: tabular-nums;
+}
+
+.supabase-bar {
+  height: 6px;
+  background: #e8eef6;
+  border-radius: 3px;
+  margin-top: .45rem;
+  overflow: hidden;
+}
+
+.supabase-bar-fill {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 3px;
+  transition: width .6s ease;
+  min-width: 2px;
+}
+
+.supabase-bar-fill--green {
+  background: #22c55e;
+}
+
+.supabase-bar-fill--amber {
+  background: #f59e42;
+}
+
+.supabase-stat-sub {
+  font-size: .72rem;
+  color: #94a3b8;
+  margin-top: .2rem;
 }
 </style>
