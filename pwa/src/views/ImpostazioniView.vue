@@ -461,7 +461,7 @@ async function handleToggleTestData() {
       title: 'Conferma import dati demo',
       message: 'Generare e importare dati demo?',
       details: 'I dati demo verranno creati nel dispositivo locale. Al prossimo sync verranno propagati agli altri dispositivi e a Supabase.',
-      details: 'I dati demo esistenti verranno prima rimossi, poi ricreati nella residenza "Residenza Demo". Le residenze reali ("Il Rifugio", "Via Bellani") restano vuote.',
+      details: 'I dati demo esistenti verranno prima rimossi, poi ricreati nella residenza "Demo". Le residenze reali ("Il Rifugio", "Via Bellani") restano vuote.',
       confirmText: 'Importa dati',
       cancelText: 'Annulla',
       tone: 'primary',
@@ -512,7 +512,7 @@ async function handleToggleTestData() {
       const stats = await loadDemoData({ allowInProduction: true })
       seedLoaded.value = true
       seedActionMode.value = 'clear'
-      seedMessage.value = `Importati dati demo: ${stats.drugs} farmaci, ${stats.hosts} ospiti, ${stats.stockBatches} confezioni, ${stats.therapies} terapie, ${stats.movements} movimenti, ${stats.reminders} promemoria (residenza "Residenza Demo").`
+      seedMessage.value = `Importati dati demo: ${stats.drugs} farmaci, ${stats.hosts} ospiti, ${stats.stockBatches} confezioni, ${stats.therapies} terapie, ${stats.movements} movimenti, ${stats.reminders} promemoria (residenza "Demo").`
       
       await db.activityLog.add({
         entityType: 'seeds',
@@ -1066,7 +1066,7 @@ async function handleCreateUser() {
         <p><strong>Dati demo (live)</strong></p>
         <p class="muted" style="margin-top:.25rem">
           Usa questo pulsante per importare rapidamente dati dimostrativi o per ripulirli.
-          I dati vengono creati nella residenza "Residenza Demo", lasciando "Il Rifugio" e "Via Bellani" vuote.
+          I dati vengono creati nella residenza "Demo", lasciando "Il Rifugio" e "Via Bellani" vuote.
         </p>
         <p class="muted" style="margin-top:.25rem;font-size:.85rem">
           Pacchetto: {{ seedStats.drugs }} farmaci · {{ seedStats.hosts }} ospiti ·
