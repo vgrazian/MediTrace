@@ -733,7 +733,8 @@ async function handleCreateUser() {
     </div>
 
     <div class="card">
-      <p><strong>Fasce orarie configurabili</strong></p>
+      <p><strong>Fasce orarie configurabili (globali)</strong></p>
+      <p class="muted" style="font-size:.78rem;margin-bottom:.4rem">Queste fasce si applicano a tutte le residenze. Ogni residenza può personalizzarle dalla sezione Residenze.</p>
       <div>
         <table class="conflict-table" style="min-width:600px">
           <thead>

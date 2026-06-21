@@ -113,6 +113,19 @@ function removeFascia(idx) {
   fasceForm.value.splice(idx, 1)
 }
 
+async function resetFasceFromGlobali() {
+  try {
+    const globali = await getSetting('fasceOrarieConfig', null)
+    if (Array.isArray(globali) && globali.length > 0) {
+      fasceForm.value = JSON.parse(JSON.stringify(globali))
+    } else {
+      fasceForm.value = [...DEFAULT_FASCE]
+    }
+  } catch {
+    fasceForm.value = [...DEFAULT_FASCE]
+  }
+}
+
 function formatCapienza(item) {
   return `${item.ospitiAttivi}/${item.maxOspiti}`
 }
@@ -368,6 +381,7 @@ onMounted(() => void loadData())
                 <button type="button" class="btn-sm btn-ghost" @click="removeFascia(idx)" :disabled="fasceForm.length <= 1" title="Rimuovi fascia">✕</button>
               </div>
               <button type="button" class="btn-sm" @click="addFascia" style="margin-top:.2rem">+ Aggiungi fascia</button>
+              <button v-if="editId" type="button" class="btn-sm" style="margin-top:.2rem;margin-left:.4rem;background:#f1f5f9" @click="resetFasceFromGlobali">Ripristina da globali</button>
             </div>
 
             <button :disabled="saving || !canSave" @click="handleSave">{{ saving ? 'Salvataggio...' : (editId ? 'Salva modifica' : 'Salva residenza') }}</button>
