@@ -91,6 +91,21 @@ export async function healDuplicateResidenze({ operatorId = null } = {}) {
 export async function ensureDefaultResidenze({ operatorId = null } = {}) {
     await healDuplicateResidenze({ operatorId })
 
+    // Migrate legacy "Residenza Demo" → "Demo"
+    const allRooms = await db.rooms.toArray()
+    const legacyDemo = allRooms.find(
+        r => !r.deletedAt && String(r.codice || '').trim().toLowerCase() === 'residenza demo'
+    )
+    if (legacyDemo) {
+        const now = new Date().toISOString()
+        await db.rooms.put({
+            ...legacyDemo,
+            codice: 'Demo',
+            updatedAt: now,
+            syncStatus: 'pending',
+        })
+    }
+
     const existingRooms = await db.rooms.toArray()
     const activeCodes = new Set(
         existingRooms
