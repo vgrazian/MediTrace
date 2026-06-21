@@ -303,6 +303,10 @@ export async function markReminder({ reminderId, outcome, operatorId = null, not
     const now = new Date().toISOString()
     const deviceId = await getSetting('deviceId', 'unknown')
 
+    // Look up host residence BEFORE the transaction (db.hosts not in transaction scope)
+    const host = await db.hosts.get(existing.hostId)
+    const hostResidenzaId = host?.roomId || ''
+
     const updated = {
         ...existing,
         stato: outcome,
@@ -330,10 +334,6 @@ export async function markReminder({ reminderId, outcome, operatorId = null, not
                     .toArray()
                 const activeBatches = batches.filter(b => !b.deletedAt && b.quantitaAttuale > 0)
 
-                // Prefer batch from the same residence as the host
-                const host = await db.hosts.get(existing.hostId)
-                const hostResidenzaId = host?.roomId || ''
-
                 const batchDaScarico = batchId
                     ? activeBatches.find(b => b.id === batchId)
                     : (activeBatches.filter(b => b.residenzaId === hostResidenzaId)[0]
@@ -352,7 +352,7 @@ export async function markReminder({ reminderId, outcome, operatorId = null, not
 
                     // Creare movimento SOMMINISTRAZIONE
                     const movement = {
-                        id: `__movement_${reminderId}_${now.replace(/[^0-9]/g, '')}`,
+                        id: `__movement_${crypto.randomUUID()}`,
                         type: 'SOMMINISTRAZIONE',
                         drugId: therapy.drugId,
                         batchId: batchDaScarico.id,
