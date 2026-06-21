@@ -218,29 +218,6 @@ async function handleSync() {
       <span class="brand-title">MediTrace</span>
     </div>
 
-    <span ref="residenzaBadgeRef" class="residenza-badge" :class="{ 'residenza-badge--empty': !showResidenzaBadge }" :title="showResidenzaBadge ? `Residenza attiva: ${currentResidenzaLabel} — clicca per cambiare` : 'Seleziona una residenza operativa'" @click.stop="toggleResidenzaDropdown" role="button" tabindex="0" style="cursor:pointer">
-      <span v-if="showResidenzaBadge">{{ currentResidenzaLabel }}</span>
-      <span v-else class="residenza-placeholder">Residenza</span>
-      <span class="residenza-chevron">▾</span>
-      <div v-if="showResidenzaDropdown" ref="residenzaDropdownRef" class="residenza-dropdown" @click.stop>
-        <div class="residenza-dropdown-header">Cambia residenza</div>
-        <button
-          v-for="r in availableResidenze"
-          :key="r.id"
-          class="residenza-dropdown-item"
-          :class="{ active: r.id === currentResidenzaId }"
-          @click="selectResidenza(r.id)"
-        >
-          <span v-if="r.id === currentResidenzaId" class="residenza-check">✓</span>
-          <span v-else class="residenza-check-placeholder"></span>
-          {{ r.label }}
-        </button>
-        <div v-if="availableResidenze.length === 0" class="residenza-dropdown-empty">
-          Nessuna residenza disponibile
-        </div>
-      </div>
-    </span>
-
     <RouterLink to="/" title="Cruscotto — riepilogo e KPI">Cruscotto</RouterLink>
     <RouterLink to="/promemoria" title="Promemoria somministrazioni">Promemoria</RouterLink>
     <RouterLink to="/ospiti" title="Registro ospiti">Ospiti</RouterLink>
@@ -254,6 +231,28 @@ async function handleSync() {
     <RouterLink to="/manuale" title="Guida utente">Guida</RouterLink>
 
     <div class="user-area">
+      <span ref="residenzaBadgeRef" class="residenza-badge" :class="{ 'residenza-badge--empty': !showResidenzaBadge }" :title="showResidenzaBadge ? `Residenza attiva: ${currentResidenzaLabel} — clicca per cambiare` : 'Seleziona una residenza operativa'" @click.stop="toggleResidenzaDropdown" role="button" tabindex="0" style="cursor:pointer">
+        <span v-if="showResidenzaBadge">{{ currentResidenzaLabel }}</span>
+        <span v-else class="residenza-placeholder">Residenza</span>
+        <span class="residenza-chevron">▾</span>
+        <div v-if="showResidenzaDropdown" ref="residenzaDropdownRef" class="residenza-dropdown" @click.stop>
+          <div class="residenza-dropdown-header">Cambia residenza</div>
+          <button
+            v-for="r in availableResidenze"
+            :key="r.id"
+            class="residenza-dropdown-item"
+            :class="{ active: r.id === currentResidenzaId }"
+            @click="selectResidenza(r.id)"
+          >
+            <span v-if="r.id === currentResidenzaId" class="residenza-check">✓</span>
+            <span v-else class="residenza-check-placeholder"></span>
+            {{ r.label }}
+          </button>
+          <div v-if="availableResidenze.length === 0" class="residenza-dropdown-empty">
+            Nessuna residenza disponibile
+          </div>
+        </div>
+      </span>
       <button class="sync-btn" @click="handleSync" :title="dettagli" aria-label="Sincronizza">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" :stroke="syncColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle">
           <polyline points="23 4 23 10 17 10"/>

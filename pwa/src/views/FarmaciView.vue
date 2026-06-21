@@ -40,7 +40,7 @@ onMounted(() => {
 onUnmounted(() => {
   window.removeEventListener('keydown', handleKeyboardShortcut)
 })
-import { db, getSetting } from '../db'
+import { db, getSetting, setSetting } from '../db'
 import { useAuth } from '../services/auth'
 import { upsertDrug, deleteDrug, upsertBatch, deactivateBatch, restoreDrug, restoreBatch } from '../services/farmaci'
 import { confirmDeleteDrug, confirmDeleteBatch, confirmDeleteMultiple } from '../services/confirmations'
@@ -134,7 +134,27 @@ const batchForm = ref({
   quantitaAttuale: '',
   sogliaRiordino: '',
   scadenza: '',
+  isDefault: false,
 })
+
+const DEFAULT_BATCH_MAP_KEY = 'defaultBatchMap'
+
+async function getDefaultBatchId(drugId) {
+  try {
+    const map = await getSetting(DEFAULT_BATCH_MAP_KEY, {})
+    return map?.[drugId] || null
+  } catch { return null }
+}
+
+async function setDefaultBatchId(drugId, batchId) {
+  const map = await getSetting(DEFAULT_BATCH_MAP_KEY, {})
+  if (batchId) {
+    map[drugId] = batchId
+  } else {
+    delete map[drugId]
+  }
+  await setSetting(DEFAULT_BATCH_MAP_KEY, map)
+}
 
 const canCreateBatch = computed(() => drugs.value.length > 0)
 
@@ -447,6 +467,11 @@ async function createBatch() {
       operatorId: currentUser.value?.login ?? null,
     })
 
+    // Save default batch preference
+    if (batchForm.value.isDefault && batchForm.value.drugId) {
+      await setDefaultBatchId(batchForm.value.drugId, id)
+    }
+
     batchForm.value = {
       drugId: '',
       nomeCommerciale: '',
@@ -558,15 +583,18 @@ function startEditBatch(batch) {
   editingBatchId.value = batch.id
   panelMode.value = 'edit-batch'
   isFormOpen.value = true
-  batchForm.value = {
-    drugId: batch.drugId || '',
-    nomeCommerciale: batch.nomeCommerciale || '',
-    dosaggio: batch.dosaggio || '',
-    quantitaAttuale: String(batch.quantitaAttuale ?? ''),
-    sogliaRiordino: String(batch.sogliaRiordino ?? ''),
-    scadenza: batch.scadenza ? String(batch.scadenza).slice(0, 10) : '',
-  }
-  markFormSnapshot()
+  getDefaultBatchId(batch.drugId).then(defaultId => {
+    batchForm.value = {
+      drugId: batch.drugId || '',
+      nomeCommerciale: batch.nomeCommerciale || '',
+      dosaggio: batch.dosaggio || '',
+      quantitaAttuale: String(batch.quantitaAttuale ?? ''),
+      sogliaRiordino: String(batch.sogliaRiordino ?? ''),
+      scadenza: batch.scadenza ? String(batch.scadenza).slice(0, 10) : '',
+      isDefault: defaultId === batch.id,
+    }
+    markFormSnapshot()
+  })
 }
 
 function resetDrugForm() {
@@ -591,6 +619,7 @@ function resetBatchForm() {
     quantitaAttuale: '',
     sogliaRiordino: '',
     scadenza: '',
+    isDefault: false,
   }
   clearBatchErrors()
   markFormSnapshot()
@@ -1154,6 +1183,11 @@ onMounted(() => {
               :error="batchErrors.scadenza"
               @validate="(field, value) => validateBatchField(field, value)"
             />
+
+            <label class="checkbox-label" style="margin-top:.25rem">
+              <input v-model="batchForm.isDefault" type="checkbox" />
+              Confezione predefinita (proposta per prima nei promemoria)
+            </label>
 
             <button :disabled="savingBatch || !canCreateBatch || hasBatchErrors" @click="createBatch">
               {{ savingBatch ? 'Salvataggio...' : (editingBatchId ? 'Salva modifica' : 'Salva confezione') }}

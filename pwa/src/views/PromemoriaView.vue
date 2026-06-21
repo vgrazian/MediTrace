@@ -77,8 +77,20 @@ async function loadBatchesForReminder(reminderId) {
 function openBatchPicker(reminderId, batches) {
   batchPickerReminderId.value = reminderId
   batchPickerBatches.value = batches
-  // Pre-select first batch
-  batchPickerSelected.value = batches.length > 0 ? batches[0].id : ''
+  // Pre-select default batch, or first batch
+  getDefaultBatchId(reminderId).then(defaultId => {
+    const defaultBatch = defaultId ? batches.find(b => b.id === defaultId) : null
+    batchPickerSelected.value = defaultBatch ? defaultBatch.id : (batches.length > 0 ? batches[0].id : '')
+  })
+}
+
+async function getDefaultBatchId(reminderId) {
+  try {
+    const reminder = allReminders.value.find(r => r.id === reminderId)
+    if (!reminder?.drugId) return null
+    const map = await getSetting('defaultBatchMap', {})
+    return map?.[reminder.drugId] || null
+  } catch { return null }
 }
 
 function closeBatchPicker() {
@@ -764,11 +776,11 @@ watch(residenzaFilter, async (value) => {
 
     <!-- Batch picker dialog per somministrazione -->
     <Teleport to="body">
-      <div v-if="batchPickerReminderId" class="batch-picker-backdrop" @click="closeBatchPicker">
-        <div class="batch-picker-dialog" role="dialog" aria-modal="true" aria-label="Seleziona confezione" @click.stop>
+      <div v-if="batchPickerReminderId" class="batch-picker-backdrop" @click="closeBatchPicker" @keydown.escape="closeBatchPicker">
+        <div class="batch-picker-dialog" role="dialog" aria-modal="true" aria-label="Seleziona confezione" @click.stop @keydown.enter.prevent="confirmBatchAndApply" @keydown.escape="closeBatchPicker">
           <h3>Seleziona la confezione da scaricare</h3>
           <p class="muted" style="margin-top:.25rem">
-            Il farmaco ha più confezioni attive. Scegli quella da cui dedurre la dose.
+            Il farmaco ha più confezioni attive. Clicca sulla confezione da usare, poi conferma.
           </p>
           <div class="batch-picker-list">
             <label
