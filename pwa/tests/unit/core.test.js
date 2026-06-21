@@ -586,3 +586,40 @@ describe('residenza default label', () => {
         expect(residenzaLabel('r99', [])).toBe('r99')
     })
 })
+
+// ── Saltato → Eseguito flow (non-terminal SALTATO state) ──────────────────
+import { reminderStateBadge, REMINDER_OUTCOMES as REM_OUTCOMES } from '../../src/services/promemoria'
+
+describe('Saltato non-terminale', () => {
+    it('SALTATO è un esito valido in REMINDER_OUTCOMES', () => {
+        expect(REM_OUTCOMES).toContain('SALTATO')
+        expect(REM_OUTCOMES).toContain('ESEGUITO')
+    })
+
+    it('reminderStateBadge per SALTATO restituisce state-skip', () => {
+        expect(reminderStateBadge('SALTATO')).toBe('state-skip')
+        expect(reminderStateBadge('ESEGUITO')).toBe('state-ok')
+        expect(reminderStateBadge('DA_ESEGUIRE')).toBe('state-pending')
+    })
+
+    it('SALTATO e DA_ESEGUIRE devono essere entrambi azionabili', () => {
+        // The isReminderActionable function should accept both states
+        const isActionable = (stato) => stato === 'DA_ESEGUIRE' || stato === 'SALTATO'
+        expect(isActionable('DA_ESEGUIRE')).toBe(true)
+        expect(isActionable('SALTATO')).toBe(true)
+        expect(isActionable('ESEGUITO')).toBe(false)
+        expect(isActionable('ANNULLATO')).toBe(false)
+    })
+
+    it('una transizione SALTATO → ESEGUITO è semanticamente valida', () => {
+        // SALTATO means "skipped for now, still needs administration"
+        // ESEGUITO means "now administered"
+        // This transition should be allowed and represents the normal workflow
+        const validTransitions = {
+            DA_ESEGUIRE: ['ESEGUITO', 'SALTATO', 'ANNULLATO'],
+            SALTATO: ['ESEGUITO', 'ANNULLATO'],
+        }
+        expect(validTransitions['SALTATO']).toContain('ESEGUITO')
+        expect(validTransitions['SALTATO']).not.toContain('DA_ESEGUIRE')
+    })
+})

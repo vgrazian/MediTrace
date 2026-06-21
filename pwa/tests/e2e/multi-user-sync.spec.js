@@ -121,3 +121,52 @@ test('host deletion persists after logout and re-login', async ({ page }) => {
   await login(page, 'valerio'); await goToView(page, 'ospiti')
   await expect(page.getByText('DelT Sess').first()).not.toBeVisible({ timeout: 5000 })
 })
+
+// ── Saltato → Eseguito flow ───────────────────────────────────────────────
+
+test('Saltato then Eseguito works without error', async ({ page }) => {
+  await login(page, 'admin')
+  await goToView(page, 'promemoria')
+
+  // Show all reminders
+  try { await page.locator('select').first().selectOption('all'); await page.waitForTimeout(1000) } catch { }
+
+  // Find a DA_ESEGUIRE reminder with action buttons
+  const rows = page.locator('tr')
+  const count = await rows.count()
+  let found = false
+
+  for (let i = 1; i < count; i++) {
+    const row = rows.nth(i)
+    const saltatoBtn = row.locator('button:has-text("Saltato")').first()
+    if (await saltatoBtn.isVisible({ timeout: 500 }).catch(() => false)) {
+      // Click Saltato
+      await saltatoBtn.click()
+      await page.waitForTimeout(1000)
+
+      // Verify the row now shows "SALTATO" badge
+      const badge = row.locator('.state-skip').first()
+      await expect(badge).toBeVisible({ timeout: 3000 })
+
+      // Now click Eseguito on the same row
+      const eseguitoBtn = row.locator('button:has-text("Eseguito")').first()
+      if (await eseguitoBtn.isVisible({ timeout: 3000 })) {
+        await eseguitoBtn.click()
+
+        // Handle batch picker if it appears
+        const pickerBtn = page.locator('.batch-picker-dialog button:not(:has-text("Annulla"))').first()
+        if (await pickerBtn.isVisible({ timeout: 2000 })) {
+          await pickerBtn.click()
+          await page.waitForTimeout(800)
+        }
+
+        await page.waitForTimeout(1000)
+        // Should show success message
+        await expect(page.getByText('Promemoria contrassegnato: ESEGUITO').first()).toBeVisible({ timeout: 5000 })
+        found = true
+        break
+      }
+    }
+  }
+  if (!found) test.skip(true, 'No actionable reminder available for Saltato→Eseguito test')
+})
