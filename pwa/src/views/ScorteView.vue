@@ -27,16 +27,9 @@ const actionError = ref('')
 const savingBatch = ref(false)
 const editingBatchId = ref('')
 const creatingBatch = ref(false)
-const savingDrug = ref(false)
-const editingDrugId = ref('')
 const isFormOpen = ref(false)
 const stockBatches = ref([])
 const drugs = ref([])
-const drugForm = ref({
-  principioAttivo: '',
-  classeTerapeutica: '',
-  scortaMinima: '',
-})
 const batchForm = ref({
   drugId: '',
   nomeCommerciale: '',
@@ -102,12 +95,13 @@ const existingBatchNames = computed(() => {
 })
 
 function formatNumber(value) {
-  return Number(value ?? 0).toFixed(2)
+  return Math.round(Number(value ?? 0))
 }
 
 function formatCoverage(value) {
   if (value === null || value === undefined) return '—'
-  return `${Number(value).toFixed(2)} settimane`
+  // value is in days now
+  return `${Math.round(Number(value))} giorni`
 }
 
 function formatPercent(value) {
@@ -807,13 +801,12 @@ onMounted(() => {
             <td>{{ row.principioAttivo }}</td>
             <td>{{ formatNumber(row.stockCurrent) }}</td>
             <td>{{ formatNumber(row.weeklyConsumption) }}</td>
-            <td>{{ formatCoverage(row.coverageWeeks) }}</td>
+            <td>{{ formatCoverage(row.coverageDays) }}</td>
             <td>{{ formatNumber(row.reorderThreshold) }}</td>
             <td>{{ row.warningPriority }}</td>
             <td>{{ row.warningReason }}</td>
             <td>
-              <button @click="startEditDrug(row.drugId)">Modifica</button>
-              <button class="btn-danger" @click="deleteDrug(row.drugId)">Elimina</button>
+              <RouterLink :to="`/farmaci`" style="font-size:.85em;color:#2563eb">Vedi in Farmaci →</RouterLink>
             </td>
           </tr>
           <tr v-if="filteredReportRows.length === 0">
@@ -949,13 +942,13 @@ onMounted(() => {
     </div>
 
     <div class="card">
-      <p><strong>Confezioni monitorate (Gestione completa)</strong></p>
+      <p><strong>Confezioni monitorate</strong></p>
       <p class="muted" style="margin-top:.25rem">
-        Modifica o rimuovi confezioni direttamente da Scorte.
+        Confezioni per la residenza corrente. <RouterLink to="/farmaci">Vai a Catalogo Farmaci →</RouterLink>
       </p>
-
       <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.75rem">
         <button @click="openAddBatchForm">Aggiungi</button>
+        <RouterLink to="/farmaci" class="btn-link" style="padding:.4em .8em;background:#e0e7ff;border-radius:6px;text-decoration:none;color:#1e40af;font-size:.85em">Catalogo Farmaci</RouterLink>
       </div>
 
       <div class="dataset-frame" style="margin-top:.75rem">
@@ -996,27 +989,8 @@ onMounted(() => {
         <div class="panel-breadcrumb" style="margin-top:.75rem">
           <button type="button" class="panel-breadcrumb-link" @click="isFormOpen = false">Scorte</button>
           <span class="panel-breadcrumb-current">/</span>
-          <span class="panel-breadcrumb-current">Gestione</span>
+          <span class="panel-breadcrumb-current">Gestione confezione</span>
           <button type="button" class="panel-close-btn" @click="isFormOpen = false">Chiudi</button>
-        </div>
-        <div class="import-form" style="margin-top:.65rem">
-          <label>
-            Principio attivo
-            <input v-model="drugForm.principioAttivo" type="text" :disabled="!editingDrugId || savingDrug" />
-          </label>
-          <label>
-            Classe terapeutica
-            <input v-model="drugForm.classeTerapeutica" type="text" :disabled="!editingDrugId || savingDrug" />
-          </label>
-          <label>
-            Scorta minima
-            <input v-model="drugForm.scortaMinima" type="number" min="0" step="1" :disabled="!editingDrugId || savingDrug" />
-          </label>
-
-          <button :disabled="!editingDrugId || savingDrug" @click="saveDrugEdit">
-            {{ savingDrug ? 'Salvataggio...' : 'Salva modifica farmaco' }}
-          </button>
-          <button type="button" :disabled="savingDrug" @click="resetDrugForm">Annulla farmaco</button>
         </div>
 
         <div class="import-form" style="margin-top:.65rem">

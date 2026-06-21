@@ -570,6 +570,13 @@ details.add-panel[open] > div {
   white-space: nowrap;
 }
 
+.reminder-action-compact {
+  min-width: unset;
+  padding: .25rem .55rem;
+  font-size: .72rem;
+  font-weight: 600;
+}
+
 .reminder-secondary-btn {
   min-width: 6.4rem;
   display: inline-flex;

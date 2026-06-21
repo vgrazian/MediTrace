@@ -142,6 +142,7 @@ function batchLabel(batch) {
 }
 
 const dateFilter = ref('today')
+const customDate = ref('')
 const stateFilter = ref([])
 
 const hostIdFilter = ref('')
@@ -155,11 +156,11 @@ const form = ref({
 })
 
 const stateFilterOptions = [
-  { value: 'DA_ESEGUIRE', label: 'Ripristina' },
+  { value: 'DA_ESEGUIRE', label: 'Da eseguire' },
   { value: 'POSTICIPATO', label: 'Posticipato' },
   { value: 'ESEGUITO', label: 'Eseguito' },
-  { value: 'SALTATO', label: 'Saltato' },
-  { value: 'ANNULLATO', label: 'Annullato' },
+  { value: 'SALTATO', label: 'Saltato (dimenticato)' },
+  { value: 'ANNULLATO', label: 'Annullato (non necessario)' },
 ]
 
 const highlightedReminderId = computed(() => String(route.query.highlight || ''))
@@ -178,6 +179,21 @@ const {
   note: 'Note',
 })
 
+const resolvedDateFilter = computed(() => {
+  if (dateFilter.value === 'yesterday') {
+    const d = new Date(); d.setDate(d.getDate() - 1)
+    return d.toISOString().slice(0, 10)
+  }
+  if (dateFilter.value === 'tomorrow') {
+    const d = new Date(); d.setDate(d.getDate() + 1)
+    return d.toISOString().slice(0, 10)
+  }
+  if (dateFilter.value && dateFilter.value !== 'today' && dateFilter.value !== 'all') {
+    return dateFilter.value // custom YYYY-MM-DD or already resolved
+  }
+  return dateFilter.value
+})
+
 const rows = computed(() => buildReminderRows({
   reminders: allReminders.value,
   hosts: hosts.value,
@@ -186,7 +202,7 @@ const rows = computed(() => buildReminderRows({
   beds: beds.value,
   rooms: rooms.value,
   bedSequence: bedSequence.value,
-  dateFilter: dateFilter.value,
+  dateFilter: resolvedDateFilter.value,
   stateFilter: stateFilter.value,
   residenzaFilter: residenzaId.value,
   hostIdFilter: hostIdFilter.value,
@@ -579,8 +595,18 @@ watch(() => route.fullPath, () => void loadData())
           Data
           <select v-model="dateFilter">
             <option value="today">Oggi</option>
+            <option value="yesterday">Ieri</option>
+            <option value="tomorrow">Domani</option>
+            <option value="custom">Scegli data...</option>
             <option value="all">Tutti</option>
           </select>
+          <input
+            v-if="dateFilter === 'custom'"
+            v-model="customDate"
+            type="date"
+            style="margin-top:.35rem;display:block"
+            @change="dateFilter = customDate"
+          />
         </label>
         <label>
           Stato
@@ -643,11 +669,11 @@ watch(() => route.fullPath, () => void loadData())
         Evidenziato da notifica: {{ highlightedReminderId }}
       </p>
 
-      <div style="margin-top:.65rem;display:flex;gap:.5rem;flex-wrap:wrap;align-items:center">
-        <button class="reminder-action-btn" :disabled="!canRunBulkActions" @click="applyOutcomeBulk('ESEGUITO')">Eseguito</button>
-        <button class="reminder-action-btn" :disabled="!canRunBulkActions" @click="applyOutcomeBulk('POSTICIPATO')">Posticipato</button>
-        <button class="reminder-action-btn" :disabled="!canRunBulkActions" @click="applyOutcomeBulk('SALTATO')">Saltato</button>
-        <button class="reminder-action-btn" :disabled="!canRunBulkActions" @click="setPendingBulk">Ripristina</button>
+      <div style="margin-top:.65rem;display:flex;gap:.35rem;flex-wrap:wrap;align-items:center">
+        <button class="reminder-action-btn reminder-action-compact" :disabled="!canRunBulkActions" @click="applyOutcomeBulk('ESEGUITO')">Eseguito</button>
+        <button class="reminder-action-btn reminder-action-compact" :disabled="!canRunBulkActions" @click="applyOutcomeBulk('POSTICIPATO')">Posticipato</button>
+        <button class="reminder-action-btn reminder-action-compact" :disabled="!canRunBulkActions" @click="applyOutcomeBulk('SALTATO')">Saltato</button>
+        <button class="reminder-action-btn reminder-action-compact" :disabled="!canRunBulkActions" @click="setPendingBulk">Ripristina</button>
         <span class="muted" style="font-size:.82rem">
           Selezionati: {{ selectedActionableIds.length }} / {{ actionableRows.length }}
         </span>
@@ -700,7 +726,7 @@ watch(() => route.fullPath, () => void loadData())
             <td>
               <div v-if="reminder.stato === 'DA_ESEGUIRE' || reminder.stato === 'POSTICIPATO'" style="display:flex;gap:.3rem;flex-wrap:wrap;margin-bottom:.35rem">
                 <button
-                  class="reminder-action-btn"
+                  class="reminder-action-btn reminder-action-compact"
                   :disabled="markingId === reminder.id"
                   :style="{ backgroundColor: reminderActionButtonColor('ESEGUITO').bg, color: reminderActionButtonColor('ESEGUITO').text, borderRadius: '0.25rem', cursor: markingId === reminder.id ? 'not-allowed' : 'pointer' }"
                   title="Somministrazione eseguita"
@@ -709,7 +735,7 @@ watch(() => route.fullPath, () => void loadData())
                   Eseguito
                 </button>
                 <button
-                  class="reminder-action-btn"
+                  class="reminder-action-btn reminder-action-compact"
                   :disabled="markingId === reminder.id"
                   :style="{ backgroundColor: reminderActionButtonColor('POSTICIPATO').bg, color: reminderActionButtonColor('POSTICIPATO').text, borderRadius: '0.25rem', cursor: markingId === reminder.id ? 'not-allowed' : 'pointer' }"
                   title="Somministrazione posticipata"
@@ -718,19 +744,19 @@ watch(() => route.fullPath, () => void loadData())
                   Posticipato
                 </button>
                 <button
-                  class="reminder-action-btn"
+                  class="reminder-action-btn reminder-action-compact"
                   :disabled="markingId === reminder.id"
                   :style="{ backgroundColor: reminderActionButtonColor('SALTATO').bg, color: reminderActionButtonColor('SALTATO').text, borderRadius: '0.25rem', cursor: markingId === reminder.id ? 'not-allowed' : 'pointer' }"
-                  title="Somministrazione saltata"
+                  title="Somministrazione saltata (dimenticata)"
                   @click="applyOutcome(reminder.id, 'SALTATO')"
                 >
                   Saltato
                 </button>
                 <button
-                  class="reminder-action-btn"
+                  class="reminder-action-btn reminder-action-compact"
                   :disabled="markingId === reminder.id"
                   :style="{ backgroundColor: reminderActionButtonColor('ANNULLATO').bg, color: reminderActionButtonColor('ANNULLATO').text, borderRadius: '0.25rem', cursor: markingId === reminder.id ? 'not-allowed' : 'pointer' }"
-                  title="Somministrazione annullata"
+                  title="Somministrazione annullata (non necessaria)"
                   @click="applyOutcome(reminder.id, 'ANNULLATO')"
                 >
                   Annullato

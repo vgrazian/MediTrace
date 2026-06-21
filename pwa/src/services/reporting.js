@@ -180,30 +180,30 @@ function buildAdherenceSnapshot(reminders, hostsById, now = new Date(), windowDa
 }
 
 function computePriority({ stockCurrent, weeklyConsumption, reorderThreshold, sogliaGiorniAutonomia = 30 }) {
-    const coverageWeeks = weeklyConsumption > 0 ? stockCurrent / weeklyConsumption : null
-    const thresholdWeeks = (Number(sogliaGiorniAutonomia) || 30) / 7
+    const coverageDays = weeklyConsumption > 0 ? (stockCurrent / weeklyConsumption) * 7 : null
+    const thresholdDays = Number(sogliaGiorniAutonomia) || 30
 
     if (stockCurrent <= 0) {
-        return { warningPriority: 'critica', coverageWeeks, reason: 'scorta esaurita' }
+        return { warningPriority: 'critica', coverageDays, reason: 'scorta esaurita' }
     }
 
-    if (weeklyConsumption > 0 && coverageWeeks !== null && coverageWeeks < thresholdWeeks * 0.25) {
-        return { warningPriority: 'critica', coverageWeeks, reason: `copertura sotto ${Math.round(thresholdWeeks * 0.25 * 7)} giorni` }
+    if (weeklyConsumption > 0 && coverageDays !== null && coverageDays < thresholdDays * 0.25) {
+        return { warningPriority: 'critica', coverageDays, reason: `copertura sotto ${Math.round(thresholdDays * 0.25)} giorni` }
     }
 
-    if (weeklyConsumption > 0 && coverageWeeks !== null && coverageWeeks < thresholdWeeks * 0.5) {
-        return { warningPriority: 'alta', coverageWeeks, reason: `copertura sotto ${Math.round(thresholdWeeks * 0.5 * 7)} giorni` }
+    if (weeklyConsumption > 0 && coverageDays !== null && coverageDays < thresholdDays * 0.5) {
+        return { warningPriority: 'alta', coverageDays, reason: `copertura sotto ${Math.round(thresholdDays * 0.5)} giorni` }
     }
 
-    if (weeklyConsumption > 0 && coverageWeeks !== null && coverageWeeks < thresholdWeeks) {
-        return { warningPriority: 'media', coverageWeeks, reason: `copertura sotto ${Math.round(thresholdWeeks * 7)} giorni` }
+    if (weeklyConsumption > 0 && coverageDays !== null && coverageDays < thresholdDays) {
+        return { warningPriority: 'media', coverageDays, reason: `copertura sotto ${thresholdDays} giorni` }
     }
 
     if (reorderThreshold > 0 && stockCurrent <= reorderThreshold) {
-        return { warningPriority: 'media', coverageWeeks, reason: 'sotto soglia riordino' }
+        return { warningPriority: 'media', coverageDays, reason: 'sotto soglia riordino' }
     }
 
-    return { warningPriority: 'ok', coverageWeeks, reason: 'copertura regolare' }
+    return { warningPriority: 'ok', coverageDays, reason: 'copertura regolare' }
 }
 
 export async function buildOperationalReport() {
@@ -261,7 +261,7 @@ export async function buildOperationalReport() {
                 weeklyConsumption,
                 stockCurrent,
                 reorderThreshold,
-                coverageWeeks: priority.coverageWeeks,
+                coverageDays: priority.coverageDays,
                 warningPriority: priority.warningPriority,
                 warningReason: priority.reason,
             }
@@ -419,7 +419,7 @@ function stockSectionToCsv(rows) {
             row.principioAttivo,
             Number(row.stockCurrent).toFixed(2),
             Number(row.weeklyConsumption).toFixed(2),
-            row.coverageWeeks === null ? '' : Number(row.coverageWeeks).toFixed(2),
+            row.coverageDays === null ? '' : Math.round(Number(row.coverageDays)),
             Number(row.reorderThreshold).toFixed(2),
             row.warningPriority,
             row.warningReason,
