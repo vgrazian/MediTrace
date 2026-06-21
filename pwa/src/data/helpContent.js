@@ -265,14 +265,9 @@ export const helpContent = {
                     'Sono avvisi collegati a un ospite e a una terapia. Per esempio: "Somministrare Tachipirina alle 08:00 a Mario Rossi". Compaiono nella lista quando è il momento di agire.',
             },
             {
-                titolo: 'Filtri data',
+                titolo: 'Esiti disponibili',
                 testo:
-                    'Il selettore Data offre: Oggi (default), Ieri, Domani, Scegli data... (apre un calendario per scegliere un giorno specifico) e Tutti (mostra tutti i promemoria senza filtro data).',
-            },
-            {
-                titolo: 'Saltato vs Annullato',
-                testo:
-                    'Saltato indica una somministrazione dimenticata o non effettuata per errore. Annullato indica una somministrazione deliberatamente non necessaria (es. farmaco sospeso dal medico). La differenza è importante per l\'audit clinico.',
+                    'Tre pulsanti per ogni promemoria: Eseguito (somministrato), Saltato (non somministrato) e Annullato (non necessario, es. farmaco sospeso). Il tasto Ripristina riporta un promemoria già marcato allo stato "Da eseguire".',
             },
             {
                 titolo: 'Registrare l\'esito',

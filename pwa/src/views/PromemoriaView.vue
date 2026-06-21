@@ -157,9 +157,8 @@ const form = ref({
 
 const stateFilterOptions = [
   { value: 'DA_ESEGUIRE', label: 'Da eseguire' },
-  { value: 'POSTICIPATO', label: 'Posticipato' },
   { value: 'ESEGUITO', label: 'Eseguito' },
-  { value: 'SALTATO', label: 'Saltato (dimenticato)' },
+  { value: 'SALTATO', label: 'Saltato (non somministrato)' },
   { value: 'ANNULLATO', label: 'Annullato (non necessario)' },
 ]
 
@@ -214,7 +213,7 @@ const residenzaOptions = computed(() => {
   return sorted.map(room => ({ id: room.id, label: room.codice || room.id }))
 })
 
-const actionableRows = computed(() => rows.value.filter((item) => item.stato === 'DA_ESEGUIRE' || item.stato === 'POSTICIPATO'))
+const actionableRows = computed(() => rows.value.filter((item) => item.stato === 'DA_ESEGUIRE'))
 
 const selectedActionableIds = computed(() => {
   const allowed = new Set(actionableRows.value.map((item) => item.id))
@@ -671,7 +670,6 @@ watch(() => route.fullPath, () => void loadData())
 
       <div style="margin-top:.65rem;display:flex;gap:.35rem;flex-wrap:wrap;align-items:center">
         <button class="reminder-action-btn reminder-action-compact" :disabled="!canRunBulkActions" @click="applyOutcomeBulk('ESEGUITO')">Eseguito</button>
-        <button class="reminder-action-btn reminder-action-compact" :disabled="!canRunBulkActions" @click="applyOutcomeBulk('POSTICIPATO')">Posticipato</button>
         <button class="reminder-action-btn reminder-action-compact" :disabled="!canRunBulkActions" @click="applyOutcomeBulk('SALTATO')">Saltato</button>
         <button class="reminder-action-btn reminder-action-compact" :disabled="!canRunBulkActions" @click="setPendingBulk">Ripristina</button>
         <span class="muted" style="font-size:.82rem">
@@ -724,7 +722,7 @@ watch(() => route.fullPath, () => void loadData())
               </span>
             </td>
             <td>
-              <div v-if="reminder.stato === 'DA_ESEGUIRE' || reminder.stato === 'POSTICIPATO'" style="display:flex;gap:.3rem;flex-wrap:wrap;margin-bottom:.35rem">
+              <div v-if="reminder.stato === 'DA_ESEGUIRE'" style="display:flex;gap:.3rem;flex-wrap:wrap;margin-bottom:.35rem">
                 <button
                   class="reminder-action-btn reminder-action-compact"
                   :disabled="markingId === reminder.id"
@@ -737,17 +735,8 @@ watch(() => route.fullPath, () => void loadData())
                 <button
                   class="reminder-action-btn reminder-action-compact"
                   :disabled="markingId === reminder.id"
-                  :style="{ backgroundColor: reminderActionButtonColor('POSTICIPATO').bg, color: reminderActionButtonColor('POSTICIPATO').text, borderRadius: '0.25rem', cursor: markingId === reminder.id ? 'not-allowed' : 'pointer' }"
-                  title="Somministrazione posticipata"
-                  @click="applyOutcome(reminder.id, 'POSTICIPATO')"
-                >
-                  Posticipato
-                </button>
-                <button
-                  class="reminder-action-btn reminder-action-compact"
-                  :disabled="markingId === reminder.id"
                   :style="{ backgroundColor: reminderActionButtonColor('SALTATO').bg, color: reminderActionButtonColor('SALTATO').text, borderRadius: '0.25rem', cursor: markingId === reminder.id ? 'not-allowed' : 'pointer' }"
-                  title="Somministrazione saltata (dimenticata)"
+                  title="Non somministrato"
                   @click="applyOutcome(reminder.id, 'SALTATO')"
                 >
                   Saltato
@@ -764,7 +753,7 @@ watch(() => route.fullPath, () => void loadData())
               </div>
               <button
                 v-if="reminder.stato !== 'DA_ESEGUIRE'"
-                class="reminder-action-btn"
+                class="reminder-action-btn reminder-action-compact"
                 :disabled="markingId === reminder.id"
                 style="margin-top:.2rem"
                 @click="setReminderPending(reminder.id)"
