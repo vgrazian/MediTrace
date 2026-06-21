@@ -746,6 +746,70 @@ details.add-panel[open] > div {
 }
 .legal-links a:hover { color: var(--accent); }
 
+/* ── batch picker dialog ── */
+.batch-picker-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(10, 25, 50, .42);
+  display: grid;
+  place-items: center;
+  z-index: 1200;
+  padding: 1rem;
+}
+.batch-picker-dialog {
+  width: min(480px, 100%);
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: .75rem;
+  box-shadow: 0 16px 48px rgba(15, 23, 42, 0.28);
+  padding: 1.1rem;
+}
+.batch-picker-dialog h3 {
+  font-family: 'Domine', Georgia, serif;
+  font-size: 1rem;
+  color: var(--brand-900);
+  margin: 0;
+}
+.batch-picker-list {
+  margin-top: .75rem;
+  display: flex;
+  flex-direction: column;
+  gap: .35rem;
+}
+.batch-picker-item {
+  display: flex;
+  align-items: center;
+  gap: .55rem;
+  padding: .55rem .65rem;
+  border: 1px solid var(--line);
+  border-radius: .4rem;
+  cursor: pointer;
+  transition: background .15s, border-color .15s;
+}
+.batch-picker-item:hover {
+  background: #edf3fb;
+}
+.batch-picker-item.selected {
+  background: #dbeafe;
+  border-color: var(--accent);
+}
+.batch-picker-item input[type="radio"] {
+  flex-shrink: 0;
+  accent-color: var(--accent);
+}
+.batch-picker-label {
+  font-size: .88rem;
+  color: var(--ink);
+}
+.batch-picker-actions {
+  display: flex;
+  gap: .5rem;
+  justify-content: flex-end;
+  margin-top: .85rem;
+  padding-top: .75rem;
+  border-top: 1px solid var(--line);
+}
+
 /* ── loading skeleton ── */
 .loading {
   text-align: center;
