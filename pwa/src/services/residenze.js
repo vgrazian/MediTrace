@@ -1,5 +1,6 @@
 import { db, enqueue, getSetting } from '../db'
-import { createRoom, updateRoom, restoreRoom } from './stanze'
+import { restoreRoom } from './stanze'
+import { generateEntityId } from './ids'
 
 export const DEFAULT_RESIDENZE = [
     { codice: 'Il Rifugio', maxOspiti: 5, note: 'Casa alloggio attiva (5 ospiti target)' },
@@ -197,56 +198,89 @@ export async function createResidenza({ codice, note = '', maxOspiti = DEFAULT_M
         throw new Error('Residenza gia esistente')
     }
 
-    const created = await createRoom({ codice: cleanCode, note, operatorId })
-    const metadata = {
-        ...(created.metadata || {}),
-        maxOspiti: parseMaxOspiti(maxOspiti),
-        indirizzo: String(indirizzo || '').trim(),
-        telefono: String(telefono || '').trim(),
-        email: String(email || '').trim(),
+    const now = new Date().toISOString()
+    const deviceId = await getSetting('deviceId', 'unknown')
+    const roomId = generateEntityId('room')
+
+    const record = {
+        id: roomId,
+        codice: cleanCode,
+        note: note || '',
+        metadata: {
+            maxOspiti: parseMaxOspiti(maxOspiti),
+            indirizzo: String(indirizzo || '').trim(),
+            telefono: String(telefono || '').trim(),
+            email: String(email || '').trim(),
+        },
+        updatedAt: now,
+        deletedAt: null,
+        syncStatus: 'pending',
     }
 
-    await db.rooms.put({
-        ...created,
-        metadata,
+    await db.transaction('rw', db.rooms, db.syncQueue, db.activityLog, async () => {
+        await db.rooms.put(record)
+        await enqueue('rooms', record.id, 'upsert')
+        await db.activityLog.add({
+            entityType: 'rooms',
+            entityId: record.id,
+            action: 'room_created',
+            deviceId,
+            operatorId,
+            ts: now,
+        })
     })
 
-    return {
-        ...created,
-        metadata,
-    }
+    return record
 }
 
 export async function updateResidenza({ roomId, codice, note = '', maxOspiti = DEFAULT_MAX_OSPITI, indirizzo = '', telefono = '', email = '', operatorId = null }) {
     const cleanCode = String(codice || '').trim()
     if (!cleanCode) throw new Error('Nome residenza obbligatorio')
 
-    const room = await db.rooms.get(roomId)
-    if (!room || room.deletedAt) throw new Error('Residenza non trovata')
+    const existing = await db.rooms.get(roomId)
+    if (!existing || existing.deletedAt) throw new Error('Residenza non trovata')
 
     const allRooms = await db.rooms.toArray()
     if (allRooms.some(item => item.id !== roomId && !item.deletedAt && String(item.codice || '').trim().toLowerCase() === cleanCode.toLowerCase())) {
         throw new Error('Residenza gia esistente')
     }
 
-    const updated = await updateRoom({ roomId, codice: cleanCode, note, operatorId })
-    const metadata = {
-        ...(updated.metadata || {}),
-        maxOspiti: parseMaxOspiti(maxOspiti),
-        indirizzo: String(indirizzo || '').trim(),
-        telefono: String(telefono || '').trim(),
-        email: String(email || '').trim(),
+    const now = new Date().toISOString()
+    const deviceId = await getSetting('deviceId', 'unknown')
+
+    const record = {
+        id: existing.id,
+        codice: cleanCode,
+        note: note || '',
+        metadata: {
+            ...(existing.metadata || {}),
+            maxOspiti: parseMaxOspiti(maxOspiti),
+            indirizzo: String(indirizzo || '').trim(),
+            telefono: String(telefono || '').trim(),
+            email: String(email || '').trim(),
+        },
+        updatedAt: now,
+        deletedAt: existing.deletedAt,
+        syncStatus: 'pending',
+        // Preserve legacy fields from older schema versions
+        reparto: existing.reparto ?? '',
+        piano: existing.piano ?? '',
     }
 
-    await db.rooms.put({
-        ...updated,
-        metadata,
+    await db.transaction('rw', db.rooms, db.syncQueue, db.activityLog, async () => {
+        await db.rooms.put(record)
+        await enqueue('rooms', record.id, 'upsert')
+        await db.activityLog.add({
+            entityType: 'rooms',
+            entityId: record.id,
+            action: 'room_updated',
+            deviceId,
+            operatorId,
+            ts: now,
+        })
     })
 
-    return {
-        ...updated,
-        metadata,
-    }
+    return record
 }
 
 export async function deactivateResidenza({ roomId, operatorId = null }) {
