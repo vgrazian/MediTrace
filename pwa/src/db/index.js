@@ -188,6 +188,21 @@ db.version(6).stores({
     })
 })
 
+// v7 — Add dataMovimento index to movements for date-range queries (statistics, pruning)
+db.version(7).stores({
+    settings: '&key',
+    rooms: 'id, codice, updatedAt, syncStatus',
+    hosts: 'id, codiceInterno, cognome, nome, roomId, attivo, updatedAt, syncStatus',
+    drugs: 'id, nomeFarmaco, principioAttivo, classeTerapeutica, updatedAt, syncStatus',
+    stockBatches: 'id, drugId, residenzaId, nomeCommerciale, scadenza, updatedAt, syncStatus',
+    therapies: 'id, hostId, drugId, stockBatchId, dataInizio, dataFine, updatedAt, syncStatus',
+    movements: 'id, stockBatchId, hostId, therapyId, type, dataMovimento, updatedAt, syncStatus',
+    reminders: 'id, hostId, therapyId, scheduledAt, stato, updatedAt, syncStatus',
+    syncQueue: '++id, entityType, entityId, operation, createdAt',
+    syncState: '&key',
+    activityLog: '++id, entityType, entityId, action, deviceId, operatorId, ts',
+})
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 export async function getSetting(key, fallback = null) {
