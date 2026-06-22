@@ -1585,6 +1585,11 @@ export function useAuth() {
             if (state.currentUser?.username === normalized) {
                 state.currentUser = { ...state.currentUser, defaultResidenzaId: defaultResidenzaId || null }
             }
+            // Sync session timestamp to prevent mismatch on next auth check
+            const sessionUser = users.find(u => u.username === state.currentUser?.username && !u.disabled)
+            if (sessionUser) {
+                await writeSession(sessionUser, await readSession())
+            }
             await appendAuthAudit('auth_user_default_residenza', adminUser.username, {
                 targetUser: normalized,
                 defaultResidenzaId: defaultResidenzaId || null,
@@ -1628,6 +1633,11 @@ export function useAuth() {
             // Update currentUser if modifying self
             if (state.currentUser?.username === normalized) {
                 state.currentUser = toSessionUser(users[idx])
+            }
+            // Sync session timestamp to prevent mismatch on next auth check
+            const sessionUser = users.find(u => u.username === state.currentUser?.username && !u.disabled)
+            if (sessionUser) {
+                await writeSession(sessionUser, await readSession())
             }
             await appendAuthAudit('auth_user_profile_updated', adminUser.username, {
                 targetUser: normalized,
