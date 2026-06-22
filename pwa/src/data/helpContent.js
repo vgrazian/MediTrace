@@ -92,7 +92,7 @@ export const helpContent = {
             {
                 titolo: 'Come aggiungere un ospite',
                 testo:
-                    'Apri il pannello "Gestione Ospiti", inserisci Nome e Cognome (obbligatori). Il codice interno viene generato automaticamente. Completa i campi opzionali e scegli la residenza, poi salva.',
+                    'Clicca il pulsante "Aggiungi", inserisci Nome e Cognome (obbligatori). Il codice interno viene generato automaticamente. Completa i campi opzionali e scegli la residenza, poi salva.',
             },
             {
                 titolo: 'Visualizzazione',
@@ -130,7 +130,7 @@ export const helpContent = {
             {
                 titolo: 'Come aggiungere una residenza',
                 testo:
-                    'Apri il pannello "Gestione Residenze", inserisci Nome residenza e Max ospiti, poi salva. La residenza sarà disponibile anche nel filtro Promemoria.',
+                    'Clicca il pulsante "➕ Nuova residenza", inserisci Nome residenza e Max ospiti, poi salva. La residenza sarà disponibile anche nel filtro Promemoria.',
             },
             {
                 titolo: 'Capienza ospiti',
@@ -265,9 +265,19 @@ export const helpContent = {
                     'Sono avvisi collegati a un ospite e a una terapia. Per esempio: "Somministrare Tachipirina alle 08:00 a Mario Rossi". Compaiono nella lista quando è il momento di agire.',
             },
             {
+                titolo: 'Filtri',
+                testo:
+                    'Usa i filtri in alto per restringere la lista: Data (Oggi, Ieri, Domani, data personalizzata o Tutti), Stato (dropdown: Da eseguire, Eseguito, Saltato, Annullato), Ospite, Fascia oraria e Residenza. La data selezionata viene mostrata accanto al filtro Data.',
+            },
+            {
                 titolo: 'Esiti disponibili',
                 testo:
                     'Tre pulsanti per ogni promemoria: Eseguito (somministrato), Saltato (non somministrato) e Annullato (non necessario, es. farmaco sospeso). Il tasto Ripristina riporta un promemoria già marcato allo stato "Da eseguire".',
+            },
+            {
+                titolo: 'Modificare un promemoria',
+                testo:
+                    'Clicca "Modifica" sulla riga del promemoria. Si apre una finestra modale dove puoi cambiare orario, stato e note. Premi "Salva modifica" per confermare o "Annulla" per chiudere senza salvare.',
             },
             {
                 titolo: 'Registrare l\'esito',
@@ -372,6 +382,11 @@ export const helpContent = {
                 titolo: 'Sincronizzazione',
                 testo:
                     'Il pannello di sincronizzazione mostra lo stato della connessione con il server remoto. Se ci sono errori di sincronizzazione, contatta l\'amministratore.',
+            },
+            {
+                titolo: 'Manutenzione Database (admin)',
+                testo:
+                    'Gli amministratori vedono un pannello dedicato in fondo alla pagina. "Analizza DB" mostra lo spazio occupato e i record più vecchi di 90 giorni. "Pulisci dati > 90 giorni" esegue un sync, soft-delete dei record vecchi e un secondo sync per propagare le modifiche. Usalo periodicamente per mantenere il database snello.',
             },
             {
                 titolo: 'Ruolo utente',

@@ -307,7 +307,7 @@ onMounted(() => void loadData())
     <div class="card">
       <p><strong>Elenco residenze</strong></p>
       <p class="muted" style="margin-top:.35rem">
-        Le residenze definiscono il contesto operativo dell'operatore. Capienza consigliata: 10 ospiti per residenza.
+        Le residenze definiscono il contesto operativo dell'operatore.
       </p>
 
       <CrudFilterBar
@@ -317,6 +317,65 @@ onMounted(() => void loadData())
         :visible-count="filteredResidenze.length"
         :total-count="residenze.length"
       />
+
+      <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.75rem">
+        <button @click="openCreateForm">➕ Nuova residenza</button>
+      </div>
+
+      <!-- Create/Edit form (inline, no separate panel) -->
+      <div v-if="isFormOpen" class="import-form" style="margin-top:1rem;padding:1rem;background:#f8fafc;border:1px solid var(--line);border-radius:.5rem">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.75rem">
+          <p><strong>{{ creatingNew ? 'Nuova residenza' : `Modifica residenza: ${editName}` }}</strong></p>
+          <button type="button" class="btn-ghost btn-sm" @click="resetForm">✕ Chiudi</button>
+        </div>
+        <label>
+          Nome residenza
+          <input v-model="form.codice" type="text" placeholder="Es. Il Rifugio" />
+        </label>
+        <label>
+          Max ospiti
+          <input v-model="form.maxOspiti" type="number" min="1" step="1" placeholder="10" />
+        </label>
+        <label>
+          Indirizzo
+          <input v-model="form.indirizzo" type="text" placeholder="Via Roma 123, Milano" />
+        </label>
+        <label>
+          Telefono
+          <input v-model="form.telefono" type="tel" placeholder="+39 02 1234567" />
+        </label>
+        <label>
+          Email
+          <input v-model="form.email" type="email" placeholder="residenza@esempio.it" />
+        </label>
+        <label>
+          Note
+          <input v-model="form.note" type="text" placeholder="Note opzionali" />
+        </label>
+
+        <div style="margin-top:.5rem">
+          <p style="font-size:.85rem;font-weight:600;color:#475569;margin-bottom:.35rem">
+            Fasce orarie {{ editId ? '(override locale)' : '(verranno salvate dopo la creazione)' }}
+          </p>
+          <p class="muted" style="font-size:.75rem;margin-bottom:.4rem">
+            Se non configurate, verranno usate le fasce orarie globali dalle Impostazioni.
+          </p>
+          <div v-for="(fascia, idx) in fasceForm" :key="idx" style="display:flex;gap:.35rem;align-items:center;margin-bottom:.3rem">
+            <input v-model="fascia.nome" type="text" placeholder="Nome" style="width:7rem;font-size:.8rem" />
+            <input v-model="fascia.inizio" type="time" style="width:6rem;font-size:.8rem" />
+            <span style="font-size:.8rem;color:var(--muted)">–</span>
+            <input v-model="fascia.fine" type="time" style="width:6rem;font-size:.8rem" />
+            <button type="button" class="btn-sm btn-ghost" @click="removeFascia(idx)" :disabled="fasceForm.length <= 1" title="Rimuovi fascia">✕</button>
+          </div>
+          <button type="button" class="btn-sm" @click="addFascia" style="margin-top:.2rem">+ Aggiungi fascia</button>
+          <button v-if="editId" type="button" class="btn-sm" style="margin-top:.2rem;margin-left:.4rem;background:#f1f5f9" @click="resetFasceFromGlobali">Ripristina da globali</button>
+        </div>
+
+        <div style="margin-top:.75rem;display:flex;gap:.5rem">
+          <button :disabled="saving || !canSave" @click="handleSave">{{ saving ? 'Salvataggio...' : (editId ? 'Salva modifica' : 'Salva residenza') }}</button>
+          <button type="button" :disabled="saving" @click="resetForm">Annulla</button>
+        </div>
+      </div>
 
       <div class="dataset-frame" style="margin-top:.75rem">
         <table class="conflict-table">
@@ -362,74 +421,6 @@ onMounted(() => void loadData())
       </div>
       <p v-if="message" class="muted" style="margin-top:.55rem">{{ message }}</p>
       <p v-if="errorMessage" class="import-error" role="alert">{{ errorMessage }}</p>
-    </div>
-
-    <div class="card">
-      <details class="deep-panel" :open="isFormOpen" @toggle="handlePanelToggle">
-        <summary><strong>Gestione Residenze</strong></summary>
-        <div style="margin-top:.75rem">
-
-          <!-- Sub-menu when panel opens without a specific action -->
-          <div v-if="!editId && !creatingNew" style="text-align:center;padding:1rem 0">
-            <p class="muted" style="margin-bottom:.75rem">Cosa vuoi fare?</p>
-            <button @click="openCreateForm" style="margin-right:.5rem">➕ Crea nuova residenza</button>
-            <span class="muted" style="margin:0 .5rem">oppure</span>
-            <span class="muted">seleziona una residenza dalla tabella e usa Modifica</span>
-          </div>
-
-          <!-- Create/Edit form -->
-          <div v-else>
-          <p><strong>{{ editId ? `Modifica residenza: ${editName}` : 'Nuova residenza' }}</strong></p>
-          <div class="import-form" style="margin-top:.65rem">
-            <label>
-              Nome residenza
-              <input v-model="form.codice" type="text" placeholder="Es. Il Rifugio" />
-            </label>
-            <label>
-              Max ospiti
-              <input v-model="form.maxOspiti" type="number" min="1" step="1" placeholder="10" />
-            </label>
-            <label>
-              Indirizzo
-              <input v-model="form.indirizzo" type="text" placeholder="Via Roma 123, Milano" />
-            </label>
-            <label>
-              Telefono
-              <input v-model="form.telefono" type="tel" placeholder="+39 02 1234567" />
-            </label>
-            <label>
-              Email
-              <input v-model="form.email" type="email" placeholder="residenza@esempio.it" />
-            </label>
-            <label>
-              Note
-              <input v-model="form.note" type="text" placeholder="Note opzionali" />
-            </label>
-
-            <div style="margin-top:.5rem">
-              <p style="font-size:.85rem;font-weight:600;color:#475569;margin-bottom:.35rem">
-                Fasce orarie {{ editId ? '(override locale)' : '(verranno salvate dopo la creazione)' }}
-              </p>
-              <p class="muted" style="font-size:.75rem;margin-bottom:.4rem">
-                Se non configurate, verranno usate le fasce orarie globali dalle Impostazioni.
-              </p>
-              <div v-for="(fascia, idx) in fasceForm" :key="idx" style="display:flex;gap:.35rem;align-items:center;margin-bottom:.3rem">
-                <input v-model="fascia.nome" type="text" placeholder="Nome" style="width:7rem;font-size:.8rem" />
-                <input v-model="fascia.inizio" type="time" style="width:6rem;font-size:.8rem" />
-                <span style="font-size:.8rem;color:var(--muted)">–</span>
-                <input v-model="fascia.fine" type="time" style="width:6rem;font-size:.8rem" />
-                <button type="button" class="btn-sm btn-ghost" @click="removeFascia(idx)" :disabled="fasceForm.length <= 1" title="Rimuovi fascia">✕</button>
-              </div>
-              <button type="button" class="btn-sm" @click="addFascia" style="margin-top:.2rem">+ Aggiungi fascia</button>
-              <button v-if="editId" type="button" class="btn-sm" style="margin-top:.2rem;margin-left:.4rem;background:#f1f5f9" @click="resetFasceFromGlobali">Ripristina da globali</button>
-            </div>
-
-            <button :disabled="saving || !canSave" @click="handleSave">{{ saving ? 'Salvataggio...' : (editId ? 'Salva modifica' : 'Salva residenza') }}</button>
-            <button type="button" :disabled="saving" @click="resetForm">Annulla</button>
-          </div>
-          </div>
-        </div>
-      </details>
     </div>
 
     <!-- ── Grafico riempimento per genere ── -->

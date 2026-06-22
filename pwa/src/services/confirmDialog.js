@@ -6,7 +6,9 @@ const defaultOptions = {
   details: '',
   confirmText: 'Conferma',
   cancelText: 'Annulla',
+  extraText: '',
   tone: 'danger',
+  threeButton: false,
 }
 
 const dialogState = ref({
@@ -49,6 +51,10 @@ export function useConfirmDialogState() {
 
 export function resolveConfirmDialog(result) {
   closeWith(result)
+}
+
+export function resolveConfirmDialogExtra() {
+  closeWith('extra')
 }
 
 export async function openConfirmDialog(options = {}) {

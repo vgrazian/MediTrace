@@ -144,6 +144,7 @@ function batchLabel(batch) {
 const dateFilter = ref('today')
 const customDate = ref('')
 const stateFilter = ref([])
+const selectedState = ref('')
 
 const hostIdFilter = ref('')
 const fasciaOrariaFilter = ref('')
@@ -202,7 +203,7 @@ const rows = computed(() => buildReminderRows({
   rooms: rooms.value,
   bedSequence: bedSequence.value,
   dateFilter: resolvedDateFilter.value,
-  stateFilter: stateFilter.value,
+  stateFilter: selectedState.value ? [selectedState.value] : [],
   residenzaFilter: residenzaId.value,
   hostIdFilter: hostIdFilter.value,
   fasciaOrariaFilter: fasciaOrariaFilter.value,
@@ -582,17 +583,17 @@ watch(() => route.fullPath, () => void loadData())
 
 <template>
   <div class="view" :class="{ 'fullscreen': isFullscreen }" ref="promemoriaViewRef">
-    <div class="view-heading" style="display:flex;align-items:center;gap:1rem">
-      <h2 style="flex:1">Promemoria</h2>
+    <div class="view-heading">
+      <h2>Promemoria</h2>
       <button class="help-btn" @click="goToHelpSection('promemoria')">Aiuto</button>
     </div>
 
     <div class="card">
       <p><strong>Filtri</strong></p>
-      <div class="import-form" style="margin-top:.5rem;display:flex;flex-wrap:wrap;gap:1.5rem">
-        <label>
+      <div style="margin-top:.5rem;display:flex;flex-wrap:wrap;gap:.75rem;align-items:flex-end">
+        <label style="min-width:7rem">
           Data
-          <select v-model="dateFilter">
+          <select v-model="dateFilter" style="width:100%">
             <option value="today">Oggi</option>
             <option value="yesterday">Ieri</option>
             <option value="tomorrow">Domani</option>
@@ -603,42 +604,35 @@ watch(() => route.fullPath, () => void loadData())
             v-if="dateFilter === 'custom'"
             v-model="customDate"
             type="date"
-            style="margin-top:.35rem;display:block"
+            style="margin-top:.25rem;display:block"
             @change="dateFilter = customDate"
           />
         </label>
-        <label>
+        <span v-if="dateFilter !== 'all' && dateFilter !== 'custom'" class="muted" style="font-size:.82rem;align-self:center;padding-top:.85rem">
+          {{ dateFilter === 'today' ? 'Oggi' : dateFilter === 'yesterday' ? 'Ieri' : dateFilter === 'tomorrow' ? 'Domani' : dateFilter }}
+        </span>
+        <label style="min-width:8rem">
           Stato
-          <div style="margin-top:.35rem;display:flex;gap:.5rem;flex-wrap:wrap">
-            <label
-              v-for="option in stateFilterOptions"
-              :key="option.value"
-              style="display:flex;align-items:center;gap:.35rem;font-weight:500"
-            >
-              <input
-                v-model="stateFilter"
-                type="checkbox"
-                :value="option.value"
-              />
-              <span>{{ option.label }}</span>
-            </label>
-          </div>
-          <p class="muted" style="margin-top:.35rem;font-size:.8rem">
-            {{ stateFilter.length === 0 ? 'Tutti gli stati' : `${stateFilter.length} stati selezionati` }}
-          </p>
+          <select v-model="selectedState" style="width:100%">
+            <option value="">Tutti gli stati</option>
+            <option value="DA_ESEGUIRE">Da eseguire</option>
+            <option value="ESEGUITO">Eseguito</option>
+            <option value="SALTATO">Saltato</option>
+            <option value="ANNULLATO">Annullato</option>
+          </select>
         </label>
-        <label>
+        <label style="min-width:8rem">
           Ospite
-          <select v-model="hostIdFilter">
+          <select v-model="hostIdFilter" style="width:100%">
             <option value="">Tutti gli ospiti</option>
             <option v-for="host in hosts" :key="host.id" :value="host.id">
               {{ host.cognome || host.nome ? (host.cognome + ' ' + host.nome).trim() : (host.iniziali || host.codiceInterno || host.id) }}
             </option>
           </select>
         </label>
-        <label>
+        <label style="min-width:8rem">
           Fascia oraria
-          <select v-model="fasciaOrariaFilter">
+          <select v-model="fasciaOrariaFilter" style="width:100%">
             <option value="">Tutte le fasce</option>
             <option value="mattina">Mattina (06:00-11:59)</option>
             <option value="pomeriggio">Pomeriggio (12:00-17:59)</option>
@@ -646,15 +640,14 @@ watch(() => route.fullPath, () => void loadData())
             <option value="notte">Notte (00:00-05:59)</option>
           </select>
         </label>
-        <label>
-          Residenza operativa
-          <select :model-value="residenzaId" disabled style="opacity:0.7">
+        <label style="min-width:9rem">
+          Residenza
+          <select :model-value="residenzaId" disabled style="width:100%;opacity:0.7">
             <option value="">Tutte le residenze</option>
             <option v-for="residenza in residenzaOptions" :key="residenza.id" :value="residenza.id">
               {{ residenza.label }}
             </option>
           </select>
-          <span class="muted" style="font-size:0.75em">(selezionabile dalla barra superiore)</span>
         </label>
       </div>
     </div>
@@ -824,12 +817,11 @@ watch(() => route.fullPath, () => void loadData())
       </div>
     </Teleport>
 
-    <div class="card">
-      <details>
-        <summary><strong>Gestione Promemoria</strong></summary>
-
-        <div style="margin-top:.75rem">
-          <p><strong>{{ editingReminderId ? `Modifica promemoria ${editingReminderId}` : 'Seleziona un promemoria da modificare' }}</strong></p>
+    <!-- Edit Reminder Modal -->
+    <Teleport to="body">
+      <div v-if="editingReminderId" class="confirm-dialog-backdrop" @click="resetForm" @keydown.escape="resetForm">
+        <div class="confirm-dialog" role="dialog" aria-modal="true" aria-label="Modifica promemoria" @click.stop style="max-width:480px">
+          <h3>Modifica promemoria</h3>
           <div class="import-form" style="margin-top:.65rem">
             <ValidatedInput
               v-model="form.scheduledAt"
@@ -838,12 +830,13 @@ watch(() => route.fullPath, () => void loadData())
               type="datetime-local"
               :error="errors.scheduledAt"
               :required="true"
-              :disabled="!editingReminderId || savingEdit"
+              :disabled="savingEdit"
+              style="max-width:100%"
               @validate="(field, value) => validateField(field, value)"
             />
             <label>
               Stato
-              <select v-model="form.stato" :disabled="!editingReminderId || savingEdit">
+              <select v-model="form.stato" :disabled="savingEdit">
                 <option value="DA_ESEGUIRE">Ripristina</option>
                 <option value="ESEGUITO">Eseguito</option>
                 <option value="SALTATO">Saltato</option>
@@ -857,17 +850,19 @@ watch(() => route.fullPath, () => void loadData())
               type="text"
               placeholder="Note operative"
               :error="errors.note"
-              :disabled="!editingReminderId || savingEdit"
+              :disabled="savingEdit"
               @validate="(field, value) => validateField(field, value)"
             />
-            <button :disabled="!editingReminderId || savingEdit || hasErrors" @click="saveReminderEdit">
-              {{ savingEdit ? 'Salvataggio...' : 'Salva modifica' }}
-            </button>
-            <button type="button" :disabled="savingEdit" @click="resetForm">Annulla</button>
+            <div style="display:flex;gap:.5rem;margin-top:.75rem">
+              <button class="btn-primary" :disabled="savingEdit || hasErrors" @click="saveReminderEdit">
+                {{ savingEdit ? 'Salvataggio...' : 'Salva modifica' }}
+              </button>
+              <button type="button" :disabled="savingEdit" @click="resetForm">Annulla</button>
+            </div>
           </div>
         </div>
-      </details>
-    </div>
+      </div>
+    </Teleport>
   </div>
 </template>
 

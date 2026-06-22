@@ -552,7 +552,7 @@ onMounted(() => {
         </select>
       </label>
 
-      <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.75rem">
+      <div style="display:flex;gap:.5rem;flex-wrap:wrap;align-items:center;margin-top:.75rem">
         <button
           :disabled="!canCreate"
           :title="!canCreate ? 'Servono Ospiti e Farmaci nel dataset per creare terapie' : 'Aggiungi (Scorciatoia: N)'"
@@ -567,18 +567,11 @@ onMounted(() => {
         >
           Elimina{{ selectedCount > 0 ? ` (${selectedCount})` : '' }}
         </button>
-        <button
-          @click="() => { const searchInput = document.querySelector('input[placeholder=\'Cerca per ospite, farmaco, dose o note\']'); if (searchInput) searchInput.focus(); }"
-          title="Cerca (Scorciatoia: /)"
-        >
-          Cerca
-        </button>
+        <span v-if="selectedCount > 0" class="muted" style="font-size:.82rem">
+          {{ selectedCount }} selezionat{{ selectedCount > 1 ? 'e' : 'a' }}.
+          <button type="button" class="btn-sm btn-ghost" @click="clearSelection">Deseleziona tutto</button>
+        </span>
       </div>
-
-      <p v-if="selectedCount > 0" class="muted" style="margin-top:.55rem">
-        {{ selectedCount }} terapi{{ selectedCount > 1 ? 'e' : 'a' }} selezionat{{ selectedCount > 1 ? 'e' : 'a' }}.
-        <button type="button" style="margin-left:.4rem" @click="clearSelection">Deseleziona tutto</button>
-      </p>
 
       <div v-if="loading" class="loading-skeleton" role="status" aria-label="Caricamento in corso">
         <div class="loading-skeleton-row"></div>

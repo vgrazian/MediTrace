@@ -44,7 +44,7 @@
         <div class="supabase-stat">
           <div class="supabase-stat-label">Tabelle</div>
           <div class="supabase-stat-value">{{ supabaseStats.tables }}</div>
-          <div class="supabase-stat-sub" style="margin-top:.35rem">nel schema <code>public</code></div>
+          <div class="supabase-stat-sub" style="margin-top:.35rem">{{ supabaseStats.tables }} {{ supabaseStats.tables === 1 ? 'tabella' : 'tabelle' }} nello schema <code>public</code></div>
         </div>
 
         <!-- API calls placeholder -->

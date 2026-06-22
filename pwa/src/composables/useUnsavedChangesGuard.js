@@ -4,7 +4,8 @@ import { openConfirmDialog } from '../services/confirmDialog'
 
 export function useUnsavedChangesGuard(isDirty, {
   title = 'Modifiche non salvate',
-  message = 'Hai modifiche non salvate. Vuoi uscire senza salvare?',
+  message = 'Hai modifiche non salvate. Cosa vuoi fare?',
+  onSave = null,
 } = {}) {
   const handleBeforeUnload = (event) => {
     if (!isDirty.value) return
@@ -22,9 +23,38 @@ export function useUnsavedChangesGuard(isDirty, {
 
   onBeforeRouteLeave(async () => {
     if (!isDirty.value) return true
+
+    if (onSave) {
+      const choice = await openConfirmDialog({
+        title,
+        message,
+        confirmText: 'Salva ed esci',
+        cancelText: 'Esci senza salvare',
+        extraText: 'Annulla',
+        tone: 'primary',
+        threeButton: true,
+      })
+
+      if (choice === true) {
+        // User chose "Salva ed esci"
+        try {
+          await onSave()
+          return true
+        } catch (err) {
+          // Save failed (e.g., validation) — stay on page, error shown by caller
+          return false
+        }
+      } else if (choice === false) {
+        // User chose "Esci senza salvare"
+        return true
+      }
+      // User chose "Annulla" (extra) or dismissed — stay on page
+      return false
+    }
+
     const shouldLeave = await openConfirmDialog({
       title,
-      message,
+      message: 'Hai modifiche non salvate. Vuoi uscire senza salvare?',
       confirmText: 'Esci senza salvare',
       cancelText: 'Resta nella pagina',
       tone: 'danger',

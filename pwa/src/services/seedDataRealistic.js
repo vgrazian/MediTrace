@@ -26,7 +26,7 @@ const TARGET_ROOM_DISTRIBUTION = [
 ]
 const TARGET_DRUG_COUNT = 12
 const TREND_PREVIOUS_WEEKS = 4
-const REMINDER_LOOKAHEAD_DAYS = 7
+const REMINDER_LOOKAHEAD_DAYS = 14
 
 const REALISTIC_HOST_IDENTITIES = [
     { nome: 'Elisa', cognome: 'Montelupo' },
@@ -725,7 +725,7 @@ function generateRealisticMovements(therapies, batches, now) {
 
     let movementId = 1
     const weeklyOffsets = Array.from({ length: TREND_PREVIOUS_WEEKS + 1 }, (_, idx) => idx)
-    const weeklyTypePattern = ['SCARICO', 'SOMMINISTRAZIONE', 'SCARICO', 'CONSUMO']
+    const weeklyTypePattern = ['scarico', 'somministrazione', 'scarico', 'consumo']
 
     for (let i = 0; i < therapies.length; i += 1) {
         const therapy = therapies[i]
@@ -775,7 +775,7 @@ function generateRealisticMovements(therapies, batches, now) {
             drugId: batch.drugId,
             hostId: null,
             therapyId: null,
-            tipoMovimento: 'CARICO',
+            tipoMovimento: 'carico',
             quantita: 20 + (i * 5),
             unitaMisura: batch.unitaMisura || 'cpr',
             causale: 'Reintegro magazzino',

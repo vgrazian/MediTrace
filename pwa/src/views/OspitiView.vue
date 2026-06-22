@@ -568,12 +568,11 @@ onMounted(() => {
               >
                 Modifica
               </button>
-              <a
-                :href="'#/terapie?ospite=' + host.id"
+              <RouterLink
+                :to="'/terapie?ospite=' + host.id"
                 class="btn"
-                style="text-decoration:none"
                 title="Vai alle terapie di questo ospite"
-              >Terapie</a>
+              >Terapie</RouterLink>
               <button
                 class="btn-danger"
                 @click="handleDeactivate(host.id)"

@@ -1,4 +1,4 @@
-import { db, getSetting, getSyncState } from '../db'
+import { db, getSetting } from '../db'
 import { buildOperationalReport } from './reporting'
 
 function startOfDay(date = new Date()) {
@@ -16,7 +16,7 @@ export async function buildHomeDashboardKpis(now = new Date()) {
         db.reminders.toArray(),
         db.syncQueue.count(),
         getSetting('datasetVersion', null),
-        getSyncState('lastSyncAt', null),
+        getSetting('lastSyncAt', null),
     ])
 
     const dayStart = startOfDay(now)

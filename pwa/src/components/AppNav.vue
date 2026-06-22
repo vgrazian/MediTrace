@@ -151,6 +151,8 @@ async function maybeAutoSync() {
   syncInProgress = true
   try {
     await fullSync()
+    // Update last sync timestamp for the dashboard
+    await setSetting('lastSyncAt', new Date().toISOString())
   } catch (_) {
     // Silent fail — next cycle will retry
   } finally {
@@ -209,6 +211,7 @@ async function handleSync() {
   if (isSupabaseConfigured) {
     try {
       await fullSync()
+      await setSetting('lastSyncAt', new Date().toISOString())
     } catch {
       // silent fail
     }
@@ -245,6 +248,15 @@ async function handleSync() {
         <span class="residenza-chevron">▾</span>
         <div v-if="showResidenzaDropdown" ref="residenzaDropdownRef" class="residenza-dropdown" @click.stop>
           <div class="residenza-dropdown-header">Cambia residenza</div>
+          <button
+            class="residenza-dropdown-item"
+            :class="{ active: !currentResidenzaId }"
+            @click="selectResidenza('')"
+          >
+            <span v-if="!currentResidenzaId" class="residenza-check">✓</span>
+            <span v-else class="residenza-check-placeholder"></span>
+            Tutte
+          </button>
           <button
             v-for="r in availableResidenze"
             :key="r.id"

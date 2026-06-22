@@ -31,6 +31,17 @@ const buildTimestampLabel = formatBuildTimestamp('it-IT')
 const buildTimestampIso = getBuildTimestampIso()
 const deployLabel = getDeployLabel()
 
+// ── Scroll-to-top (iOS-compatible) ────────────────────────────────────────
+function scrollToTop() {
+  const scrollingElement = document.scrollingElement || document.documentElement
+  if (scrollingElement.scrollTo) {
+    scrollingElement.scrollTo({ top: 0, behavior: 'smooth' })
+  } else {
+    scrollingElement.scrollTop = 0
+    document.body.scrollTop = 0
+  }
+}
+
 // ── CDN status check ──────────────────────────────────────────────────────
 const cdnStatus = ref('')
 const cdnAge = ref('')
@@ -269,7 +280,7 @@ async function handleRegister() {
       <main id="main-content">
         <RouterView />
       </main>
-      <button class="scroll-top-btn" @click="window.scrollTo({ top: 0, behavior: 'smooth' })" title="Torna in cima" aria-label="Torna in cima">&uarr;</button>
+      <button class="scroll-top-btn" @click="scrollToTop" title="Torna in cima" aria-label="Torna in cima">&uarr;</button>
       <HelpDrawer />
     </template>
     <ConfirmDialog />

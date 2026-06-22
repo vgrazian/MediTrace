@@ -36,7 +36,7 @@ cd pwa
 npm install
 npm run dev          # http://localhost:5173
 npm run build        # build
-npm run test:unit    # 79 test
+npm run test:unit    # 83 test
 npm run test:e2e     # playwright
 ```
 

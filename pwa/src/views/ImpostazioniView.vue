@@ -160,11 +160,118 @@ const backupRestoreBusy = ref(false)
 const backupRestoreMessage = ref('')
 const selectedBackupFile = ref(null)
 
+// ── DB Maintenance ────────────────────────────────────────────────────────
+const dbMaintenanceBusy = ref(false)
+const dbMaintenanceMessage = ref('')
+const dbStats = ref({ sizeEstimate: 0, oldRecords: 0, activityLogCount: 0 })
+
+async function refreshDbStats() {
+  try {
+    // Estimate local DB size and record counts
+    const [movements, reminders, activityLog] = await Promise.all([
+      db.movements.count(),
+      db.reminders.count(),
+      db.activityLog.count(),
+    ])
+    // Rough size estimate (5KB per record average)
+    const totalRecords = movements + reminders + activityLog
+    const sizeEstimate = Math.round(totalRecords * 5 / 1024)
+    dbStats.value = { sizeEstimate, oldRecords: 0, activityLogCount: activityLog }
+
+    // Check for old records (> 90 days)
+    const ninetyDaysAgo = new Date()
+    ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90)
+    const oldDate = ninetyDaysAgo.toISOString()
+    const oldMovements = await db.movements.where('dataMovimento').below(oldDate).count()
+    const oldReminders = await db.reminders.where('scheduledAt').below(oldDate).count()
+    const oldActivity = await db.activityLog.where('ts').below(oldDate).count()
+    dbStats.value.oldRecords = oldMovements + oldReminders + oldActivity
+    dbStats.value.sizeEstimate = Math.round(totalRecords * 5 / 1024)
+  } catch (err) {
+    dbMaintenanceMessage.value = `Errore statistiche: ${err.message}`
+  }
+}
+
+async function cleanOldData() {
+  if (!isAdmin.value) return
+  const confirmed = await openConfirmDialog({
+    title: 'Pulizia dati vecchi',
+    message: `Eliminare ${dbStats.value.oldRecords} record più vecchi di 90 giorni?`,
+    details: 'Verrà eseguito un sync prima e dopo la pulizia per propagare le modifiche. I dati verranno soft-deleted (marcati come eliminati).',
+    confirmText: 'Pulisci dati vecchi',
+    cancelText: 'Annulla',
+    tone: 'danger',
+  })
+  if (!confirmed) return
+
+  dbMaintenanceBusy.value = true
+  dbMaintenanceMessage.value = 'Sync in corso prima della pulizia…'
+  try {
+    // Sync first
+    if (isSupabaseConfigured) {
+      await fullSync()
+    }
+    dbMaintenanceMessage.value = 'Pulizia dati in corso…'
+
+    const ninetyDaysAgo = new Date()
+    ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90)
+    const oldDate = ninetyDaysAgo.toISOString()
+    const now = new Date().toISOString()
+    const deviceId = await getSetting('deviceId', 'unknown')
+
+    // Soft-delete old movement records
+    const oldMovements = await db.movements.where('dataMovimento').below(oldDate).toArray()
+    for (const m of oldMovements) {
+      if (!m.deletedAt) {
+        await db.movements.put({ ...m, deletedAt: now, updatedAt: now, syncStatus: 'pending' })
+        await enqueue('movements', m.id, 'upsert')
+      }
+    }
+
+    // Soft-delete old reminder records
+    const oldReminders = await db.reminders.where('scheduledAt').below(oldDate).toArray()
+    for (const r of oldReminders) {
+      if (!r.deletedAt) {
+        await db.reminders.put({ ...r, deletedAt: now, updatedAt: now, syncStatus: 'pending' })
+        await enqueue('reminders', r.id, 'upsert')
+      }
+    }
+
+    // Soft-delete old activity logs
+    const oldActivity = await db.activityLog.where('ts').below(oldDate).toArray()
+    for (const a of oldActivity) {
+      await db.activityLog.delete(a.id)
+    }
+
+    await db.activityLog.add({
+      entityType: 'maintenance',
+      entityId: 'db_cleanup',
+      action: 'db_cleanup_executed',
+      deviceId,
+      operatorId: currentUser.value?.login ?? null,
+      ts: now,
+      details: { oldMovements: oldMovements.length, oldReminders: oldReminders.length, oldActivity: oldActivity.length },
+    })
+
+    // Sync after cleanup
+    if (isSupabaseConfigured) {
+      await fullSync()
+    }
+    dbMaintenanceMessage.value = `Pulizia completata: ${oldMovements.length} movimenti, ${oldReminders.length} promemoria, ${oldActivity.length} log attività rimossi.`
+    await refreshDbStats()
+  } catch (err) {
+    dbMaintenanceMessage.value = `Errore pulizia: ${err.message}`
+  } finally {
+    dbMaintenanceBusy.value = false
+  }
+}
+
 const passwordPolicyState = computed(() => getPasswordPolicy(pwdNext.value))
 const newUserPasswordPolicyState = computed(() => getPasswordPolicy(newUserPassword.value))
 const suggestedUsername = computed(() => suggestUsernameFromName(newUserFirstName.value, newUserLastName.value))
 const canManageUsers = computed(() => canRole(currentUser.value?.role, 'users:read'))
 const canManageTestData = computed(() => canRole(currentUser.value?.role, 'testData:manage'))
+const isAdmin = computed(() => currentUser.value?.role === 'admin')
 const syncBackendLabel = computed(() => (isSupabaseConfigured ? 'Supabase' : 'GitHub Gist (legacy)'))
 const testDataActionLabel = computed(() => {
   if (seedBusy.value) return seedActionMode.value === 'clear' ? 'Rimozione in corso…' : 'Generazione in corso…'
@@ -380,6 +487,7 @@ onMounted(async () => {
   await refreshPushStatus()
   await refreshUpcomingReminderRows()
   await refreshSeedStatus()
+  if (isAdmin.value) { refreshDbStats() }
   hydrateProfileForm()
   syncSuggestedUsername()
 })
@@ -506,6 +614,8 @@ async function runSync() {
     } else {
       syncMessage.value = JSON.stringify(result)
     }
+    // Update last sync timestamp
+    await setSetting('lastSyncAt', new Date().toISOString())
   } catch (err) {
     const formatted = formatUserError('sincronizzazione', err)
     syncMessage.value = `${formatted.title}: ${formatted.message}`
@@ -1084,6 +1194,30 @@ async function handleCreateUser() {
           </tbody>
         </table>
       </div>
+    </div>
+
+    <!-- DB Maintenance (admin only) -->
+    <div v-if="isAdmin" class="card" style="border-left:3px solid #f59e42">
+      <p><strong>🔧 Manutenzione Database</strong></p>
+      <p class="muted" style="margin-top:.25rem">Strumenti per la gestione e pulizia dei dati. Accessibile solo agli amministratori.</p>
+
+      <div style="margin-top:.75rem;display:flex;gap:.5rem;flex-wrap:wrap">
+        <button :disabled="dbMaintenanceBusy" @click="refreshDbStats">Analizza DB</button>
+        <button :disabled="dbMaintenanceBusy || !dbStats.oldRecords" class="btn-danger" @click="cleanOldData">
+          Pulisci dati > 90 giorni ({{ dbStats.oldRecords }} record)
+        </button>
+      </div>
+
+      <div v-if="dbStats.sizeEstimate > 0" style="margin-top:.75rem">
+        <p class="muted">Record totali: ~{{ dbStats.sizeEstimate }} MB stimati</p>
+        <p class="muted">Record > 90 giorni: {{ dbStats.oldRecords }}</p>
+        <p class="muted">Log attività: {{ dbStats.activityLogCount }}</p>
+        <p v-if="dbStats.sizeEstimate > 400" style="color:#b45309;margin-top:.25rem;font-size:.82rem">
+          ⚠️ Spazio occupato elevato. Si consiglia la pulizia dei dati vecchi.
+        </p>
+      </div>
+
+      <p v-if="dbMaintenanceMessage" class="muted" style="margin-top:.5rem;font-size:.8rem">{{ dbMaintenanceMessage }}</p>
     </div>
   </div>
 </template>

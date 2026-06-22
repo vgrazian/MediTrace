@@ -68,7 +68,7 @@ async function refreshHomeKpi() {
   homeKpi.value = await buildHomeDashboardKpis()
   datasetVersion.value = homeKpi.value.datasetVersion
   syncStatus.value = homeKpi.value.pendingSync > 0
-    ? `In coda ${homeKpi.value.pendingSync} operazioni`
+    ? `In coda ${homeKpi.value.pendingSync} operazion${homeKpi.value.pendingSync === 1 ? 'e' : 'i'}`
     : 'Allineato (nessuna operazione in coda)'
 }
 

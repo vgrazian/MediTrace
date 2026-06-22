@@ -3,6 +3,7 @@ import { computed, onMounted, onUnmounted } from 'vue'
 import {
   registerConfirmDialogHost,
   resolveConfirmDialog,
+  resolveConfirmDialogExtra,
   unregisterConfirmDialogHost,
   useConfirmDialogState,
 } from '../services/confirmDialog'
@@ -11,6 +12,7 @@ const state = useConfirmDialogState()
 
 const isOpen = computed(() => state.value.isOpen)
 const options = computed(() => state.value.options)
+const isThreeButton = computed(() => options.value.threeButton)
 
 function onCancel() {
   resolveConfirmDialog(false)
@@ -18,6 +20,10 @@ function onCancel() {
 
 function onConfirm() {
   resolveConfirmDialog(true)
+}
+
+function onExtra() {
+  resolveConfirmDialogExtra()
 }
 
 onMounted(() => {
@@ -38,7 +44,9 @@ onUnmounted(() => {
         <p v-if="options.details" class="details">{{ options.details }}</p>
 
         <div class="actions">
-          <button type="button" class="cancel" @click="onCancel">{{ options.cancelText }}</button>
+          <button v-if="!isThreeButton" type="button" class="cancel" @click="onCancel">{{ options.cancelText }}</button>
+          <button v-if="isThreeButton" type="button" class="cancel" @click="onCancel">{{ options.cancelText }}</button>
+          <button v-if="isThreeButton" type="button" class="extra" @click="onExtra">{{ options.extraText }}</button>
           <button type="button" :class="options.tone === 'danger' ? 'danger' : 'primary'" @click="onConfirm">{{ options.confirmText }}</button>
         </div>
       </div>
@@ -91,6 +99,12 @@ onUnmounted(() => {
 .actions .cancel {
   background: #e5e7eb;
   color: #111827;
+}
+
+.actions .extra {
+  background: #f3f4f6;
+  color: #6b7280;
+  border: 1px solid #d1d5db;
 }
 
 .actions .primary {
