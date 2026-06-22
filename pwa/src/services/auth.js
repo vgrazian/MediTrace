@@ -47,7 +47,7 @@ const EMERGENCY_ADMIN_LAST_NAME = String(import.meta.env.VITE_EMERGENCY_ADMIN_LA
 const EMERGENCY_ADMIN_GITHUB_TOKEN = String(import.meta.env.VITE_EMERGENCY_ADMIN_GITHUB_TOKEN || '').trim()
 const DEFAULT_OPERATOR_VALERIO_USERNAME = normalizeUsername(import.meta.env.VITE_DEFAULT_VALERIO_USERNAME || 'valerio')
 const DEFAULT_OPERATOR_VALERIO_PASSWORD = String(import.meta.env.VITE_DEFAULT_VALERIO_PASSWORD || 'V@lerio123!')
-const DEFAULT_OPERATOR_VALERIO_EMAIL = normalizeEmail(import.meta.env.VITE_DEFAULT_VALERIO_EMAIL || 'valeriograziani@gmail.com')
+const DEFAULT_OPERATOR_VALERIO_EMAIL = normalizeEmail(import.meta.env.VITE_DEFAULT_VALERIO_EMAIL || 'valerio@example.com')
 const DEFAULT_OPERATOR_ANNA_USERNAME = normalizeUsername(import.meta.env.VITE_DEFAULT_ANNA_USERNAME || 'anna')
 const DEFAULT_OPERATOR_ANNA_PASSWORD = String(import.meta.env.VITE_DEFAULT_ANNA_PASSWORD || 'Anna@456!Xy')
 const DEFAULT_OPERATOR_ANNA_EMAIL = normalizeEmail(import.meta.env.VITE_DEFAULT_ANNA_EMAIL || 'anna@example.com')
@@ -663,7 +663,7 @@ async function ensureDefaultOperators(users) {
         {
             username: normalizeUsername(import.meta.env.VITE_EMERGENCY_ADMIN_USERNAME || 'admin'),
             password: String(import.meta.env.VITE_EMERGENCY_ADMIN_PASSWORD || 'A9m4K2qL!Xy'),
-            email: normalizeEmail(import.meta.env.VITE_EMERGENCY_ADMIN_EMAIL || 'meditrace0@gmail.com'),
+            email: normalizeEmail(import.meta.env.VITE_EMERGENCY_ADMIN_EMAIL || 'admin@example.com'),
             firstName: String(import.meta.env.VITE_EMERGENCY_ADMIN_FIRST_NAME || 'Admin').trim(),
             lastName: String(import.meta.env.VITE_EMERGENCY_ADMIN_LAST_NAME || 'MediTrace').trim(),
             role: 'admin',
@@ -680,8 +680,8 @@ async function ensureDefaultOperators(users) {
             username: DEFAULT_OPERATOR_ANNA_USERNAME,
             password: DEFAULT_OPERATOR_ANNA_PASSWORD,
             email: DEFAULT_OPERATOR_ANNA_EMAIL,
-            firstName: 'Anna Maria',
-            lastName: 'Cigliano',
+            firstName: 'Anna',
+            lastName: 'Bianchi',
             role: 'operator',
         },
     ]
@@ -811,7 +811,7 @@ async function initAuthSupabase() {
             if (sessionToken) {
                 const operators = [
                     { username: DEFAULT_OPERATOR_VALERIO_USERNAME, password: DEFAULT_OPERATOR_VALERIO_PASSWORD, email: DEFAULT_OPERATOR_VALERIO_EMAIL, firstName: 'Valerio', lastName: 'Graziani' },
-                    { username: DEFAULT_OPERATOR_ANNA_USERNAME, password: DEFAULT_OPERATOR_ANNA_PASSWORD, email: DEFAULT_OPERATOR_ANNA_EMAIL, firstName: 'Anna Maria', lastName: 'Cigliano' },
+                    { username: DEFAULT_OPERATOR_ANNA_USERNAME, password: DEFAULT_OPERATOR_ANNA_PASSWORD, email: DEFAULT_OPERATOR_ANNA_EMAIL, firstName: 'Anna', lastName: 'Bianchi' },
                 ]
                 for (const op of operators) {
                     try {
@@ -1585,6 +1585,11 @@ export function useAuth() {
             if (state.currentUser?.username === normalized) {
                 state.currentUser = { ...state.currentUser, defaultResidenzaId: defaultResidenzaId || null }
             }
+            // Sync session timestamp to prevent mismatch on next auth check
+            const sessionUser = users.find(u => u.username === state.currentUser?.username && !u.disabled)
+            if (sessionUser) {
+                await writeSession(sessionUser, await readSession())
+            }
             await appendAuthAudit('auth_user_default_residenza', adminUser.username, {
                 targetUser: normalized,
                 defaultResidenzaId: defaultResidenzaId || null,
@@ -1628,6 +1633,11 @@ export function useAuth() {
             // Update currentUser if modifying self
             if (state.currentUser?.username === normalized) {
                 state.currentUser = toSessionUser(users[idx])
+            }
+            // Sync session timestamp to prevent mismatch on next auth check
+            const sessionUser = users.find(u => u.username === state.currentUser?.username && !u.disabled)
+            if (sessionUser) {
+                await writeSession(sessionUser, await readSession())
             }
             await appendAuthAudit('auth_user_profile_updated', adminUser.username, {
                 targetUser: normalized,
