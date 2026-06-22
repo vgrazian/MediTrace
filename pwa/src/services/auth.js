@@ -14,6 +14,7 @@ import {
     registerFirstAdminWithTable,
     restoreSession,
     setUserDisabledWithTable,
+    setUserRoleWithTable,
     signInWithTable,
     signOutFromTable,
     updateProfileWithTable,
@@ -1570,6 +1571,38 @@ export function useAuth() {
         },
 
         async setUserDefaultResidenza({ username, defaultResidenzaId }) {
+            if (isSupabaseConfigured && supabase) {
+                // Validate Supabase session before local write
+                const storedSession = await readStoredSession()
+                if (!storedSession?.token) throw new Error('Sessione non attiva')
+
+                const normalized = normalizeUsername(username)
+                // Persist locally (no Supabase RPC for this field yet)
+                const users = await loadUsers()
+                const idx = users.findIndex(u => u.username === normalized)
+                if (idx < 0) {
+                    // User not in local cache — just update in-memory state
+                    if (state.currentUser?.username === normalized) {
+                        state.currentUser = { ...state.currentUser, defaultResidenzaId: defaultResidenzaId || null }
+                    }
+                    await appendAuthAudit('auth_user_default_residenza', state.currentUser?.username ?? 'admin', {
+                        targetUser: normalized,
+                        defaultResidenzaId: defaultResidenzaId || null,
+                    })
+                    return { username: normalized, defaultResidenzaId: defaultResidenzaId || null }
+                }
+                users[idx] = { ...users[idx], defaultResidenzaId: defaultResidenzaId || null, updatedAt: nowIso() }
+                await saveUsers(users)
+                if (state.currentUser?.username === normalized) {
+                    state.currentUser = { ...state.currentUser, defaultResidenzaId: defaultResidenzaId || null }
+                }
+                await appendAuthAudit('auth_user_default_residenza', state.currentUser?.username ?? 'admin', {
+                    targetUser: normalized,
+                    defaultResidenzaId: defaultResidenzaId || null,
+                })
+                return summarizeUser(users[idx])
+            }
+
             const adminUser = await requireAdminSession()
             const normalized = normalizeUsername(username)
             const users = await loadUsers()
@@ -1598,6 +1631,94 @@ export function useAuth() {
         },
 
         async setUserProfile({ username, firstName, lastName, email, phone, role, isSeeded }) {
+            if (isSupabaseConfigured && supabase) {
+                const storedSession = await readStoredSession()
+                if (!storedSession?.token) throw new Error('Sessione non attiva')
+
+                const normalized = normalizeUsername(username)
+                const normalizedEmail = normalizeEmail(email)
+                const normalizedPhone = normalizePhone(phone ?? '')
+                const normalizedFirstName = String(firstName ?? '').trim()
+                const normalizedLastName = String(lastName ?? '').trim()
+                if (!normalizedFirstName || !normalizedLastName) {
+                    throw new Error('Nome e cognome sono obbligatori')
+                }
+                const normalizedRole = normalizeRole(role)
+
+                // Update profile fields via Supabase RPC
+                const profileResult = await updateProfileWithTable({
+                    username: normalized,
+                    firstName: normalizedFirstName,
+                    lastName: normalizedLastName,
+                    email: normalizedEmail,
+                    phone: normalizedPhone,
+                    sessionTtlMinutes: AUTH_SESSION_TTL_MINUTES,
+                })
+
+                // Update role if changed (separate RPC)
+                const currentRole = normalizeRole(profileResult.user.role)
+                if (normalizedRole !== currentRole) {
+                    await setUserRoleWithTable({
+                        username: normalized,
+                        role: normalizedRole,
+                        sessionTtlMinutes: AUTH_SESSION_TTL_MINUTES,
+                    })
+                }
+
+                // Sync local cache with updated user
+                const localUsers = await loadUsers()
+                const localIdx = localUsers.findIndex(u => u.username === normalized)
+                if (localIdx >= 0) {
+                    localUsers[localIdx] = {
+                        ...localUsers[localIdx],
+                        firstName: normalizedFirstName,
+                        lastName: normalizedLastName,
+                        displayName: [normalizedFirstName, normalizedLastName].filter(Boolean).join(' ').trim() || normalized,
+                        email: normalizedEmail,
+                        phone: normalizedPhone,
+                        role: normalizedRole,
+                        isSeeded: isSeeded !== undefined ? Boolean(isSeeded) : localUsers[localIdx].isSeeded,
+                        updatedAt: nowIso(),
+                    }
+                    await saveUsers(localUsers)
+                }
+
+                // Update in-memory currentUser if modifying self
+                if (state.currentUser?.username === normalized) {
+                    state.currentUser = {
+                        ...state.currentUser,
+                        firstName: normalizedFirstName,
+                        lastName: normalizedLastName,
+                        name: [normalizedFirstName, normalizedLastName].filter(Boolean).join(' ') || normalized,
+                        email: normalizedEmail,
+                        phone: normalizedPhone,
+                        role: normalizedRole,
+                    }
+                }
+
+                await appendAuthAudit('auth_user_profile_updated', state.currentUser?.username ?? 'admin', {
+                    targetUser: normalized,
+                    fields: { firstName: normalizedFirstName, lastName: normalizedLastName, email: normalizedEmail, role: normalizedRole },
+                })
+
+                return {
+                    username: normalized,
+                    login: normalized,
+                    name: [normalizedFirstName, normalizedLastName].filter(Boolean).join(' ').trim() || normalized,
+                    firstName: normalizedFirstName,
+                    lastName: normalizedLastName,
+                    email: normalizedEmail,
+                    phone: normalizedPhone,
+                    role: normalizedRole,
+                    isSeeded: Boolean(isSeeded),
+                    disabled: false,
+                    updatedAt: nowIso(),
+                    createdAt: profileResult.user.createdAt ?? null,
+                    isCurrent: state.currentUser?.username === normalized,
+                    defaultResidenzaId: state.currentUser?.defaultResidenzaId || null,
+                }
+            }
+
             const adminUser = await requireAdminSession()
             const normalized = normalizeUsername(username)
             const users = await loadUsers()
