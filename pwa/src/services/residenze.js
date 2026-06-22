@@ -1,5 +1,6 @@
 import { db, enqueue, getSetting } from '../db'
-import { createRoom, updateRoom, restoreRoom } from './stanze'
+import { restoreRoom } from './stanze'
+import { generateEntityId } from './ids'
 
 export const DEFAULT_RESIDENZE = [
     { codice: 'Il Rifugio', maxOspiti: 5, note: 'Casa alloggio attiva (5 ospiti target)' },
@@ -96,14 +97,50 @@ export async function ensureDefaultResidenze({ operatorId = null } = {}) {
     const legacyDemo = allRooms.find(
         r => !r.deletedAt && String(r.codice || '').trim().toLowerCase() === 'residenza demo'
     )
+    const newDemo = allRooms.find(
+        r => !r.deletedAt && r.id !== legacyDemo?.id && String(r.codice || '').trim().toLowerCase() === 'demo'
+    )
+
     if (legacyDemo) {
         const now = new Date().toISOString()
-        await db.rooms.put({
-            ...legacyDemo,
-            codice: 'Demo',
-            updatedAt: now,
-            syncStatus: 'pending',
-        })
+        if (newDemo) {
+            // Both exist — reassign hosts from legacy to new, then deactivate legacy
+            const hosts = await db.hosts.toArray()
+            const hostsOnLegacy = hosts.filter(h => !h.deletedAt && h.roomId === legacyDemo.id)
+            for (const host of hostsOnLegacy) {
+                await db.hosts.put({ ...host, roomId: newDemo.id, updatedAt: now, syncStatus: 'pending' })
+            }
+            await db.rooms.put({ ...legacyDemo, deletedAt: now, updatedAt: now, syncStatus: 'pending' })
+        } else {
+            // Only legacy exists — rename it
+            await db.rooms.put({
+                ...legacyDemo,
+                codice: 'Demo',
+                updatedAt: now,
+                syncStatus: 'pending',
+            })
+        }
+    }
+
+    // Final cleanup: if there are still multiple active "Demo" residences, keep the one with most hosts
+    const roomsAfter = await db.rooms.toArray()
+    const demoDupes = roomsAfter.filter(r => !r.deletedAt && String(r.codice || '').trim().toLowerCase() === 'demo')
+    if (demoDupes.length > 1) {
+        const hosts = await db.hosts.toArray()
+        const countHosts = (roomId) => hosts.filter(h => !h.deletedAt && h.roomId === roomId).length
+        const sorted = [...demoDupes].sort((a, b) => countHosts(b.id) - countHosts(a.id))
+        const keeper = sorted[0]
+        const now = new Date().toISOString()
+        for (let i = 1; i < sorted.length; i++) {
+            const dupe = sorted[i]
+            // Reassign any hosts on this dupe to keeper
+            for (const host of hosts) {
+                if (!host.deletedAt && host.roomId === dupe.id) {
+                    await db.hosts.put({ ...host, roomId: keeper.id, updatedAt: now, syncStatus: 'pending' })
+                }
+            }
+            await db.rooms.put({ ...dupe, deletedAt: now, updatedAt: now, syncStatus: 'pending' })
+        }
     }
 
     const existingRooms = await db.rooms.toArray()
@@ -161,56 +198,89 @@ export async function createResidenza({ codice, note = '', maxOspiti = DEFAULT_M
         throw new Error('Residenza gia esistente')
     }
 
-    const created = await createRoom({ codice: cleanCode, note, operatorId })
-    const metadata = {
-        ...(created.metadata || {}),
-        maxOspiti: parseMaxOspiti(maxOspiti),
-        indirizzo: String(indirizzo || '').trim(),
-        telefono: String(telefono || '').trim(),
-        email: String(email || '').trim(),
+    const now = new Date().toISOString()
+    const deviceId = await getSetting('deviceId', 'unknown')
+    const roomId = generateEntityId('room')
+
+    const record = {
+        id: roomId,
+        codice: cleanCode,
+        note: note || '',
+        metadata: {
+            maxOspiti: parseMaxOspiti(maxOspiti),
+            indirizzo: String(indirizzo || '').trim(),
+            telefono: String(telefono || '').trim(),
+            email: String(email || '').trim(),
+        },
+        updatedAt: now,
+        deletedAt: null,
+        syncStatus: 'pending',
     }
 
-    await db.rooms.put({
-        ...created,
-        metadata,
+    await db.transaction('rw', db.rooms, db.syncQueue, db.activityLog, async () => {
+        await db.rooms.put(record)
+        await enqueue('rooms', record.id, 'upsert')
+        await db.activityLog.add({
+            entityType: 'rooms',
+            entityId: record.id,
+            action: 'room_created',
+            deviceId,
+            operatorId,
+            ts: now,
+        })
     })
 
-    return {
-        ...created,
-        metadata,
-    }
+    return record
 }
 
 export async function updateResidenza({ roomId, codice, note = '', maxOspiti = DEFAULT_MAX_OSPITI, indirizzo = '', telefono = '', email = '', operatorId = null }) {
     const cleanCode = String(codice || '').trim()
     if (!cleanCode) throw new Error('Nome residenza obbligatorio')
 
-    const room = await db.rooms.get(roomId)
-    if (!room || room.deletedAt) throw new Error('Residenza non trovata')
+    const existing = await db.rooms.get(roomId)
+    if (!existing || existing.deletedAt) throw new Error('Residenza non trovata')
 
     const allRooms = await db.rooms.toArray()
     if (allRooms.some(item => item.id !== roomId && !item.deletedAt && String(item.codice || '').trim().toLowerCase() === cleanCode.toLowerCase())) {
         throw new Error('Residenza gia esistente')
     }
 
-    const updated = await updateRoom({ roomId, codice: cleanCode, note, operatorId })
-    const metadata = {
-        ...(updated.metadata || {}),
-        maxOspiti: parseMaxOspiti(maxOspiti),
-        indirizzo: String(indirizzo || '').trim(),
-        telefono: String(telefono || '').trim(),
-        email: String(email || '').trim(),
+    const now = new Date().toISOString()
+    const deviceId = await getSetting('deviceId', 'unknown')
+
+    const record = {
+        id: existing.id,
+        codice: cleanCode,
+        note: note || '',
+        metadata: {
+            ...(existing.metadata || {}),
+            maxOspiti: parseMaxOspiti(maxOspiti),
+            indirizzo: String(indirizzo || '').trim(),
+            telefono: String(telefono || '').trim(),
+            email: String(email || '').trim(),
+        },
+        updatedAt: now,
+        deletedAt: existing.deletedAt,
+        syncStatus: 'pending',
+        // Preserve legacy fields from older schema versions
+        reparto: existing.reparto ?? '',
+        piano: existing.piano ?? '',
     }
 
-    await db.rooms.put({
-        ...updated,
-        metadata,
+    await db.transaction('rw', db.rooms, db.syncQueue, db.activityLog, async () => {
+        await db.rooms.put(record)
+        await enqueue('rooms', record.id, 'upsert')
+        await db.activityLog.add({
+            entityType: 'rooms',
+            entityId: record.id,
+            action: 'room_updated',
+            deviceId,
+            operatorId,
+            ts: now,
+        })
     })
 
-    return {
-        ...updated,
-        metadata,
-    }
+    return record
 }
 
 export async function deactivateResidenza({ roomId, operatorId = null }) {
