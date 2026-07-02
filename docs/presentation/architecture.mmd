@@ -1,0 +1,37 @@
+graph TB
+    subgraph "Dispositivi Operatori"
+        A1[Tablet Android 1<br/>PWA Vue 3 + IndexedDB]
+        A2[Tablet Android 2<br/>PWA Vue 3 + IndexedDB]
+        A3[Desktop Browser<br/>PWA Vue 3 + IndexedDB]
+    end
+
+    subgraph "Cloud Supabase"
+        B1[(PostgreSQL<br/>sync_files + dati)]
+        B2[Auth<br/>table-auth RLS]
+        B3[RPC Functions<br/>app_list/upload/download]
+    end
+
+    subgraph "GitHub"
+        C1[GitHub Pages<br/>Hosting PWA]
+        C2[GitHub Actions<br/>Keep-Alive cron]
+    end
+
+    A1 -->|sync bidirezionale| B1
+    A2 -->|sync bidirezionale| B1
+    A3 -->|sync bidirezionale| B1
+    A1 -.->|auth token| B2
+    A2 -.->|auth token| B2
+    A3 -.->|auth token| B2
+    B1 --> B3
+    C2 -->|ping REST API| B1
+    C1 -->|serves| A1
+    C1 -->|serves| A2
+    C1 -->|serves| A3
+
+    classDef device fill:#e1f3fe,stroke:#1a2e4f,color:#1a2e4f
+    classDef supabase fill:#edf3ec,stroke:#346538,color:#346538
+    classDef github fill:#fbf3db,stroke:#956400,color:#956400
+
+    class A1,A2,A3 device
+    class B1,B2,B3 supabase
+    class C1,C2 github

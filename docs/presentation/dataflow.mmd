@@ -1,0 +1,34 @@
+sequenceDiagram
+    participant D1 as Dispositivo A
+    participant IDB as IndexedDB (Dexie)
+    participant SQ as Sync Queue
+    participant SYNC as Sync Orchestrator
+    participant SB as Supabase
+    participant D2 as Dispositivo B
+
+    Note over D1,D2: Flusso di sincronizzazione multi-dispositivo
+
+    D1->>IDB: Crea/Modifica terapia
+    IDB->>SQ: Enqueue operazione
+    SQ-->>IDB: syncStatus = 'pending'
+
+    SYNC->>SB: app_list_sync_files()
+    SB-->>SYNC: manifest + data
+    SYNC->>SYNC: Confronta datasetVersion
+
+    alt Versione remota più recente
+        SYNC->>SB: app_download_sync_file()
+        SB-->>SYNC: JSON compresso (gzip)
+        SYNC->>IDB: Merge dati remoti
+    end
+
+    SYNC->>SB: app_upload_sync_file()
+    Note over SYNC,SB: Atomic commit con retry (3x)
+
+    D2->>SB: app_list_sync_files()
+    SB-->>D2: Nuova versione disponibile
+    D2->>SB: app_download_sync_file()
+    SB-->>D2: Dati aggiornati
+    D2->>IDB: Aggiorna DB locale
+
+    Note over D1,D2: Conflitti risolti con scelta manuale locale/remoto
