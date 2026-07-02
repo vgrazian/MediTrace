@@ -13,6 +13,6 @@ jobs:
     steps:
       - name: Ping Supabase Database
         run: |
-          curl -s -X GET "${{ vars.VITE_SUPABASE_URL }}/rest/v1/sync_files?select=id&limit=1" \
+          curl -s -X GET "${{ vars.VITE_SUPABASE_URL }}/rest/v1/sync_files?select=name&limit=1" \
             -H "apikey: ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY }}" \
             -H "Authorization: Bearer ${{ vars.VITE_SUPABASE_PUBLISHABLE_KEY }}"
