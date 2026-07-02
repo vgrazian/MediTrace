@@ -118,6 +118,9 @@ const filterQuery = ref('')
 const drugSortBy = ref('nome')
 const batchSortBy = ref('updatedDesc')
 const formSnapshot = ref('')
+const showSearchPanel = ref(false)
+const searchClass = ref('')
+const searchPrinciple = ref('')
 
 const drugForm = ref({
   nomeFarmaco: '',
@@ -170,7 +173,7 @@ const normalizedFilter = computed(() => filterQuery.value.trim().toLowerCase())
 
 const filteredDrugs = computed(() => {
   const q = normalizedFilter.value
-  const baseRows = q
+  let baseRows = q
     ? drugs.value.filter((drug) => {
     const haystack = [
       drug.id,
@@ -181,6 +184,14 @@ const filteredDrugs = computed(() => {
     return haystack.includes(q)
   })
     : drugs.value
+
+  // Advanced search filters
+  if (searchClass.value) {
+    baseRows = baseRows.filter(d => (d.classeTerapeutica || '').toLowerCase().includes(searchClass.value.toLowerCase()))
+  }
+  if (searchPrinciple.value) {
+    baseRows = baseRows.filter(d => (d.principioAttivo || '').toLowerCase().includes(searchPrinciple.value.toLowerCase()))
+  }
 
   const result = [...baseRows]
   if (drugSortBy.value === 'principio') {
@@ -863,11 +874,35 @@ onMounted(() => {
           Elimina{{ selectedDrugsCount > 0 ? ` (${selectedDrugsCount})` : '' }}
         </button>
         <button
-          @click="() => { const searchInput = document.querySelector('input[placeholder=\'Cerca per nome farmaco, principio attivo, confezione o dosaggio\']'); if (searchInput) searchInput.focus(); }"
+          @click="showSearchPanel = !showSearchPanel"
+          :class="{ 'btn-primary': showSearchPanel }"
           title="Cerca (Scorciatoia: /)"
         >
-          Cerca
+          {{ showSearchPanel ? 'Chiudi ricerca' : 'Cerca' }}
         </button>
+      </div>
+
+      <!-- Advanced Search Panel -->
+      <div v-if="showSearchPanel" class="search-panel" style="margin-top:.75rem;padding:.75rem;border:1px solid var(--line);border-radius:.5rem;background:#f8fafd">
+        <p style="margin-bottom:.55rem"><strong>Ricerca avanzata farmaci</strong></p>
+        <div class="search-fields">
+          <label>
+            Classe terapeutica
+            <select v-model="searchClass">
+              <option value="">Tutte</option>
+              <option v-for="c in existingClasses" :key="c" :value="c">{{ c }}</option>
+            </select>
+          </label>
+          <label>
+            Principio attivo
+            <input v-model="searchPrinciple" type="text" placeholder="Filtra per principio attivo..." />
+          </label>
+        </div>
+        <button
+          v-if="searchClass || searchPrinciple"
+          style="margin-top:.55rem"
+          @click="searchClass = ''; searchPrinciple = ''"
+        >Azzera filtri avanzati</button>
       </div>
       <p v-if="selectedDrugsCount > 0" class="muted" style="margin-top:.55rem">
         {{ selectedDrugsCount }} farmac{{ selectedDrugsCount > 1 ? 'i' : 'o' }} selezionat{{ selectedDrugsCount > 1 ? 'i' : 'o' }}.

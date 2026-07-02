@@ -67,9 +67,12 @@ function formatDateTime(value) {
 async function refreshHomeKpi() {
   homeKpi.value = await buildHomeDashboardKpis()
   datasetVersion.value = homeKpi.value.datasetVersion
-  syncStatus.value = homeKpi.value.pendingSync > 0
-    ? `In coda ${homeKpi.value.pendingSync} operazioni`
-    : 'Allineato (nessuna operazione in coda)'
+  const threshold = homeKpi.value.syncQueueThreshold ?? 25
+  if (homeKpi.value.pendingSync > 0) {
+    syncStatus.value = `In coda ${homeKpi.value.pendingSync} operazioni (soglia: ${threshold})`
+  } else {
+    syncStatus.value = 'Allineato (nessuna operazione in coda)'
+  }
 }
 
 onMounted(async () => {

@@ -36,6 +36,7 @@ onUnmounted(() => {
   window.removeEventListener('keydown', handleKeyboardShortcut)
 })
 import { useAuth } from '../services/auth'
+import { useRouter } from 'vue-router'
 import { buildHostRows, createHost, deleteHost, formatHostDisplay, restoreHost, updateHost } from '../services/ospiti'
 import { confirmDeleteHost, confirmDeleteMultiple } from '../services/confirmations'
 import { useFormValidation } from '../services/formValidation'
@@ -50,6 +51,7 @@ import UndoDeleteBanner from '../components/UndoDeleteBanner.vue'
 import { useSessionViewState } from '../composables/useSessionViewState'
 
 const { currentUser } = useAuth()
+const router = useRouter()
 const { goToHelpSection } = useHelpNavigation()
 const { pendingUndo, scheduleUndo, executeUndo } = useUndoDelete(10_000)
 
@@ -90,6 +92,10 @@ const panelMode = ref('list')
 const filterQuery = ref('')
 const sortBy = ref('nome')
 const formSnapshot = ref('')
+const showSearchPanel = ref(false)
+const searchRoomId = ref('')
+const searchDateFrom = ref('')
+const searchDateTo = ref('')
 
 const form = ref({
   nome: '',
@@ -134,7 +140,7 @@ const normalizedFilter = computed(() => filterQuery.value.trim().toLowerCase())
 
 const filteredRows = computed(() => {
   const q = normalizedFilter.value
-  const baseRows = q
+  let baseRows = q
     ? rows.value.filter((host) => {
     const haystack = [
       host.id,
@@ -145,6 +151,25 @@ const filteredRows = computed(() => {
     return haystack.includes(q)
   })
     : rows.value
+
+  // Advanced search filters
+  if (searchRoomId.value) {
+    baseRows = baseRows.filter(h => h.roomId === searchRoomId.value)
+  }
+  if (searchDateFrom.value) {
+    const from = new Date(searchDateFrom.value)
+    baseRows = baseRows.filter(h => {
+      const d = h.dataNascita ? new Date(h.dataNascita) : null
+      return d && d >= from
+    })
+  }
+  if (searchDateTo.value) {
+    const to = new Date(searchDateTo.value)
+    baseRows = baseRows.filter(h => {
+      const d = h.dataNascita ? new Date(h.dataNascita) : null
+      return d && d <= to
+    })
+  }
 
   const result = [...baseRows]
   const byName = (host) => [host.cognome, host.nome].filter(Boolean).join(' ').toLowerCase()
@@ -492,11 +517,39 @@ onMounted(() => {
           Elimina{{ selectedCount > 0 ? ` (${selectedCount})` : '' }}
         </button>
         <button
-          @click="() => { const searchInput = document.querySelector('input[placeholder=\'Cerca per nome, cognome o residenza\']'); if (searchInput) searchInput.focus(); }"
+          @click="showSearchPanel = !showSearchPanel"
+          :class="{ 'btn-primary': showSearchPanel }"
           title="Cerca (Scorciatoia: /)"
         >
-          Cerca
+          {{ showSearchPanel ? 'Chiudi ricerca' : 'Cerca' }}
         </button>
+      </div>
+
+      <!-- Advanced Search Panel -->
+      <div v-if="showSearchPanel" class="search-panel" style="margin-top:.75rem;padding:.75rem;border:1px solid var(--line);border-radius:.5rem;background:#f8fafd">
+        <p style="margin-bottom:.55rem"><strong>Ricerca avanzata ospiti</strong></p>
+        <div class="search-fields">
+          <label>
+            Residenza
+            <select v-model="searchRoomId">
+              <option value="">Tutte</option>
+              <option v-for="room in roomsData" :key="room.id" :value="room.id">{{ room.codice || room.id }}</option>
+            </select>
+          </label>
+          <label>
+            Nato dal
+            <input type="date" v-model="searchDateFrom" />
+          </label>
+          <label>
+            Nato al
+            <input type="date" v-model="searchDateTo" />
+          </label>
+        </div>
+        <button
+          v-if="searchRoomId || searchDateFrom || searchDateTo"
+          style="margin-top:.55rem"
+          @click="searchRoomId = ''; searchDateFrom = ''; searchDateTo = ''"
+        >Azzera filtri avanzati</button>
       </div>
 
       <p v-if="selectedCount > 0" class="muted" style="margin-top:.55rem">
@@ -546,12 +599,10 @@ onMounted(() => {
               >
                 Modifica
               </button>
-              <a
-                :href="'#/terapie?ospite=' + host.id"
-                class="btn"
-                style="text-decoration:none"
+              <button
+                @click="router.push('/terapie?ospite=' + host.id)"
                 title="Vai alle terapie di questo ospite"
-              >Terapie</a>
+              >Terapie</button>
               <button
                 class="btn-danger"
                 @click="handleDeactivate(host.id)"

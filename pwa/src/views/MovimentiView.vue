@@ -71,6 +71,12 @@ const panelMode = ref('list')
 const filterQuery = ref('')
 const sortBy = ref('dataDesc')
 const formSnapshot = ref('')
+const showSearchPanel = ref(false)
+const searchType = ref('')
+const searchDateFrom = ref('')
+const searchDateTo = ref('')
+const searchHostId = ref('')
+const searchDrugId = ref('')
 
 const form = ref({
   stockBatchId: '',
@@ -110,7 +116,7 @@ const normalizedFilter = computed(() => filterQuery.value.trim().toLowerCase())
 
 const filteredMovements = computed(() => {
   const q = normalizedFilter.value
-  const baseRows = q
+  let baseRows = q
     ? movements.value.filter((movement) => {
     const batch = stockBatches.value.find((item) => item.id === movement.stockBatchId)
     const haystack = [
@@ -124,6 +130,35 @@ const filteredMovements = computed(() => {
     return haystack.includes(q)
   })
     : movements.value
+
+  // Advanced search filters
+  if (searchType.value) {
+    baseRows = baseRows.filter(m => m.tipoMovimento === searchType.value || m.type === searchType.value)
+  }
+  if (searchDateFrom.value) {
+    const from = new Date(searchDateFrom.value)
+    baseRows = baseRows.filter(m => {
+      const d = new Date(m.dataMovimento || m.updatedAt || 0)
+      return d >= from
+    })
+  }
+  if (searchDateTo.value) {
+    const to = new Date(searchDateTo.value)
+    to.setHours(23, 59, 59, 999)
+    baseRows = baseRows.filter(m => {
+      const d = new Date(m.dataMovimento || m.updatedAt || 0)
+      return d <= to
+    })
+  }
+  if (searchHostId.value) {
+    baseRows = baseRows.filter(m => m.hostId === searchHostId.value)
+  }
+  if (searchDrugId.value) {
+    baseRows = baseRows.filter(m => {
+      const batch = stockBatches.value.find(b => b.id === m.stockBatchId)
+      return batch?.drugId === searchDrugId.value
+    })
+  }
 
   const result = [...baseRows]
   if (sortBy.value === 'dataAsc') {
@@ -521,11 +556,54 @@ onMounted(() => {
           Elimina{{ selectedCount > 0 ? ` (${selectedCount})` : '' }}
         </button>
         <button
-          @click="() => { const searchInput = document.querySelector('input[placeholder=\'Cerca per tipo, confezione, ospite o note\']'); if (searchInput) searchInput.focus(); }"
+          @click="showSearchPanel = !showSearchPanel"
+          :class="{ 'btn-primary': showSearchPanel }"
           title="Cerca (Scorciatoia: /)"
         >
-          Cerca
+          {{ showSearchPanel ? 'Chiudi ricerca' : 'Cerca' }}
         </button>
+      </div>
+
+      <!-- Advanced Search Panel -->
+      <div v-if="showSearchPanel" class="search-panel" style="margin-top:.75rem;padding:.75rem;border:1px solid var(--line);border-radius:.5rem;background:#f8fafd">
+        <p style="margin-bottom:.55rem"><strong>Ricerca avanzata movimenti</strong></p>
+        <div class="search-fields">
+          <label>
+            Tipo movimento
+            <select v-model="searchType">
+              <option value="">Tutti</option>
+              <option value="carico">Carico</option>
+              <option value="scarico">Scarico</option>
+            </select>
+          </label>
+          <label>
+            Data da
+            <input type="date" v-model="searchDateFrom" />
+          </label>
+          <label>
+            Data a
+            <input type="date" v-model="searchDateTo" />
+          </label>
+          <label>
+            Ospite
+            <select v-model="searchHostId">
+              <option value="">Tutti</option>
+              <option v-for="host in hosts" :key="host.id" :value="host.id">{{ hostLabel(host.id) }}</option>
+            </select>
+          </label>
+          <label>
+            Farmaco
+            <select v-model="searchDrugId">
+              <option value="">Tutti</option>
+              <option v-for="drug in drugs" :key="drug.id" :value="drug.id">{{ drugLabel(drug.id) }}</option>
+            </select>
+          </label>
+        </div>
+        <button
+          v-if="searchType || searchDateFrom || searchDateTo || searchHostId || searchDrugId"
+          style="margin-top:.55rem"
+          @click="searchType = ''; searchDateFrom = ''; searchDateTo = ''; searchHostId = ''; searchDrugId = ''"
+        >Azzera filtri avanzati</button>
       </div>
 
       <p v-if="selectedCount > 0" class="muted" style="margin-top:.55rem">

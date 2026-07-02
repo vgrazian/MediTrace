@@ -120,6 +120,7 @@ import {
 } from '../services/seedData'
 import { useHelpNavigation } from '../composables/useHelpNavigation'
 import { openConfirmDialog } from '../services/confirmDialog'
+import { isKeepAliveEnabled, setKeepAliveEnabled } from '../services/keepAlive'
 
 const {
   accessToken,
@@ -148,6 +149,8 @@ const datasetVersion = ref(null)
 const syncMessage = ref('')
 const syncIntervalMinutes = ref(1)
 const SYNC_INTERVAL_SETTING = 'syncIntervalMinutes'
+const syncQueueThreshold = ref(25)
+const SYNC_QUEUE_THRESHOLD_SETTING = 'syncQueueThreshold'
 const pendingConflicts = ref([])
 const resolvingConflictId = ref(null)
 const importSources = listSupportedImportSources()
@@ -203,6 +206,7 @@ const notificationBusy = ref(false)
 const seedLoaded = ref(false)
 const seedActionMode = ref('load')
 const seedBusy = ref(false)
+const keepAliveEnabled = ref(false)
 const seedMessage = ref('')
 const seedStats = getDemoStats()
 const backupRestoreBusy = ref(false)
@@ -418,10 +422,17 @@ async function runCsvImport() {
   }
 }
 
+async function toggleKeepAlive() {
+  keepAliveEnabled.value = !keepAliveEnabled.value
+  await setKeepAliveEnabled(keepAliveEnabled.value)
+}
+
 onMounted(async () => {
   deviceId.value = await getSetting('deviceId')
   datasetVersion.value = await getSetting('datasetVersion')
   syncIntervalMinutes.value = Number(await getSetting(SYNC_INTERVAL_SETTING, 1)) || 1
+  syncQueueThreshold.value = Number(await getSetting(SYNC_QUEUE_THRESHOLD_SETTING, 25)) || 25
+  keepAliveEnabled.value = await isKeepAliveEnabled()
   await refreshPendingConflicts()
   await refreshUsers()
   await refreshSecurityInfo()
@@ -576,6 +587,12 @@ async function saveSyncInterval() {
   await setSetting(SYNC_INTERVAL_SETTING, syncIntervalMinutes.value)
   syncMessage.value = `Intervallo sync impostato a ${syncIntervalMinutes.value} minuti`
   setTimeout(() => { if (syncMessage.value.startsWith('Intervallo')) syncMessage.value = '' }, 3000)
+}
+
+async function saveSyncQueueThreshold() {
+  const val = Math.max(1, Math.min(100, Number(syncQueueThreshold.value) || 25))
+  syncQueueThreshold.value = val
+  await setSetting(SYNC_QUEUE_THRESHOLD_SETTING, val)
 }
 
 async function applyResolution(conflictId, choice) {
@@ -1225,9 +1242,42 @@ async function handleCreateUser() {
             <option :value="60">60 minuti</option>
           </select>
         </label>
+        <label style="display:flex;align-items:center;gap:.35rem">
+          Soglia code sync
+          <input
+            v-model.number="syncQueueThreshold"
+            type="number"
+            min="1"
+            max="100"
+            style="width:4rem;text-align:center"
+            @change="saveSyncQueueThreshold"
+            title="Sincronizza quando vi sono più di N operazioni in coda"
+          />
+          <span class="muted" style="font-size:.78rem">operazioni</span>
+        </label>
         <button @click="runSync">Sincronizza ora</button>
       </div>
+      <p class="muted" style="margin-top:.35rem;font-size:.78rem">
+        La sincronizzazione parte automaticamente quando la coda supera {{ syncQueueThreshold }} operazioni (regolabile 1–100).
+      </p>
       <p v-if="syncMessage" class="muted" style="margin-top:.5rem;font-size:.8rem;white-space:pre-line">{{ syncMessage }}</p>
+    </div>
+
+    <div class="card">
+      <p><strong>Keep-Alive Supabase</strong></p>
+      <p class="muted" style="margin-top:.25rem">
+        Supabase free tier sospende i progetti dopo 7 giorni di inattività.
+        Attiva il keep-alive per eseguire automaticamente una lettura leggera se il DB locale
+        non è stato toccato negli ultimi 6 giorni, mantenendo il progetto attivo.
+      </p>
+      <label style="display:flex;align-items:center;gap:.5rem;margin-top:.65rem">
+        <input
+          type="checkbox"
+          :checked="keepAliveEnabled"
+          @change="toggleKeepAlive"
+        />
+        {{ keepAliveEnabled ? 'Keep-alive attivo' : 'Keep-alive disattivato' }}
+      </label>
     </div>
 
     <div class="card">

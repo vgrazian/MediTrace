@@ -38,13 +38,16 @@ export function useSyncState() {
             const pending = await db.syncQueue.count()
             // Check for unresolved conflicts
             const conflicts = await getSetting('pendingConflicts', [])
+            // Check threshold
+            const threshold = await getSetting('syncQueueThreshold', 25)
 
             if (conflicts && conflicts.length > 0) {
                 statoSync.value = SYNC_STATES.CONFLICT
                 dettagli.value = `Sono presenti ${conflicts.length} conflitti da risolvere.`
             } else if (pending > 0) {
                 statoSync.value = SYNC_STATES.PENDING
-                dettagli.value = `${pending} modifiche in attesa di sincronizzazione.`
+                const thresholdMsg = pending >= threshold ? ` (soglia: ${threshold})` : ''
+                dettagli.value = `${pending} modifiche in attesa di sincronizzazione${thresholdMsg}.`
             } else {
                 statoSync.value = SYNC_STATES.SYNCED
                 dettagli.value = 'Tutti i dati sono sincronizzati.'

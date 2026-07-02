@@ -160,6 +160,35 @@ td .btn + .btn {
   margin-left: .3rem;
 }
 
+/* Ensure <a class="btn"> matches <button> sizing exactly */
+a.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: .35em;
+  padding: .4rem .8rem;
+  border: 1px solid #9bb5d4;
+  border-radius: .375rem;
+  background: #edf3fb;
+  color: var(--brand-900);
+  font-size: .85rem;
+  font-weight: 500;
+  font-family: inherit;
+  cursor: pointer;
+  white-space: nowrap;
+  text-decoration: none;
+  transition: background .15s, border-color .15s, box-shadow .15s;
+  line-height: 1.3;
+  min-height: 1.8rem;
+}
+a.btn:hover:not(:disabled) {
+  background: #dfeafb;
+  border-color: #7ea9d4;
+}
+a.btn:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
 /* ── navigation (compact tab bar) ── */
 .app-nav {
   display: flex;
@@ -334,6 +363,27 @@ main { padding: .75rem 1rem; max-width: 1200px; margin: 0 auto; }
 }
 .card p + p { margin-top: .5rem; }
 .muted { color: var(--muted); font-size: .9rem; }
+
+/* ── Advanced search panel ── */
+.search-fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: .6rem;
+}
+.search-fields label {
+  display: grid;
+  gap: .25rem;
+  font-size: .85rem;
+  color: #334155;
+}
+.search-fields input,
+.search-fields select {
+  border: 1px solid var(--line);
+  border-radius: .38rem;
+  padding: .4rem .5rem;
+  font-size: .85rem;
+  background: #fff;
+}
 
 .home-intro {
   text-align: center;

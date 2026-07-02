@@ -93,6 +93,11 @@ const panelMode = ref('list')
 const filterQuery = ref('')
 const sortBy = ref('updatedDesc')
 const formSnapshot = ref('')
+const showSearchPanel = ref(false)
+const searchHostId = ref('')
+const searchDrugId = ref('')
+const searchDateFrom = ref('')
+const searchDateTo = ref('')
 
 const BLANK_ORARI = ['', '', '', '', '', '']
 const form = ref({
@@ -113,7 +118,7 @@ const normalizedFilter = computed(() => filterQuery.value.trim().toLowerCase())
 
 const filteredTherapies = computed(() => {
   const q = normalizedFilter.value
-  const baseRows = q
+  let baseRows = q
     ? therapies.value.filter((therapy) => {
     const haystack = [
       therapy.id,
@@ -126,6 +131,28 @@ const filteredTherapies = computed(() => {
     return haystack.includes(q)
   })
     : therapies.value
+
+  // Advanced search filters
+  if (searchHostId.value) {
+    baseRows = baseRows.filter(t => t.hostId === searchHostId.value)
+  }
+  if (searchDrugId.value) {
+    baseRows = baseRows.filter(t => t.drugId === searchDrugId.value)
+  }
+  if (searchDateFrom.value) {
+    const from = new Date(searchDateFrom.value)
+    baseRows = baseRows.filter(t => {
+      const d = t.dataInizio ? new Date(t.dataInizio) : null
+      return d && d >= from
+    })
+  }
+  if (searchDateTo.value) {
+    const to = new Date(searchDateTo.value)
+    baseRows = baseRows.filter(t => {
+      const d = t.dataFine ? new Date(t.dataFine) : null
+      return d && d <= to
+    })
+  }
 
   const result = [...baseRows]
   if (sortBy.value === 'host') {
@@ -330,10 +357,11 @@ async function saveTherapy() {
     }
     editingTherapyId.value = null
     message.value = existing ? 'Terapia aggiornata.' : `Terapia salvata (ID: ${saved.id}).`
-    await loadData()
+    // Chiudi il pannello subito per tornare alla lista, poi aggiorna i dati
     isFormOpen.value = false
     panelMode.value = 'list'
     markFormSnapshot()
+    await loadData()
   } catch (err) {
     errorMessage.value = `Errore salvataggio: ${err.message}`
   } finally {
@@ -544,11 +572,46 @@ onMounted(() => {
           Elimina{{ selectedCount > 0 ? ` (${selectedCount})` : '' }}
         </button>
         <button
-          @click="() => { const searchInput = document.querySelector('input[placeholder=\'Cerca per ospite, farmaco, dose o note\']'); if (searchInput) searchInput.focus(); }"
+          @click="showSearchPanel = !showSearchPanel"
+          :class="{ 'btn-primary': showSearchPanel }"
           title="Cerca (Scorciatoia: /)"
         >
-          Cerca
+          {{ showSearchPanel ? 'Chiudi ricerca' : 'Cerca' }}
         </button>
+      </div>
+
+      <!-- Advanced Search Panel -->
+      <div v-if="showSearchPanel" class="search-panel" style="margin-top:.75rem;padding:.75rem;border:1px solid var(--line);border-radius:.5rem;background:#f8fafd">
+        <p style="margin-bottom:.55rem"><strong>Ricerca avanzata terapie</strong></p>
+        <div class="search-fields">
+          <label>
+            Ospite
+            <select v-model="searchHostId">
+              <option value="">Tutti</option>
+              <option v-for="host in hosts" :key="host.id" :value="host.id">{{ hostLabel(host.id) }}</option>
+            </select>
+          </label>
+          <label>
+            Farmaco
+            <select v-model="searchDrugId">
+              <option value="">Tutti</option>
+              <option v-for="drug in drugs" :key="drug.id" :value="drug.id">{{ drugLabel(drug.id) }}</option>
+            </select>
+          </label>
+          <label>
+            Data inizio da
+            <input type="date" v-model="searchDateFrom" />
+          </label>
+          <label>
+            Data fine a
+            <input type="date" v-model="searchDateTo" />
+          </label>
+        </div>
+        <button
+          v-if="searchHostId || searchDrugId || searchDateFrom || searchDateTo"
+          style="margin-top:.55rem"
+          @click="searchHostId = ''; searchDrugId = ''; searchDateFrom = ''; searchDateTo = ''"
+        >Azzera filtri avanzati</button>
       </div>
 
       <p v-if="selectedCount > 0" class="muted" style="margin-top:.55rem">
@@ -717,13 +780,22 @@ onMounted(() => {
               <label><strong>Orari somministrazione</strong></label>
               <div style="display:flex;gap:.5rem;flex-wrap:wrap">
                 <template v-for="idx in 6" :key="idx">
-                  <input
-                    type="time"
-                    :disabled="idx > Math.max(1, Number(form.somministrazioniGiornaliere) || 1)"
-                    v-model="form.orariSomministrazione[idx-1]"
-                    style="width:6.5rem"
-                    :placeholder="`Orario ${idx}`"
-                  />
+                  <div class="time-input-group" :class="{ 'time-input-group--disabled': idx > Math.max(1, Number(form.somministrazioniGiornaliere) || 1) }">
+                    <label :for="'orario-'+idx" class="time-input-label">Orario {{ idx }}</label>
+                    <input
+                      :id="'orario-'+idx"
+                      type="time"
+                      :disabled="idx > Math.max(1, Number(form.somministrazioniGiornaliere) || 1)"
+                      v-model="form.orariSomministrazione[idx-1]"
+                      :placeholder="`Orario ${idx}`"
+                    />
+                    <button
+                      type="button"
+                      class="btn-sm time-set-btn"
+                      :disabled="idx > Math.max(1, Number(form.somministrazioniGiornaliere) || 1)"
+                      @click="() => { const el = document.getElementById('orario-'+idx); if (el) el.focus(); el?.showPicker?.(); }"
+                    >Imposta</button>
+                  </div>
                 </template>
               </div>
               <small class="muted">Compila almeno un orario. Solo i primi N orari sono attivi, dove N = somministrazioni giornaliere.</small>
@@ -812,3 +884,39 @@ onMounted(() => {
     />
   </div>
 </template>
+
+<style scoped>
+.time-input-group {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: .2rem;
+  padding: .35rem .4rem;
+  border: 1px solid var(--line);
+  border-radius: .4rem;
+  background: #fff;
+  min-width: 5.5rem;
+}
+.time-input-group--disabled {
+  opacity: .45;
+  background: #f5f5f5;
+}
+.time-input-label {
+  font-size: .7rem;
+  color: var(--muted);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .03em;
+}
+.time-input-group input[type="time"] {
+  width: 100%;
+  text-align: center;
+  font-size: .85rem;
+  padding: .2rem .25rem;
+}
+.time-set-btn {
+  font-size: .72rem;
+  padding: .15rem .45rem;
+  min-height: unset;
+}
+</style>

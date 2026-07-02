@@ -7,6 +7,8 @@ import { openConfirmDialog } from '../services/confirmDialog'
 import { useAuth } from '../services/auth'
 import { useHelpNavigation } from '../composables/useHelpNavigation'
 import CrudFilterBar from '../components/CrudFilterBar.vue'
+import { jsPDF } from 'jspdf'
+import autoTable from 'jspdf-autotable'
 
 const { currentUser } = useAuth()
 const { goToHelpSection } = useHelpNavigation()
@@ -518,56 +520,49 @@ function exportReportPdf() {
   const date = new Date().toISOString().slice(0, 10)
   const timestamp = new Date().toLocaleString('it-IT', { hour12: false })
 
-  Promise.all([
-    import('jspdf'),
-    import('jspdf-autotable'),
-  ])
-    .then(([jspdfModule, autotableModule]) => {
-      const JsPdfCtor = jspdfModule.jsPDF
-      const autoTable = autotableModule.default
-      const doc = new JsPdfCtor({ orientation: 'landscape', unit: 'pt', format: 'a4' })
+  try {
+    const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' })
 
-      doc.setFontSize(16)
-      doc.text('MediTrace - Report Scorte Farmaci', 40, 40)
-      doc.setFontSize(10)
-      doc.text(`Generato: ${timestamp}`, 40, 58)
-      doc.text(
-        `Monitorati: ${report.value.summary.totalDrugs} | Critica: ${report.value.summary.critical} | Alta: ${report.value.summary.high} | Media: ${report.value.summary.medium} | OK: ${report.value.summary.ok}`,
-        40,
-        74,
-      )
+    doc.setFontSize(16)
+    doc.text('MediTrace - Report Scorte Farmaci', 40, 40)
+    doc.setFontSize(10)
+    doc.text(`Generato: ${timestamp}`, 40, 58)
+    doc.text(
+      `Monitorati: ${report.value.summary.totalDrugs} | Critica: ${report.value.summary.critical} | Alta: ${report.value.summary.high} | Media: ${report.value.summary.medium} | OK: ${report.value.summary.ok}`,
+      40,
+      74,
+    )
 
-      const body = (report.value.rows || []).map((row) => [
-        row.principioAttivo,
-        formatNumber(row.stockCurrent),
-        formatNumber(row.weeklyConsumption),
-        formatCoverage(row.coverageWeeks),
-        formatNumber(row.reorderThreshold),
-        row.warningPriority,
-        row.warningReason,
-      ])
+    const body = (report.value.rows || []).map((row) => [
+      row.principioAttivo,
+      formatNumber(row.stockCurrent),
+      formatNumber(row.weeklyConsumption),
+      formatCoverage(row.coverageWeeks),
+      formatNumber(row.reorderThreshold),
+      row.warningPriority,
+      row.warningReason,
+    ])
 
-      autoTable(doc, {
-        startY: 90,
-        head: [[
-          'Farmaco',
-          'Scorta attuale',
-          'Consumo sett.',
-          'Copertura',
-          'Soglia',
-          'Priorita',
-          'Motivo',
-        ]],
-        body,
-        styles: { fontSize: 9, cellPadding: 4 },
-        headStyles: { fillColor: [32, 67, 133] },
-      })
-
-      doc.save(`meditrace-report-scorte-${date}.pdf`)
+    autoTable(doc, {
+      startY: 90,
+      head: [[
+        'Farmaco',
+        'Scorta attuale',
+        'Consumo sett.',
+        'Copertura',
+        'Soglia',
+        'Priorita',
+        'Motivo',
+      ]],
+      body,
+      styles: { fontSize: 9, cellPadding: 4 },
+      headStyles: { fillColor: [32, 67, 133] },
     })
-    .catch((err) => {
-      reportActionError.value = `Errore esportazione PDF: ${err.message}`
-    })
+
+    doc.save(`meditrace-report-scorte-${date}.pdf`)
+  } catch (err) {
+    reportActionError.value = `Errore esportazione PDF: ${err.message}`
+  }
 }
 
 function copyTextFallback(text) {

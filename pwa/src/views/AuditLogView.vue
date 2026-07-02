@@ -60,6 +60,20 @@
     </div>
 
     <div class="card">
+      <p><strong>Stato sincronizzazione</strong></p>
+      <div style="display:flex;gap:2rem;flex-wrap:wrap;margin-top:.45rem">
+        <div>
+          <span class="muted" style="font-size:.8rem">Operazioni in coda</span><br />
+          <span style="font-weight:700;font-size:1.1rem">{{ syncQueueCount }}</span>
+        </div>
+        <div>
+          <span class="muted" style="font-size:.8rem">Ultimo sync</span><br />
+          <span style="font-weight:700;font-size:.9rem">{{ syncLastAt ? new Date(syncLastAt).toLocaleString('it-IT', { hour12: false }) : '—' }}</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
       <p><strong>Filtri</strong></p>
       <div class="audit-filters" style="margin-top:.75rem">
         <label>
@@ -132,6 +146,7 @@
       <div class="audit-filter-actions" style="margin-top:.75rem">
         <button @click="clearFilters">Azzera filtri</button>
         <button @click="exportEvents">Esporta JSON</button>
+        <button @click="exportAuditPdf">Esporta PDF</button>
       </div>
     </div>
 
@@ -208,6 +223,9 @@ import {
 } from '../services/auditLog'
 import { useHelpNavigation } from '../composables/useHelpNavigation'
 import { isSupabaseConfigured, supabase } from '../services/supabaseClient'
+import { jsPDF } from 'jspdf'
+import autoTable from 'jspdf-autotable'
+import { db, getSetting } from '../db'
 
 const { goToHelpSection } = useHelpNavigation()
 
@@ -364,9 +382,56 @@ async function exportEvents() {
   URL.revokeObjectURL(url)
 }
 
+function exportAuditPdf() {
+  try {
+    const events = filteredEvents.value
+    const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' })
+    const timestamp = new Date().toLocaleString('it-IT', { hour12: false })
+
+    doc.setFontSize(16)
+    doc.text('MediTrace - Registro Operazioni (Audit)', 40, 40)
+    doc.setFontSize(10)
+    doc.text(`Generato: ${timestamp} | Eventi: ${events.length}`, 40, 58)
+
+    const body = events.map((event) => [
+      formatTimestamp(event.ts),
+      event.operatorId || '—',
+      event.action || '—',
+      event.entityType || '—',
+      event.hostLabel || event.hostId || '—',
+      event.drugLabel || event.drugId || '—',
+      event.therapyLabel || event.therapyId || '—',
+    ])
+
+    autoTable(doc, {
+      startY: 72,
+      head: [['Data/Ora', 'Operatore', 'Azione', 'Entità', 'Ospite', 'Farmaco', 'Terapia']],
+      body,
+      styles: { fontSize: 8, cellPadding: 3 },
+      headStyles: { fillColor: [32, 67, 133] },
+    })
+
+    doc.save(`meditrace-audit-${new Date().toISOString().slice(0, 10)}.pdf`)
+  } catch (err) {
+    console.error('Errore esportazione PDF audit:', err)
+  }
+}
+
+// ── Sync state ──
+const syncQueueCount = ref(0)
+const syncLastAt = ref(null)
+
+async function loadSyncState() {
+  try {
+    syncQueueCount.value = await db.syncQueue.count()
+    syncLastAt.value = await getSetting('lastSyncAt', null)
+  } catch { /* ignore */ }
+}
+
 onMounted(async () => {
   await loadData()
   loadSupabaseStats()
+  loadSyncState()
 })
 </script>
 

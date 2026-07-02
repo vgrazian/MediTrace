@@ -11,12 +11,13 @@ function endOfDay(date = new Date()) {
 }
 
 export async function buildHomeDashboardKpis(now = new Date()) {
-    const [report, reminders, pendingSync, datasetVersion, lastSyncAt] = await Promise.all([
+    const [report, reminders, pendingSync, datasetVersion, lastSyncAt, syncQueueThreshold] = await Promise.all([
         buildOperationalReport(),
         db.reminders.toArray(),
         db.syncQueue.count(),
         getSetting('datasetVersion', null),
         getSyncState('lastSyncAt', null),
+        getSetting('syncQueueThreshold', 25),
     ])
 
     const dayStart = startOfDay(now)
@@ -39,6 +40,7 @@ export async function buildHomeDashboardKpis(now = new Date()) {
         datasetVersion,
         lastSyncAt,
         pendingSync,
+        syncQueueThreshold,
         stockCritical: report.summary.critical,
         stockHigh: report.summary.high,
         monitoredDrugs: report.summary.totalDrugs,
