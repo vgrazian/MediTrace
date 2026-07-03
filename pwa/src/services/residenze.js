@@ -1,5 +1,4 @@
 import { db, enqueue, getSetting } from '../db'
-import { restoreRoom } from './stanze'
 import { generateEntityId } from './ids'
 
 export const DEFAULT_RESIDENZE = [
@@ -110,15 +109,10 @@ export async function ensureDefaultResidenze({ operatorId = null } = {}) {
             for (const host of hostsOnLegacy) {
                 await db.hosts.put({ ...host, roomId: newDemo.id, updatedAt: now, syncStatus: 'pending' })
             }
-            await db.rooms.put({ ...legacyDemo, deletedAt: now, updatedAt: now, syncStatus: 'pending' })
+            await db.rooms.put({ id: legacyDemo.id, codice: legacyDemo.codice, note: legacyDemo.note ?? '', metadata: legacyDemo.metadata ?? {}, reparto: legacyDemo.reparto ?? '', piano: legacyDemo.piano ?? '', deletedAt: now, updatedAt: now, syncStatus: 'pending' })
         } else {
             // Only legacy exists — rename it
-            await db.rooms.put({
-                ...legacyDemo,
-                codice: 'Demo',
-                updatedAt: now,
-                syncStatus: 'pending',
-            })
+            await db.rooms.put({ id: legacyDemo.id, codice: 'Demo', note: legacyDemo.note ?? '', metadata: legacyDemo.metadata ?? {}, reparto: legacyDemo.reparto ?? '', piano: legacyDemo.piano ?? '', updatedAt: now, syncStatus: 'pending' })
         }
     }
 
@@ -139,7 +133,7 @@ export async function ensureDefaultResidenze({ operatorId = null } = {}) {
                     await db.hosts.put({ ...host, roomId: keeper.id, updatedAt: now, syncStatus: 'pending' })
                 }
             }
-            await db.rooms.put({ ...dupe, deletedAt: now, updatedAt: now, syncStatus: 'pending' })
+            await db.rooms.put({ id: dupe.id, codice: dupe.codice, note: dupe.note ?? '', metadata: dupe.metadata ?? {}, reparto: dupe.reparto ?? '', piano: dupe.piano ?? '', deletedAt: now, updatedAt: now, syncStatus: 'pending' })
         }
     }
 
@@ -253,7 +247,6 @@ export async function updateResidenza({ roomId, codice, note = '', maxOspiti = D
         codice: cleanCode,
         note: note || '',
         metadata: {
-            ...(existing.metadata || {}),
             maxOspiti: parseMaxOspiti(maxOspiti),
             indirizzo: String(indirizzo || '').trim(),
             telefono: String(telefono || '').trim(),
@@ -322,7 +315,12 @@ export async function deactivateResidenza({ roomId, operatorId = null }) {
     }
 
     const record = {
-        ...room,
+        id: room.id,
+        codice: room.codice,
+        note: room.note ?? '',
+        metadata: room.metadata ?? {},
+        reparto: room.reparto ?? '',
+        piano: room.piano ?? '',
         deletedAt: now,
         updatedAt: now,
         syncStatus: 'pending',
@@ -345,7 +343,36 @@ export async function deactivateResidenza({ roomId, operatorId = null }) {
 }
 
 export async function restoreResidenza({ roomId, existing, operatorId = null }) {
-    return restoreRoom({ roomId, existing, operatorId })
+    if (!existing || !existing.deletedAt) throw new Error(`Residenza ${roomId} non ripristinabile`)
+
+    const now = new Date().toISOString()
+    const deviceId = await getSetting('deviceId', 'unknown')
+    const record = {
+        id: existing.id,
+        codice: existing.codice,
+        note: existing.note ?? '',
+        metadata: existing.metadata ?? {},
+        reparto: existing.reparto ?? '',
+        piano: existing.piano ?? '',
+        deletedAt: null,
+        updatedAt: now,
+        syncStatus: 'pending',
+    }
+
+    await db.transaction('rw', db.rooms, db.syncQueue, db.activityLog, async () => {
+        await db.rooms.put(record)
+        await enqueue('rooms', record.id, 'upsert')
+        await db.activityLog.add({
+            entityType: 'rooms',
+            entityId: record.id,
+            action: 'room_restored',
+            deviceId,
+            operatorId,
+            ts: now,
+        })
+    })
+
+    return record
 }
 
 export async function getCurrentResidenzaId() {

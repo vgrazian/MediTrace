@@ -560,23 +560,6 @@ function closeFormPanel() {
   panelMode.value = 'list'
 }
 
-function handleFormPanelToggle(event) {
-  const nextOpen = event.target.open
-  isFormOpen.value = nextOpen
-
-  if (!nextOpen) {
-    panelMode.value = 'list'
-    return
-  }
-
-  // If opened directly from the summary, default to the primary flow.
-  if (panelMode.value === 'list') {
-    panelMode.value = 'create-drug'
-    resetDrugForm()
-    markFormSnapshot()
-  }
-}
-
 function openAddBatchForm() {
   resetBatchForm()
   panelMode.value = 'create-batch'
@@ -1051,7 +1034,7 @@ onMounted(() => {
           </tr>
           <tr v-if="filteredBatches.length === 0 && !loading">
             <td colspan="8" class="muted">
-              Nessuna confezione attiva. Aggiungi una confezione dal pannello Gestione Farmaci qui sotto.
+              Nessuna confezione attiva. Clicca <strong>Aggiungi</strong> per creare una confezione.
             </td>
           </tr>
         </tbody>
@@ -1062,9 +1045,11 @@ onMounted(() => {
       <p v-if="errorMessage" class="import-error" style="margin-top:.5rem">{{ errorMessage }}</p>
     </div>
 
-    <div class="card">
-      <details class="deep-panel add-panel" :open="isFormOpen" @toggle="handleFormPanelToggle">
-        <summary><strong>Gestisci Farmaci</strong></summary>
+    <div v-if="isFormOpen" class="card">
+      <details class="deep-panel add-panel" open @toggle="(e) => { if (!e.target.open) closeFormPanel() }">
+        <summary><strong>
+          {{ panelMode.startsWith('edit') ? (panelMode.includes('batch') ? 'Modifica confezione' : 'Modifica farmaco') : (panelMode.includes('batch') ? 'Aggiungi confezione' : 'Aggiungi farmaco') }}
+        </strong></summary>
 
         <div style="margin-top:.75rem">
           <div class="panel-breadcrumb">

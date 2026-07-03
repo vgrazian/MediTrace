@@ -299,15 +299,13 @@ test('promemoria view supports edit/delete and handles Arabic host names', async
     // Edit reminder
     const row = page.locator('tr', { hasText: 'Omeprazolo E2E' }).first()
     await row.getByRole('button', { name: 'Modifica' }).click()
-    const gestionePromemoria = page.locator('details:has(summary:has-text("Gestione Promemoria"))')
-    await gestionePromemoria.locator('summary').click()
-    await expect(gestionePromemoria.getByLabel('Stato')).toBeVisible()
-    await gestionePromemoria.getByLabel('Orario promemoria').fill(`${today}T12:30`)
-    await gestionePromemoria.getByLabel('Note').fill('nota aggiornata')
-    await gestionePromemoria.getByLabel('Orario promemoria').fill(`${today}T12:30`)
-    await gestionePromemoria.getByLabel('Stato').selectOption('SALTATO')
-    await gestionePromemoria.getByLabel('Note').fill('nota aggiornata')
-    await gestionePromemoria.getByRole('button', { name: 'Salva modifica' }).click()
+    // Panel appears on demand after clicking Modifica
+    const editPanel = page.locator('details:has(summary:has-text("Modifica promemoria"))')
+    await expect(editPanel).toBeVisible()
+    await editPanel.getByLabel('Orario promemoria').fill(`${today}T12:30`)
+    await editPanel.getByLabel('Stato').selectOption('SALTATO')
+    await editPanel.getByLabel('Note').fill('nota aggiornata')
+    await editPanel.getByRole('button', { name: 'Salva modifica' }).click()
     await expect(page.getByText('Promemoria aggiornato.')).toBeVisible()
     await expect(row.getByText('SALTATO', { exact: true })).toBeVisible()
 

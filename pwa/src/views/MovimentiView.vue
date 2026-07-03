@@ -677,9 +677,9 @@ onMounted(() => {
       </div>
     </div>
 
-    <div class="card">
-      <details class="deep-panel add-panel" :open="isFormOpen" @toggle="isFormOpen = $event.target.open">
-        <summary><strong>Gestione Movimenti</strong></summary>
+    <div v-if="isFormOpen" class="card">
+      <details class="deep-panel add-panel" open @toggle="(e) => { if (!e.target.open) isFormOpen = false }">
+        <summary><strong>{{ editingMovementId ? 'Modifica movimento' : 'Nuovo movimento' }}</strong></summary>
 
         <div style="margin-top:.75rem">
           <div class="panel-breadcrumb">

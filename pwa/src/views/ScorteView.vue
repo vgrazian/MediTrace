@@ -931,7 +931,7 @@ onMounted(() => {
     </div>
 
     <div class="card">
-      <p><strong>Confezioni monitorate (Gestione completa)</strong></p>
+      <p><strong>Confezioni monitorate</strong></p>
       <p class="muted" style="margin-top:.25rem">
         Modifica o rimuovi confezioni direttamente da Scorte.
       </p>
@@ -971,12 +971,12 @@ onMounted(() => {
       </table>
       </div>
 
-      <details class="deep-panel add-panel" style="margin-top:.75rem" :open="isFormOpen" @toggle="isFormOpen = $event.target.open">
-        <summary><strong>Gestione Scorte</strong></summary>
+      <details v-if="isFormOpen" class="deep-panel add-panel" style="margin-top:.75rem" open @toggle="(e) => { if (!e.target.open) isFormOpen = false }">
+        <summary><strong>{{ editingBatchId ? 'Modifica confezione' : 'Aggiungi confezione' }}</strong></summary>
         <div class="panel-breadcrumb" style="margin-top:.75rem">
           <button type="button" class="panel-breadcrumb-link" @click="isFormOpen = false">Scorte</button>
           <span class="panel-breadcrumb-current">/</span>
-          <span class="panel-breadcrumb-current">Gestione</span>
+          <span class="panel-breadcrumb-current">{{ editingBatchId ? 'Modifica' : 'Aggiungi' }}</span>
           <button type="button" class="panel-close-btn" @click="isFormOpen = false">Chiudi</button>
         </div>
         <div class="import-form" style="margin-top:.65rem">

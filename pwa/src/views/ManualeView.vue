@@ -78,7 +78,7 @@ function goToManualSection(key) {
         <li>Gestione catalogo farmaci e scorte con KPI operativi.</li>
         <li>Terapie attive per ospite con tracciamento locale e sincronizzazione.</li>
         <li>Promemoria con flusso notifiche e controlli di sicurezza sessione.</li>
-        <li>Stanze e letti con assegnazione ospiti e storico completo.</li>
+        <li>Residenze e letti con assegnazione ospiti e storico completo.</li>
       </ul>
       <p class="muted" style="margin-top:.65rem;font-size:.85rem">
         Per assistenza interna aprire una issue nel repository MediTrace indicando dispositivo, passaggi e orario evento.

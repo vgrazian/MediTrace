@@ -7,31 +7,6 @@ const activityLogRows = []
 const enqueueCalls = []
 const createRoomCalls = []
 
-vi.mock('../../src/services/stanze', () => ({
-    async createRoom({ codice, note = '', operatorId = null }) {
-        const id = `room_${String(codice).replace(/\s+/g, '_').toLowerCase()}`
-        const now = new Date().toISOString()
-        const record = {
-            id,
-            codice,
-            note,
-            updatedAt: now,
-            deletedAt: null,
-            syncStatus: 'pending',
-            metadata: {},
-        }
-        dbRooms.set(id, record)
-        createRoomCalls.push({ codice, note, operatorId })
-        return record
-    },
-    async updateRoom() {
-        throw new Error('updateRoom not expected in this test')
-    },
-    async restoreRoom() {
-        throw new Error('restoreRoom not expected in this test')
-    },
-}))
-
 vi.mock('../../src/db', () => ({
     db: {
         rooms: {
@@ -131,5 +106,111 @@ describe('residenze self-healing', () => {
 
         expect(dbRooms.get('room-b').deletedAt).toBeNull()
         expect(dbRooms.get('room-a').deletedAt).toBeTruthy()
+    })
+})
+
+describe('updateResidenza — DataCloneError regression', () => {
+    beforeEach(() => {
+        resetState()
+    })
+
+    it('handles rooms with extra metadata properties without DataCloneError', async () => {
+        // Simulate a room with non-standard metadata that could exist from old migrations
+        dbRooms.set('room-extra', {
+            id: 'room-extra',
+            codice: 'Test Extra',
+            note: '',
+            updatedAt: '2026-04-17T10:00:00.000Z',
+            deletedAt: null,
+            syncStatus: 'synced',
+            reparto: '',
+            piano: '',
+            metadata: {
+                maxOspiti: 10,
+                indirizzo: 'Via dei Matti, 1',
+                telefono: '',
+                email: '',
+            },
+            // Extra properties that must NOT cause DataCloneError
+            _danglingRef: null,
+        })
+
+        const { updateResidenza } = await import('../../src/services/residenze')
+
+        // Should NOT throw DataCloneError
+        const result = await updateResidenza({
+            roomId: 'room-extra',
+            codice: 'Test Extra',
+            indirizzo: 'Via dei Matti, 0',
+            maxOspiti: 10,
+            note: '',
+            telefono: '',
+            email: '',
+            operatorId: 'test-op',
+        })
+
+        expect(result).toBeDefined()
+        expect(result.metadata.indirizzo).toBe('Via dei Matti, 0')
+        expect(dbRooms.get('room-extra').metadata.indirizzo).toBe('Via dei Matti, 0')
+    })
+
+    it('handles rooms with null metadata without error', async () => {
+        dbRooms.set('room-null-meta', {
+            id: 'room-null-meta',
+            codice: 'Null Meta',
+            note: '',
+            updatedAt: '2026-04-17T10:00:00.000Z',
+            deletedAt: null,
+            syncStatus: 'synced',
+            reparto: '',
+            piano: '',
+            metadata: null,
+        })
+
+        const { updateResidenza } = await import('../../src/services/residenze')
+
+        const result = await updateResidenza({
+            roomId: 'room-null-meta',
+            codice: 'Null Meta',
+            indirizzo: 'Via Nuova, 5',
+            maxOspiti: 8,
+            note: '',
+            telefono: '',
+            email: '',
+            operatorId: 'test-op',
+        })
+
+        expect(result).toBeDefined()
+        expect(result.metadata.maxOspiti).toBe(8)
+        expect(result.metadata.indirizzo).toBe('Via Nuova, 5')
+    })
+
+    it('handles rooms with undefined metadata without error', async () => {
+        dbRooms.set('room-no-meta', {
+            id: 'room-no-meta',
+            codice: 'No Meta',
+            note: '',
+            updatedAt: '2026-04-17T10:00:00.000Z',
+            deletedAt: null,
+            syncStatus: 'synced',
+            reparto: '',
+            piano: '',
+        })
+
+        const { updateResidenza } = await import('../../src/services/residenze')
+
+        const result = await updateResidenza({
+            roomId: 'room-no-meta',
+            codice: 'No Meta',
+            indirizzo: 'Via Pulita, 3',
+            maxOspiti: 12,
+            note: '',
+            telefono: '',
+            email: '',
+            operatorId: 'test-op',
+        })
+
+        expect(result).toBeDefined()
+        expect(result.metadata.maxOspiti).toBe(12)
     })
 })

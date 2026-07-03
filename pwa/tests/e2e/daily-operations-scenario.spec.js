@@ -83,7 +83,6 @@ test('daily operations scenario covers therapy edits, executions, stock checks a
             .first()
 
         await firstDrugRow.getByRole('button', { name: 'Modifica' }).click()
-        await page.locator('summary', { hasText: 'Gestione Scorte' }).click()
         await page.getByLabel('Scorta minima').fill('999')
         await page.getByRole('button', { name: 'Salva modifica farmaco' }).click()
         await expect(page.getByText('Farmaco aggiornato.')).toBeVisible()

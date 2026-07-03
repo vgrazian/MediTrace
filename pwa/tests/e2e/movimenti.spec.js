@@ -48,9 +48,10 @@ test('movimenti view supports registering a carico and a scarico', async ({ page
     await expect(page.getByRole('heading', { name: 'Movimenti' })).toBeVisible()
     await expect(page.locator('.dataset-frame')).toHaveCount(1)
 
-    const panel = page.locator('details:has(summary:has-text("Gestione Movimenti"))')
+    // Panel hidden until Aggiungi is clicked
     await page.getByRole('button', { name: 'Aggiungi' }).click()
-    await expect(panel).toHaveAttribute('open', '')
+    const panel = page.locator('details:has(summary:has-text("Nuovo movimento"))')
+    await expect(panel).toBeVisible()
 
     // Validation should block invalid quantity after required fields are present
     const batchSelect = page.locator('select').filter({ has: page.getByRole('option', { name: 'Seleziona confezione' }) })
@@ -64,7 +65,8 @@ test('movimenti view supports registering a carico and a scarico', async ({ page
     await page.getByRole('button', { name: 'Registra movimento' }).click()
 
     await expect(page.getByText(/^Movimento registrato \(ID:/i)).toBeVisible()
-    await expect(panel).not.toHaveAttribute('open', '')
+    // Panel closed after save
+    await expect(panel).not.toBeAttached()
 
     // The new record should appear in the history table
     await expect(page.getByRole('cell', { name: 'carico', exact: true })).toBeVisible()
@@ -72,7 +74,8 @@ test('movimenti view supports registering a carico and a scarico', async ({ page
 
     // Register a SCARICO
     await page.getByRole('button', { name: 'Aggiungi' }).click()
-    await expect(panel).toHaveAttribute('open', '')
+    const panel2 = page.locator('details:has(summary:has-text("Nuovo movimento"))')
+    await expect(panel2).toBeVisible()
     await batchSelect.selectOption({ label: 'Ibuprofene E2E - Moment E2E' })
     await page.getByLabel('Tipo movimento').selectOption('scarico')
     await page.getByLabel('Quantita').fill('5')
@@ -81,10 +84,10 @@ test('movimenti view supports registering a carico and a scarico', async ({ page
     await expect(page.getByText(/Movimento registrato/i)).toBeVisible()
     await expect(page.getByRole('cell', { name: 'scarico', exact: true })).toBeVisible()
 
+    // Panel should be closed after save; dismiss if still visible
     const closePanelButton = page.getByRole('button', { name: 'Chiudi' })
     if (await closePanelButton.isVisible().catch(() => false)) {
         await closePanelButton.click()
-        await expect(panel).not.toHaveAttribute('open', '')
     }
 
     await page.getByLabel(/Seleziona movimento scarico/i).first().check()

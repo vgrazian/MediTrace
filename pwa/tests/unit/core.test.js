@@ -206,7 +206,7 @@ import { helpContent, manualeSezioni } from '../../src/data/helpContent'
 
 describe('helpContent', () => {
     it('contiene tutte le sezioni principali', () => {
-        const keys = ['home', 'farmaci', 'ospiti', 'stanze', 'scorte', 'movimenti', 'terapie', 'promemoria', 'operatori', 'audit', 'impostazioni']
+        const keys = ['home', 'farmaci', 'ospiti', 'residenze', 'scorte', 'movimenti', 'terapie', 'promemoria', 'operatori', 'audit', 'impostazioni']
         for (const key of keys) {
             expect(helpContent[key]).toBeDefined()
             expect(helpContent[key].titolo).toBeTruthy()
@@ -224,9 +224,10 @@ describe('helpContent', () => {
         expect(operatori.etichetta).toBe('Operatori')
     })
 
-    it('manualeSezioni ha Residenze (non Stanze e Letti)', () => {
-        const stanze = manualeSezioni.find(s => s.key === 'stanze')
-        expect(stanze.etichetta).toBe('Residenze')
+    it('manualeSezioni ha Residenze', () => {
+        const residenze = manualeSezioni.find(s => s.key === 'residenze')
+        expect(residenze).toBeDefined()
+        expect(residenze.etichetta).toBe('Residenze')
     })
 })
 

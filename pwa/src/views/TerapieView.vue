@@ -688,9 +688,9 @@ onMounted(() => {
       <p v-if="errorMessage" class="import-error" role="alert">{{ errorMessage }}</p>
     </div>
 
-    <div class="card">
-      <details class="deep-panel add-panel" :open="isFormOpen" @toggle="isFormOpen = $event.target.open">
-        <summary><strong>Gestione Terapie</strong></summary>
+    <div v-if="isFormOpen" class="card">
+      <details class="deep-panel add-panel" open @toggle="(e) => { if (!e.target.open) isFormOpen = false }">
+        <summary><strong>{{ editingTherapyId ? 'Modifica terapia' : 'Aggiungi terapia' }}</strong></summary>
 
         <div style="margin-top:.75rem">
           <div class="panel-breadcrumb">

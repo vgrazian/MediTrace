@@ -812,12 +812,12 @@ watch(residenzaFilter, async (value) => {
       </div>
     </Teleport>
 
-    <div class="card">
-      <details>
-        <summary><strong>Gestione Promemoria</strong></summary>
+    <div v-if="editingReminderId" class="card">
+      <details open @toggle="(e) => { if (!e.target.open) resetForm() }">
+        <summary><strong>Modifica promemoria</strong></summary>
 
         <div style="margin-top:.75rem">
-          <p><strong>{{ editingReminderId ? `Modifica promemoria ${editingReminderId}` : 'Seleziona un promemoria da modificare' }}</strong></p>
+          <p><strong>Modifica promemoria</strong></p>
           <div class="import-form" style="margin-top:.65rem">
             <ValidatedInput
               v-model="form.scheduledAt"

@@ -92,7 +92,7 @@ export const helpContent = {
             {
                 titolo: 'Come aggiungere un ospite',
                 testo:
-                    'Apri il pannello "Gestione Ospiti", inserisci Nome e Cognome (obbligatori). Il codice interno viene generato automaticamente. Completa i campi opzionali e scegli la residenza, poi salva.',
+                    'Clicca "Aggiungi" per aprire il modulo, inserisci Nome e Cognome (obbligatori). Il codice interno viene generato automaticamente. Completa i campi opzionali e scegli la residenza, poi salva.',
             },
             {
                 titolo: 'Visualizzazione',
@@ -117,7 +117,7 @@ export const helpContent = {
         ],
     },
 
-    stanze: {
+    residenze: {
         titolo: 'Residenze — Guida',
         intro:
             'Questa sezione permette di gestire le residenze operative in cui lavorano gli operatori e monitorare capienza e posti disponibili.',
@@ -130,7 +130,7 @@ export const helpContent = {
             {
                 titolo: 'Come aggiungere una residenza',
                 testo:
-                    'Apri il pannello "Gestione Residenze", inserisci Nome residenza e Max ospiti, poi salva. La residenza sarà disponibile anche nel filtro Promemoria.',
+                    'Clicca "Aggiungi" per aprire il modulo, inserisci Nome residenza e Max ospiti, poi salva. La residenza sarà disponibile anche nel filtro Promemoria.',
             },
             {
                 titolo: 'Capienza ospiti',
@@ -379,7 +379,7 @@ export const manualeSezioni = [
     { key: 'home', etichetta: 'Cruscotto' },
     { key: 'farmaci', etichetta: 'Farmaci' },
     { key: 'ospiti', etichetta: 'Ospiti' },
-    { key: 'stanze', etichetta: 'Residenze' },
+    { key: 'residenze', etichetta: 'Residenze' },
     { key: 'scorte', etichetta: 'Scorte' },
     { key: 'movimenti', etichetta: 'Movimenti' },
     { key: 'terapie', etichetta: 'Terapie' },

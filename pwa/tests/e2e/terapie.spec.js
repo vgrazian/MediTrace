@@ -48,9 +48,10 @@ test('terapie view blocks delete when therapy is assigned to active host', async
     await expect(page.getByRole('heading', { name: 'Terapie Attive' })).toBeVisible()
     await expect(page.locator('.dataset-frame')).toHaveCount(1)
 
-    const panel = page.locator('details:has(summary:has-text("Gestione Terapie"))')
+    // Panel hidden until Aggiungi is clicked
     await page.getByRole('button', { name: 'Aggiungi' }).click()
-    await expect(panel).toHaveAttribute('open', '')
+    const panel = page.locator('details:has(summary:has-text("Aggiungi terapia"))')
+    await expect(panel).toBeVisible()
 
     await page.getByLabel('Ospite').selectOption('HOST-1')
     await page.getByLabel('Farmaco').selectOption('DRUG-1')
@@ -61,7 +62,8 @@ test('terapie view blocks delete when therapy is assigned to active host', async
     await page.getByRole('button', { name: 'Salva terapia' }).click()
 
     await expect(page.getByText(/Terapia salvata/i)).toBeVisible()
-    await expect(panel).not.toHaveAttribute('open', '')
+    // Panel closed after save
+    await expect(panel).not.toBeAttached()
     await expect(page.getByRole('cell', { name: '[OSP-01] - OSP-01', exact: true })).toBeVisible()
     await expect(page.getByRole('cell', { name: 'Paracetamolo', exact: true })).toBeVisible()
 

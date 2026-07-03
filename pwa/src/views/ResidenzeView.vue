@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useAuth } from '../services/auth'
 import {
   createResidenza,
@@ -14,6 +14,21 @@ import { openConfirmDialog } from '../services/confirmDialog'
 import { useUndoDelete } from '../composables/useUndoDelete'
 import CrudFilterBar from '../components/CrudFilterBar.vue'
 import { db } from '../db'
+
+// --- Keyboard Shortcuts ---
+function handleKeyboardShortcut(event) {
+  const tag = (event.target?.tagName || '').toLowerCase()
+  const isInput = tag === 'input' || tag === 'textarea' || tag === 'select' || event.target?.isContentEditable
+  if (event.key === '/' && !isInput) {
+    event.preventDefault()
+    document.querySelector('input[placeholder*="Cerca"]')?.focus()
+  }
+  if (isInput) return
+  if (event.key === 'n' && !event.ctrlKey && !event.metaKey) {
+    event.preventDefault()
+    openAddForm()
+  }
+}
 
 const { currentUser } = useAuth()
 const { goToHelpSection } = useHelpNavigation()
@@ -66,6 +81,11 @@ function resetForm() {
     email: '',
     note: '',
   }
+}
+
+function openAddForm() {
+  resetForm()
+  isFormOpen.value = true
 }
 
 function startEdit(item) {
@@ -220,14 +240,20 @@ async function handleDelete(item) {
   }
 }
 
-onMounted(() => void loadData())
+onMounted(() => {
+  window.addEventListener('keydown', handleKeyboardShortcut)
+  void loadData()
+})
+onUnmounted(() => {
+  window.removeEventListener('keydown', handleKeyboardShortcut)
+})
 </script>
 
 <template>
   <div class="view">
     <div class="view-heading">
       <h2>Residenze</h2>
-      <button class="help-btn" @click="goToHelpSection('stanze')">Aiuto</button>
+      <button class="help-btn" @click="goToHelpSection('residenze')">Aiuto</button>
     </div>
 
     <div class="card">
@@ -243,6 +269,10 @@ onMounted(() => void loadData())
         :visible-count="filteredResidenze.length"
         :total-count="residenze.length"
       />
+
+      <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.75rem">
+        <button @click="openAddForm" title="Aggiungi (Scorciatoia: N)">Aggiungi</button>
+      </div>
 
       <div class="dataset-frame" style="margin-top:.75rem">
         <table class="conflict-table">
@@ -290,11 +320,16 @@ onMounted(() => void loadData())
       <p v-if="errorMessage" class="import-error" role="alert">{{ errorMessage }}</p>
     </div>
 
-    <div class="card">
-      <details class="deep-panel" :open="isFormOpen" @toggle="isFormOpen = $event.target.open">
-        <summary><strong>Gestione Residenze</strong></summary>
+    <div v-if="isFormOpen" class="card">
+      <details class="deep-panel add-panel" open @toggle="(e) => { if (!e.target.open) resetForm() }">
+        <summary><strong>{{ editId ? `Modifica residenza: ${editName}` : 'Aggiungi residenza' }}</strong></summary>
         <div style="margin-top:.75rem">
-          <p><strong>{{ editId ? `Modifica residenza: ${editName}` : 'Nuova residenza' }}</strong></p>
+          <div class="panel-breadcrumb">
+            <button type="button" class="panel-breadcrumb-link" @click="resetForm">Residenze</button>
+            <span class="panel-breadcrumb-current">/</span>
+            <span class="panel-breadcrumb-current">{{ editId ? 'Modifica' : 'Aggiungi' }}</span>
+            <button type="button" class="panel-close-btn" @click="resetForm">Chiudi</button>
+          </div>
           <div class="import-form" style="margin-top:.65rem">
             <label>
               Nome residenza

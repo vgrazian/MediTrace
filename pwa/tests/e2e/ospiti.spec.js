@@ -22,9 +22,8 @@ test('ospiti view supports create, selection-based edit, and bulk delete with ex
     await expect(page.getByRole('heading', { name: 'Ospiti' })).toBeVisible()
     await expect(page.locator('.dataset-frame')).toHaveCount(1)
 
-    const details = page.locator('details:has(summary:has-text("Gestione Ospiti"))')
-    await expect(details).toBeVisible({ timeout: 5000 })
-    await expect(details).not.toHaveAttribute('open', '')
+    // Panel is hidden until Aggiungi is clicked
+    await expect(page.locator('details:has(summary:has-text("Aggiungi ospite"))')).not.toBeAttached()
 
     const addButton = page.getByRole('button', { name: 'Aggiungi' })
     const editButton = page.getByRole('button', { name: 'Modifica' }).first()
@@ -34,7 +33,8 @@ test('ospiti view supports create, selection-based edit, and bulk delete with ex
     await expect(deleteButton).toBeDisabled()
 
     await addButton.click()
-    await expect(details).toHaveAttribute('open', '')
+    const details = page.locator('details:has(summary:has-text("Aggiungi ospite"))')
+    await expect(details).toBeVisible()
     await page.getByLabel('Codice interno').fill('OSP-E2E-001')
     await page.getByLabel(/^Nome/).fill('Carla')
     await page.getByLabel(/^Cognome/).fill('Bianchi')
@@ -43,7 +43,7 @@ test('ospiti view supports create, selection-based edit, and bulk delete with ex
     await page.getByLabel('Sesso').selectOption('F')
     await page.getByLabel('Codice fiscale').fill('BNCCRL47E52L219Z')
     await page.getByLabel('Patologie').fill('Ipertensione')
-    const roomSelect = page.getByLabel('Stanza')
+    const roomSelect = page.getByLabel('Residenza')
     if (await roomSelect.isEnabled()) {
         await roomSelect.selectOption({ index: 1 })
     }
@@ -51,7 +51,8 @@ test('ospiti view supports create, selection-based edit, and bulk delete with ex
     await page.getByRole('button', { name: 'Salva ospite' }).click()
 
     await expect(page.getByText(/Ospite ".+" creato\./i)).toBeVisible({ timeout: 5000 })
-    await expect(details).not.toHaveAttribute('open', '')
+    // Panel closed after save
+    await expect(details).not.toBeAttached()
 
     const firstRow = page.locator('tbody tr', {
         has: page.getByRole('cell', { name: 'OSP-E2E-001', exact: true }),

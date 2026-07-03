@@ -45,16 +45,14 @@ test('scorte view supports edit/delete for drug and batch', async ({ page }) => 
     await expect(page.getByRole('heading', { name: 'Scorte' })).toBeVisible()
 
     const reportCard = page.locator('div.card', { hasText: 'Riepilogo segnalazioni' }).first()
-    const batchCard = page.locator('div.card', { hasText: 'Confezioni monitorate (Gestione completa)' }).first()
+    const batchCard = page.locator('div.card', { hasText: 'Confezioni monitorate' }).first()
 
     const drugRow = page.locator('tr', { hasText: 'Ibuprofene Test Scorte' }).first()
     await drugRow.getByRole('button', { name: 'Modifica' }).click()
 
-    const scorteForm = page.locator('details:has(summary:has-text("Gestione Scorte"))')
-    if (!await scorteForm.evaluate((el) => el.hasAttribute('open'))) {
-        await scorteForm.locator('summary').click()
-    }
-    await expect(scorteForm).toHaveAttribute('open', '')
+    // Panel appears on demand after clicking Modifica
+    const scorteForm = page.locator('details:has(summary:has-text("Modifica confezione"))')
+    await expect(scorteForm).toBeVisible()
 
     await scorteForm.getByLabel('Principio attivo').fill('إيبوبروفين محدث')
     await scorteForm.getByLabel('Classe terapeutica').fill('Antinfiammatori')

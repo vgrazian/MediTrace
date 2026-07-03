@@ -9,13 +9,13 @@ test.describe('critical workflow parity across browsers', () => {
         await page.getByRole('link', { name: 'Farmaci' }).click()
         await expect(page.getByRole('heading', { name: 'Catalogo Farmaci' })).toBeVisible()
 
-        const panel = page.locator('details:has(summary:has-text("Gestisci Farmaci"))')
+        const panel = page.locator('details:has(summary:has-text("Aggiungi farmaco"))')
         const addButton = page.locator('.card', { hasText: 'Farmaci registrati' }).getByRole('button', { name: 'Aggiungi' })
         await addButton.click()
-        await expect(panel).toHaveAttribute('open', '')
+        await expect(panel).toBeVisible()
 
         await page.getByRole('button', { name: 'Annulla' }).click()
-        await expect(panel).not.toHaveAttribute('open', '')
+        await expect(panel).not.toBeAttached()
         await expect(page.getByRole('heading', { name: 'Catalogo Farmaci' })).toBeVisible()
     })
 })
