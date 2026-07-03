@@ -153,3 +153,35 @@ test('residenze blocks delete when hosts are assigned', async ({ page }) => {
         await expect(page.getByText(/ripristinata/i)).toBeVisible({ timeout: 5000 })
     }
 })
+
+test('residenze keyboard shortcut N opens add form', async ({ page }) => {
+    await page.route('https://api.github.com/user', async route => {
+        await route.fulfill({
+            status: 200,
+            contentType: 'application/json',
+            body: JSON.stringify({
+                login: 'seeded-gh-user',
+                name: 'Seeded User',
+                avatar_url: 'https://avatars.githubusercontent.com/u/1?v=4',
+            }),
+        })
+    })
+
+    await page.goto('/')
+    await loginOrRegisterSeededUser(page)
+
+    await page.getByRole('link', { name: 'Residenze' }).click()
+    await expect(page.getByRole('heading', { name: 'Residenze' })).toBeVisible()
+
+    // Panel not visible yet
+    await expect(page.locator('details:has(summary:has-text("Aggiungi residenza"))')).not.toBeAttached()
+
+    // Press N to open add form
+    await page.keyboard.press('n')
+    const panel = page.locator('details:has(summary:has-text("Aggiungi residenza"))')
+    await expect(panel).toBeVisible()
+
+    // Press Escape or click Chiudi to dismiss
+    await page.getByRole('button', { name: 'Chiudi' }).click()
+    await expect(panel).not.toBeAttached()
+})

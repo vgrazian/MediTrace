@@ -54,6 +54,6 @@ test('android phone ospiti table shows Residenza column for compact UI', async (
     await page.getByRole('link', { name: 'Ospiti', exact: true }).click()
     await expect(page.getByRole('heading', { name: 'Ospiti' })).toBeVisible()
     await expect(page.getByRole('columnheader', { name: 'Residenza' })).toBeVisible()
-    await expect(page.getByRole('columnheader', { name: 'Stanza/Letto' })).toHaveCount(0)
+    await expect(page.getByRole('columnheader', { name: 'Residenza/Letto' })).toHaveCount(0)
     await expect(page.locator('.dataset-frame')).toBeVisible()
 })

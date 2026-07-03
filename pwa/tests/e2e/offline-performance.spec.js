@@ -69,7 +69,7 @@ async function seedPerformanceBaselineDataset(page) {
                 patologie: 'Monitoraggio',
                 roomId: null,
                 bedId: null,
-                stanza: '',
+                residenza: '',
                 letto: '',
                 attivo: true,
                 updatedAt: nowIso,

@@ -94,7 +94,8 @@ test('movimenti view supports registering a carico and a scarico', async ({ page
     await page.getByRole('button', { name: /^Modifica$/ }).first().click()
     await expect(page.getByRole('button', { name: 'Salva modifica' })).toBeVisible()
     await page.getByRole('button', { name: 'Annulla' }).first().click()
-    await expect(panel).not.toHaveAttribute('open', '')
+    // Panel should be removed after annulla
+    await expect(page.locator('details:has(summary:has-text("Modifica movimento"))')).not.toBeAttached()
 
     await runWithAcceptedConfirmation(page, async () => {
         await page.getByRole('button', { name: 'Elimina (1)' }).first().click()

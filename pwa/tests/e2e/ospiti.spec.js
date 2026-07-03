@@ -159,7 +159,7 @@ test('ospiti delete cascades therapies and asks explicit confirmation', async ({
     const confirmDialog = page.locator('.confirm-dialog')
     await expect(confirmDialog).toBeVisible()
     await expect(confirmDialog).toContainText('terapie associate')
-    await expect(confirmDialog).toContainText('stanza/letto')
+    await expect(confirmDialog).toContainText('residenza/letto')
     await confirmDialog.locator('.actions button').last().click()
 
     await expect(page.locator('p.muted', { hasText: /eliminato\./i })).toBeVisible({ timeout: 5000 })

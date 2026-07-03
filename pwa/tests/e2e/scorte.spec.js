@@ -64,7 +64,7 @@ test('scorte view supports edit/delete for drug and batch', async ({ page }) => 
 
     // Close modal panel before interacting with table rows behind it
     await page.getByRole('button', { name: 'Chiudi' }).click()
-    await expect(scorteForm).not.toHaveAttribute('open', '')
+    await expect(scorteForm).not.toBeAttached()
 
     // Update batch in Scorte
     const batchRow = page.locator('tr', { hasText: 'Brufen Test Scorte' }).first()
@@ -76,7 +76,7 @@ test('scorte view supports edit/delete for drug and batch', async ({ page }) => 
     await expect(batchCard.getByRole('cell', { name: 'Brufen Test Scorte - بروفين محدث' })).toBeVisible()
 
     await page.getByRole('button', { name: 'Chiudi' }).click()
-    await expect(scorteForm).not.toHaveAttribute('open', '')
+    await expect(scorteForm).not.toBeAttached()
 
     // Delete batch
     await runWithAcceptedConfirmation(page, async () => {
