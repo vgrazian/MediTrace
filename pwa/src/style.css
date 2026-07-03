@@ -663,12 +663,14 @@ details.add-panel[open] > div {
 }
 .login-screen h1 { font-size: 2rem; color: var(--brand-800); }
 .login-logo {
-  display: block;
-  width: 96px;
-  height: 96px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 280px;
+  height: 110px;
   border-radius: 1.5rem;
-  background: var(--brand-900);
-  box-shadow: 0 8px 24px rgba(9, 30, 53, 0.18);
+  background: #263561;
+  box-shadow: 0 8px 24px rgba(9, 30, 53, 0.25);
 }
 .login-screen p { color: var(--muted); }
 /* ── credentials auth form ── */
