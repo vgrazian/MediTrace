@@ -5,6 +5,12 @@
       "source": "supabase/agent-skills",
       "sourceType": "github",
       "computedHash": "9c87c315aed143ee3b34bec8117100f5035e0df09e6b23e1ecc772cff434c9ad"
+    },
+    "ui-test-visual-qa": {
+      "source": "cinjoff/fhhs-skills",
+      "sourceType": "github",
+      "adapted": true,
+      "note": "Adapted for VS Code Copilot — uses Playwright instead of gstack browse binary"
     }
   }
 }
