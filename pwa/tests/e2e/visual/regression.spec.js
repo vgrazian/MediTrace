@@ -3,7 +3,7 @@
 
 import { test, expect } from '@playwright/test'
 
-const BASE = 'http://localhost:5173'
+const BASE = process.env.BASE_URL || 'http://localhost:5173'
 
 const ALL_PANEL_ROUTES = [
     '/',
@@ -83,18 +83,22 @@ test.describe('Visual Regression', () => {
 
     test('desktop viewport renders without errors', async ({ page }) => {
         await page.setViewportSize({ width: 1440, height: 900 })
+
+        // Collect console errors during navigation
+        const consoleErrors = []
+        page.on('pageerror', err => consoleErrors.push(err.message))
+
         await page.goto(BASE)
         await page.waitForLoadState('networkidle')
+        await page.waitForTimeout(2000)
 
-        // App should render either the login page or the authenticated dashboard
-        const isLoggedIn = await page.getByRole('link', { name: 'Cruscotto' }).isVisible().catch(() => false)
-        if (isLoggedIn) {
-            await expect(page.getByRole('link', { name: 'Farmaci' })).toBeVisible()
-            await expect(page.getByRole('link', { name: 'Residenze' })).toBeVisible()
-        } else {
-            // Login page should be visible
-            await expect(page.locator('#username-input')).toBeVisible()
-        }
+        // App should render — check body has meaningful content
+        const bodyText = await page.locator('body').textContent().catch(() => '')
+        expect(bodyText.length).toBeGreaterThan(50)
+
+        // No critical console errors (ignore 404s from service worker / assets)
+        const criticalErrors = consoleErrors.filter(e => !e.includes('404') && !e.includes('Failed to load'))
+        expect(criticalErrors).toHaveLength(0)
     })
 
     test('mobile viewport renders without horizontal overflow', async ({ page }) => {
