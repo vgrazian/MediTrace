@@ -667,6 +667,7 @@ details.add-panel[open] > div {
   width: 96px;
   height: 96px;
   border-radius: 1.5rem;
+  background: var(--brand-900);
   box-shadow: 0 8px 24px rgba(9, 30, 53, 0.18);
 }
 .login-screen p { color: var(--muted); }
