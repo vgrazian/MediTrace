@@ -22,13 +22,13 @@ test('android phone UI smoke loads key sections', async ({ page }) => {
 
     await expect(page.getByRole('heading', { name: 'Cruscotto MediTrace' })).toBeVisible()
 
-    await page.getByRole('link', { name: 'Farmaci' }).click()
+    await page.getByRole('link', { name: 'Farmaci' }).first().click()
     await expect(page.getByRole('heading', { name: 'Catalogo Farmaci' })).toBeVisible()
 
     await page.getByRole('link', { name: 'Ospiti', exact: true }).click()
     await expect(page.getByRole('heading', { name: 'Ospiti' })).toBeVisible()
 
-    await page.getByRole('link', { name: 'Manuale' }).click()
+    await page.getByRole('link', { name: 'Manuale' }).first().click()
     await expect(page.getByRole('heading', { name: 'Manuale Utente' })).toBeVisible()
 })
 

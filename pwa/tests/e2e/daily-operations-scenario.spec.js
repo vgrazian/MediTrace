@@ -26,7 +26,7 @@ test('daily operations scenario covers therapy edits, executions, stock checks a
         await seed.loadSeedData()
     })
 
-    await page.getByRole('link', { name: 'Terapie' }).click()
+    await page.getByRole('link', { name: 'Terapie' }).first().click()
     await expect(page.getByRole('heading', { name: 'Terapie Attive' })).toBeVisible()
 
     const today = new Date().toISOString().slice(0, 10)
@@ -48,7 +48,7 @@ test('daily operations scenario covers therapy edits, executions, stock checks a
     }
 
     // End-of-day execution flow: complete therapies/reminders for at least 4 hosts.
-    await page.getByRole('link', { name: 'Promemoria' }).click()
+    await page.getByRole('link', { name: 'Promemoria' }).first().click()
     await expect(page.getByRole('heading', { name: 'Promemoria' })).toBeVisible()
     await page.getByLabel('Data').selectOption('all')
     await page.locator('div.card').filter({ hasText: 'Filtri' }).getByRole('checkbox', { name: 'Da eseguire' }).check()
@@ -63,7 +63,7 @@ test('daily operations scenario covers therapy edits, executions, stock checks a
     }
 
     // End-of-day stock status check.
-    await page.getByRole('link', { name: 'Scorte' }).click()
+    await page.getByRole('link', { name: 'Scorte' }).first().click()
     await expect(page.getByRole('heading', { name: 'Scorte' })).toBeVisible()
     await expect(page.getByText('Riepilogo segnalazioni')).toBeVisible()
     await expect(page.getByText(/Farmaci monitorati:/)).toBeVisible()

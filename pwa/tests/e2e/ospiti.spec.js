@@ -27,7 +27,7 @@ test('ospiti view supports create, selection-based edit, and bulk delete with ex
 
     const addButton = page.getByRole('button', { name: 'Aggiungi' })
     const editButton = page.getByRole('button', { name: 'Modifica' }).first()
-    const deleteButton = page.getByRole('button', { name: 'Elimina' })
+    const deleteButton = page.getByRole('button', { name: 'Elimina' }).first()
     await expect(addButton).toBeVisible()
     await expect(editButton).toBeDisabled()
     await expect(deleteButton).toBeDisabled()
@@ -78,7 +78,7 @@ test('ospiti view supports create, selection-based edit, and bulk delete with ex
     }).first()
     await expect(updatedFirstRow.getByRole('cell', { name: '[OSP-E2E-001] - Bianchi Carlotta', exact: true })).toBeVisible()
 
-    const deleteOneButton = page.getByRole('button', { name: 'Elimina (1)' })
+    const deleteOneButton = page.getByRole('button', { name: 'Elimina (1)' }).first()
     await expect(deleteOneButton).toBeEnabled()
 
     await runWithAcceptedConfirmation(page, async () => {
@@ -109,7 +109,7 @@ test('ospiti delete cascades therapies and asks explicit confirmation', async ({
     await page.goto('/')
     await loginOrRegisterSeededUser(page)
 
-    await page.getByRole('link', { name: '⚙' }).click()
+    await page.getByRole('link', { name: 'Impostazioni' }).first().click()
     await expect(page.getByRole('heading', { name: 'Impostazioni' })).toBeVisible()
 
     const dryRunCheckbox = page.getByLabel('Esegui simulazione (nessuna scrittura)')
@@ -135,7 +135,7 @@ test('ospiti delete cascades therapies and asks explicit confirmation', async ({
     await page.getByRole('button', { name: 'Avvia import CSV' }).click()
     await expect(page.getByText('Accettate: 1')).toBeVisible()
 
-    await page.getByRole('link', { name: 'Terapie' }).click()
+    await page.getByRole('link', { name: 'Terapie' }).first().click()
     await expect(page.getByRole('heading', { name: 'Terapie Attive' })).toBeVisible()
     await page.getByRole('button', { name: 'Aggiungi' }).click()
     await page.getByLabel('Ospite').selectOption('HOST-CASCADE')
@@ -165,7 +165,7 @@ test('ospiti delete cascades therapies and asks explicit confirmation', async ({
     await expect(page.locator('p.muted', { hasText: /eliminato\./i })).toBeVisible({ timeout: 5000 })
     await expect(page.locator('tbody tr', { hasText: 'OSP-CASCADE' })).toHaveCount(0)
 
-    await page.getByRole('link', { name: 'Farmaci' }).click()
+    await page.getByRole('link', { name: 'Farmaci' }).first().click()
     await expect(page.getByRole('heading', { name: 'Catalogo Farmaci' })).toBeVisible()
 
     const drugRow = page.locator('tbody tr', { hasText: 'Farmaco Cascata' }).first()
@@ -195,7 +195,7 @@ test('ospiti seeded from impostazioni keep 5 plus 7 split by residenza', async (
     await page.goto('/')
     await loginOrRegisterSeededUser(page)
 
-    await page.getByRole('link', { name: '⚙' }).click()
+    await page.getByRole('link', { name: 'Impostazioni' }).first().click()
     await expect(page.getByRole('heading', { name: 'Impostazioni' })).toBeVisible()
 
     const testDataCard = page.locator('.card', { hasText: 'Dati di test (live)' })

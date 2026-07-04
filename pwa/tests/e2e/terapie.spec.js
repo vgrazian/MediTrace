@@ -18,7 +18,7 @@ test('terapie view blocks delete when therapy is assigned to active host', async
     await page.goto('/')
     await loginOrRegisterSeededUser(page)
 
-    await page.getByRole('link', { name: '⚙' }).click()
+    await page.getByRole('link', { name: 'Impostazioni' }).first().click()
     await expect(page.getByRole('heading', { name: 'Impostazioni' })).toBeVisible()
 
     const dryRunCheckbox = page.getByLabel('Esegui simulazione (nessuna scrittura)')
@@ -44,7 +44,7 @@ test('terapie view blocks delete when therapy is assigned to active host', async
     await page.getByRole('button', { name: 'Avvia import CSV' }).click()
     await expect(page.getByText('Accettate: 1')).toBeVisible()
 
-    await page.getByRole('link', { name: 'Terapie' }).click()
+    await page.getByRole('link', { name: 'Terapie' }).first().click()
     await expect(page.getByRole('heading', { name: 'Terapie Attive' })).toBeVisible()
     await expect(page.locator('.dataset-frame')).toHaveCount(1)
 
@@ -55,9 +55,8 @@ test('terapie view blocks delete when therapy is assigned to active host', async
 
     await page.getByLabel('Ospite').selectOption('HOST-1')
     await page.getByLabel('Farmaco').selectOption('DRUG-1')
-    await page.getByLabel('Dose per somministrazione').fill('1')
-    await page.getByLabel('Somministrazioni giornaliere').fill('2')
-    await page.getByLabel('Consumo medio settimanale').fill('14')
+    await page.getByLabel('Dose per somministrazione *').fill('1')
+    await page.getByLabel('Somministrazioni giornaliere *').fill('2')
     await page.getByLabel('Data inizio').fill('2030-01-01')
     await page.getByRole('button', { name: 'Salva terapia' }).click()
 

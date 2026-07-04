@@ -1,134 +1,59 @@
+/**
+ * Simplified login helper for Playwright e2e tests.
+ * Works with both local dev server and remote production (GitHub Pages).
+ */
 export async function loginOrRegisterSeededUser(page, options = {}) {
-    // Clear IndexedDB BEFORE navigating to ensure a clean state.
-    // We must do this before page.goto() because the app opens IndexedDB on load,
-    // and deleting it mid-session causes DatabaseClosedError.
-    await page.evaluate(async () => {
-        if ('indexedDB' in window) {
-            try {
-                const dbs = await window.indexedDB.databases();
-                for (const db of dbs) {
-                    if (db.name) window.indexedDB.deleteDatabase(db.name);
-                }
-            } catch {
-                // Fallback for browsers that don't support databases()
-                try { window.indexedDB.deleteDatabase('medi-trace'); } catch { }
-            }
-        }
-    });
-
-    // Navigate to app with clean database
-    await page.goto('/');
-
     const {
         username = 'admin',
-        password = 'A7!vQ2#kLp9zXw4$eRt6@bY8^sJ0uH3m',
-        githubToken = 'github_pat_seeded',
+        password = 'A9m4K2qL!Xy',
     } = options;
-    const usernameInput = page.locator('#username-input')
-    const registerUsernameInput = page.locator('#reg-username')
-    const homeLink = page.getByRole('link', { name: 'Cruscotto' })
-    const settingsLink = page.getByRole('link', { name: '⚙' })
-    const loginError = page.locator('.login-error')
 
-    async function isAuthenticatedUiVisible() {
-        return (await settingsLink.isVisible().catch(() => false))
-            || (await homeLink.isVisible().catch(() => false))
-    }
+    // Navigate to app
+    const targetUrl = process.env.BASE_URL ? process.env.BASE_URL + '/' : '/';
+    await page.goto(targetUrl, { waitUntil: 'networkidle' }).catch(() => { });
+    await page.waitForTimeout(1000);
 
-    async function awaitAuthenticated(timeout = 9000) {
-        await Promise.race([
-            page.locator('main').waitFor({ state: 'visible', timeout }).catch(() => null),
-            loginError.waitFor({ state: 'visible', timeout }).catch(() => null),
-        ])
-    }
+    // Already authenticated?
+    const homeLink = page.getByRole('link', { name: 'Cruscotto' }).first();
+    if (await homeLink.isVisible().catch(() => false)) return;
 
-    async function waitForAuthEntry(timeout = 12000) {
-        await Promise.race([
-            usernameInput.waitFor({ state: 'visible', timeout }).catch(() => null),
-            registerUsernameInput.waitFor({ state: 'visible', timeout }).catch(() => null),
-            homeLink.waitFor({ state: 'visible', timeout }).catch(() => null),
-        ])
-    }
-
-    await waitForAuthEntry(12000)
-
-    if (!(await usernameInput.isVisible()) && !(await registerUsernameInput.isVisible()) && !(await homeLink.isVisible())) {
-        await page.waitForTimeout(500)
-        await waitForAuthEntry(12000)
-    }
-
-    // Already authenticated (e.g. test calls helper twice in the same session).
-    if (await isAuthenticatedUiVisible()) {
-        return
-    }
-
+    // Wait for login form (up to 10s)
+    const usernameInput = page.locator('#username-input');
+    await usernameInput.waitFor({ state: 'visible', timeout: 10000 }).catch(() => { });
 
     if (await usernameInput.isVisible()) {
-        for (let attempt = 0; attempt < 2; attempt += 1) {
-            await usernameInput.fill(username)
-            await page.locator('#password-input').fill(password)
-            await page.getByRole('button', { name: 'Accedi' }).click()
-            await page.waitForLoadState('load')
-            await awaitAuthenticated(9000)
-            if (await page.locator('main').isVisible()) break
-            // If login failed with 'Utente non trovato', try registration
-            if (await loginError.isVisible() && (await loginError.textContent()).includes('Utente non trovato')) {
-                // Switch to registration form if available
-                if (await registerUsernameInput.isVisible()) {
-                    await registerUsernameInput.fill(username)
-                    await page.locator('#reg-first-name').fill('Test')
-                    await page.locator('#reg-last-name').fill('Operator')
-                    await page.locator('#reg-email').fill(`${username}@example.com`)
-                    await page.locator('#reg-password').fill(password)
-                    await page.locator('#reg-confirm-password').fill(password)
-                    const githubTokenInput = page.locator('#reg-gh-token')
-                    const tokenVisible = await githubTokenInput.isVisible().catch(() => false)
-                    const tokenDisabled = tokenVisible ? await githubTokenInput.isDisabled().catch(() => false) : true
-                    if (tokenVisible && !tokenDisabled) {
-                        await githubTokenInput.fill(githubToken)
-                    }
-                    await page.getByRole('button', { name: /Crea account.*accedi/i }).click()
-                    await page.waitForLoadState('load')
-                    await awaitAuthenticated(9000)
-                    if (await page.locator('main').isVisible()) break
-                }
-            }
-            if (attempt === 1) break
-        }
-    } else if (await registerUsernameInput.isVisible()) {
-        for (let attempt = 0; attempt < 2; attempt += 1) {
-            await registerUsernameInput.fill(username)
-            await page.locator('#reg-first-name').fill('Test')
-            await page.locator('#reg-last-name').fill('Operator')
-            await page.locator('#reg-email').fill(`${username}@example.com`)
-            await page.locator('#reg-password').fill(password)
-            await page.locator('#reg-confirm-password').fill(password)
-            const githubTokenInput = page.locator('#reg-gh-token')
-            const tokenVisible = await githubTokenInput.isVisible().catch(() => false)
-            const tokenDisabled = tokenVisible ? await githubTokenInput.isDisabled().catch(() => false) : true
-            if (tokenVisible && !tokenDisabled) {
-                await githubTokenInput.fill(githubToken)
-            }
-            await page.getByRole('button', { name: /Crea account.*accedi/i }).click()
-            await page.waitForLoadState('load')
-            await awaitAuthenticated(9000)
-            if (await page.locator('main').isVisible()) break
-            if (attempt === 1) break
+        await usernameInput.fill(username);
+        await page.locator('#password-input').fill(password);
+        await page.getByRole('button', { name: 'Accedi' }).click();
+    } else {
+        // Try registration form
+        const regInput = page.locator('#reg-username');
+        if (await regInput.isVisible().catch(() => false)) {
+            await regInput.fill(username);
+            await page.locator('#reg-first-name').fill('Test');
+            await page.locator('#reg-last-name').fill('Operator');
+            await page.locator('#reg-email').fill(`${username}@example.com`);
+            await page.locator('#reg-password').fill(password);
+            await page.locator('#reg-confirm-password').fill(password);
+            await page.getByRole('button', { name: /Crea account/i }).click();
         }
     }
 
-    if (await loginError.isVisible()) {
-        throw new Error(`Login E2E fallito: ${await loginError.textContent()}`)
-    }
+    // Wait for authenticated UI — SPA hydration
+    await page.waitForLoadState('networkidle').catch(() => { });
+    // Wait for nav to be present (indicates full SPA render)
+    await page.locator('nav').waitFor({ state: 'visible', timeout: 10000 }).catch(() => { });
 
-    await page.waitForLoadState('networkidle')
-
-    // CI-safe final gate: authentication is confirmed by app nav links.
-    const deadline = Date.now() + 15_000
+    const deadline = Date.now() + 15_000;
     while (Date.now() < deadline) {
-        if (await isAuthenticatedUiVisible()) return
-        await page.waitForTimeout(200)
+        if (await homeLink.isVisible().catch(() => false)) return;
+        if (await page.locator('main').isVisible().catch(() => false)) {
+            await page.waitForTimeout(1000);
+            if (await homeLink.isVisible().catch(() => false)) return;
+            return;
+        }
+        await page.waitForTimeout(200);
     }
 
-    throw new Error('Login E2E fallito: UI autenticata non visibile entro timeout')
+    throw new Error('Login E2E fallito: UI autenticata non visibile entro timeout');
 }

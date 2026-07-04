@@ -13,7 +13,7 @@ async function navigateByMenuWithRetry(page, linkName) {
 
     for (let attempt = 0; attempt < 3; attempt += 1) {
         try {
-            const link = page.getByRole('link', { name: linkName })
+            const link = page.getByRole('link', { name: linkName }).first()
             await link.waitFor({ state: 'visible', timeout: 5000 })
             await link.click({ timeout: 5000 })
             await page.waitForTimeout(250)
@@ -190,7 +190,7 @@ test('@ops performance smoke: initial load within budget', async ({ page }) => {
     const startedAt = Date.now()
     await page.goto('/')
     const loginHeading = page.getByRole('heading', { name: 'MediTrace' })
-    const homeLink = page.getByRole('link', { name: 'Cruscotto' })
+    const homeLink = page.getByRole('link', { name: 'Cruscotto' }).first()
     await Promise.race([
         loginHeading.waitFor({ state: 'visible' }).catch(() => null),
         homeLink.waitFor({ state: 'visible' }).catch(() => null),
@@ -233,7 +233,7 @@ test('@ops performance baseline: 100 hosts, 500 therapies, 1000 movements keeps 
     await page.reload()
     await expect(page.locator('main')).toBeVisible({ timeout: 15000 })
 
-    await page.getByRole('link', { name: 'Scorte' }).click()
+    await page.getByRole('link', { name: 'Scorte' }).first().click()
     await expect(page.getByRole('heading', { name: 'Scorte' })).toBeVisible({ timeout: 15000 })
 
     const elapsedMs = Date.now() - startedAt

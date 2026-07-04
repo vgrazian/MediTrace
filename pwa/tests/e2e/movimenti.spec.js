@@ -19,7 +19,7 @@ test('movimenti view supports registering a carico and a scarico', async ({ page
     await loginOrRegisterSeededUser(page)
 
     // Pre-load a drug and a stock batch via CSV import
-    await page.getByRole('link', { name: '⚙' }).click()
+    await page.getByRole('link', { name: 'Impostazioni' }).first().click()
     await expect(page.getByRole('heading', { name: 'Impostazioni' })).toBeVisible()
 
     const dryRunCheckbox = page.getByLabel('Esegui simulazione (nessuna scrittura)')
@@ -44,7 +44,7 @@ test('movimenti view supports registering a carico and a scarico', async ({ page
     await expect(page.getByText('Accettate: 1')).toBeVisible()
 
     // Navigate to Movimenti
-    await page.getByRole('link', { name: 'Movimenti' }).click()
+    await page.getByRole('link', { name: 'Movimenti' }).first().click()
     await expect(page.getByRole('heading', { name: 'Movimenti' })).toBeVisible()
     await expect(page.locator('.dataset-frame')).toHaveCount(1)
 
@@ -56,12 +56,12 @@ test('movimenti view supports registering a carico and a scarico', async ({ page
     // Validation should block invalid quantity after required fields are present
     const batchSelect = page.locator('select').filter({ has: page.getByRole('option', { name: 'Seleziona confezione' }) })
     await batchSelect.selectOption({ label: 'Ibuprofene E2E - Moment E2E' })
-    await page.getByLabel('Quantita').fill('0')
+    await page.getByLabel('Quantita *').fill('0')
     await expect(page.getByRole('button', { name: 'Registra movimento' })).toBeDisabled()
 
     // Register a CARICO
     await page.getByLabel('Tipo movimento').selectOption('carico')
-    await page.getByLabel('Quantita').fill('20')
+    await page.getByLabel('Quantita *').fill('20')
     await page.getByRole('button', { name: 'Registra movimento' }).click()
 
     await expect(page.getByText(/^Movimento registrato \(ID:/i)).toBeVisible()
@@ -78,7 +78,7 @@ test('movimenti view supports registering a carico and a scarico', async ({ page
     await expect(panel2).toBeVisible()
     await batchSelect.selectOption({ label: 'Ibuprofene E2E - Moment E2E' })
     await page.getByLabel('Tipo movimento').selectOption('scarico')
-    await page.getByLabel('Quantita').fill('5')
+    await page.getByLabel('Quantita *').fill('5')
     await page.getByRole('button', { name: 'Registra movimento' }).click()
 
     await expect(page.getByText(/Movimento registrato/i)).toBeVisible()

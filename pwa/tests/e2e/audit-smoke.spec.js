@@ -52,7 +52,7 @@ test('audit smoke records structured events in CI', async ({ page }) => {
     await loginOrRegisterSeededUser(page)
 
     // 1) Import host
-    await page.getByRole('link', { name: '⚙' }).click()
+    await page.getByRole('link', { name: 'Impostazioni' }).first().click()
     await expect(page.getByRole('heading', { name: 'Impostazioni' })).toBeVisible()
 
     const dryRunCheckbox = page.getByLabel('Esegui simulazione (nessuna scrittura)')
@@ -102,7 +102,7 @@ test('audit smoke records structured events in CI', async ({ page }) => {
     await expect(page.getByText('Accettate: 1')).toBeVisible()
 
     // 5) Mark reminder as eseguito
-    await page.getByRole('link', { name: 'Promemoria' }).click()
+    await page.getByRole('link', { name: 'Promemoria' }).first().click()
     await expect(page.getByRole('heading', { name: 'Promemoria' })).toBeVisible()
     await expect(page.getByRole('cell', { name: 'AUD-01' })).toBeVisible()
     const reminderRow = page.locator('tr', { hasText: 'AUD-01' }).first()

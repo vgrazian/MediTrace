@@ -84,7 +84,7 @@ test('expanded workflow scenario: multi-drug catalog, batch management, and ther
 
     // PHASE 1: Expand drug catalog with multiple new medications
     console.log('=== PHASE 1: Adding multiple new medications to catalog ===')
-    await page.getByRole('link', { name: 'Farmaci' }).click()
+    await page.getByRole('link', { name: 'Farmaci' }).first().click()
     await expect(page.getByRole('heading', { name: 'Catalogo Farmaci' })).toBeVisible()
 
     const drugs = [
@@ -151,7 +151,7 @@ test('expanded workflow scenario: multi-drug catalog, batch management, and ther
 
     // PHASE 3: Navigate to therapies and create assignments for hosts using the new drugs
     console.log('\n=== PHASE 3: Creating therapy assignments with new medications ===')
-    await page.getByRole('link', { name: 'Terapie' }).click()
+    await page.getByRole('link', { name: 'Terapie' }).first().click()
     await expect(page.getByRole('heading', { name: 'Terapie Attive' })).toBeVisible()
 
     // Find editable therapy rows and update a few with new drugs
@@ -214,7 +214,7 @@ test('expanded workflow scenario: multi-drug catalog, batch management, and ther
 
     // PHASE 4: Execute reminders and mark therapies as administered
     console.log('\n=== PHASE 4: Drug administration and reminder execution ===')
-    await page.getByRole('link', { name: 'Promemoria' }).click()
+    await page.getByRole('link', { name: 'Promemoria' }).first().click()
     await expect(page.getByRole('heading', { name: 'Promemoria' })).toBeVisible()
 
     await page.getByLabel('Data').selectOption('all')
@@ -236,7 +236,7 @@ test('expanded workflow scenario: multi-drug catalog, batch management, and ther
 
     // PHASE 5: Check stock levels after drug usage
     console.log('\n=== PHASE 5: Stock level management and monitoring ===')
-    await page.getByRole('link', { name: 'Scorte' }).click()
+    await page.getByRole('link', { name: 'Scorte' }).first().click()
     await expect(page.getByRole('heading', { name: 'Scorte' })).toBeVisible()
 
     await page.getByRole('button', { name: 'Aggiorna report' }).click()
@@ -254,7 +254,7 @@ test('expanded workflow scenario: multi-drug catalog, batch management, and ther
 
     // PHASE 6: Verify audit logging for all operations
     console.log('\n=== PHASE 6: Audit logging verification ===')
-    await page.getByRole('link', { name: 'Audit' }).click()
+    await page.getByRole('link', { name: 'Audit' }).first().click()
     await expect(page.getByRole('heading', { name: /Audit/ })).toBeVisible()
 
     const auditTable = page.locator('table[aria-label="Registro operazioni"]').first()
@@ -360,7 +360,7 @@ test('therapy dosage adjustments and host-specific drug monitoring', async ({ pa
     })
 
     // Navigate to therapies
-    await page.getByRole('link', { name: 'Terapie' }).click()
+    await page.getByRole('link', { name: 'Terapie' }).first().click()
     await expect(page.getByRole('heading', { name: 'Terapie Attive' })).toBeVisible()
 
     const today = new Date().toISOString().slice(0, 10)
@@ -394,7 +394,7 @@ test('therapy dosage adjustments and host-specific drug monitoring', async ({ pa
     }
 
     // Verify adjustments persisted by checking reminders
-    await page.getByRole('link', { name: 'Promemoria' }).click()
+    await page.getByRole('link', { name: 'Promemoria' }).first().click()
     await expect(page.getByRole('heading', { name: 'Promemoria' })).toBeVisible()
 
     // Verify we have updated reminders

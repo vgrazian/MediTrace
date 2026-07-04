@@ -71,7 +71,7 @@ test('operatori management: add, list, reactivate, delete users with audit loggi
     await loginOrRegisterSeededUser(page)
 
     // Access settings
-    await page.getByRole('link', { name: '⚙' }).click()
+    await page.getByRole('link', { name: 'Impostazioni' }).first().click()
     await expect(page.getByRole('heading', { name: 'Impostazioni' })).toBeVisible()
     await expect(page.locator('strong', { hasText: 'Utenti' })).toBeVisible()
 
@@ -120,7 +120,7 @@ test('operatori management: add, list, reactivate, delete users with audit loggi
     await expect(usersTableNew.locator('tbody tr').filter({ hasText: managedUsername })).toHaveCount(0)
 
     // 4. Verify audit log section remains available after user management actions
-    await page.getByRole('link', { name: 'Audit' }).click()
+    await page.getByRole('link', { name: 'Audit' }).first().click()
     await expect(page.getByRole('heading', { name: /Audit/ })).toBeVisible()
 
     // Filter for invite-related events
@@ -128,7 +128,7 @@ test('operatori management: add, list, reactivate, delete users with audit loggi
     await expect(auditTable).toBeVisible()
 
     // 5. Return to settings and ensure seeded row is still present
-    await page.getByRole('link', { name: '⚙' }).click()
+    await page.getByRole('link', { name: 'Impostazioni' }).first().click()
     await expect(page.getByRole('heading', { name: 'Impostazioni' })).toBeVisible()
 
     // Test data management - ensure seeded current user row remains visible
@@ -143,7 +143,7 @@ test('operatori management: add, list, reactivate, delete users with audit loggi
 
     // 6. Verify there's logging for user management operations
     // Go back to audit log to check for user-related operations
-    await page.getByRole('link', { name: 'Audit' }).click()
+    await page.getByRole('link', { name: 'Audit' }).first().click()
     await expect(page.getByRole('heading', { name: /Audit/ })).toBeVisible()
 
     const auditTableNew = page.locator('table[aria-label="Registro operazioni"]').first()
@@ -225,7 +225,7 @@ test('operatori view: profile update creates audit entries', async ({ page }) =>
     await loginOrRegisterSeededUser(page)
 
     // Update profile and verify audit logging
-    await page.getByRole('link', { name: '⚙' }).click()
+    await page.getByRole('link', { name: 'Impostazioni' }).first().click()
     await expect(page.getByRole('heading', { name: 'Impostazioni' })).toBeVisible()
 
     // Update profile fields
@@ -242,7 +242,7 @@ test('operatori view: profile update creates audit entries', async ({ page }) =>
     await expect(page.getByText('Profilo aggiornato con successo.')).toBeVisible()
 
     // Navigate to audit log to verify profile update was logged
-    await page.getByRole('link', { name: 'Audit' }).click()
+    await page.getByRole('link', { name: 'Audit' }).first().click()
     await expect(page.getByRole('heading', { name: /Audit/ })).toBeVisible()
 
     const auditTable = page.locator('table[aria-label="Registro operazioni"]').first()
@@ -322,7 +322,7 @@ test('operatori view: password change and session invalidation', async ({ page }
     await loginOrRegisterSeededUser(page)
 
     // Change password
-    await page.getByRole('link', { name: '⚙' }).click()
+    await page.getByRole('link', { name: 'Impostazioni' }).first().click()
     await expect(page.getByRole('heading', { name: 'Impostazioni' })).toBeVisible()
 
     await page.locator('input[autocomplete="current-password"]').fill('Prova1234!')
@@ -339,6 +339,6 @@ test('operatori view: password change and session invalidation', async ({ page }
     await loginOrRegisterSeededUser(page, { password: 'NuovaPassword123!' })
 
     // Verify we're back in the authenticated UI
-    const homeLink = page.getByRole('link', { name: 'Cruscotto' })
+    const homeLink = page.getByRole('link', { name: 'Cruscotto' }).first()
     await expect(homeLink).toBeVisible()
 })

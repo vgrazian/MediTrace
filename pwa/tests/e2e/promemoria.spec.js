@@ -1,7 +1,7 @@
 test('promemoria: filtro per ospite e fascia oraria', async ({ page }) => {
     await page.goto('/')
     await loginOrRegisterSeededUser(page)
-    await page.getByRole('link', { name: '⚙' }).click()
+    await page.getByRole('link', { name: 'Impostazioni' }).first().click()
     const dryRunCheckbox = page.getByLabel('Esegui simulazione (nessuna scrittura)')
     if (await dryRunCheckbox.isChecked()) await dryRunCheckbox.uncheck()
 
@@ -43,7 +43,7 @@ test('promemoria: filtro per ospite e fascia oraria', async ({ page }) => {
     await expect(page.getByText('Accettate: 2')).toBeVisible()
 
     // Vai su Promemoria
-    await page.getByRole('link', { name: 'Promemoria' }).click()
+    await page.getByRole('link', { name: 'Promemoria' }).first().click()
     await expect(page.getByRole('heading', { name: 'Promemoria' })).toBeVisible()
 
     // Filtro per ospite
@@ -92,7 +92,7 @@ test('promemoria view shows reminders with labels and supports mark as eseguito/
     // ----------------------------------------------------------------
     // Seed prerequisites via CSV import (host, drug, therapy, reminder)
     // ----------------------------------------------------------------
-    await page.getByRole('link', { name: '⚙' }).click()
+    await page.getByRole('link', { name: 'Impostazioni' }).first().click()
     await expect(page.getByRole('heading', { name: 'Impostazioni' })).toBeVisible()
 
     const dryRunCheckbox = page.getByLabel('Esegui simulazione (nessuna scrittura)')
@@ -145,7 +145,7 @@ test('promemoria view shows reminders with labels and supports mark as eseguito/
     // ----------------------------------------------------------------
     // Navigate to Promemoria
     // ----------------------------------------------------------------
-    await page.getByRole('link', { name: 'Promemoria' }).click()
+    await page.getByRole('link', { name: 'Promemoria' }).first().click()
     await expect(page.getByRole('heading', { name: 'Promemoria' })).toBeVisible()
 
     // Default filter is "oggi" — the reminder should be visible
@@ -176,7 +176,7 @@ test('promemoria view date filter hides reminders outside selected day', async (
     await loginOrRegisterSeededUser(page)
 
     // Seed a reminder for a past date (never today)
-    await page.getByRole('link', { name: '⚙' }).click()
+    await page.getByRole('link', { name: 'Impostazioni' }).first().click()
     const dryRunCheckbox = page.getByLabel('Esegui simulazione (nessuna scrittura)')
     if (await dryRunCheckbox.isChecked()) await dryRunCheckbox.uncheck()
 
@@ -220,7 +220,7 @@ test('promemoria view date filter hides reminders outside selected day', async (
     await expect(page.getByText('Accettate: 1')).toBeVisible()
 
     // Navigate to Promemoria with default "oggi" filter
-    await page.getByRole('link', { name: 'Promemoria' }).click()
+    await page.getByRole('link', { name: 'Promemoria' }).first().click()
     await expect(page.getByRole('heading', { name: 'Promemoria' })).toBeVisible()
 
     // Past reminder should not appear with "oggi" filter
@@ -246,7 +246,7 @@ test('promemoria view supports edit/delete and handles Arabic host names', async
     await loginOrRegisterSeededUser(page)
 
     // Seed data via CSV import
-    await page.getByRole('link', { name: '⚙' }).click()
+    await page.getByRole('link', { name: 'Impostazioni' }).first().click()
     const dryRunCheckbox = page.getByLabel('Esegui simulazione (nessuna scrittura)')
     if (await dryRunCheckbox.isChecked()) await dryRunCheckbox.uncheck()
 
@@ -292,7 +292,7 @@ test('promemoria view supports edit/delete and handles Arabic host names', async
     await expect(page.getByText('Accettate: 1')).toBeVisible()
 
     // Navigate and validate Arabic host rendering
-    await page.getByRole('link', { name: 'Promemoria' }).click()
+    await page.getByRole('link', { name: 'Promemoria' }).first().click()
     await expect(page.getByRole('heading', { name: 'Promemoria' })).toBeVisible()
     await expect(page.getByRole('cell', { name: 'أحمد علي' })).toBeVisible()
 

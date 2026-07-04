@@ -18,7 +18,7 @@ test('residenze view supports create, edit, and delete with on-demand form panel
     await page.goto('/')
     await loginOrRegisterSeededUser(page)
 
-    await page.getByRole('link', { name: 'Residenze' }).click()
+    await page.getByRole('link', { name: 'Residenze' }).first().click()
     await expect(page.getByRole('heading', { name: 'Residenze' })).toBeVisible()
     await expect(page.locator('.dataset-frame')).toHaveCount(1)
 
@@ -123,7 +123,7 @@ test('residenze blocks delete when hosts are assigned', async ({ page }) => {
     await page.goto('/')
     await loginOrRegisterSeededUser(page)
 
-    await page.getByRole('link', { name: 'Residenze' }).click()
+    await page.getByRole('link', { name: 'Residenze' }).first().click()
     await expect(page.getByRole('heading', { name: 'Residenze' })).toBeVisible()
 
     // Demo residency has seeded hosts — try deleting it
@@ -170,7 +170,7 @@ test('residenze keyboard shortcut N opens add form', async ({ page }) => {
     await page.goto('/')
     await loginOrRegisterSeededUser(page)
 
-    await page.getByRole('link', { name: 'Residenze' }).click()
+    await page.getByRole('link', { name: 'Residenze' }).first().click()
     await expect(page.getByRole('heading', { name: 'Residenze' })).toBeVisible()
 
     // Panel not visible yet

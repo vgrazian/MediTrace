@@ -19,7 +19,7 @@ test('scorte view supports edit/delete for drug and batch', async ({ page }) => 
     await loginOrRegisterSeededUser(page)
 
     // Seed via Farmaci view so Scorte has concrete rows to manage
-    await page.getByRole('link', { name: 'Farmaci' }).click()
+    await page.getByRole('link', { name: 'Farmaci' }).first().click()
     await expect(page.getByRole('heading', { name: 'Catalogo Farmaci' })).toBeVisible()
 
     await page.locator('.card', { hasText: 'Farmaci registrati' }).getByRole('button', { name: 'Aggiungi' }).click()
@@ -41,7 +41,7 @@ test('scorte view supports edit/delete for drug and batch', async ({ page }) => 
     await expect(page.getByText('Confezione salvata.')).toBeVisible()
 
     // Go to Scorte and update drug from report table
-    await page.getByRole('link', { name: 'Scorte' }).click()
+    await page.getByRole('link', { name: 'Scorte' }).first().click()
     await expect(page.getByRole('heading', { name: 'Scorte' })).toBeVisible()
 
     const reportCard = page.locator('div.card', { hasText: 'Riepilogo segnalazioni' }).first()

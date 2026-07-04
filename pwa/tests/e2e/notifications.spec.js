@@ -87,7 +87,7 @@ test('notification enable, test send, and reminder deep-link are exercisable aut
     await page.goto('/')
     await loginOrRegisterSeededUser(page)
 
-    await page.getByRole('link', { name: '⚙' }).click()
+    await page.getByRole('link', { name: 'Impostazioni' }).first().click()
     await expect(page.getByRole('heading', { name: 'Impostazioni' })).toBeVisible()
 
     await page.getByRole('button', { name: 'Abilita notifiche' }).click()

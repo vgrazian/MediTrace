@@ -6,7 +6,7 @@ test.describe('critical workflow parity across browsers', () => {
         await page.goto('/')
         await loginOrRegisterSeededUser(page)
 
-        await page.getByRole('link', { name: 'Farmaci' }).click()
+        await page.getByRole('link', { name: 'Farmaci' }).first().click()
         await expect(page.getByRole('heading', { name: 'Catalogo Farmaci' })).toBeVisible()
 
         const panel = page.locator('details:has(summary:has-text("Aggiungi farmaco"))')

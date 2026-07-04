@@ -17,7 +17,7 @@ test('menu navigation opens major sections', async ({ page }) => {
     await page.goto('/')
     await loginOrRegisterSeededUser(page)
 
-    await page.getByRole('link', { name: 'Farmaci' }).click()
+    await page.getByRole('link', { name: 'Farmaci' }).first().click()
     await expect(page.getByRole('heading', { name: 'Catalogo Farmaci' })).toBeVisible()
 
     await page.getByRole('link', { name: 'Ospiti', exact: true }).click()
@@ -26,13 +26,13 @@ test('menu navigation opens major sections', async ({ page }) => {
     await page.getByRole('link', { name: 'Residenze', exact: true }).click()
     await expect(page.getByRole('heading', { name: 'Residenze' })).toBeVisible()
 
-    await page.getByRole('link', { name: 'Terapie' }).click()
+    await page.getByRole('link', { name: 'Terapie' }).first().click()
     await expect(page.getByRole('heading', { name: 'Terapie Attive' })).toBeVisible()
 
-    await page.getByRole('link', { name: 'Promemoria' }).click()
+    await page.getByRole('link', { name: 'Promemoria' }).first().click()
     await expect(page.getByRole('heading', { name: 'Promemoria' })).toBeVisible()
 
-    await page.getByRole('link', { name: 'Manuale' }).click()
+    await page.getByRole('link', { name: 'Manuale' }).first().click()
     await expect(page.getByRole('heading', { name: 'Manuale Utente' })).toBeVisible()
 })
 
@@ -52,7 +52,7 @@ test('global logout is available from main navigation', async ({ page }) => {
     await page.goto('/')
     await loginOrRegisterSeededUser(page)
 
-    await page.getByRole('link', { name: 'Scorte' }).click()
+    await page.getByRole('link', { name: 'Scorte' }).first().click()
     await expect(page.getByRole('heading', { name: 'Scorte' })).toBeVisible()
 
     await page.getByRole('button', { name: 'Logout' }).click()

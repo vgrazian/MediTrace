@@ -18,7 +18,7 @@ test('farmaci view supports creating and deactivating stock batch', async ({ pag
     await page.goto('/')
     await loginOrRegisterSeededUser(page)
 
-    await page.getByRole('link', { name: 'Farmaci' }).click()
+    await page.getByRole('link', { name: 'Farmaci' }).first().click()
     await expect(page.getByRole('heading', { name: 'Catalogo Farmaci' })).toBeVisible()
     await expect(page.locator('.dataset-frame')).toHaveCount(2)
 
@@ -29,8 +29,8 @@ test('farmaci view supports creating and deactivating stock batch', async ({ pag
     const drugPanel = page.locator('details:has(summary:has-text("Aggiungi farmaco"))')
     await expect(drugPanel).toBeVisible()
 
-    await page.getByLabel('Nome farmaco').fill('Tachipirina Test')
-    await page.getByLabel('Principio attivo').fill('Paracetamolo Test')
+    await page.getByLabel('Nome farmaco *').fill('Tachipirina Test')
+    await page.getByLabel('Principio attivo *').fill('Paracetamolo Test')
     await page.getByLabel('Classe terapeutica').fill('Analgesici')
     await page.getByLabel('Scorta minima').fill('10')
     await expect(page.getByLabel('Soglia autonomia (giorni)')).toHaveValue('30')
@@ -54,7 +54,7 @@ test('farmaci view supports creating and deactivating stock batch', async ({ pag
     const batchPanel = page.locator('details:has(summary:has-text("Aggiungi confezione"))')
     await expect(batchPanel).toBeVisible()
     await page.getByLabel('Farmaco *').selectOption('Tachipirina Test (Paracetamolo Test)')
-    await page.getByLabel('Nome commerciale').fill('Tachipirina Test')
+    await page.getByLabel(/Nome commerciale/).fill('Tachipirina Test')
     await page.getByLabel('Dosaggio').fill('500mg')
     await page.getByLabel(/Quantit.* attuale/).fill('12')
     await page.getByLabel('Soglia riordino').fill('4')
@@ -99,7 +99,7 @@ test('farmaci view blocks delete when drug is used by active therapy', async ({ 
     await page.goto('/')
     await loginOrRegisterSeededUser(page)
 
-    await page.getByRole('link', { name: '⚙' }).click()
+    await page.getByRole('link', { name: 'Impostazioni' }).first().click()
     await expect(page.getByRole('heading', { name: 'Impostazioni' })).toBeVisible()
 
     const dryRunCheckbox = page.getByLabel('Esegui simulazione (nessuna scrittura)')
@@ -125,19 +125,19 @@ test('farmaci view blocks delete when drug is used by active therapy', async ({ 
     await page.getByRole('button', { name: 'Avvia import CSV' }).click()
     await expect(page.getByText('Accettate: 1')).toBeVisible()
 
-    await page.getByRole('link', { name: 'Terapie' }).click()
+    await page.getByRole('link', { name: 'Terapie' }).first().click()
     await expect(page.getByRole('heading', { name: 'Terapie Attive' })).toBeVisible()
     await page.getByRole('button', { name: 'Aggiungi' }).click()
     await page.getByLabel('Ospite').selectOption('HOST-BLOCK')
     await page.getByLabel('Farmaco').selectOption('DRUG-BLOCK')
-    await page.getByLabel('Dose per somministrazione').fill('1')
+    await page.getByLabel('Dose per somministrazione *').fill('1')
     await page.getByLabel('Somministrazioni giornaliere').fill('2')
     await page.getByLabel('Consumo medio settimanale').fill('14')
     await page.getByLabel('Data inizio').fill('2030-01-01')
     await page.getByRole('button', { name: 'Salva terapia' }).click()
     await expect(page.getByText(/Terapia salvata/i)).toBeVisible()
 
-    await page.getByRole('link', { name: 'Farmaci' }).click()
+    await page.getByRole('link', { name: 'Farmaci' }).first().click()
     await expect(page.getByRole('heading', { name: 'Catalogo Farmaci' })).toBeVisible()
 
     const drugRow = page.locator('tbody tr', { hasText: 'Farmaco Bloccato' }).first()

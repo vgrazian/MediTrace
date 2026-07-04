@@ -19,7 +19,7 @@ test('Manuale page is accessible via nav and shows all sections', async ({ page 
     await page.goto('/')
     await loginOrRegisterSeededUser(page)
 
-    await page.getByRole('link', { name: 'Manuale' }).click()
+    await page.getByRole('link', { name: 'Manuale' }).first().click()
     await expect(page.getByRole('heading', { name: 'Manuale Utente' })).toBeVisible()
 
     // Table of contents should be present
@@ -38,7 +38,7 @@ test('Manuale section can be expanded and collapsed', async ({ page }) => {
     await page.goto('/')
     await loginOrRegisterSeededUser(page)
 
-    await page.getByRole('link', { name: 'Manuale' }).click()
+    await page.getByRole('link', { name: 'Manuale' }).first().click()
     await expect(page.getByRole('heading', { name: 'Manuale Utente' })).toBeVisible()
 
     // Click the Farmaci section toggle to expand it
@@ -55,7 +55,7 @@ test('contextual help opens from Farmaci view and shows content', async ({ page 
     await page.goto('/')
     await loginOrRegisterSeededUser(page)
 
-    await page.getByRole('link', { name: 'Farmaci' }).click()
+    await page.getByRole('link', { name: 'Farmaci' }).first().click()
     await expect(page.getByRole('heading', { name: 'Catalogo Farmaci' })).toBeVisible()
 
     const farmaciView = page.locator('.view').filter({ has: page.getByRole('heading', { name: 'Catalogo Farmaci' }) }).first()
@@ -74,7 +74,7 @@ test('contextual help opens from Terapie view', async ({ page }) => {
     await page.goto('/')
     await loginOrRegisterSeededUser(page)
 
-    await page.getByRole('link', { name: 'Terapie' }).click()
+    await page.getByRole('link', { name: 'Terapie' }).first().click()
     await expect(page.getByRole('heading', { name: 'Terapie Attive' })).toBeVisible()
 
     const terapieView = page.locator('.view').filter({ has: page.getByRole('heading', { name: 'Terapie Attive' }) }).first()

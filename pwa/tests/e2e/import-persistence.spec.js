@@ -19,7 +19,7 @@ test('import CSV non dry-run persists rows in IndexedDB', async ({ page }) => {
     await page.goto('/')
     await loginOrRegisterSeededUser(page)
 
-    await page.getByRole('link', { name: '⚙' }).click()
+    await page.getByRole('link', { name: 'Impostazioni' }).first().click()
     await expect(page.getByRole('heading', { name: 'Impostazioni' })).toBeVisible()
 
     await page.getByLabel('Sorgente').selectOption('03_Ospiti.csv')

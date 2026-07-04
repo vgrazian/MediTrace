@@ -21,14 +21,14 @@ test('farmaci uses filter bar and custom confirmation modal for delete', async (
     await page.goto('/')
     await loginOrRegisterSeededUser(page)
 
-    await page.getByRole('link', { name: 'Farmaci' }).click()
+    await page.getByRole('link', { name: 'Farmaci' }).first().click()
     await expect(page.getByRole('heading', { name: 'Catalogo Farmaci' })).toBeVisible()
 
     await page.locator('.card', { hasText: 'Farmaci registrati' }).getByRole('button', { name: 'Aggiungi' }).click()
 
     const drugName = 'Farmaco UX E2E'
-    await page.getByLabel('Nome farmaco').fill(drugName)
-    await page.getByLabel('Principio attivo').fill('Principio UX E2E')
+    await page.getByLabel('Nome farmaco *').fill(drugName)
+    await page.getByLabel('Principio attivo *').fill('Principio UX E2E')
     await page.getByRole('button', { name: 'Salva farmaco' }).click()
     await expect(page.getByRole('cell', { name: drugName, exact: true })).toBeVisible()
 
@@ -60,13 +60,13 @@ test('unsaved changes guard blocks accidental navigation and supports leave', as
     await page.goto('/')
     await loginOrRegisterSeededUser(page)
 
-    await page.getByRole('link', { name: 'Terapie' }).click()
+    await page.getByRole('link', { name: 'Terapie' }).first().click()
     await expect(page.getByRole('heading', { name: 'Terapie Attive' })).toBeVisible()
 
     await page.getByRole('button', { name: 'Aggiungi' }).click()
     await page.getByLabel('Note').fill('bozza non salvata e2e')
 
-    await page.getByRole('link', { name: 'Cruscotto' }).click({ force: true })
+    await page.getByRole('link', { name: 'Cruscotto' }).first().click({ force: true })
 
     const confirmDialog = page.locator('.confirm-dialog')
     await expect(confirmDialog).toBeVisible()
@@ -75,7 +75,7 @@ test('unsaved changes guard blocks accidental navigation and supports leave', as
     await confirmDialog.getByRole('button', { name: 'Resta nella pagina' }).click()
     await expect(page.getByRole('heading', { name: 'Terapie Attive' })).toBeVisible()
 
-    await page.getByRole('link', { name: 'Cruscotto' }).click({ force: true })
+    await page.getByRole('link', { name: 'Cruscotto' }).first().click({ force: true })
     await page.locator('.confirm-dialog').getByRole('button', { name: 'Esci senza salvare' }).click()
 
     await expect(page.getByRole('heading', { name: 'Cruscotto MediTrace' })).toBeVisible()
@@ -87,43 +87,43 @@ test('filter and sort state persists during in-session navigation on CRUD views'
     await page.goto('/')
     await loginOrRegisterSeededUser(page)
 
-    await page.getByRole('link', { name: 'Ospiti' }).click()
+    await page.getByRole('link', { name: 'Ospiti' }).first().click()
     await expect(page.getByRole('heading', { name: 'Ospiti' })).toBeVisible()
     await page.locator('.crud-filter-bar input[type="search"]').fill('rifugio')
     await page.getByLabel('Ordina ospiti').selectOption('nome')
     await page.getByLabel('Mostra anche disattivati').check()
-    await page.getByRole('link', { name: 'Cruscotto' }).click()
-    await page.getByRole('link', { name: 'Ospiti' }).click()
+    await page.getByRole('link', { name: 'Cruscotto' }).first().click()
+    await page.getByRole('link', { name: 'Ospiti' }).first().click()
     await expect(page.locator('.crud-filter-bar input[type="search"]')).toHaveValue('rifugio')
     await expect(page.getByLabel('Ordina ospiti')).toHaveValue('nome')
     await expect(page.getByLabel('Mostra anche disattivati')).toBeChecked()
 
-    await page.getByRole('link', { name: 'Farmaci' }).click()
+    await page.getByRole('link', { name: 'Farmaci' }).first().click()
     await expect(page.getByRole('heading', { name: 'Catalogo Farmaci' })).toBeVisible()
     await page.locator('.crud-filter-bar input[type="search"]').fill('paracetamolo')
     await page.getByLabel('Ordina farmaci').selectOption('principio')
     await page.getByLabel('Ordina confezioni').selectOption('quantita')
-    await page.getByRole('link', { name: 'Cruscotto' }).click()
-    await page.getByRole('link', { name: 'Farmaci' }).click()
+    await page.getByRole('link', { name: 'Cruscotto' }).first().click()
+    await page.getByRole('link', { name: 'Farmaci' }).first().click()
     await expect(page.locator('.crud-filter-bar input[type="search"]')).toHaveValue('paracetamolo')
     await expect(page.getByLabel('Ordina farmaci')).toHaveValue('principio')
     await expect(page.getByLabel('Ordina confezioni')).toHaveValue('quantita')
 
-    await page.getByRole('link', { name: 'Terapie' }).click()
+    await page.getByRole('link', { name: 'Terapie' }).first().click()
     await expect(page.getByRole('heading', { name: 'Terapie Attive' })).toBeVisible()
     await page.locator('.crud-filter-bar input[type="search"]').fill('dose')
     await page.getByLabel('Ordina terapie').selectOption('host')
-    await page.getByRole('link', { name: 'Cruscotto' }).click()
-    await page.getByRole('link', { name: 'Terapie' }).click()
+    await page.getByRole('link', { name: 'Cruscotto' }).first().click()
+    await page.getByRole('link', { name: 'Terapie' }).first().click()
     await expect(page.locator('.crud-filter-bar input[type="search"]')).toHaveValue('dose')
     await expect(page.getByLabel('Ordina terapie')).toHaveValue('host')
 
-    await page.getByRole('link', { name: 'Movimenti' }).click()
+    await page.getByRole('link', { name: 'Movimenti' }).first().click()
     await expect(page.getByRole('heading', { name: 'Movimenti' })).toBeVisible()
     await page.locator('.crud-filter-bar input[type="search"]').fill('scarico')
     await page.getByLabel('Ordina movimenti').selectOption('quantita')
-    await page.getByRole('link', { name: 'Cruscotto' }).click()
-    await page.getByRole('link', { name: 'Movimenti' }).click()
+    await page.getByRole('link', { name: 'Cruscotto' }).first().click()
+    await page.getByRole('link', { name: 'Movimenti' }).first().click()
     await expect(page.locator('.crud-filter-bar input[type="search"]')).toHaveValue('scarico')
     await expect(page.getByLabel('Ordina movimenti')).toHaveValue('quantita')
 })

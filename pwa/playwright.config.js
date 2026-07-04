@@ -1,7 +1,9 @@
 import { defineConfig, devices } from '@playwright/test'
 
 const PORT = 5176
-const BASE_URL = `http://127.0.0.1:${PORT}`
+const DEFAULT_BASE_URL = `http://127.0.0.1:${PORT}`
+const BASE_URL = process.env.BASE_URL || DEFAULT_BASE_URL
+const isRemote = BASE_URL.startsWith('http://') || BASE_URL.startsWith('https://') && !BASE_URL.includes('127.0.0.1') && !BASE_URL.includes('localhost')
 
 export default defineConfig({
     testDir: 'tests/e2e',
@@ -70,26 +72,28 @@ export default defineConfig({
             },
         },
     ],
-    webServer: {
-        command: `npm run dev -- --host 127.0.0.1 --port ${PORT}`,
-        url: BASE_URL,
-        reuseExistingServer: false,
-        timeout: 120_000,
-        cwd: '.',
-        env: {
-            VITE_DEV_SEED_ACCOUNT: '1',
-            VITE_DEV_SEED_USERNAME: 'prova',
-            VITE_DEV_SEED_PASSWORD: 'Prova1234!',
-            VITE_DEV_SEED_GITHUB_TOKEN: 'github_pat_test_seed_token',
-            VITE_EMERGENCY_ADMIN_ENABLED: '1',
-            VITE_EMERGENCY_ADMIN_USERNAME: 'admin',
-            VITE_EMERGENCY_ADMIN_PASSWORD: 'A7!vQ2#kLp9zXw4$eRt6@bY8^sJ0uH3m',
-            VITE_EMERGENCY_ADMIN_EMAIL: 'admin@example.com',
-            // Force deterministic local-auth mode for E2E smoke (no real Supabase calls).
-            VITE_SUPABASE_URL: '',
-            VITE_SUPABASE_PUBLISHABLE_KEY: '',
-            VITE_BASE_URL: '/',
-            NO_HMR: '1',
+    ...(isRemote ? {} : {
+        webServer: {
+            command: `npm run dev -- --host 127.0.0.1 --port ${PORT}`,
+            url: BASE_URL,
+            reuseExistingServer: false,
+            timeout: 120_000,
+            cwd: '.',
+            env: {
+                VITE_DEV_SEED_ACCOUNT: '1',
+                VITE_DEV_SEED_USERNAME: 'prova',
+                VITE_DEV_SEED_PASSWORD: 'Prova1234!',
+                VITE_DEV_SEED_GITHUB_TOKEN: 'github_pat_test_seed_token',
+                VITE_EMERGENCY_ADMIN_ENABLED: '1',
+                VITE_EMERGENCY_ADMIN_USERNAME: 'admin',
+                VITE_EMERGENCY_ADMIN_PASSWORD: 'A7!vQ2#kLp9zXw4$eRt6@bY8^sJ0uH3m',
+                VITE_EMERGENCY_ADMIN_EMAIL: 'admin@example.com',
+                // Force deterministic local-auth mode for E2E smoke (no real Supabase calls).
+                VITE_SUPABASE_URL: '',
+                VITE_SUPABASE_PUBLISHABLE_KEY: '',
+                VITE_BASE_URL: '/',
+                NO_HMR: '1',
+            },
         },
-    },
+    }),
 })

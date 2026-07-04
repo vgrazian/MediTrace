@@ -94,7 +94,7 @@ test('collects deterministic E2E JS coverage metrics', async ({ page, browserNam
     await page.goto('/')
     await loginOrRegisterSeededUser(page)
 
-    await page.getByRole('link', { name: 'Farmaci' }).click()
+    await page.getByRole('link', { name: 'Farmaci' }).first().click()
     await expect(page.getByRole('heading', { name: 'Catalogo Farmaci' })).toBeVisible()
 
     const panel = page.locator('details:has(summary:has-text("Aggiungi farmaco"))')
@@ -105,7 +105,7 @@ test('collects deterministic E2E JS coverage metrics', async ({ page, browserNam
     await expect(panel).not.toBeAttached()
     await expect(page.getByRole('heading', { name: 'Catalogo Farmaci' })).toBeVisible()
 
-    await page.getByRole('link', { name: 'Cruscotto' }).click()
+    await page.getByRole('link', { name: 'Cruscotto' }).first().click()
     await expect(page.getByRole('heading', { name: 'Cruscotto' })).toBeVisible()
 
     const entries = await page.coverage.stopJSCoverage()

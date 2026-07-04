@@ -4,7 +4,7 @@ async function loginAsSeededUser(page) {
     await page.goto('/')
     const usernameInput = page.locator('#username-input')
     const registerUsernameInput = page.locator('#reg-username')
-    const homeLink = page.getByRole('link', { name: 'Cruscotto' })
+    const homeLink = page.getByRole('link', { name: 'Cruscotto' }).first()
 
     await Promise.race([
         usernameInput.waitFor({ state: 'visible', timeout: 5000 }).catch(() => null),
@@ -215,7 +215,7 @@ test('sync manuale blocca upload quando esiste un conflitto pendente', async ({ 
     await loginAsSeededUser(page)
     await seedPendingConflict(page)
 
-    await page.getByRole('link', { name: '⚙' }).click()
+    await page.getByRole('link', { name: 'Impostazioni' }).first().click()
     await expect(page.getByText('Conflitti aperti: 1')).toBeVisible()
     await page.getByRole('button', { name: 'Sincronizza ora' }).click()
 
@@ -229,7 +229,7 @@ test('risoluzione conflitto mantieni locale svuota pendingConflicts e lascia the
     await loginAsSeededUser(page)
     await seedPendingConflict(page)
 
-    await page.getByRole('link', { name: '⚙' }).click()
+    await page.getByRole('link', { name: 'Impostazioni' }).first().click()
     await page.getByRole('button', { name: 'Mantieni locale' }).first().click()
     await expect(page.getByText(/Conflitto risolto.*Restanti: 0/)).toBeVisible()
 
@@ -244,7 +244,7 @@ test('risoluzione conflitto accetta remota applica il valore remoto e rimuove la
     await loginAsSeededUser(page)
     await seedPendingConflict(page)
 
-    await page.getByRole('link', { name: '⚙' }).click()
+    await page.getByRole('link', { name: 'Impostazioni' }).first().click()
     await page.getByRole('button', { name: 'Accetta remota' }).first().click()
     await expect(page.getByText('Conflitto risolto (remota). Restanti: 0')).toBeVisible()
 

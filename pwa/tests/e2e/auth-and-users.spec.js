@@ -8,7 +8,7 @@ test('admin promuove operatore e verifica permessi fasce orarie', async ({ page 
     await page.goto('/')
     console.log('Navigato alla pagina principale...')
     await loginOrRegisterSeededUser(page)
-    await page.getByRole('link', { name: '⚙' }).click()
+    await page.getByRole('link', { name: 'Impostazioni' }).first().click()
     await expect(page.getByRole('heading', { name: 'Impostazioni' })).toBeVisible()
 
     // Crea nuovo operatore (seleziona solo nel form di creazione utente)
@@ -44,7 +44,7 @@ test('admin promuove operatore e verifica permessi fasce orarie', async ({ page 
     await page.getByRole('textbox', { name: 'Username accesso' }).fill('operatore1')
     await page.getByLabel('Password').fill('Test12345!')
     await page.getByRole('button', { name: /Accedi/i }).click()
-    await page.getByRole('link', { name: '⚙' }).click()
+    await page.getByRole('link', { name: 'Impostazioni' }).first().click()
     await expect(page.getByRole('heading', { name: 'Impostazioni' })).toBeVisible()
 
     // Verifica che NON possa modificare fasce orarie
@@ -58,7 +58,7 @@ test('admin promuove operatore e verifica permessi fasce orarie', async ({ page 
     // Login come admin
     await loginOrRegisterSeededUser(page)
     console.log('Login admin riuscito, controllo permessi...')
-    await page.getByRole('link', { name: '⚙' }).click()
+    await page.getByRole('link', { name: 'Impostazioni' }).first().click()
     await expect(page.getByRole('heading', { name: /Impostazioni/ })).toBeVisible()
     await expect(page.getByText('Fasce orarie configurabili')).toBeVisible()
     console.log('Verifica permessi admin OK, FINE TEST')
@@ -122,7 +122,7 @@ test('seeded account login, sync, profile update, password change and users sect
     await page.goto('/')
     await loginOrRegisterSeededUser(page)
 
-    await page.getByRole('link', { name: '⚙' }).click()
+    await page.getByRole('link', { name: 'Impostazioni' }).first().click()
     await expect(page.getByRole('heading', { name: 'Impostazioni' })).toBeVisible()
     await expect(page.locator('strong', { hasText: 'Utenti' })).toBeVisible()
 
@@ -156,7 +156,7 @@ test('seeded account login, sync, profile update, password change and users sect
 
     // CI-safe: after password change, route directly through navbar to avoid hash-state race.
     const settingsHeading = page.getByRole('heading', { name: 'Impostazioni' })
-    const settingsLink = page.getByRole('link', { name: '⚙' })
+    const settingsLink = page.getByRole('link', { name: 'Impostazioni' }).first()
     if (!(await settingsLink.isVisible().catch(() => false))) {
         await loginOrRegisterSeededUser(page, { password: 'Prova45678!' })
     }
