@@ -228,6 +228,7 @@ async function handleSync() {
     <RouterLink to="/residenze" title="Gestione residenze">Residenze</RouterLink>
     <RouterLink v-if="currentUser?.role === 'admin'" to="/operatori" title="Gestione operatori e permessi">Operatori</RouterLink>
     <RouterLink v-if="currentUser?.role === 'admin'" to="/audit" title="Registro audit e attività">Audit</RouterLink>
+    <RouterLink v-if="currentUser?.role === 'admin'" to="/analisi" title="Analisi operazionale e diagnostica">Analisi</RouterLink>
     <RouterLink to="/manuale" title="Guida utente">Guida</RouterLink>
 
     <div class="user-area">

@@ -57,6 +57,11 @@ const routes = [
         meta: { title: 'Audit Log' },
     },
     {
+        path: '/analisi',
+        component: () => import('../views/AnalisiLogView.vue'),
+        meta: { title: 'Analisi Operazionale' },
+    },
+    {
         path: '/operatori',
         component: () => import('../views/OperatoriView.vue'),
         meta: { title: 'Operatori' },
