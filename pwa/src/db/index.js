@@ -240,3 +240,30 @@ export async function enqueue(entityType, entityId, operation = 'upsert') {
         }))
     }
 }
+
+// ── Axiom logging hook ─────────────────────────────────────────────────────────
+
+/**
+ * Dexie 'creating' hook su activityLog: intercetta OGNI scrittura di audit
+ * e la inoltra ad Axiom via axiomLogger. Fire-and-forget — non blocca mai
+ * la transazione Dexie. Il logger degrada a console.warn senza token.
+ *
+ * GDPR: vengono inviati solo operatorId (username), entityId (UUID), action,
+ * entityType, ts, deviceId. MAI dati sanitari o PII.
+ */
+db.activityLog.hook('creating', function (_primKey, obj) {
+    // Import dinamico per evitare dipendenze circolari (axiomLogger importa da db)
+    import('../services/axiomLogger.js')
+        .then(({ logAction }) => {
+            return logAction({
+                operatorId: obj.operatorId || 'unknown',
+                action: obj.action || 'unknown',
+                entityType: obj.entityType || null,
+                entityId: obj.entityId || null,
+                deviceId: obj.deviceId,
+            })
+        })
+        .catch(() => {
+            // Silenzioso: il logging Axiom non deve mai rompere l'app
+        })
+})
