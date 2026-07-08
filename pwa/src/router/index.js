@@ -1,4 +1,9 @@
 import { createRouter, createWebHashHistory } from 'vue-router'
+import { logPageView, logError } from '../services/axiomLogger'
+import { trackRouteTiming } from '../services/apm'
+
+/** @type {number} */
+let routeEnterTime = 0
 
 const routes = [
     {
@@ -90,6 +95,12 @@ router.onError((error) => {
         || message.includes('Importing a module script failed')
         || message.includes('Loading chunk')
 
+    // Log dell'errore di caricamento chunk (senza stack sensibile)
+    logError({
+        error: { message, name: 'ChunkLoadError' },
+        view: typeof window !== 'undefined' ? window.location.hash : '',
+    }).catch(() => { })
+
     if (!isChunkLoadError) return
 
     // Do not force reload while offline; keep current app shell usable.
@@ -103,8 +114,19 @@ router.onError((error) => {
     window.location.reload()
 })
 
-router.afterEach((to) => {
+router.beforeEach(() => {
+    routeEnterTime = performance.now()
+})
+
+router.afterEach((to, from) => {
     document.title = to.meta.title ? `${to.meta.title} — MediTrace` : 'MediTrace'
+    // Log page view per analisi percorsi operatore (GDPR-safe: solo route, no PII)
+    logPageView(to.path, from?.path || null)
+    // Track route transition timing
+    if (routeEnterTime > 0) {
+        trackRouteTiming(from?.path || '/', to.path, Math.round(performance.now() - routeEnterTime))
+        routeEnterTime = 0
+    }
 })
 
 export default router
