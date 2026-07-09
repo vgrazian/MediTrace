@@ -7,7 +7,7 @@ Nessuna attiva. PR-UI-3 merge completato e deploy in corso.
 PR-1, PR-2, PR-3, PR-LOG-1, e PR-UI-2 sono tutti mergiati su `main`.
 
 ## Done So Far
-- [x] PR-UI-4 merged e deploy avviato (PR #112)- [x] PR-UI-3 merged e deploy avviato (PR #111)1. PR-UI-2 merged (#110) e deploy su gh-pages avviato.
+- [x] PR-UI-5 merged e deploy avviato (PR #113)- [x] PR-UI-4 merged e deploy avviato (PR #112)- [x] PR-UI-3 merged e deploy avviato (PR #111)1. PR-UI-2 merged (#110) e deploy su gh-pages avviato.
 2. PR-LOG-1 merged (#109) e deploy su gh-pages avviato.
 3. PR-LOG-1 implementation completed and PR #109 opened.
 4. PR-3 merged to `main` (PR #96: E2E hardening by mode — local deterministic + online Supabase).
@@ -97,7 +97,7 @@ PR-1, PR-2, PR-3, PR-LOG-1, e PR-UI-2 sono tutti mergiati su `main`.
 1. Nessuna al momento.
 
 ## Planned PR Work (Not Open Yet)
-1. PR-UI-5: Pulsante "Promemoria di oggi" e azioni batch (prossimo)))
+1. PR-UI-6: Barra azioni fissa mobile/tablet (prossimo)
 
 ## TECHNICAL CONTEXT
 
@@ -122,7 +122,7 @@ PR-1, PR-2, PR-3, PR-LOG-1, e PR-UI-2 sono tutti mergiati su `main`.
 ## PROGRESS TRACKING
 
 ## Completed Milestones
-- [x] PR-UI-4 merged e deploy avviato (PR #112)- [x] PR-UI-3 merged e deploy avviato (PR #111)- [x] PR-UI-2 merged e deploy avviato (PR #110)
+- [x] PR-UI-5 merged e deploy avviato (PR #113)- [x] PR-UI-4 merged e deploy avviato (PR #112)- [x] PR-UI-3 merged e deploy avviato (PR #111)- [x] PR-UI-2 merged e deploy avviato (PR #110)
 - [x] PR-UI-1 merged (sync state indicator)
 - [x] PR-LOG-1 merged e deploy avviato (PR #109)
 - [x] PR-3 E2E hardening merged and deployed (PR #96)
@@ -366,7 +366,7 @@ Each PR is focused, reviewable, and can be delivered independently:
   - Each item links to filtered detail view
   - E2E: Validate attention panel population/navigation
 
-- **PR-UI-5: One-Click “Today’s Tasks” & Batch Actions**
+- **PR-UI-6: Barra azioni fissa mobile/tablet (prossimo)
   - Prominent “Today’s Reminders” button with batch-complete
   - Enable multi-select and batch actions for repetitive tasks
   - E2E: Batch-complete flow for reminders/medication administration
@@ -420,7 +420,7 @@ Tutti i nomi delle PR, le etichette UI, i tooltip, i messaggi di stato e le nuov
 - PR-UI-2: Banner annulla eliminazione standardizzato
 - PR-UI-3: Scorciatoie da tastiera per azioni frequenti
 - PR-UI-4: Pannello "Attenzione" in dashboard
-- PR-UI-5: Pulsante "Promemoria di oggi" e azioni batch
+- PR-UI-6: Barra azioni fissa mobile/tablet (prossimo)
 - PR-UI-6: Barra azioni fissa (mobile/tablet)
 - PR-UI-7: Validazione in tempo reale e valori predefiniti intelligenti
 - PR-UI-8: "Aggiungi rapido" nei menu a tendina
