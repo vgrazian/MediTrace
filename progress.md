@@ -1,13 +1,13 @@
 # CURRENT STATUS
 
 ## Active Task
-PR-UI-2: Banner annulla eliminazione standardizzato — implementazione in corso su `feat/pr-ui-2-undo-delete-banner`.
+Nessuna attiva. PR-UI-2 merge completato e deploy in corso.
 
 ## Current Phase
-PR-1, PR-2, PR-3, e PR-LOG-1 sono tutti mergiati su `main`. PR-UI-2 in esecuzione.
+PR-1, PR-2, PR-3, PR-LOG-1, e PR-UI-2 sono tutti mergiati su `main`.
 
 ## Done So Far
-1. PR-UI-2: ResidenzeView, ScorteView, PromemoriaView standardizzati con UndoDeleteBanner.
+1. PR-UI-2 merged (#110) e deploy su gh-pages avviato.
 2. PR-LOG-1 merged (#109) e deploy su gh-pages avviato.
 3. PR-LOG-1 implementation completed and PR #109 opened.
 4. PR-3 merged to `main` (PR #96: E2E hardening by mode — local deterministic + online Supabase).
@@ -97,7 +97,7 @@ PR-1, PR-2, PR-3, e PR-LOG-1 sono tutti mergiati su `main`. PR-UI-2 in esecuzion
 1. Nessuna al momento.
 
 ## Planned PR Work (Not Open Yet)
-1. PR-UI-2: Standardized undo delete banner (prossimo)
+1. PR-UI-3: Scorciatoie da tastiera per azioni frequenti (prossimo)
 
 ## TECHNICAL CONTEXT
 
@@ -122,6 +122,8 @@ PR-1, PR-2, PR-3, e PR-LOG-1 sono tutti mergiati su `main`. PR-UI-2 in esecuzion
 ## PROGRESS TRACKING
 
 ## Completed Milestones
+- [x] PR-UI-2 merged e deploy avviato (PR #110)
+- [x] PR-UI-1 merged (sync state indicator)
 - [x] PR-LOG-1 merged e deploy avviato (PR #109)
 - [x] PR-3 E2E hardening merged and deployed (PR #96)
 - [x] CRUD integrity guards + tests + scenarios documentation
