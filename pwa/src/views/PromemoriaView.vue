@@ -33,10 +33,13 @@ import { openConfirmDialog } from '../services/confirmDialog'
 import { useFormValidation } from '../services/formValidation'
 import ValidatedInput from '../components/ValidatedInput.vue'
 import { useHelpNavigation } from '../composables/useHelpNavigation'
+import { useUndoDelete } from '../composables/useUndoDelete'
+import UndoDeleteBanner from '../components/UndoDeleteBanner.vue'
 
 const route = useRoute()
 const { currentUser } = useAuth()
 const { goToHelpSection } = useHelpNavigation()
+const { pendingUndo, scheduleUndo, executeUndo, clearUndo } = useUndoDelete(10_000)
 
 const loading = ref(false)
 const markingId = ref(null)
@@ -554,6 +557,17 @@ async function deleteReminder(reminderId) {
 
     if (editingReminderId.value === reminderId) resetForm()
     message.value = 'Promemoria eliminato.'
+
+    scheduleUndo({
+      label: `Promemoria "${reminderLabel}" eliminato.`,
+      undoAction: async () => {
+        await db.reminders.update(reminderId, { deletedAt: null, updatedAt: new Date().toISOString(), syncStatus: 'pending' })
+        await enqueue('reminders', reminderId, 'upsert')
+        message.value = 'Eliminazione annullata: promemoria ripristinato.'
+        await loadData()
+      },
+    })
+
     await loadData()
   } catch (err) {
     errorMessage.value = `Errore: ${err.message}`
@@ -856,6 +870,13 @@ watch(residenzaFilter, async (value) => {
         </div>
       </details>
     </div>
+
+    <UndoDeleteBanner
+      v-if="pendingUndo"
+      :label="pendingUndo.label"
+      @undo="executeUndo"
+      @close="clearUndo"
+    />
   </div>
 </template>
 
