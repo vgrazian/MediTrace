@@ -1,5 +1,5 @@
 <script setup>
-import { onMounted, onUnmounted, ref, computed } from 'vue'
+import { onMounted, onUnmounted, ref, computed, watch } from 'vue'
 import { useKeyboardShortcuts, shortcutHint } from '../composables/useKeyboardShortcuts'
 
 useKeyboardShortcuts({
@@ -27,6 +27,7 @@ import { useHelpNavigation } from '../composables/useHelpNavigation'
 import { useUnsavedChangesGuard } from '../composables/useUnsavedChangesGuard'
 import { useUndoDelete } from '../composables/useUndoDelete'
 import { useSmartDefaults } from '../composables/useSmartDefaults'
+import { useDraftSave } from '../composables/useDraftSave'
 import UndoDeleteBanner from '../components/UndoDeleteBanner.vue'
 import { useSessionViewState } from '../composables/useSessionViewState'
 
@@ -35,6 +36,12 @@ const router = useRouter()
 const { goToHelpSection } = useHelpNavigation()
 const { pendingUndo, scheduleUndo, executeUndo } = useUndoDelete(10_000)
 const { remember, recall } = useSmartDefaults('ospiti')
+const { hasDraft, loadDraft, startDraft, clearDraft, hasDraftAvailable } = useDraftSave('ospiti')
+
+// Auto-save draft on form changes
+watch(form, () => {
+  if (isFormOpen.value) startDraft(form.value)
+}, { deep: true })
 
 const {
   errors,
@@ -281,6 +288,7 @@ async function handleSave() {
           })
           message.value = `Ospite "${editingHostId.value}" aggiornato.`
           remember('roomId', roomId || '')
+          clearDraft()
         } else {
           const created = await createHost({
             codiceInterno: codice,
@@ -299,6 +307,7 @@ async function handleSave() {
           })
           message.value = `Ospite "${created.id}" creato.`
           remember('roomId', roomId || '')
+          clearDraft()
         }
         resetForm()
         isFormOpen.value = false
@@ -351,6 +360,19 @@ function openAddForm() {
   const lastRoomId = recall('roomId', '')
   if (lastRoomId && roomsData.value.some(r => r.id === lastRoomId)) {
     form.value.roomId = lastRoomId
+  }
+  // Ripristina bozza se esiste
+  if (hasDraftAvailable.value) {
+    const draft = loadDraft()
+    if (draft) {
+      const restore = confirm('Hai una bozza non salvata. Vuoi ripristinarla?')
+      if (restore) {
+        Object.assign(form.value, draft)
+        message.value = 'Bozza ripristinata.'
+      } else {
+        clearDraft()
+      }
+    }
   }
   panelMode.value = 'create'
   isFormOpen.value = true
@@ -456,6 +478,7 @@ function resetForm() {
     }
   clearErrors()
   markFormSnapshot()
+  clearDraft()
 }
 
 onMounted(() => {
