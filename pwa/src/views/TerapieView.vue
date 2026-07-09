@@ -1,6 +1,6 @@
 <script setup>
 import { computed, onMounted, onUnmounted, ref } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { useKeyboardShortcuts, shortcutHint } from '../composables/useKeyboardShortcuts'
 
 useKeyboardShortcuts({
@@ -21,6 +21,7 @@ import { deactivateTherapyRecord, restoreTherapyRecord, upsertTherapy } from '..
 import { confirmDeactivateTherapy, confirmDeleteMultiple } from '../services/confirmations'
 import { useFormValidation } from '../services/formValidation'
 import ValidatedInput from '../components/ValidatedInput.vue'
+import QuickAddSelect from '../components/QuickAddSelect.vue'
 import CrudFilterBar from '../components/CrudFilterBar.vue'
 import { useSelection } from '../composables/useSelection'
 import { useHelpNavigation } from '../composables/useHelpNavigation'
@@ -31,6 +32,7 @@ import { useSessionViewState } from '../composables/useSessionViewState'
 
 const { currentUser } = useAuth()
 const route = useRoute()
+const router = useRouter()
 const { goToHelpSection } = useHelpNavigation()
 const { pendingUndo, scheduleUndo, executeUndo } = useUndoDelete(10_000)
 
@@ -704,18 +706,17 @@ onMounted(() => {
 
             <label>
               Farmaco
-              <select
+              <QuickAddSelect
                 v-model="form.drugId"
+                :options="drugs.map(d => ({ value: d.id, label: drugLabel(d.id) }))"
+                label="Farmaco"
+                placeholder="Seleziona farmaco"
                 :disabled="saving || !drugs.length"
-                @blur="validateField('drugId', form.drugId)"
-                :aria-invalid="!!errors.drugId"
-                :aria-describedby="errors.drugId ? 'drugId-error' : undefined"
-              >
-                <option value="">Seleziona farmaco</option>
-                <option v-for="drug in drugs" :key="drug.id" :value="drug.id">
-                  {{ drugLabel(drug.id) }}
-                </option>
-              </select>
+                quick-add-label="Nuovo"
+                quick-add-title="Aggiungi un nuovo farmaco (apre Farmaci)"
+                @quick-add="router.push('/farmaci')"
+                @update:model-value="(v) => { form.drugId = v; validateField('drugId', v) }"
+              />
               <span v-if="errors.drugId" id="drugId-error" class="error-message" role="alert">
                 {{ errors.drugId }}
               </span>
