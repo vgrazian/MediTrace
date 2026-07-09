@@ -7,7 +7,7 @@ Nessuna attiva. PR-UI-3 merge completato e deploy in corso.
 PR-1, PR-2, PR-3, PR-LOG-1, e PR-UI-2 sono tutti mergiati su `main`.
 
 ## Done So Far
-- [x] PR-UI-9 merged e deploy avviato (PR #117)- [x] PR-UI-8 merged e deploy avviato (PR #116)- [x] PR-UI-7 merged e deploy avviato (PR #115)- [x] PR-UI-6 merged e deploy avviato (PR #114)- [x] PR-UI-5 merged e deploy avviato (PR #113)- [x] PR-UI-4 merged e deploy avviato (PR #112)- [x] PR-UI-3 merged e deploy avviato (PR #111)1. PR-UI-2 merged (#110) e deploy su gh-pages avviato.
+- [x] PR-UI-10 merged e deploy avviato (PR #118)- [x] PR-UI-9 merged e deploy avviato (PR #117)- [x] PR-UI-8 merged e deploy avviato (PR #116)- [x] PR-UI-7 merged e deploy avviato (PR #115)- [x] PR-UI-6 merged e deploy avviato (PR #114)- [x] PR-UI-5 merged e deploy avviato (PR #113)- [x] PR-UI-4 merged e deploy avviato (PR #112)- [x] PR-UI-3 merged e deploy avviato (PR #111)1. PR-UI-2 merged (#110) e deploy su gh-pages avviato.
 2. PR-LOG-1 merged (#109) e deploy su gh-pages avviato.
 3. PR-LOG-1 implementation completed and PR #109 opened.
 4. PR-3 merged to `main` (PR #96: E2E hardening by mode — local deterministic + online Supabase).
@@ -97,7 +97,7 @@ PR-1, PR-2, PR-3, PR-LOG-1, e PR-UI-2 sono tutti mergiati su `main`.
 1. Nessuna al momento.
 
 ## Planned PR Work (Not Open Yet)
-1. PR-UI-10: UX eliminazione e audit migliorata (prossimo)
+1. PR-UI-11: Badge stato sync e UI conflitti (prossimo)
 
 ## TECHNICAL CONTEXT
 
@@ -122,7 +122,7 @@ PR-1, PR-2, PR-3, PR-LOG-1, e PR-UI-2 sono tutti mergiati su `main`.
 ## PROGRESS TRACKING
 
 ## Completed Milestones
-- [x] PR-UI-9 merged e deploy avviato (PR #117)- [x] PR-UI-8 merged e deploy avviato (PR #116)- [x] PR-UI-7 merged e deploy avviato (PR #115)- [x] PR-UI-6 merged e deploy avviato (PR #114)- [x] PR-UI-5 merged e deploy avviato (PR #113)- [x] PR-UI-4 merged e deploy avviato (PR #112)- [x] PR-UI-3 merged e deploy avviato (PR #111)- [x] PR-UI-2 merged e deploy avviato (PR #110)
+- [x] PR-UI-10 merged e deploy avviato (PR #118)- [x] PR-UI-9 merged e deploy avviato (PR #117)- [x] PR-UI-8 merged e deploy avviato (PR #116)- [x] PR-UI-7 merged e deploy avviato (PR #115)- [x] PR-UI-6 merged e deploy avviato (PR #114)- [x] PR-UI-5 merged e deploy avviato (PR #113)- [x] PR-UI-4 merged e deploy avviato (PR #112)- [x] PR-UI-3 merged e deploy avviato (PR #111)- [x] PR-UI-2 merged e deploy avviato (PR #110)
 - [x] PR-UI-1 merged (sync state indicator)
 - [x] PR-LOG-1 merged e deploy avviato (PR #109)
 - [x] PR-3 E2E hardening merged and deployed (PR #96)
@@ -366,32 +366,32 @@ Each PR is focused, reviewable, and can be delivered independently:
   - Each item links to filtered detail view
   - E2E: Validate attention panel population/navigation
 
-- **PR-UI-10: UX eliminazione e audit migliorata (prossimo)
+- **PR-UI-11: Badge stato sync e UI conflitti (prossimo)
   - Prominent “Today’s Reminders” button with batch-complete
   - Enable multi-select and batch actions for repetitive tasks
   - E2E: Batch-complete flow for reminders/medication administration
 
-- **PR-UI-10: UX eliminazione e audit migliorata (prossimo)
+- **PR-UI-11: Badge stato sync e UI conflitti (prossimo)
   - Make main actions sticky at the bottom on small screens
   - Responsive layout adjustments
   - E2E: Validate action bar visibility/interaction
 
-- **PR-UI-10: UX eliminazione e audit migliorata (prossimo)
+- **PR-UI-11: Badge stato sync e UI conflitti (prossimo)
   - Add real-time validation to all create/edit forms
   - Pre-fill common fields and remember last-used values
   - E2E: Test validation/autofill for all entities
 
-- **PR-UI-10: UX eliminazione e audit migliorata (prossimo)
+- **PR-UI-11: Badge stato sync e UI conflitti (prossimo)
   - Allow inline creation of related entities (e.g., add new patient from therapy form)
   - “+ Add new” option in dropdowns
   - E2E: Validate quick-add flow
 
-- **PR-UI-10: UX eliminazione e audit migliorata (prossimo)
+- **PR-UI-11: Badge stato sync e UI conflitti (prossimo)
   - Auto-save incomplete forms to IndexedDB
   - Prompt user to resume drafts on return
   - E2E: Validate draft save/restore
 
-- **PR-UI-10: Enhanced Delete/Audit UX**
+- **PR-UI-11: Badge stato sync e UI conflitti (prossimo)
   - All deletes as soft-delete with audit log
   - Role-based delete permissions (admin vs operator)
   - Improved offline delete messaging/consequence dialogs
@@ -420,12 +420,12 @@ Tutti i nomi delle PR, le etichette UI, i tooltip, i messaggi di stato e le nuov
 - PR-UI-2: Banner annulla eliminazione standardizzato
 - PR-UI-3: Scorciatoie da tastiera per azioni frequenti
 - PR-UI-4: Pannello "Attenzione" in dashboard
-- PR-UI-10: UX eliminazione e audit migliorata (prossimo)
-- PR-UI-10: UX eliminazione e audit migliorata (prossimo)
-- PR-UI-10: UX eliminazione e audit migliorata (prossimo)
-- PR-UI-10: UX eliminazione e audit migliorata (prossimo)
-- PR-UI-10: UX eliminazione e audit migliorata (prossimo)
-- PR-UI-10: UX eliminazione/audit migliorata
+- PR-UI-11: Badge stato sync e UI conflitti (prossimo)
+- PR-UI-11: Badge stato sync e UI conflitti (prossimo)
+- PR-UI-11: Badge stato sync e UI conflitti (prossimo)
+- PR-UI-11: Badge stato sync e UI conflitti (prossimo)
+- PR-UI-11: Badge stato sync e UI conflitti (prossimo)
+- PR-UI-11: Badge stato sync e UI conflitti (prossimo)
 - PR-UI-11: Badge stato salvataggio/sync e UI conflitti
 - PR-UI-12: Tema moderno e coerenza componenti
 
