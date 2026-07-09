@@ -838,6 +838,7 @@ async function handleCreateUser() {
       <p class="muted">Email: {{ currentUser?.email || '—' }}</p>
       <p class="muted">Ruolo: {{ currentUser?.role === 'admin' ? 'amministratore' : 'operatore' }}</p>
       <p class="muted">Backend sincronizzazione: {{ syncBackendLabel }}</p>
+      <p class="muted">Logging operazionale: {{ axiomLoggingActive ? '✅ Attivo (Axiom)' : '⚠️ Non configurato' }}</p>
       <button style="margin-top:.75rem" @click="handleSignOut">Esci</button>
 
       <div class="legal-links">
@@ -923,7 +924,12 @@ async function handleCreateUser() {
         Il tuo account non ha privilegi amministratore: puoi visualizzare solo il tuo profilo.
       </p>
 
-      <div v-if="canManageUsers" class="import-form" style="margin-top:.75rem">
+      <div v-if="canManageUsers" style="margin-top:.75rem">
+        <button @click="showNewUserForm = !showNewUserForm">
+          {{ showNewUserForm ? 'Chiudi' : 'Crea nuovo utente' }}
+        </button>
+
+        <div v-if="showNewUserForm" class="import-form" style="margin-top:.75rem">
         <p><strong>Crea nuovo utente</strong></p>
         <label>
           Nome
@@ -964,15 +970,12 @@ async function handleCreateUser() {
             <option value="admin">Amministratore</option>
           </select>
         </label>
-        <label style="display:flex;align-items:center;gap:.5rem">
-          <input v-model="newUserIsSeeded" type="checkbox" />
-          {{ newUserIsSeeded ? 'Segna come utente normale' : 'Marca come utente di prova' }}
-        </label>
         <button :disabled="newUserBusy || !newUserUsername || !newUserFirstName || !newUserLastName || !newUserEmail || !newUserPassword" @click="handleCreateUser">
           {{ newUserBusy ? 'Creazione utente…' : 'Crea utente' }}
         </button>
         <p v-if="newUserMessage" class="muted" style="margin-top:.5rem;font-size:.8rem">{{ newUserMessage }}</p>
       </div>
+      </div> <!-- chiude showNewUserForm -->
 
       <div v-if="canManageUsers" class="dataset-frame" style="margin-top:.75rem;max-height:18rem">
         <table class="conflict-table" style="min-width:940px">
