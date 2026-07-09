@@ -132,7 +132,6 @@ const {
   getCredentialPolicyStatus,
   listRecentAuthEvents,
   getPasswordPolicy,
-  disableCurrentTestUser,
   listUsers,
   createUser,
   setUserDisabled,
@@ -172,8 +171,6 @@ const profilePhone = ref('')
 const profileEmail = ref('')
 const profileBusy = ref(false)
 const profileMessage = ref('')
-const testUserBusy = ref(false)
-const testUserMessage = ref('')
 const users = ref([])
 const usersBusy = ref(false)
 const usersMessage = ref('')
@@ -184,7 +181,6 @@ const newUserEmail = ref('')
 const newUserPhone = ref('')
 const newUserPassword = ref('')
 const newUserRole = ref('operator')
-const newUserIsSeeded = ref(false)
 const newUserBusy = ref(false)
 const newUserMessage = ref('')
 const newUserUsernameTouched = ref(false)
@@ -709,20 +705,6 @@ async function submitProfileUpdate() {
   }
 }
 
-async function disableTestUser() {
-  testUserBusy.value = true
-  testUserMessage.value = ''
-
-  try {
-    await disableCurrentTestUser()
-    await refreshUsers()
-  } catch (err) {
-    testUserMessage.value = `Errore disattivazione: ${err.message}`
-  } finally {
-    testUserBusy.value = false
-  }
-}
-
 async function handleEnableUser(username) {
   usersBusy.value = true
   usersMessage.value = ''
@@ -783,7 +765,6 @@ async function handleCreateUser() {
       phone: newUserPhone.value.trim(),
       password: newUserPassword.value,
       role: newUserRole.value,
-      isSeeded: newUserIsSeeded.value,
     })
     await refreshUsers()
     newUserMessage.value = `Utente ${newUserUsername.value.trim()} creato.`
@@ -794,7 +775,6 @@ async function handleCreateUser() {
     newUserPhone.value = ''
     newUserPassword.value = ''
     newUserRole.value = 'operator'
-    newUserIsSeeded.value = false
     newUserUsernameTouched.value = false
     syncSuggestedUsername()
   } catch (err) {
@@ -855,17 +835,6 @@ async function handleCreateUser() {
         <a href="#/privacy">Privacy policy</a>
         <a href="#/termini">Termini di servizio</a>
       </div>
-
-      <template v-if="currentUser?.isSeeded">
-        <button
-          style="margin-top:.5rem;background:#dc2626"
-          :disabled="testUserBusy"
-          @click="disableTestUser"
-        >
-          {{ testUserBusy ? 'Disattivazione...' : 'Disattiva utente di prova' }}
-        </button>
-        <p v-if="testUserMessage" class="muted" style="margin-top:.5rem;font-size:.8rem">{{ testUserMessage }}</p>
-      </template>
     </div>
 
     <div class="card">
