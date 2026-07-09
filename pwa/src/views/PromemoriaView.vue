@@ -666,7 +666,7 @@ watch(residenzaFilter, async (value) => {
         Evidenziato da notifica: {{ highlightedReminderId }}
       </p>
 
-      <div style="margin-top:.65rem;display:flex;gap:.5rem;flex-wrap:wrap;align-items:center">
+      <div class="view-actions" style="margin-top:.65rem;align-items:center">
         <button class="reminder-action-btn" :disabled="!canRunBulkActions" @click="applyOutcomeBulk('ESEGUITO')">Eseguito</button>
         <button class="reminder-action-btn" :disabled="!canRunBulkActions" @click="applyOutcomeBulk('POSTICIPATO')">Posticipato</button>
         <button class="reminder-action-btn" :disabled="!canRunBulkActions" @click="applyOutcomeBulk('SALTATO')">Saltato</button>
