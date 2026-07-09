@@ -48,7 +48,7 @@ const EMERGENCY_ADMIN_LAST_NAME = String(import.meta.env.VITE_EMERGENCY_ADMIN_LA
 const EMERGENCY_ADMIN_GITHUB_TOKEN = String(import.meta.env.VITE_EMERGENCY_ADMIN_GITHUB_TOKEN || '').trim()
 const DEFAULT_OPERATOR_VALERIO_USERNAME = normalizeUsername(import.meta.env.VITE_DEFAULT_VALERIO_USERNAME || 'valerio')
 const DEFAULT_OPERATOR_VALERIO_PASSWORD = String(import.meta.env.VITE_DEFAULT_VALERIO_PASSWORD || 'V@lerio123!')
-const DEFAULT_OPERATOR_VALERIO_EMAIL = normalizeEmail(import.meta.env.VITE_DEFAULT_VALERIO_EMAIL || 'valerio@example.com')
+const DEFAULT_OPERATOR_VALERIO_EMAIL = normalizeEmail(import.meta.env.VITE_DEFAULT_VALERIO_EMAIL || 'valeriograziani@gmail.com')
 const DEFAULT_OPERATOR_ANNA_USERNAME = normalizeUsername(import.meta.env.VITE_DEFAULT_ANNA_USERNAME || 'anna')
 const DEFAULT_OPERATOR_ANNA_PASSWORD = String(import.meta.env.VITE_DEFAULT_ANNA_PASSWORD || 'Anna@456!Xy')
 const DEFAULT_OPERATOR_ANNA_EMAIL = normalizeEmail(import.meta.env.VITE_DEFAULT_ANNA_EMAIL || 'anna@example.com')
@@ -812,7 +812,7 @@ async function initAuthSupabase() {
             if (sessionToken) {
                 const operators = [
                     { username: DEFAULT_OPERATOR_VALERIO_USERNAME, password: DEFAULT_OPERATOR_VALERIO_PASSWORD, email: DEFAULT_OPERATOR_VALERIO_EMAIL, firstName: 'Valerio', lastName: 'Graziani' },
-                    { username: DEFAULT_OPERATOR_ANNA_USERNAME, password: DEFAULT_OPERATOR_ANNA_PASSWORD, email: DEFAULT_OPERATOR_ANNA_EMAIL, firstName: 'Anna', lastName: 'Bianchi' },
+                    { username: DEFAULT_OPERATOR_ANNA_USERNAME, password: DEFAULT_OPERATOR_ANNA_PASSWORD, email: DEFAULT_OPERATOR_ANNA_EMAIL, firstName: 'Anna Maria', lastName: 'Cigliano' },
                 ]
                 for (const op of operators) {
                     try {
