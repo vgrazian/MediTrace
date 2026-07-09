@@ -6,6 +6,7 @@ import { confirmDeleteDrug, confirmDeleteBatch } from '../services/confirmations
 import { openConfirmDialog } from '../services/confirmDialog'
 import { useAuth } from '../services/auth'
 import { useHelpNavigation } from '../composables/useHelpNavigation'
+import { useKeyboardShortcuts, shortcutHint } from '../composables/useKeyboardShortcuts'
 import { useUndoDelete } from '../composables/useUndoDelete'
 import UndoDeleteBanner from '../components/UndoDeleteBanner.vue'
 import CrudFilterBar from '../components/CrudFilterBar.vue'
@@ -15,6 +16,13 @@ import autoTable from 'jspdf-autotable'
 const { currentUser } = useAuth()
 const { goToHelpSection } = useHelpNavigation()
 const { pendingUndo, scheduleUndo, executeUndo, clearUndo } = useUndoDelete(10_000)
+
+// Keyboard shortcuts: / per ricerca, n per aggiungere confezione
+useKeyboardShortcuts({
+  searchPlaceholder: 'Cerca',
+  onNew: () => openAddBatchForm(),
+  isFormOpen: computed(() => editingBatchId.value || creatingBatch.value),
+})
 
 const report = ref(null)
 const reportLoading = ref(false)

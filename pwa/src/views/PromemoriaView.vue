@@ -34,12 +34,18 @@ import { useFormValidation } from '../services/formValidation'
 import ValidatedInput from '../components/ValidatedInput.vue'
 import { useHelpNavigation } from '../composables/useHelpNavigation'
 import { useUndoDelete } from '../composables/useUndoDelete'
+import { useKeyboardShortcuts } from '../composables/useKeyboardShortcuts'
 import UndoDeleteBanner from '../components/UndoDeleteBanner.vue'
 
 const route = useRoute()
 const { currentUser } = useAuth()
 const { goToHelpSection } = useHelpNavigation()
 const { pendingUndo, scheduleUndo, executeUndo, clearUndo } = useUndoDelete(10_000)
+
+// Keyboard shortcut: / per focus sul filtro ricerca
+useKeyboardShortcuts({
+  searchPlaceholder: 'Cerca',
+})
 
 const loading = ref(false)
 const markingId = ref(null)

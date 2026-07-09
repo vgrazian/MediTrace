@@ -1,44 +1,25 @@
 <script setup>
 import { computed, onMounted, onUnmounted, ref } from 'vue'
-// --- Keyboard Shortcuts (Scorciatoie da tastiera) ---
-function handleKeyboardShortcut(event) {
-  // Ignore shortcuts when typing in input fields
-  const tag = (event.target?.tagName || '').toLowerCase()
-  const isInput = tag === 'input' || tag === 'textarea' || tag === 'select' || event.target?.isContentEditable
-  // Focus search (Cerca) — always works
-  if (event.key === '/') {
-    if (isInput) return // don't focus search if already in an input
-    event.preventDefault()
-    const searchInput = document.querySelector('input[placeholder="Cerca per nome farmaco, principio attivo, confezione o dosaggio"]')
-    if (searchInput) searchInput.focus()
-  }
-  // Nuovo / Elimina — only when NOT in an input
-  if (isInput) return
-  if (event.key === 'n' && !event.ctrlKey && !event.metaKey) {
-    event.preventDefault()
-    openAddDrugForm()
-  }
-  // Salva (form attivo)
-  if ((event.key === 's' && (event.ctrlKey || event.metaKey)) && isFormOpen.value) {
-    event.preventDefault()
+import { useKeyboardShortcuts, shortcutHint } from '../composables/useKeyboardShortcuts'
+
+useKeyboardShortcuts({
+  searchPlaceholder: 'Cerca per nome farmaco, principio attivo, confezione o dosaggio',
+  onNew: () => openAddDrugForm(),
+  onSave: () => {
+    if (!isFormOpen.value) return
     if (panelMode.value === 'create-drug' || panelMode.value === 'edit-drug') createDrug()
     if (panelMode.value === 'create-batch' || panelMode.value === 'edit-batch') createBatch()
-  }
-  // Elimina selezionato
-  if (event.key === 'd' && !event.ctrlKey && !event.metaKey) {
-    event.preventDefault()
+  },
+  onDelete: () => {
     if (selectedDrugsCount.value > 0) deleteSelectedDrugs()
     else if (selectedBatchesCount.value > 0) deleteSelectedBatches()
-  }
-}
+  },
+  isFormOpen,
+})
 
 onMounted(() => {
-  window.addEventListener('keydown', handleKeyboardShortcut)
   void loadData()
   markFormSnapshot()
-})
-onUnmounted(() => {
-  window.removeEventListener('keydown', handleKeyboardShortcut)
 })
 import { db, getSetting, setSetting } from '../db'
 import { useAuth } from '../services/auth'

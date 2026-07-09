@@ -1,39 +1,18 @@
 <script setup>
 import { onMounted, onUnmounted, ref, computed } from 'vue'
-// --- Keyboard Shortcuts (Scorciatoie da tastiera) ---
-function handleKeyboardShortcut(event) {
-  const tag = (event.target?.tagName || '').toLowerCase()
-  const isInput = tag === 'input' || tag === 'textarea' || tag === 'select'
-  if (event.key === '/') {
-    if (isInput) return
-    event.preventDefault()
-    const searchInput = document.querySelector('input[placeholder="Cerca per nome, cognome o residenza"]')
-    if (searchInput) searchInput.focus()
-  }
-  if (isInput) return
-  if (event.key === 'n' && !event.ctrlKey && !event.metaKey) {
-    event.preventDefault()
-    openAddForm()
-  }
-  // Salva (form attivo)
-  if ((event.key === 's' && (event.ctrlKey || event.metaKey)) && isFormOpen.value) {
-    event.preventDefault()
-    handleSave()
-  }
-  // Elimina selezionato
-  if (event.key === 'd' && !event.ctrlKey && !event.metaKey) {
-    event.preventDefault()
-    if (selectedCount.value > 0) deleteSelectedHosts()
-  }
-}
+import { useKeyboardShortcuts, shortcutHint } from '../composables/useKeyboardShortcuts'
+
+useKeyboardShortcuts({
+  searchPlaceholder: 'Cerca per nome, cognome o residenza',
+  onNew: () => openAddForm(),
+  onSave: () => { if (isFormOpen.value) handleSave() },
+  onDelete: () => { if (selectedCount.value > 0) deleteSelectedHosts() },
+  isFormOpen,
+})
 
 onMounted(() => {
-  window.addEventListener('keydown', handleKeyboardShortcut)
   void loadData()
   markFormSnapshot()
-})
-onUnmounted(() => {
-  window.removeEventListener('keydown', handleKeyboardShortcut)
 })
 import { useAuth } from '../services/auth'
 import { useRouter } from 'vue-router'
