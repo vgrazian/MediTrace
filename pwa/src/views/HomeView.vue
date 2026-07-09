@@ -54,6 +54,15 @@ const attentionItems = computed(() => {
       tooltip: 'Visualizza dettagli sincronizzazione',
     })
   }
+  // Pending conflicts
+  if (homeKpi.value.pendingConflicts > 0) {
+    items.push({
+      type: 'conflict',
+      label: `${homeKpi.value.pendingConflicts} conflitti da risolvere`,
+      to: '/impostazioni',
+      tooltip: 'Risolvi i conflitti di sincronizzazione',
+    })
+  }
   return items
 })
 

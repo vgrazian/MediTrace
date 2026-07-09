@@ -1,5 +1,6 @@
 import { db, getSetting, getSyncState } from '../db'
 import { buildOperationalReport } from './reporting'
+import { listPendingConflicts } from './sync'
 
 function startOfDay(date = new Date()) {
     return new Date(date.getFullYear(), date.getMonth(), date.getDate())
@@ -11,13 +12,14 @@ function endOfDay(date = new Date()) {
 }
 
 export async function buildHomeDashboardKpis(now = new Date()) {
-    const [report, reminders, pendingSync, datasetVersion, lastSyncAt, syncQueueThreshold] = await Promise.all([
+    const [report, reminders, pendingSync, datasetVersion, lastSyncAt, syncQueueThreshold, pendingConflicts] = await Promise.all([
         buildOperationalReport(),
         db.reminders.toArray(),
         db.syncQueue.count(),
         getSetting('datasetVersion', null),
         getSyncState('lastSyncAt', null),
         getSetting('syncQueueThreshold', 25),
+        listPendingConflicts(),
     ])
 
     const dayStart = startOfDay(now)
@@ -49,6 +51,7 @@ export async function buildHomeDashboardKpis(now = new Date()) {
         remindersDone,
         remindersSkipped,
         remindersPostponed,
+        pendingConflicts: pendingConflicts.length,
     }
 }
 
