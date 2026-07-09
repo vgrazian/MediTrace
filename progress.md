@@ -1,95 +1,40 @@
 # CURRENT STATUS
 
 ## Active Task
-Nessuna attiva. PR-UI-3 merge completato e deploy in corso.
+Nessuna attiva. Pipeline completa — 13 PR deployate oggi (2026-07-09).
 
-## Current Phase
-PR-1, PR-2, PR-3, PR-LOG-1, e PR-UI-2 sono tutti mergiati su `main`.
-
-## Done So Far
-- [x] Pipeline UI/UX completata - nessuna PR attiva.
-2. PR-LOG-1 merged (#109) e deploy su gh-pages avviato.
-3. PR-LOG-1 implementation completed and PR #109 opened.
-4. PR-3 merged to `main` (PR #96: E2E hardening by mode — local deterministic + online Supabase).
-5. Referential integrity and conflict error management completed for core CRUD deletes, with unit tests and consistency test scenarios.
-6. Audit panel upgraded (read-only, filterable by operatore/ospite/farmaco/terapia/periodo), with unit + E2E coverage and updated docs.
-7. Small-screen UX improved with deep-panel interaction and breadcrumb navigation in Ospiti, Farmaci, Stanze, Terapie, with full test validation.
-8. PR50 merged to main (merge commit 8cce302f01ae926b4606dbd4f54d962886fcaec8).
-9. PR51 merged to main (emergency admin bootstrap + Supabase reset workflow wiring).
-10. PR44 and PR48 conflict resolution completed and both merged to main.
-11. Post-merge pipelines on main completed successfully:
-- Quality Gate Automated Tests: success
-- Deploy PWA su GitHub Pages: success
-- Smoke test deployed Pages: success
-1. First PR52 rollout slice delivered in Ospiti:
-- reusable selection composable
-- reusable bulk delete confirmation
-- first simplified toolbar/action workflow
-1. Account self-management released:
-- PR #52 merged to main (profile update nome/cognome/telefono/email + password flow)
-- post-merge quality gate and deploy pipelines verified successful
-1. CI workflow syntax maintenance released:
-- PR #53 merged to main (`chore(ci): normalize workflow secrets access syntax`)
-1. Guided add-panel UX release completed (PR #64):
-- `Aggiungi` now opens a guided popup panel in Farmaci, Ospiti, Terapie, Movimenti
-- successful create returns the operator to the list automatically
-- large tables now render inside scrollable framed containers
-- full E2E suite passes locally (`49/49`)
-1. Production release verification completed:
-- `Deploy PWA su GitHub Pages` run `24309878339` success
-- GitHub smoke job success
-- `bash pwa/scripts/smoke-pages.sh https://vgrazian.github.io/MediTrace/` => PASS
-1. Follow-up CRUD UX item 1 implemented on branch `feat/crud-ux-followup-wave2`:
-- undo window for soft-deletes across Farmaci/Ospiti/Terapie/Movimenti/Stanze
-- restore service methods with audit `*_restored` events
-- E2E regression full suite passing (`49/49`)
-1. QA feedback fixes applied after manual tests:
-- added scrollable framed tables in Stanze and Scorte where missing
-- fixed Scorte `Aggiungi` on Confezioni Attive to open the management panel with input fields visible
-- added contextual breadcrumbs in Manuale to return to originating page from `Aiuto`
-- removed stray source text accidentally rendered in Audit header
-1. PR #70 merged to `main`:
-- seeded demo operators added (`rosa`, `margherita`, `giglio`) for test-data generation
-- demo cleanup now removes seeded operators in both legacy and realistic clear paths, while preserving `admin`
-- emergency admin bootstrap switched to username `admin` with compliant password policy
-- Android phone emulator smoke test added in Playwright (`android-phone-chromium-smoke`)
-1. Validation completed for PR #70 changes:
-- `npm --prefix pwa run test:unit` passed (`270/270`)
-- `npm --prefix pwa run test:e2e` passed (`54/54`)
-- `npm --prefix pwa run build` passed
-1. PR-2 merged to `main`:
-- merge commit `8591857` (`Merge PR-2: CRUD UX wave-2 persistence`)
-- added in-session filter/sort persistence across Ospiti/Farmaci/Terapie/Movimenti
-- added cross-view E2E persistence regression coverage
-1. Validation completed for PR-2 changes:
-- `npm --prefix pwa run test:unit` passed (`304/304`)
-- `npm --prefix pwa run test:e2e` passed (`58/58`)
-- `npm --prefix pwa run build` passed
-- `npm --prefix pwa run test:online-main` passed
-- `npm --prefix pwa run test:online-performance` passed
-- `npm --prefix pwa run test:online-smoke` passed
-- `npm --prefix pwa run test:online-chaos` passed
-
-## Immediate Next Steps
-1. Attendere completamento GitHub Pages build (in corso).
-2. Verificare `https://vgrazian.github.io/MediTrace/` con il nuovo codice.
-3. Prossimo: PR-UI-2 (banner annulla eliminazione standardizzato).
+## PR Completate Oggi
+| PR | # | Descrizione |
+|----|---|-------------|
+| PR-LOG-1 | 109 | Axiom logger AES-256-GCM, dashboard analisi, APM |
+| PR-UI-2 | 110 | Banner annulla eliminazione standardizzato |
+| PR-UI-3 | 111 | Scorciatoie da tastiera condivise |
+| PR-UI-4 | 112 | Pannello Attenzione dashboard + conflitti |
+| PR-UI-5 | 113 | Azioni batch promemoria (E2E) |
+| PR-UI-6 | 114 | Barra azioni fissa mobile/tablet |
+| PR-UI-7 | 115 | Validazione inline + smart defaults |
+| PR-UI-8 | 116 | QuickAddSelect: aggiungi rapido |
+| PR-UI-9 | 117 | Salvataggio bozza e ripristino |
+| PR-UI-10 | 118 | UX eliminazione e audit (E2E) |
+| PR-UI-11 | 119 | Badge stato sync e conflitti |
+| PR-UI-12 | 120 | Tema moderno e coerenza componenti |
 
 ## Blockers
-- Nessuno. Tutti i secret CI sono configurati con valori reali:
-  - `VITE_AXIOM_TOKEN`: ✅ Token reale `meditrace-ingest-query` (ingest + query)
-  - `VITE_AXIOM_ENCRYPTION_PASSPHRASE`: ✅ (Secret, 32 caratteri)
-  - `VITE_AXIOM_EDGE_URL`, `VITE_AXIOM_DATASET`, `VITE_AXIOM_ENCRYPTION_SALT`: ✅ (Variables)
+Nessuno.
 
 ## CI Configuration (Axiom)
+| Variabile | Stato |
+|-----------|-------|
+| VITE_AXIOM_TOKEN (Secret) | ✅ xaat-0ea81953... (ingest+query) |
+| VITE_AXIOM_ENCRYPTION_PASSPHRASE (Secret) | ✅ 32 caratteri |
+| VITE_AXIOM_EDGE_URL | ✅ eu-central-1.aws.edge.axiom.co |
+| VITE_AXIOM_DATASET | ✅ meditrace |
+| VITE_AXIOM_ENCRYPTION_SALT | ✅ configurato |
 
-| Variabile | Tipo | Stato |
-|-----------|------|-------|
-| `VITE_AXIOM_EDGE_URL` | Variable | ✅ `https://eu-central-1.aws.edge.axiom.co` |
-| `VITE_AXIOM_DATASET` | Variable | ✅ `meditrace` |
-| `VITE_AXIOM_ENCRYPTION_SALT` | Variable | ✅ `3bb63140...` |
-| `VITE_AXIOM_ENCRYPTION_PASSPHRASE` | Secret | ✅ (32 caratteri) |
-| `VITE_AXIOM_TOKEN` | Secret | ✅ `xaat-0ea81953...` (meditrace-ingest-query, ingest+query) |
+## Live App
+- URL: https://vgrazian.github.io/MediTrace/
+- Branch: main
+- Deploy: git subtree push to gh-pages
 
 ## PR STILL TO BE WORKED ON
 
