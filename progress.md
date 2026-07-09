@@ -1,28 +1,29 @@
 # CURRENT STATUS
 
 ## Active Task
-PR-LOG-1: Logging operazionale GDPR-compliant su Axiom + UI analisi + APM.
+PR-LOG-1 (#109): Logging operazionale GDPR-compliant su Axiom + UI analisi + APM — PR aperta, in attesa di review/merge.
 
 ## Current Phase
-PR-1, PR-2, and PR-3 are merged to `main` with all validation gates passing. Next phase is PR-LOG-1 execution: build the logging infrastructure, analysis UI, and APM instrumentation.
+PR-1, PR-2, and PR-3 are merged to `main`. PR-LOG-1 is open as PR #109 on branch `feat/pr-log-1-logging-apm`.
 
 ## Done So Far
-1. PR-3 merged to `main` (PR #96: E2E hardening by mode — local deterministic + online Supabase).
-2. Referential integrity and conflict error management completed for core CRUD deletes, with unit tests and consistency test scenarios.
-3. Audit panel upgraded (read-only, filterable by operatore/ospite/farmaco/terapia/periodo), with unit + E2E coverage and updated docs.
-4. Small-screen UX improved with deep-panel interaction and breadcrumb navigation in Ospiti, Farmaci, Stanze, Terapie, with full test validation.
-5. PR50 merged to main (merge commit 8cce302f01ae926b4606dbd4f54d962886fcaec8).
-6. PR51 merged to main (emergency admin bootstrap + Supabase reset workflow wiring).
-7. PR44 and PR48 conflict resolution completed and both merged to main.
-8. Post-merge pipelines on main completed successfully:
+1. PR-LOG-1 implementation completed and PR #109 opened.
+2. PR-3 merged to `main` (PR #96: E2E hardening by mode — local deterministic + online Supabase).
+3. Referential integrity and conflict error management completed for core CRUD deletes, with unit tests and consistency test scenarios.
+4. Audit panel upgraded (read-only, filterable by operatore/ospite/farmaco/terapia/periodo), with unit + E2E coverage and updated docs.
+5. Small-screen UX improved with deep-panel interaction and breadcrumb navigation in Ospiti, Farmaci, Stanze, Terapie, with full test validation.
+6. PR50 merged to main (merge commit 8cce302f01ae926b4606dbd4f54d962886fcaec8).
+7. PR51 merged to main (emergency admin bootstrap + Supabase reset workflow wiring).
+8. PR44 and PR48 conflict resolution completed and both merged to main.
+9. Post-merge pipelines on main completed successfully:
    - Quality Gate Automated Tests: success
    - Deploy PWA su GitHub Pages: success
    - Smoke test deployed Pages: success
-9. First PR52 rollout slice delivered in Ospiti:
-   - reusable selection composable
-   - reusable bulk delete confirmation
-   - first simplified toolbar/action workflow
-10. Account self-management released:
+10. First PR52 rollout slice delivered in Ospiti:
+- reusable selection composable
+- reusable bulk delete confirmation
+- first simplified toolbar/action workflow
+1. Account self-management released:
 - PR #52 merged to main (profile update nome/cognome/telefono/email + password flow)
 - post-merge quality gate and deploy pipelines verified successful
 1. CI workflow syntax maintenance released:
@@ -68,49 +69,48 @@ PR-1, PR-2, and PR-3 are merged to `main` with all validation gates passing. Nex
 - `npm --prefix pwa run test:online-chaos` passed
 
 ## Immediate Next Steps
-1. Create branch `feat/pr-log-1-logging-apm` from `main`.
-2. Implement Fase 1-4 del piano logging (axiomLogger, integrazione CRUD, router, errori, auth, sync).
-3. Build UI di analisi log (`pwa/src/views/AnalisiLogView.vue`) con dashboard operatore, heatmap percorsi, errori.
-4. Instrument APM via Axiom: Web Vitals (LCP/FID/CLS), route timing, operazione CRUD duration.
-5. E2E + unit test coverage for logging pipeline and analysis UI.
-6. Merge e deploy su `https://vgrazian.github.io/MediTrace/`.
+1. Review e merge PR #109 (PR-LOG-1).
+2. Merge e deploy su `https://vgrazian.github.io/MediTrace/` — il logger si attiverà automaticamente con il token reale.
 
 ## Blockers
-- Axiom token e dataset devono essere configurati negli env di CI e locali prima del deploy.
-- Nessun blocco per esecuzione locale (il logger degrada a `console.warn` senza token).
+- Nessuno. Tutti i secret CI sono configurati con valori reali:
+  - `VITE_AXIOM_TOKEN`: ✅ Token reale `meditrace-ingest-query` (ingest + query)
+  - `VITE_AXIOM_ENCRYPTION_PASSPHRASE`: ✅ (Secret, 32 caratteri)
+  - `VITE_AXIOM_EDGE_URL`, `VITE_AXIOM_DATASET`, `VITE_AXIOM_ENCRYPTION_SALT`: ✅ (Variables)
+
+## CI Configuration (Axiom)
+
+| Variabile | Tipo | Stato |
+|-----------|------|-------|
+| `VITE_AXIOM_EDGE_URL` | Variable | ✅ `https://eu-central-1.aws.edge.axiom.co` |
+| `VITE_AXIOM_DATASET` | Variable | ✅ `meditrace` |
+| `VITE_AXIOM_ENCRYPTION_SALT` | Variable | ✅ `3bb63140...` |
+| `VITE_AXIOM_ENCRYPTION_PASSPHRASE` | Secret | ✅ (32 caratteri) |
+| `VITE_AXIOM_TOKEN` | Secret | ✅ `xaat-0ea81953...` (meditrace-ingest-query, ingest+query) |
 
 ## PR STILL TO BE WORKED ON
 
 ## Open Pull Requests (GitHub)
-1. None currently open.
+1. [#109](https://github.com/vgrazian/MediTrace/pull/109) — PR-LOG-1: Logging operazionale GDPR-compliant su Axiom + UI analisi + APM
 
 ## Planned PR Work (Not Open Yet)
-1. PR-LOG-1: Logging operazionale GDPR-compliant + UI analisi + APM, as defined in the checklist below.
+1. Nessuna al momento — attendere merge PR-LOG-1.
 
 ## TECHNICAL CONTEXT
 
 ## Priority Files For Next Slice
 - CHANGELOG.md
 - progress.md
-- docs/logging-plan.md
-- pwa/src/services/axiomLogger.js (NUOVO)
-- pwa/src/services/axiomCrypto.js (NUOVO)
-- pwa/src/services/auditLog.js
-- pwa/src/services/auth.js
-- pwa/src/services/supabaseSync.js
-- pwa/src/services/errorHandling.js
-- pwa/src/views/AnalisiLogView.vue (NUOVO)
-- pwa/src/router/index.js
-- pwa/src/App.vue
-- pwa/scripts/axiom-decrypt.mjs (NUOVO)
-- pwa/tests/unit/axiomCrypto.spec.js (NUOVO)
-- pwa/tests/unit/axiomLogger.spec.js (NUOVO)
-- pwa/tests/e2e/logging-pipeline.spec.js (NUOVO)
+- pwa/src/views/FarmaciView.vue
+- pwa/src/views/OspitiView.vue
+- pwa/src/views/TerapieView.vue
+- pwa/src/views/MovimentiView.vue
+- pwa/src/style.css
+- pwa/tests/e2e/
 
 ## Current Branch State
 - Branch: main
-- Working tree: clean
-- Next branch to create: feat/pr-log-1-logging-apm
+- Working tree: clean after PR #70 merge
 
 ## Live App Deployment
 - GitHub Pages source: main
@@ -129,21 +129,9 @@ PR-1, PR-2, and PR-3 are merged to `main` with all validation gates passing. Nex
 - [x] PR52 first scoped rollout in Ospiti
 - [x] Account self-management merged and deployed (PR #52)
 - [x] Workflow maintenance merged (PR #53)
-- [x] PR-3 E2E hardening merged and deployed (PR #96)
-- [x] PR50 merged and main pipelines verified green
-- [x] PR51 merged and Node 24 workflow upgrade completed
-- [x] PR44 and PR48 merged after conflict resolution
-- [x] PR52 reusable infrastructure (selection + confirmDeleteMultiple)
-- [x] PR52 first scoped rollout in Ospiti
-- [x] Account self-management merged and deployed (PR #52)
-- [x] Workflow maintenance merged (PR #53)
 
 ## Remaining Work Items
-1. PR-LOG-1: Build logging infrastructure (axiomLogger + crittografia + integrazione CRUD).
-2. PR-LOG-1: Build UI analisi log (dashboard operatore, heatmap, errori).
-3. PR-LOG-1: Instrument APM (Web Vitals, route timing, operation duration).
-4. PR-LOG-1: E2E + unit test coverage for entire logging pipeline.
-5. Deploy and validate Axiom ingestion end-to-end.
+1. Merge/deploy PR-3 so online reset-password E2E can run against production Pages URL with new token handling.
 
 ## Technical Debt (CI/CD)
 1. Update GitHub Actions usage of `actions/upload-artifact@v4` (Node 20 deprecation annotation) to a Node 24-compatible path/version before platform enforcement windows.
@@ -153,16 +141,16 @@ PR-1, PR-2, and PR-3 are merged to `main` with all validation gates passing. Nex
 2. Default Playwright smoke suite runs in deterministic local mode by design (`playwright.config.js` forces empty Supabase env vars), so local E2E must keep guard-path assertions.
 3. Planning and PR clustering must therefore split: local deterministic regression coverage vs dedicated online Supabase flows.
 
-## E2E Coverage Follow-up (COMPLETATO in PR-3 — 2026-04-17)
-1. [x] Keep and harden local guard-path E2E for password recovery route (`/#/auth/reset-password`) in deterministic local mode.
-2. [x] Implement full online reset-password E2E on Supabase table-auth flow (request email, consume token, login with new password) as a dedicated online suite.
-3. [x] Stabilize and automate online two-user sync scenario in Playwright (seed remote users + deterministic cooldown/rate-limit handling).
-4. [x] Add cross-browser parity flow (Chromium + Firefox + WebKit) for one critical workflow in local deterministic suite first, then mirror in online suite where stable.
-5. [x] Add Playwright-driven JS coverage instrumentation for E2E line/branch metrics.
+## E2E Coverage Follow-up (2026-04-16)
+1. [P1] Keep and harden local guard-path E2E for password recovery route (`/#/auth/reset-password`) in deterministic local mode.
+2. [P1] Implement full online reset-password E2E on Supabase table-auth flow (request email, consume token, login with new password) as a dedicated online suite.
+3. [P1] Stabilize and automate online two-user sync scenario in Playwright (seed remote users + deterministic cooldown/rate-limit handling).
+4. [P2] Add cross-browser parity flow (Chromium + Firefox + WebKit) for one critical workflow in local deterministic suite first, then mirror in online suite where stable.
+5. [P2] Add Playwright-driven JS coverage instrumentation for E2E line/branch metrics.
 
 ## Current Priority
-- HIGH: Execute PR-LOG-1: logging operazionale GDPR-compliant su Axiom + UI analisi + APM.
-- HIGH: Build `AnalisiLogView` Vue app per analisi usage, errori, percorsi operatore.
+- HIGH: Execute PR-3 E2E hardening tasks without regressing current green baseline.
+- HIGH: Stabilize online-mode auth/sync scenarios with deterministic preconditions.
 - MEDIUM: Keep changelog/docs aligned with each rollout increment.
 
 ## 3-PR Execution Checklist (Concrete)
@@ -300,144 +288,6 @@ PR-3 execution notes (2026-04-17)
 - `SITE_URL=https://vgrazian.github.io/MediTrace/ ... npm --prefix pwa run test:online-main` => PASS
 - `SITE_URL=http://127.0.0.1:4173/ ... npm --prefix pwa run test:online-reset-password` => PASS
 - `SITE_URL=https://vgrazian.github.io/MediTrace/ ... npm --prefix pwa run test:online-reset-password` currently fails until PR-3 UI changes are deployed to Pages.
-
-### PR-LOG-1: Logging Operazionale GDPR-Compliant + UI Analisi + APM
-
-> **Documento di riferimento**: `docs/logging-plan.md`
-> **Stima**: 5-7 ore totali
-> **Branch**: `feat/pr-log-1-logging-apm`
-
-#### Scope (in-scope)
-
-**A. Infrastruttura Logger (Fase 1 — 1-2 ore)**
-1. `pwa/src/services/axiomLogger.js` — Servizio core:
-   - Config da env (`VITE_AXIOM_TOKEN`, `VITE_AXIOM_EDGE_URL`, `VITE_AXIOM_DATASET`)
-   - Batch buffer: accumula eventi per 5s, invia in blocco
-   - Retry con exponential backoff (max 3 tentativi)
-   - Circuit breaker: 60s cooldown se Axiom non raggiungibile
-   - Degradazione graziosa: `console.warn` senza token (sviluppo locale)
-2. `pwa/src/services/axiomCrypto.js` — Modulo crittografia:
-   - `deriveKey(passphrase, salt)` via PBKDF2-SHA256 (600k iterazioni)
-   - `encrypt(data, key)` → `{ enc: true, data: base64(iv || ciphertext) }`
-   - `decrypt(encrypted, key)` → plain object
-   - Web Crypto API (`crypto.subtle`), mai Node.js `crypto`
-3. Variabili d'ambiente in `.env.example`:
-
-   ```
-   VITE_AXIOM_TOKEN=xaat-xxx
-   VITE_AXIOM_EDGE_URL=https://eu-central-1.aws.edge.axiom.co
-   VITE_AXIOM_DATASET=meditrace
-   VITE_AXIOM_ENCRYPTION_SALT=<salt-hex>
-   ```
-
-**B. Integrazione CRUD (Fase 2 — 1-2 ore)**
-1. Hook in `pwa/src/services/auditLog.js`: dopo `db.activityLog.add()`, chiamare `axiomLogger.logAction()`
-2. Context criptato: `{ changedFields: [...], operation: 'create'|'update'|'delete' }`
-3. Tutti i service CRUD:
-   - `ospiti.js`: `createHost`, `updateHost`, `deactivateHost`, `restoreHost`, `deleteHost`
-   - `farmaci.js`: `upsertDrug`, `deleteDrug`, operazioni confezioni
-   - `terapie.js`: `upsertTherapy`, `deactivateTherapyRecord`
-   - `movimenti.js`: `upsertMovement`, `softDeleteMovement`
-   - `promemoria.js`: tutte le operazioni
-   - `residenze.js`: CRUD residenze
-   - `operatori.js`: CRUD operatori
-
-**C. Router, Errori, Auth, Sync (Fasi 3-4 — 1 ora)**
-1. Router guard in `pwa/src/router/index.js`:
-   - `router.afterEach((to) => axiomLogger.logPageView(to.path))`
-2. Error boundary in `pwa/src/App.vue`:
-   - `app.config.errorHandler` → `axiomLogger.logError()`
-3. `pwa/src/services/errorHandling.js`:
-   - `handleAsync()` chiama `axiomLogger.logError()` su eccezione
-4. `pwa/src/services/auth.js`: log eventi login/logout/password change
-   - Rimuovere eventuali `console.info` che loggano password in chiaro
-5. `pwa/src/services/supabaseSync.js`: log eventi sync (inizio, completato, conflitti)
-
-**D. UI Analisi Log — `AnalisiLogView.vue` (NUOVO — 1.5-2 ore)**
-1. Nuova view accessibile da menu/admin con route `/analisi`:
-   - Protetta da autenticazione (solo admin)
-2. Dashboard operatore con 3 pannelli:
-   - **Panoramica Operatori**: tabella con conteggio azioni per operatore, filtri per periodo
-   - **Heatmap Percorsi**: visualizzazione dei path più seguiti (page_view sequence analysis)
-   - **Errori & Diagnostica**: lista errori con `errorHash`, conteggio occorrenze, ultima occorrenza
-3. Dati recuperati da Axiom via API query (non dal database locale):
-   - L'UI chiama Axiom Query API con l'Axiom token (read-only)
-   - I campi `context` criptati vengono mostrati come `[crittografato]` nell'UI
-   - La decrittazione è solo via tool locale `axiom-decrypt.mjs` (sicurezza GDPR)
-4. Filtri interattivi:
-   - Range data (da-a)
-   - Operatore specifico
-   - Tipo azione (action/page_view/error/auth/sync)
-   - Tipo entità (hosts/drugs/therapies/movements)
-5. Grafici:
-   - Bar chart: azioni nel tempo (giornaliero)
-   - Pie chart: distribuzione azioni per tipo
-   - Line chart: errori nel tempo
-
-**E. APM — Application Performance Monitoring (Fase APM — 1 ora)**
-1. Web Vitals tramite `web-vitals` library:
-   - LCP (Largest Contentful Paint)
-   - FID (First Input Delay) / INP (Interaction to Next Paint)
-   - CLS (Cumulative Layout Shift)
-   - Invio ad Axiom come eventi `perf` con schema: `{ metric, value, rating }`
-2. Route transition timing:
-   - `router.beforeEach` / `router.afterEach` per misurare durata navigazione
-   - Evento `route_perf` con `{ from, to, duration }`
-3. Operation duration (già presente `duration` nello schema action):
-   - Misurare `Date.now()` prima/dopo ogni operazione CRUD
-   - Inviato nel campo `duration` dell'evento `action`
-
-**F. Tool di Decrittazione Locale (Fase 5 — 1 ora)**
-1. `scripts/axiom-decrypt.mjs`:
-
-   ```
-   Uso: node scripts/axiom-decrypt.mjs [opzioni]
-   Opzioni:
-     --from <ISO>        Data inizio (default: -24h)
-     --to <ISO>          Data fine (default: now)
-     --operator <user>   Filtra per operatore
-     --action <action>   Filtra per azione
-     --passphrase <p>    Passphrase decrypt (o AXIOM_PASSPHRASE env)
-     --format json|table Output format (default: table)
-   ```
-
-**G. Test (Fase 6 — 30 min)**
-1. Unit test per `axiomCrypto.spec.js` (encrypt/decrypt roundtrip)
-2. Unit test per `axiomLogger.spec.js` (batch, retry, circuit breaker, degradazione)
-3. Unit test per `AnalisiLogView.spec.js` (render filtri, chiamate API, grafici)
-4. E2E: `logging-pipeline.spec.js` (azione CRUD → verifica log inviato ad Axiom)
-
-#### Out of scope
-1. Modifiche allo schema database.
-2. Refactor dei service CRUD (solo hook logging).
-3. Export report (PDF/CSV) — lasciato a PR futura.
-4. Alerting automatico su Axiom (configurazione lato Axiom, non codice).
-
-#### Acceptance criteria
-1. Eventi `action`, `page_view`, `error`, `auth`, `sync` fluiscono ad Axiom in batch.
-2. Dati sanitari/PII mai presenti in chiaro nei log Axiom.
-3. `AnalisiLogView` accessibile da admin, mostra dashboard con dati reali da Axiom.
-4. Web Vitals (LCP/FID/CLS) e route timing inviati ad Axiom come eventi `perf`.
-5. Tool `axiom-decrypt.mjs` decrittografa correttamente i context.
-6. Test unitari + E2E passano per l'intera pipeline di logging.
-
-#### Validation commands
-1. Local deterministic mode:
-   1. `npm --prefix pwa run test:unit`
-   2. `npm --prefix pwa run test:e2e`
-   3. `npm --prefix pwa run build`
-2. Verifica degradazione senza token (il logger deve funzionare in `console.warn` mode):
-   1. `VITE_AXIOM_TOKEN='' npm --prefix pwa run dev` → nessun errore, log in console
-3. Verifica end-to-end con Axiom (richiede token configurato):
-   1. Eseguire azione CRUD nell'app
-   2. `node scripts/axiom-decrypt.mjs --from -5m --format table`
-   3. Verificare che l'evento appaia decrittografato
-
-#### Priorità implementazione
-1. **Blocco 1** (Fasi 1+2): axiomLogger + axiomCrypto + integrazione CRUD → logging già attivo
-2. **Blocco 2** (Fasi 3+4+APM): router, errori, auth, sync, Web Vitals → copertura completa
-3. **Blocco 3** (Fase D): AnalisiLogView → UI analisi
-4. **Blocco 4** (Fasi 5+6): tool decrypt + test → qualità e sicurezza
 
 # MediTrace UX/UI Improvement Recommendations (2026-04-21)
 
