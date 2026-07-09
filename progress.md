@@ -1,13 +1,14 @@
 # CURRENT STATUS
 
 ## Active Task
-PR-LOG-1 (#109): Logging operazionale GDPR-compliant su Axiom + UI analisi + APM — PR aperta, in attesa di review/merge.
+Nessuna attiva. PR-LOG-1 merge completato e deploy in corso.
 
 ## Current Phase
-PR-1, PR-2, and PR-3 are merged to `main`. PR-LOG-1 is open as PR #109 on branch `feat/pr-log-1-logging-apm`.
+PR-1, PR-2, PR-3, e PR-LOG-1 sono tutti mergiati su `main`. GitHub Pages build in corso.
 
 ## Done So Far
-1. PR-LOG-1 implementation completed and PR #109 opened.
+1. PR-LOG-1 merged (#109) e deploy su gh-pages avviato.
+2. PR-LOG-1 implementation completed and PR #109 opened.
 2. PR-3 merged to `main` (PR #96: E2E hardening by mode — local deterministic + online Supabase).
 3. Referential integrity and conflict error management completed for core CRUD deletes, with unit tests and consistency test scenarios.
 4. Audit panel upgraded (read-only, filterable by operatore/ospite/farmaco/terapia/periodo), with unit + E2E coverage and updated docs.
@@ -69,8 +70,9 @@ PR-1, PR-2, and PR-3 are merged to `main`. PR-LOG-1 is open as PR #109 on branch
 - `npm --prefix pwa run test:online-chaos` passed
 
 ## Immediate Next Steps
-1. Review e merge PR #109 (PR-LOG-1).
-2. Merge e deploy su `https://vgrazian.github.io/MediTrace/` — il logger si attiverà automaticamente con il token reale.
+1. Attendere completamento GitHub Pages build (in corso).
+2. Verificare `https://vgrazian.github.io/MediTrace/` con il nuovo codice.
+3. Prossimo: PR-UI-2 (banner annulla eliminazione standardizzato).
 
 ## Blockers
 - Nessuno. Tutti i secret CI sono configurati con valori reali:
@@ -91,10 +93,10 @@ PR-1, PR-2, and PR-3 are merged to `main`. PR-LOG-1 is open as PR #109 on branch
 ## PR STILL TO BE WORKED ON
 
 ## Open Pull Requests (GitHub)
-1. [#109](https://github.com/vgrazian/MediTrace/pull/109) — PR-LOG-1: Logging operazionale GDPR-compliant su Axiom + UI analisi + APM
+1. Nessuna al momento.
 
 ## Planned PR Work (Not Open Yet)
-1. Nessuna al momento — attendere merge PR-LOG-1.
+1. PR-UI-2: Standardized undo delete banner (prossimo)
 
 ## TECHNICAL CONTEXT
 
@@ -119,6 +121,8 @@ PR-1, PR-2, and PR-3 are merged to `main`. PR-LOG-1 is open as PR #109 on branch
 ## PROGRESS TRACKING
 
 ## Completed Milestones
+- [x] PR-LOG-1 merged e deploy avviato (PR #109)
+- [x] PR-3 E2E hardening merged and deployed (PR #96)
 - [x] CRUD integrity guards + tests + scenarios documentation
 - [x] Audit panel enhancement + tests + docs updates
 - [x] Mobile deep-panel UX rollout + tests
