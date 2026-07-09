@@ -523,7 +523,7 @@ onMounted(() => {
         </select>
       </label>
 
-      <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.75rem">
+      <div class="view-actions" style="margin-top:.75rem">
         <button @click="openAddForm" title="Aggiungi (Scorciatoia: N)">Aggiungi</button>
         <button :disabled="selectedCount !== 1" @click="openEditForm" title="Modifica selezionato">Modifica</button>
         <button

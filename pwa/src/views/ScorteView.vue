@@ -969,7 +969,7 @@ onMounted(() => {
         Modifica o rimuovi confezioni direttamente da Scorte.
       </p>
 
-      <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.75rem">
+      <div class="view-actions" style="margin-top:.75rem">
         <button @click="openAddBatchForm">Aggiungi</button>
       </div>
 

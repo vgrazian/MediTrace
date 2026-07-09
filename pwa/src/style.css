@@ -1255,4 +1255,24 @@ details[open] .help-section-title::before { content: '▼ '; }
     padding-left: .85rem;
     border-left: 3px solid var(--line);
   }
+
+  /* ── Sticky bottom action bar ── */
+  .view-actions {
+    position: sticky;
+    bottom: 0;
+    z-index: 40;
+    background: linear-gradient(0deg, var(--panel) 70%, transparent 100%);
+    padding: .65rem 0 .75rem;
+    margin: 0;
+    display: flex;
+    gap: .5rem;
+    flex-wrap: wrap;
+    align-items: center;
+    border-top: 1px solid var(--line);
+  }
+  .view-actions button {
+    white-space: nowrap;
+    font-size: .85rem;
+    padding: .4rem .7rem;
+  }
 }

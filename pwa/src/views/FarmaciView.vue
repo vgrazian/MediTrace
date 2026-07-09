@@ -826,7 +826,7 @@ onMounted(() => {
           <option value="classe">Classe terapeutica</option>
         </select>
       </label>
-      <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.75rem">
+      <div class="view-actions" style="margin-top:.75rem">
         <button @click="openAddDrugForm" title="Aggiungi (Scorciatoia: N)">Aggiungi</button>
         <button :disabled="selectedDrugsCount !== 1" @click="openEditDrugForm" title="Modifica selezionato">Modifica</button>
         <button
@@ -943,7 +943,7 @@ onMounted(() => {
           <option value="quantita">Quantita attuale</option>
         </select>
       </label>
-      <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.75rem">
+      <div class="view-actions" style="margin-top:.75rem">
         <button @click="openAddBatchForm" title="Aggiungi confezione (Scorciatoia: N)">Aggiungi</button>
         <button :disabled="selectedBatchesCount !== 1" @click="openEditBatchForm" title="Modifica selezionata">Modifica</button>
         <button
