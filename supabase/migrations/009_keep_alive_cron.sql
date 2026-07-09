@@ -3,9 +3,6 @@
 
 CREATE EXTENSION IF NOT EXISTS pg_cron;
 
--- Remove any previous keep-alive job to avoid duplicates
-SELECT cron.unschedule('keep_alive_ping');
-
 -- Schedule a lightweight DB query every 5 days
 SELECT cron.schedule(
   'keep_alive_ping',
