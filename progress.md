@@ -20,13 +20,13 @@ PR-1, PR-2, and PR-3 are merged to `main`. PR-LOG-1 is open as PR #109 on branch
    - Deploy PWA su GitHub Pages: success
    - Smoke test deployed Pages: success
 10. First PR52 rollout slice delivered in Ospiti:
-   - reusable selection composable
-   - reusable bulk delete confirmation
-   - first simplified toolbar/action workflow
-11. Account self-management released:
-   - PR #52 merged to main (profile update nome/cognome/telefono/email + password flow)
-   - post-merge quality gate and deploy pipelines verified successful
-12. CI workflow syntax maintenance released:
+- reusable selection composable
+- reusable bulk delete confirmation
+- first simplified toolbar/action workflow
+1. Account self-management released:
+- PR #52 merged to main (profile update nome/cognome/telefono/email + password flow)
+- post-merge quality gate and deploy pipelines verified successful
+1. CI workflow syntax maintenance released:
 - PR #53 merged to main (`chore(ci): normalize workflow secrets access syntax`)
 1. Guided add-panel UX release completed (PR #64):
 - `Aggiungi` now opens a guided popup panel in Farmaci, Ospiti, Terapie, Movimenti
@@ -70,21 +70,23 @@ PR-1, PR-2, and PR-3 are merged to `main`. PR-LOG-1 is open as PR #109 on branch
 
 ## Immediate Next Steps
 1. Review e merge PR #109 (PR-LOG-1).
-2. Ottenere un token Axiom reale da https://app.axiom.co e aggiornare il secret `VITE_AXIOM_TOKEN` via `gh secret set`.
-3. Merge e deploy su `https://vgrazian.github.io/MediTrace/` — il logger si attiverà automaticamente.
+2. Merge e deploy su `https://vgrazian.github.io/MediTrace/` — il logger si attiverà automaticamente con il token reale.
 
 ## Blockers
-- `VITE_AXIOM_TOKEN`: necessita di un token Axiom reale (xaat-...) per l'invio effettivo dei log. Senza token, il logger degrada a `console.warn`.
-- Tutti gli altri secret CI sono configurati: `VITE_AXIOM_ENCRYPTION_PASSPHRASE` (Secret), `VITE_AXIOM_EDGE_URL`, `VITE_AXIOM_DATASET`, `VITE_AXIOM_ENCRYPTION_SALT` (Variables).
+- Nessuno. Tutti i secret CI sono configurati con valori reali:
+  - `VITE_AXIOM_TOKEN`: ✅ Token reale `meditrace-ingest-query` (ingest + query)
+  - `VITE_AXIOM_ENCRYPTION_PASSPHRASE`: ✅ (Secret, 32 caratteri)
+  - `VITE_AXIOM_EDGE_URL`, `VITE_AXIOM_DATASET`, `VITE_AXIOM_ENCRYPTION_SALT`: ✅ (Variables)
 
 ## CI Configuration (Axiom)
+
 | Variabile | Tipo | Stato |
 |-----------|------|-------|
 | `VITE_AXIOM_EDGE_URL` | Variable | ✅ `https://eu-central-1.aws.edge.axiom.co` |
 | `VITE_AXIOM_DATASET` | Variable | ✅ `meditrace` |
 | `VITE_AXIOM_ENCRYPTION_SALT` | Variable | ✅ `3bb63140...` |
 | `VITE_AXIOM_ENCRYPTION_PASSPHRASE` | Secret | ✅ (32 caratteri) |
-| `VITE_AXIOM_TOKEN` | Secret | ⚠️ PLACEHOLDER — sostituire con token reale da Axiom |
+| `VITE_AXIOM_TOKEN` | Secret | ✅ `xaat-0ea81953...` (meditrace-ingest-query, ingest+query) |
 
 ## PR STILL TO BE WORKED ON
 
