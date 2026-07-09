@@ -10,23 +10,23 @@ PR-1, PR-2, and PR-3 are merged to `main`. PR-LOG-1 is open as PR #109 on branch
 1. PR-LOG-1 implementation completed and PR #109 opened.
 2. PR-3 merged to `main` (PR #96: E2E hardening by mode — local deterministic + online Supabase).
 3. Referential integrity and conflict error management completed for core CRUD deletes, with unit tests and consistency test scenarios.
-2. Audit panel upgraded (read-only, filterable by operatore/ospite/farmaco/terapia/periodo), with unit + E2E coverage and updated docs.
-3. Small-screen UX improved with deep-panel interaction and breadcrumb navigation in Ospiti, Farmaci, Stanze, Terapie, with full test validation.
-4. PR50 merged to main (merge commit 8cce302f01ae926b4606dbd4f54d962886fcaec8).
-5. PR51 merged to main (emergency admin bootstrap + Supabase reset workflow wiring).
-6. PR44 and PR48 conflict resolution completed and both merged to main.
-7. Post-merge pipelines on main completed successfully:
+4. Audit panel upgraded (read-only, filterable by operatore/ospite/farmaco/terapia/periodo), with unit + E2E coverage and updated docs.
+5. Small-screen UX improved with deep-panel interaction and breadcrumb navigation in Ospiti, Farmaci, Stanze, Terapie, with full test validation.
+6. PR50 merged to main (merge commit 8cce302f01ae926b4606dbd4f54d962886fcaec8).
+7. PR51 merged to main (emergency admin bootstrap + Supabase reset workflow wiring).
+8. PR44 and PR48 conflict resolution completed and both merged to main.
+9. Post-merge pipelines on main completed successfully:
    - Quality Gate Automated Tests: success
    - Deploy PWA su GitHub Pages: success
    - Smoke test deployed Pages: success
-8. First PR52 rollout slice delivered in Ospiti:
+10. First PR52 rollout slice delivered in Ospiti:
    - reusable selection composable
    - reusable bulk delete confirmation
    - first simplified toolbar/action workflow
-9. Account self-management released:
+11. Account self-management released:
    - PR #52 merged to main (profile update nome/cognome/telefono/email + password flow)
    - post-merge quality gate and deploy pipelines verified successful
-10. CI workflow syntax maintenance released:
+12. CI workflow syntax maintenance released:
 - PR #53 merged to main (`chore(ci): normalize workflow secrets access syntax`)
 1. Guided add-panel UX release completed (PR #64):
 - `Aggiungi` now opens a guided popup panel in Farmaci, Ospiti, Terapie, Movimenti
@@ -69,12 +69,22 @@ PR-1, PR-2, and PR-3 are merged to `main`. PR-LOG-1 is open as PR #109 on branch
 - `npm --prefix pwa run test:online-chaos` passed
 
 ## Immediate Next Steps
-1. Open PR-3 from updated branch with migration + test/workflow hardening bundle.
-2. Trigger online-main validation workflow on the PR branch and verify new reset-password artifact upload.
-3. Merge and deploy so `https://vgrazian.github.io/MediTrace/` includes reset-token handling in `ResetPasswordView`.
+1. Review e merge PR #109 (PR-LOG-1).
+2. Ottenere un token Axiom reale da https://app.axiom.co e aggiornare il secret `VITE_AXIOM_TOKEN` via `gh secret set`.
+3. Merge e deploy su `https://vgrazian.github.io/MediTrace/` — il logger si attiverà automaticamente.
 
 ## Blockers
-- None for local/CI execution; deployed Pages reset-password flow will remain old behavior until PR-3 is merged/deployed.
+- `VITE_AXIOM_TOKEN`: necessita di un token Axiom reale (xaat-...) per l'invio effettivo dei log. Senza token, il logger degrada a `console.warn`.
+- Tutti gli altri secret CI sono configurati: `VITE_AXIOM_ENCRYPTION_PASSPHRASE` (Secret), `VITE_AXIOM_EDGE_URL`, `VITE_AXIOM_DATASET`, `VITE_AXIOM_ENCRYPTION_SALT` (Variables).
+
+## CI Configuration (Axiom)
+| Variabile | Tipo | Stato |
+|-----------|------|-------|
+| `VITE_AXIOM_EDGE_URL` | Variable | ✅ `https://eu-central-1.aws.edge.axiom.co` |
+| `VITE_AXIOM_DATASET` | Variable | ✅ `meditrace` |
+| `VITE_AXIOM_ENCRYPTION_SALT` | Variable | ✅ `3bb63140...` |
+| `VITE_AXIOM_ENCRYPTION_PASSPHRASE` | Secret | ✅ (32 caratteri) |
+| `VITE_AXIOM_TOKEN` | Secret | ⚠️ PLACEHOLDER — sostituire con token reale da Axiom |
 
 ## PR STILL TO BE WORKED ON
 
