@@ -1,13 +1,13 @@
 # CURRENT STATUS
 
 ## Active Task
-Nessuna attiva. PR-UI-2 merge completato e deploy in corso.
+Nessuna attiva. PR-UI-3 merge completato e deploy in corso.
 
 ## Current Phase
 PR-1, PR-2, PR-3, PR-LOG-1, e PR-UI-2 sono tutti mergiati su `main`.
 
 ## Done So Far
-1. PR-UI-2 merged (#110) e deploy su gh-pages avviato.
+- [x] PR-UI-3 merged e deploy avviato (PR #111)1. PR-UI-2 merged (#110) e deploy su gh-pages avviato.
 2. PR-LOG-1 merged (#109) e deploy su gh-pages avviato.
 3. PR-LOG-1 implementation completed and PR #109 opened.
 4. PR-3 merged to `main` (PR #96: E2E hardening by mode — local deterministic + online Supabase).
@@ -97,7 +97,7 @@ PR-1, PR-2, PR-3, PR-LOG-1, e PR-UI-2 sono tutti mergiati su `main`.
 1. Nessuna al momento.
 
 ## Planned PR Work (Not Open Yet)
-1. PR-UI-3: Scorciatoie da tastiera per azioni frequenti (prossimo)
+1. PR-UI-4: Pannello "Attenzione" in dashboard (prossimo))
 
 ## TECHNICAL CONTEXT
 
@@ -122,7 +122,7 @@ PR-1, PR-2, PR-3, PR-LOG-1, e PR-UI-2 sono tutti mergiati su `main`.
 ## PROGRESS TRACKING
 
 ## Completed Milestones
-- [x] PR-UI-2 merged e deploy avviato (PR #110)
+- [x] PR-UI-3 merged e deploy avviato (PR #111)- [x] PR-UI-2 merged e deploy avviato (PR #110)
 - [x] PR-UI-1 merged (sync state indicator)
 - [x] PR-LOG-1 merged e deploy avviato (PR #109)
 - [x] PR-3 E2E hardening merged and deployed (PR #96)
