@@ -12,6 +12,7 @@ import {
 import { useHelpNavigation } from '../composables/useHelpNavigation'
 import { openConfirmDialog } from '../services/confirmDialog'
 import { useUndoDelete } from '../composables/useUndoDelete'
+import UndoDeleteBanner from '../components/UndoDeleteBanner.vue'
 import CrudFilterBar from '../components/CrudFilterBar.vue'
 import { db } from '../db'
 
@@ -382,9 +383,11 @@ onUnmounted(() => {
       </div>
     </div>
 
-    <div v-if="pendingUndo" class="undo-banner" role="status" aria-live="polite">
-      <span>{{ pendingUndo.label }}</span>
-      <button type="button" @click="executeUndo">Annulla eliminazione</button>
-    </div>
+    <UndoDeleteBanner
+      v-if="pendingUndo"
+      :label="pendingUndo.label"
+      @undo="executeUndo"
+      @close="clearUndo"
+    />
   </div>
 </template>

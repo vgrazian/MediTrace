@@ -6,12 +6,15 @@ import { confirmDeleteDrug, confirmDeleteBatch } from '../services/confirmations
 import { openConfirmDialog } from '../services/confirmDialog'
 import { useAuth } from '../services/auth'
 import { useHelpNavigation } from '../composables/useHelpNavigation'
+import { useUndoDelete } from '../composables/useUndoDelete'
+import UndoDeleteBanner from '../components/UndoDeleteBanner.vue'
 import CrudFilterBar from '../components/CrudFilterBar.vue'
 import { jsPDF } from 'jspdf'
 import autoTable from 'jspdf-autotable'
 
 const { currentUser } = useAuth()
 const { goToHelpSection } = useHelpNavigation()
+const { pendingUndo, scheduleUndo, executeUndo, clearUndo } = useUndoDelete(10_000)
 
 const report = ref(null)
 const reportLoading = ref(false)
@@ -376,6 +379,17 @@ async function deleteDrug(drugId) {
 
     if (editingDrugId.value === drugId) resetDrugForm()
     actionMessage.value = 'Farmaco eliminato.'
+
+    scheduleUndo({
+      label: `Farmaco "${drugName}" eliminato.`,
+      undoAction: async () => {
+        await db.drugs.update(drugId, { deletedAt: null, updatedAt: new Date().toISOString(), syncStatus: 'pending' })
+        await enqueue('drugs', drugId, 'upsert')
+        actionMessage.value = 'Eliminazione annullata: farmaco ripristinato.'
+        await refreshReport()
+      },
+    })
+
     await refreshReport()
   } catch (err) {
     actionError.value = err.message
@@ -497,6 +511,17 @@ async function deleteBatch(batchId) {
 
     if (editingBatchId.value === batchId) resetBatchForm()
     actionMessage.value = 'Confezione eliminata.'
+
+    scheduleUndo({
+      label: `Confezione "${batchName}" eliminata.`,
+      undoAction: async () => {
+        await db.stockBatches.update(batchId, { deletedAt: null, updatedAt: new Date().toISOString(), syncStatus: 'pending' })
+        await enqueue('stockBatches', batchId, 'upsert')
+        actionMessage.value = 'Eliminazione annullata: confezione ripristinata.'
+        await refreshReport()
+      },
+    })
+
     await refreshReport()
   } catch (err) {
     actionError.value = err.message
@@ -1041,5 +1066,12 @@ onMounted(() => {
       <p v-if="actionMessage" class="muted" style="margin-top:.5rem">{{ actionMessage }}</p>
       <p v-if="actionError" class="import-error" role="alert">Errore azione: {{ actionError }}</p>
     </div>
+
+    <UndoDeleteBanner
+      v-if="pendingUndo"
+      :label="pendingUndo.label"
+      @undo="executeUndo"
+      @close="clearUndo"
+    />
   </div>
 </template>

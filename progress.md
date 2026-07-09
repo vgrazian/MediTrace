@@ -1,26 +1,27 @@
 # CURRENT STATUS
 
 ## Active Task
-Nessuna attiva. PR-LOG-1 merge completato e deploy in corso.
+PR-UI-2: Banner annulla eliminazione standardizzato — implementazione in corso su `feat/pr-ui-2-undo-delete-banner`.
 
 ## Current Phase
-PR-1, PR-2, PR-3, e PR-LOG-1 sono tutti mergiati su `main`. GitHub Pages build in corso.
+PR-1, PR-2, PR-3, e PR-LOG-1 sono tutti mergiati su `main`. PR-UI-2 in esecuzione.
 
 ## Done So Far
-1. PR-LOG-1 merged (#109) e deploy su gh-pages avviato.
-2. PR-LOG-1 implementation completed and PR #109 opened.
-2. PR-3 merged to `main` (PR #96: E2E hardening by mode — local deterministic + online Supabase).
-3. Referential integrity and conflict error management completed for core CRUD deletes, with unit tests and consistency test scenarios.
-4. Audit panel upgraded (read-only, filterable by operatore/ospite/farmaco/terapia/periodo), with unit + E2E coverage and updated docs.
-5. Small-screen UX improved with deep-panel interaction and breadcrumb navigation in Ospiti, Farmaci, Stanze, Terapie, with full test validation.
-6. PR50 merged to main (merge commit 8cce302f01ae926b4606dbd4f54d962886fcaec8).
-7. PR51 merged to main (emergency admin bootstrap + Supabase reset workflow wiring).
-8. PR44 and PR48 conflict resolution completed and both merged to main.
-9. Post-merge pipelines on main completed successfully:
-   - Quality Gate Automated Tests: success
-   - Deploy PWA su GitHub Pages: success
-   - Smoke test deployed Pages: success
-10. First PR52 rollout slice delivered in Ospiti:
+1. PR-UI-2: ResidenzeView, ScorteView, PromemoriaView standardizzati con UndoDeleteBanner.
+2. PR-LOG-1 merged (#109) e deploy su gh-pages avviato.
+3. PR-LOG-1 implementation completed and PR #109 opened.
+4. PR-3 merged to `main` (PR #96: E2E hardening by mode — local deterministic + online Supabase).
+5. Referential integrity and conflict error management completed for core CRUD deletes, with unit tests and consistency test scenarios.
+6. Audit panel upgraded (read-only, filterable by operatore/ospite/farmaco/terapia/periodo), with unit + E2E coverage and updated docs.
+7. Small-screen UX improved with deep-panel interaction and breadcrumb navigation in Ospiti, Farmaci, Stanze, Terapie, with full test validation.
+8. PR50 merged to main (merge commit 8cce302f01ae926b4606dbd4f54d962886fcaec8).
+9. PR51 merged to main (emergency admin bootstrap + Supabase reset workflow wiring).
+10. PR44 and PR48 conflict resolution completed and both merged to main.
+11. Post-merge pipelines on main completed successfully:
+- Quality Gate Automated Tests: success
+- Deploy PWA su GitHub Pages: success
+- Smoke test deployed Pages: success
+1. First PR52 rollout slice delivered in Ospiti:
 - reusable selection composable
 - reusable bulk delete confirmation
 - first simplified toolbar/action workflow
