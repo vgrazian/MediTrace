@@ -1,13 +1,15 @@
 # CURRENT STATUS
 
 ## Active Task
-Prepare and execute PR-3 (E2E hardening by mode: local deterministic + online Supabase).
+PR-LOG-1 (#109): Logging operazionale GDPR-compliant su Axiom + UI analisi + APM — PR aperta, in attesa di review/merge.
 
 ## Current Phase
-PR-1 and PR-2 are merged to `main` with local and online validation gates passing; next phase is PR-3 execution.
+PR-1, PR-2, and PR-3 are merged to `main`. PR-LOG-1 is open as PR #109 on branch `feat/pr-log-1-logging-apm`.
 
 ## Done So Far
-1. Referential integrity and conflict error management completed for core CRUD deletes, with unit tests and consistency test scenarios.
+1. PR-LOG-1 implementation completed and PR #109 opened.
+2. PR-3 merged to `main` (PR #96: E2E hardening by mode — local deterministic + online Supabase).
+3. Referential integrity and conflict error management completed for core CRUD deletes, with unit tests and consistency test scenarios.
 2. Audit panel upgraded (read-only, filterable by operatore/ospite/farmaco/terapia/periodo), with unit + E2E coverage and updated docs.
 3. Small-screen UX improved with deep-panel interaction and breadcrumb navigation in Ospiti, Farmaci, Stanze, Terapie, with full test validation.
 4. PR50 merged to main (merge commit 8cce302f01ae926b4606dbd4f54d962886fcaec8).
@@ -77,10 +79,10 @@ PR-1 and PR-2 are merged to `main` with local and online validation gates passin
 ## PR STILL TO BE WORKED ON
 
 ## Open Pull Requests (GitHub)
-1. None currently open.
+1. [#109](https://github.com/vgrazian/MediTrace/pull/109) — PR-LOG-1: Logging operazionale GDPR-compliant su Axiom + UI analisi + APM
 
 ## Planned PR Work (Not Open Yet)
-1. PR-3: E2E hardening by mode (local deterministic + online Supabase), as defined in the checklist below.
+1. Nessuna al momento — attendere merge PR-LOG-1.
 
 ## TECHNICAL CONTEXT
 
