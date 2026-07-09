@@ -601,7 +601,19 @@ onMounted(() => {
                 @change="toggleSelection(host.id)"
               />
             </td>
-            <td>{{ formatHostDisplay(host) }}</td>
+            <td>
+              {{ formatHostDisplay(host) }}
+              <span
+                v-if="host.syncStatus === 'pending'"
+                class="sync-badge sync-pending"
+                title="In attesa di sincronizzazione"
+              >◷</span>
+              <span
+                v-else-if="host.syncStatus === 'conflict'"
+                class="sync-badge sync-conflict"
+                title="Conflitto di sincronizzazione"
+              >⚠</span>
+            </td>
             <td>{{ host.stanza || '—' }}</td>
             <td>{{ host.activeTherapies }}</td>
             <td>

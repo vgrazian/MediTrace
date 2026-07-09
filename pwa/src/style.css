@@ -947,6 +947,17 @@ details.add-panel[open] > div {
 .kpi-skipped    { background: #fee2e2; color: #991b1b; }
 .kpi-skipped::before    { background: #ef4444; }
 
+/* ── Sync status badges (inline nelle tabelle) ── */
+.sync-badge {
+  display: inline-block;
+  font-size: .75rem;
+  margin-left: .35rem;
+  vertical-align: middle;
+  line-height: 1;
+}
+.sync-pending { color: #f59e42; }
+.sync-conflict { color: #ef4444; }
+
 /* ── help button (? next to headings) ── */
 .view-heading {
   display: flex;
