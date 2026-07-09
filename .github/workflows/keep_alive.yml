@@ -1,8 +1,9 @@
-name: Keep Supabase Alive
+name: Keep Supabase Alive (manual backup)
+
+# pg_cron in Supabase (009_keep_alive_cron.sql) handles the schedule.
+# This workflow is a manual fallback only — no cron, no runner needed normally.
 
 on:
-  schedule:
-    - cron: '0 0 */5 * *'
   workflow_dispatch:
 
 jobs:
