@@ -15,21 +15,15 @@ import { useUndoDelete } from '../composables/useUndoDelete'
 import UndoDeleteBanner from '../components/UndoDeleteBanner.vue'
 import CrudFilterBar from '../components/CrudFilterBar.vue'
 import { db } from '../db'
+import { useKeyboardShortcuts, shortcutHint } from '../composables/useKeyboardShortcuts'
 
-// --- Keyboard Shortcuts ---
-function handleKeyboardShortcut(event) {
-  const tag = (event.target?.tagName || '').toLowerCase()
-  const isInput = tag === 'input' || tag === 'textarea' || tag === 'select' || event.target?.isContentEditable
-  if (event.key === '/' && !isInput) {
-    event.preventDefault()
-    document.querySelector('input[placeholder*="Cerca"]')?.focus()
-  }
-  if (isInput) return
-  if (event.key === 'n' && !event.ctrlKey && !event.metaKey) {
-    event.preventDefault()
-    openAddForm()
-  }
-}
+useKeyboardShortcuts({
+  searchPlaceholder: 'Cerca',
+  onNew: () => openAddForm(),
+  onSave: () => { if (isFormOpen.value) handleSave() },
+  onDelete: () => {}, // delete è gestito via conferma esplicita, shortcut 'd' non applicabile
+  isFormOpen,
+})
 
 const { currentUser } = useAuth()
 const { goToHelpSection } = useHelpNavigation()
@@ -242,11 +236,7 @@ async function handleDelete(item) {
 }
 
 onMounted(() => {
-  window.addEventListener('keydown', handleKeyboardShortcut)
   void loadData()
-})
-onUnmounted(() => {
-  window.removeEventListener('keydown', handleKeyboardShortcut)
 })
 </script>
 
