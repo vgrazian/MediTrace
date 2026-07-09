@@ -121,6 +121,7 @@ import {
 import { useHelpNavigation } from '../composables/useHelpNavigation'
 import { openConfirmDialog } from '../services/confirmDialog'
 import { isKeepAliveEnabled, setKeepAliveEnabled } from '../services/keepAlive'
+import { isAxiomConfigured } from '../services/axiomLogger'
 
 const {
   accessToken,
@@ -203,6 +204,8 @@ const seedLoaded = ref(false)
 const seedActionMode = ref('load')
 const seedBusy = ref(false)
 const keepAliveEnabled = ref(false)
+const showNewUserForm = ref(false)
+const axiomLoggingActive = ref(false)
 const seedMessage = ref('')
 const seedStats = getDemoStats()
 const backupRestoreBusy = ref(false)
@@ -429,6 +432,12 @@ onMounted(async () => {
   syncIntervalMinutes.value = Number(await getSetting(SYNC_INTERVAL_SETTING, 1)) || 1
   syncQueueThreshold.value = Number(await getSetting(SYNC_QUEUE_THRESHOLD_SETTING, 25)) || 25
   keepAliveEnabled.value = await isKeepAliveEnabled()
+  // Default attivo se non configurato
+  if (keepAliveEnabled.value === null || keepAliveEnabled.value === undefined) {
+    keepAliveEnabled.value = true
+    await setKeepAliveEnabled(true)
+  }
+  axiomLoggingActive.value = isAxiomConfigured()
   await refreshPendingConflicts()
   await refreshUsers()
   await refreshSecurityInfo()
