@@ -202,6 +202,16 @@ export async function handleAsync(operation, context) {
     } catch (error) {
         const formattedError = formatUserError(context, error)
         console.error(`[${context}]`, formatErrorForLogging(error, { context }))
+
+        // Invia errore ad Axiom per diagnostica (GDPR: stack criptato)
+        import('./axiomLogger.js')
+            .then(({ logError }) => logError({
+                error,
+                view: typeof window !== 'undefined' ? window.location.hash : '',
+                extra: { context, handled: true },
+            }))
+            .catch(() => { })
+
         return { success: false, error: formattedError }
     }
 }

@@ -15,6 +15,7 @@ import { db, getSetting, setSetting, getSyncState, setSyncState } from '../db'
 import { listAppFiles, downloadFile, uploadFile, bootstrapDriveFiles, commitSnapshot, FILE_NAMES } from './syncBackend'
 import { isSupabaseConfigured, supabase } from './supabaseClient'
 import { SyncError, handleAsync } from './errorHandling'
+import { logSync } from './axiomLogger'
 
 const LAST_WRITE_WINS_TABLES = ['hosts', 'drugs', 'stockBatches', 'therapies']
 const APPEND_ONLY_TABLES = ['movements', 'reminders']
@@ -47,6 +48,25 @@ const ATOMIC_SYNC_MAX_RETRIES = 3
  * Returns a result object describing what happened.
  */
 export async function fullSync(token) {
+    const syncStartTime = Date.now()
+    const operatorId = await getSetting('lastOperatorId', 'unknown')
+
+    // Log inizio sincronizzazione su Axiom
+    logSync('sync_start', operatorId, { backend: isSupabaseConfigured && supabase ? 'supabase' : 'gist' }).catch(() => { })
+
+    try {
+        return await _fullSyncCore(token, syncStartTime, operatorId)
+    } catch (error) {
+        // Log errore sync su Axiom
+        logSync('sync_error', operatorId, {
+            errorMessage: error?.message || 'Unknown sync error',
+            duration: Date.now() - syncStartTime,
+        }).catch(() => { })
+        throw error
+    }
+}
+
+async function _fullSyncCore(token, syncStartTime, operatorId) {
     const usingSupabase = isSupabaseConfigured && supabase
     if (!usingSupabase && !token) {
         throw new SyncError('NOT_CONFIGURED', 'Sincronizzazione non configurata', {
@@ -78,6 +98,7 @@ export async function fullSync(token) {
             ts: new Date().toISOString(),
         })
 
+        logSync('sync_complete', operatorId, { result: 'bootstrapped', duration: Date.now() - syncStartTime }).catch(() => { })
         return { bootstrapped: true }
     }
 
@@ -169,6 +190,7 @@ export async function fullSync(token) {
             operatorId: null,
             ts: new Date().toISOString(),
         })
+        logSync('sync_complete', operatorId, { result: 'upToDate', duration: Date.now() - syncStartTime }).catch(() => { })
         if (downloadedInfo) return downloadedInfo
         return { upToDate: true }
     }
@@ -238,6 +260,7 @@ export async function fullSync(token) {
             },
         })
 
+        logSync('sync_complete', operatorId, { result: 'uploaded-atomic', itemsSynced: pendingCount, duration: Date.now() - syncStartTime }).catch(() => { })
         return {
             ...(downloadedInfo ?? {}),
             uploaded: true,
@@ -275,6 +298,7 @@ export async function fullSync(token) {
         },
     })
 
+    logSync('sync_complete', operatorId, { result: 'uploaded', itemsSynced: pendingCount, duration: Date.now() - syncStartTime }).catch(() => { })
     return {
         ...(downloadedInfo ?? {}),
         uploaded: true,
