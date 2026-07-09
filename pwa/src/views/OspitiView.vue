@@ -26,6 +26,7 @@ import { db } from '../db'
 import { useHelpNavigation } from '../composables/useHelpNavigation'
 import { useUnsavedChangesGuard } from '../composables/useUnsavedChangesGuard'
 import { useUndoDelete } from '../composables/useUndoDelete'
+import { useSmartDefaults } from '../composables/useSmartDefaults'
 import UndoDeleteBanner from '../components/UndoDeleteBanner.vue'
 import { useSessionViewState } from '../composables/useSessionViewState'
 
@@ -33,6 +34,7 @@ const { currentUser } = useAuth()
 const router = useRouter()
 const { goToHelpSection } = useHelpNavigation()
 const { pendingUndo, scheduleUndo, executeUndo } = useUndoDelete(10_000)
+const { remember, recall } = useSmartDefaults('ospiti')
 
 const {
   errors,
@@ -278,6 +280,7 @@ async function handleSave() {
             operatorId: currentUser.value?.login ?? null,
           })
           message.value = `Ospite "${editingHostId.value}" aggiornato.`
+          remember('roomId', roomId || '')
         } else {
           const created = await createHost({
             codiceInterno: codice,
@@ -295,6 +298,7 @@ async function handleSave() {
             operatorId: currentUser.value?.login ?? null,
           })
           message.value = `Ospite "${created.id}" creato.`
+          remember('roomId', roomId || '')
         }
         resetForm()
         isFormOpen.value = false
@@ -343,6 +347,11 @@ async function handleDeactivate(hostId) {
 
 function openAddForm() {
   resetForm()
+  // Prefill smart defaults
+  const lastRoomId = recall('roomId', '')
+  if (lastRoomId && roomsData.value.some(r => r.id === lastRoomId)) {
+    form.value.roomId = lastRoomId
+  }
   panelMode.value = 'create'
   isFormOpen.value = true
   markFormSnapshot()
