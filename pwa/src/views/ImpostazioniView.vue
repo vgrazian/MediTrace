@@ -96,7 +96,7 @@ onMounted(async () => {
 import { computed, ref, onMounted, watch } from 'vue'
 import { suggestUsernameFromName, useAuth } from '../services/auth'
 import { canRole } from '../services/rbac'
-import { fullSync, exportBackupJson, importBackupJson, listPendingConflicts, resolveConflict } from '../services/sync'
+import { fullSync, exportBackupJson, importBackupJson, listPendingConflicts, resolveConflict, ensureAllPendingEnqueued } from '../services/sync'
 import { formatUserError } from '../services/errorHandling'
 import { confirmDeleteUser } from '../services/confirmations'
 import {
@@ -147,6 +147,7 @@ const { goToHelpSection } = useHelpNavigation()
 const deviceId = ref(null)
 const datasetVersion = ref(null)
 const syncMessage = ref('')
+const repairBusy = ref(false)
 const syncIntervalMinutes = ref(1)
 const SYNC_INTERVAL_SETTING = 'syncIntervalMinutes'
 const syncQueueThreshold = ref(25)
@@ -585,6 +586,25 @@ async function runSync() {
     }
     
     console.error('[ImpostazioniView] Sync error:', formatted)
+  }
+}
+
+async function repairAndSync() {
+  repairBusy.value = true
+  syncMessage.value = '🔧 Scansione dati locali in corso…'
+  try {
+    const enqueued = await ensureAllPendingEnqueued()
+    if (enqueued > 0) {
+      syncMessage.value = `🔧 Trovati e accodati ${enqueued} record non sincronizzati. Avvio sincronizzazione…`
+    } else {
+      syncMessage.value = '🔧 Nessun record orfano trovato. Avvio sincronizzazione…'
+    }
+    // Ora esegui il sync normale
+    await runSync()
+  } catch (err) {
+    syncMessage.value = `Errore riparazione: ${err.message}`
+  } finally {
+    repairBusy.value = false
   }
 }
 
@@ -1237,6 +1257,12 @@ async function handleCreateUser() {
           <span class="muted" style="font-size:.78rem">operazioni</span>
         </label>
         <button @click="runSync">Sincronizza ora</button>
+        <button
+          @click="repairAndSync"
+          :disabled="repairBusy"
+          style="margin-left:.5rem"
+          title="Forza la sincronizzazione di TUTTI i dati locali, anche quelli che potrebbero non essere stati marcati per il sync"
+        >🔧 Ripara e sincronizza</button>
       </div>
       <p class="muted" style="margin-top:.35rem;font-size:.78rem">
         La sincronizzazione parte automaticamente quando la coda supera {{ syncQueueThreshold }} operazioni (regolabile 1–100).

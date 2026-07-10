@@ -248,6 +248,94 @@ const DEMO_MANIFEST = {
 
 // ── API pubblica ──────────────────────────────────────────────────────────────
 
+/** Chiave per tracciare se il repair retroattivo è già stato eseguito */
+const SEED_SYNC_REPAIR_KEY = '_seedSyncRepairCount'
+
+/**
+ * Ripara dati seed esistenti che sono stati caricati prima della fix di sync
+ * (versione senza enqueue). Cerca tutti i record con _seeded:true e li
+ * enqueua in syncQueue se non già presenti.
+ *
+ * Strategia a due livelli:
+ *  1. Se esiste _demoDataManifest, usa gli ID del manifest
+ *  2. Altrimenti, scansiona TUTTE le tabelle dati cercando _seeded:true
+ *
+ * Riprova fino a 5 volte (una per ogni avvio dell'app) finché tutti i record
+ * _seeded sono in syncQueue. Dopo 5 tentativi si ferma.
+ *
+ * Chiamare da App.vue dopo initAuth().
+ */
+export async function repairUnsyncedSeedData() {
+    try {
+        const repairCount = Number(await getSetting(SEED_SYNC_REPAIR_KEY, 0)) || 0
+        if (repairCount >= 5) return { repaired: false, reason: 'max-attempts' }
+
+        // Raccogli tutti gli ID già presenti in syncQueue
+        const allQueueEntries = await db.syncQueue.toArray()
+        const queuedIds = new Set(allQueueEntries.map(e => e.entityId))
+
+        // Strategia 1: usa il manifest se esiste
+        const manifest = await getDemoManifest()
+        let tableMap = null
+
+        if (manifest) {
+            tableMap = {
+                hosts: manifest.hosts || [],
+                drugs: manifest.drugs || [],
+                stockBatches: manifest.stockBatches || [],
+                therapies: manifest.therapies || [],
+                movements: manifest.movements || [],
+                reminders: manifest.reminders || [],
+            }
+        }
+
+        // Strategia 2: se non c'è manifest, scansiona le tabelle per _seeded:true
+        if (!tableMap) {
+            const seededTables = {}
+            const tableNames = ['hosts', 'drugs', 'stockBatches', 'therapies', 'movements', 'reminders']
+            for (const name of tableNames) {
+                const table = db[name]
+                if (!table || typeof table.toArray !== 'function') continue
+                const rows = await table.toArray()
+                const seededIds = rows
+                    .filter(r => r && !r.deletedAt && r._seeded === true)
+                    .map(r => r.id)
+                if (seededIds.length > 0) {
+                    seededTables[name] = seededIds
+                }
+            }
+
+            const hasSeeded = Object.values(seededTables).some(ids => ids.length > 0)
+            if (!hasSeeded) {
+                await setSetting(SEED_SYNC_REPAIR_KEY, 5) // stop
+                return { repaired: false, reason: 'no-seed-data' }
+            }
+
+            tableMap = seededTables
+        }
+
+        // Enqueue i record mancanti
+        let repaired = 0
+        const enqueueAll = []
+        for (const [entityType, ids] of Object.entries(tableMap)) {
+            for (const id of ids) {
+                if (!queuedIds.has(id)) {
+                    enqueueAll.push(enqueue(entityType, id, 'upsert'))
+                    repaired++
+                }
+            }
+        }
+        await Promise.all(enqueueAll)
+
+        const nextCount = repaired > 0 ? repairCount + 1 : 5 // stop if nothing to repair
+        await setSetting(SEED_SYNC_REPAIR_KEY, nextCount)
+        return { repaired: repaired > 0, count: repaired, attempt: nextCount }
+    } catch (err) {
+        console.warn('[seedData] repairUnsyncedSeedData fallita:', err.message)
+        return { repaired: false, reason: 'error', error: err.message }
+    }
+}
+
 /**
  * Carica tutti i record demo nel database locale (idempotente: usa put()).
  * Tutti i dati vengono creati nella residenza "Residenza Demo".
@@ -297,6 +385,16 @@ export async function loadDemoData(options = {}) {
             if (availableStores.has('movements')) for (const record of DEMO_MOVEMENTS) await db.movements.put(record)
             if (availableStores.has('reminders')) for (const record of DEMO_REMINDERS) await db.reminders.put(record)
         })
+
+        // Enqueue all seed records for sync to Supabase so other devices can pull them
+        const enqueueAll = []
+        if (availableStores.has('hosts')) for (const r of patchedHosts) enqueueAll.push(enqueue('hosts', r.id, 'upsert'))
+        if (availableStores.has('drugs')) for (const r of DEMO_DRUGS) enqueueAll.push(enqueue('drugs', r.id, 'upsert'))
+        if (availableStores.has('stockBatches')) for (const r of DEMO_STOCK_BATCHES) enqueueAll.push(enqueue('stockBatches', r.id, 'upsert'))
+        if (availableStores.has('therapies')) for (const r of DEMO_THERAPIES) enqueueAll.push(enqueue('therapies', r.id, 'upsert'))
+        if (availableStores.has('movements')) for (const r of DEMO_MOVEMENTS) enqueueAll.push(enqueue('movements', r.id, 'upsert'))
+        if (availableStores.has('reminders')) for (const r of DEMO_REMINDERS) enqueueAll.push(enqueue('reminders', r.id, 'upsert'))
+        await Promise.all(enqueueAll)
     }
 
     await setSetting(DEMO_MANIFEST_KEY, {

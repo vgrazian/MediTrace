@@ -11,7 +11,7 @@
  *  - Supabase table (preferred) when Supabase config is present
  *  - GitHub Gist legacy mode otherwise
  */
-import { db, getSetting, setSetting, getSyncState, setSyncState } from '../db'
+import { db, enqueue, getSetting, setSetting, getSyncState, setSyncState } from '../db'
 import { listAppFiles, downloadFile, uploadFile, bootstrapDriveFiles, commitSnapshot, FILE_NAMES } from './syncBackend'
 import { isSupabaseConfigured, supabase } from './supabaseClient'
 import { SyncError, handleAsync } from './errorHandling'
@@ -41,6 +41,48 @@ const CONFLICT_FIELDS = {
 const PENDING_CONFLICTS_KEY = 'pendingConflicts'
 const ATOMIC_SYNC_MAX_RETRIES = 3
 
+// ── Self-healing: auto-enqueue orphan records ─────────────────────────────────
+
+/**
+ * Scansiona tutte le tabelle dati e auto-enqueua qualsiasi record con
+ * syncStatus === 'pending' che non sia già in syncQueue.
+ *
+ * Questo garantisce che dati inseriti direttamente in IndexedDB (es. seed data,
+ * import CSV, restore backup) vengano sempre sincronizzati, anche se il codice
+ * che li ha inseriti non ha chiamato esplicitamente enqueue().
+ *
+ * @returns {number} numero di record enqueuati
+ */
+export async function ensureAllPendingEnqueued() {
+    // Guard: in test environments syncQueue might not be available
+    if (!db.syncQueue || typeof db.syncQueue.toArray !== 'function') return 0
+
+    const allQueueEntries = await db.syncQueue.toArray()
+    const queuedIds = new Set(allQueueEntries.map(e => e.entityId))
+
+    let enqueued = 0
+    const enqueueAll = []
+
+    for (const tableName of ALL_DATA_TABLES) {
+        const table = db[tableName]
+        if (!table || typeof table.toArray !== 'function') continue
+        const rows = await table.toArray()
+        for (const row of rows) {
+            if (!row || row.deletedAt) continue
+            if (row.syncStatus !== 'pending') continue
+            if (queuedIds.has(row.id)) continue
+            enqueueAll.push(enqueue(tableName, row.id, 'upsert'))
+            enqueued++
+        }
+    }
+
+    if (enqueueAll.length > 0) {
+        await Promise.all(enqueueAll)
+    }
+
+    return enqueued
+}
+
 // ── Public entry point ────────────────────────────────────────────────────────
 
 /**
@@ -67,6 +109,17 @@ export async function fullSync(token) {
 }
 
 async function _fullSyncCore(token, syncStartTime, operatorId) {
+    // Self-healing: assicura che tutti i record pending siano in syncQueue
+    // prima di procedere con il sync. Risolve il problema di seed data,
+    // CSV import e restore backup che potrebbero non aver chiamato enqueue().
+    const autoEnqueued = await ensureAllPendingEnqueued()
+    if (autoEnqueued > 0) {
+        logSync('sync_start', await getSetting('lastOperatorId', 'unknown'), {
+            autoEnqueued,
+            note: 'record pending non in syncQueue riparati automaticamente',
+        }).catch(() => { })
+    }
+
     const usingSupabase = isSupabaseConfigured && supabase
     if (!usingSupabase && !token) {
         throw new SyncError('NOT_CONFIGURED', 'Sincronizzazione non configurata', {
@@ -79,16 +132,16 @@ async function _fullSyncCore(token, syncStartTime, operatorId) {
 
     const deviceId = (await getSetting('deviceId')) ?? 'unknown'
     const files = await listAppFiles(token)
-    const manifestFile = files.find(f => f.name === FILE_NAMES.MANIFEST)
-    const dataFile = files.find(f => f.name === FILE_NAMES.DATA)
+    let manifestFile = files.find(f => f.name === FILE_NAMES.MANIFEST)
+    let dataFile = files.find(f => f.name === FILE_NAMES.DATA)
 
-    // First run: create remote gist + files
-    if (!manifestFile || !dataFile) {
+    // First run: bootstrap remote files, then continue to upload local data
+    const bootstrapped = !manifestFile || !dataFile
+    if (bootstrapped) {
         const { manifest, gistId } = await bootstrapDriveFiles(token)
         await setSyncState('gistId', gistId)
         await setSetting('datasetVersion', manifest.datasetVersion)
 
-        // Audit: sync bootstrap
         await db.activityLog.add({
             entityType: 'sync',
             entityId: `bootstrap:${gistId}`,
@@ -98,8 +151,17 @@ async function _fullSyncCore(token, syncStartTime, operatorId) {
             ts: new Date().toISOString(),
         })
 
-        logSync('sync_complete', operatorId, { result: 'bootstrapped', duration: Date.now() - syncStartTime }).catch(() => { })
-        return { bootstrapped: true }
+        // Refetch files dopo bootstrap per proseguire col flusso normale
+        const refetched = await listAppFiles(token)
+        manifestFile = refetched.find(f => f.name === FILE_NAMES.MANIFEST)
+        dataFile = refetched.find(f => f.name === FILE_NAMES.DATA)
+
+        // Se anche dopo bootstrap i file non esistono (es. test mock),
+        // ritorna con stato bootstrapped
+        if (!manifestFile || !dataFile) {
+            logSync('sync_complete', operatorId, { result: 'bootstrapped', duration: Date.now() - syncStartTime }).catch(() => { })
+            return { bootstrapped: true }
+        }
     }
 
     // manifestFile.id === dataFile.id === gistId (all files share one gist)

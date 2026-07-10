@@ -1038,6 +1038,17 @@ export async function loadRealisticSeedData(options = {}) {
                 }
             }
         })
+
+        // Enqueue all seed records for sync to Supabase so other devices can pull them
+        const enqueueAll = []
+        if (availableStores.has('rooms')) for (const r of bundle.rooms) enqueueAll.push(enqueue('rooms', r.id, 'upsert'))
+        if (availableStores.has('hosts')) for (const r of bundle.hosts) enqueueAll.push(enqueue('hosts', r.id, 'upsert'))
+        if (availableStores.has('drugs')) for (const r of bundle.drugs) enqueueAll.push(enqueue('drugs', r.id, 'upsert'))
+        if (availableStores.has('stockBatches')) for (const r of bundle.stockBatches) enqueueAll.push(enqueue('stockBatches', r.id, 'upsert'))
+        if (availableStores.has('therapies')) for (const r of bundle.therapies) enqueueAll.push(enqueue('therapies', r.id, 'upsert'))
+        if (availableStores.has('movements')) for (const r of bundle.movements) enqueueAll.push(enqueue('movements', r.id, 'upsert'))
+        if (availableStores.has('reminders')) for (const r of bundle.reminders) enqueueAll.push(enqueue('reminders', r.id, 'upsert'))
+        await Promise.all(enqueueAll)
     }
 
     const manifest = {

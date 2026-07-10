@@ -67,7 +67,7 @@ async function pingSupabase() {
         // Simple lightweight query
         const { error } = await supabase
             .from('sync_files')
-            .select('id', { count: 'exact', head: true })
+            .select('name', { count: 'exact', head: true })
             .limit(1)
 
         if (error) {

@@ -706,7 +706,22 @@ async function ensureDefaultOperators(users) {
         }
 
         const existingIndex = nextUsers.findIndex(u => u.username === op.username)
-        if (existingIndex >= 0) continue // already exists
+        if (existingIndex >= 0) {
+            // L'operatore esiste già: aggiorna nome/cognome se sono cambiati
+            const existing = nextUsers[existingIndex]
+            const nameChanged = existing.firstName !== op.firstName || existing.lastName !== op.lastName
+            if (nameChanged) {
+                nextUsers[existingIndex] = {
+                    ...existing,
+                    firstName: op.firstName,
+                    lastName: op.lastName,
+                    displayName: `${op.firstName} ${op.lastName}`.trim(),
+                }
+                updated = true
+                console.info(`[auth] Operatore ${op.username} aggiornato: ${op.firstName} ${op.lastName}`)
+            }
+            continue
+        }
 
         try {
             const newUser = await buildLocalAuthUser({

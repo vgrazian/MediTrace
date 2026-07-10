@@ -25,11 +25,6 @@ const { pendingUndo, scheduleUndo, executeUndo } = useUndoDelete(10_000)
 const { remember, recall } = useSmartDefaults('ospiti')
 const { hasDraft, loadDraft, startDraft, clearDraft, hasDraftAvailable } = useDraftSave('ospiti')
 
-// Auto-save draft on form changes
-watch(form, () => {
-  if (isFormOpen.value) startDraft(form.value)
-}, { deep: true })
-
 const {
   errors,
   validateField,
@@ -98,6 +93,11 @@ const form = ref({
 
     note: '',
 })
+
+// Auto-save draft on form changes (dopo dichiarazione form e isFormOpen)
+watch(form, () => {
+  if (isFormOpen.value) startDraft(form.value)
+}, { deep: true })
 
 // Existing values for autocomplete datalists
 const existingLuoghi = computed(() => {
