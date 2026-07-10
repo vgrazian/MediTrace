@@ -811,48 +811,60 @@ async function checkSupabaseHasUsers() {
 async function initAuthSupabase() {
     state.hasUsers = await fetchHasUsers()
 
-    // Seed default users when no users exist on Supabase AND emergency admin is enabled
-    if (!state.hasUsers && EMERGENCY_ADMIN_ENABLED) {
-        try {
-            const adminPayload = await registerFirstAdminWithTable({
-                username: EMERGENCY_ADMIN_USERNAME || 'admin',
-                password: EMERGENCY_ADMIN_PASSWORD || 'A9m4K2qL!Xy',
-                firstName: EMERGENCY_ADMIN_FIRST_NAME || 'Admin',
-                lastName: EMERGENCY_ADMIN_LAST_NAME || 'MediTrace',
-                email: EMERGENCY_ADMIN_EMAIL || 'admin@example.com',
-                sessionTtlMinutes: AUTH_SESSION_TTL_MINUTES,
-            })
-            // Store session from first admin to create operators
-            const sessionToken = adminPayload.session?.token
-            if (sessionToken) {
-                const operators = [
-                    { username: DEFAULT_OPERATOR_VALERIO_USERNAME, password: DEFAULT_OPERATOR_VALERIO_PASSWORD, email: DEFAULT_OPERATOR_VALERIO_EMAIL, firstName: 'Valerio', lastName: 'Graziani' },
-                    { username: DEFAULT_OPERATOR_ANNA_USERNAME, password: DEFAULT_OPERATOR_ANNA_PASSWORD, email: DEFAULT_OPERATOR_ANNA_EMAIL, firstName: 'Anna Maria', lastName: 'Cigliano' },
-                ]
-                for (const op of operators) {
-                    try {
-                        const { error: rpcError } = await supabase.rpc('app_create_user', {
-                            p_token: sessionToken,
-                            p_username: op.username,
-                            p_password: op.password,
-                            p_first_name: op.firstName,
-                            p_last_name: op.lastName,
-                            p_email: op.email,
-                            p_phone: '',
-                            p_role: 'operator',
-                            p_is_seeded: false,
-                            p_session_ttl_minutes: AUTH_SESSION_TTL_MINUTES,
-                        })
-                        if (rpcError) throw rpcError
-                        console.info(`[auth] Operatore predefinito creato su Supabase: ${op.username}`)
-                    } catch (opErr) {
-                        console.warn(`[auth] Impossibile creare ${op.username}:`, opErr.message)
+    if (EMERGENCY_ADMIN_ENABLED) {
+        let sessionToken = null
+
+        // Create admin if no users exist
+        if (!state.hasUsers) {
+            try {
+                const adminPayload = await registerFirstAdminWithTable({
+                    username: EMERGENCY_ADMIN_USERNAME || 'admin',
+                    password: EMERGENCY_ADMIN_PASSWORD || 'A9m4K2qL!Xy',
+                    firstName: EMERGENCY_ADMIN_FIRST_NAME || 'Admin',
+                    lastName: EMERGENCY_ADMIN_LAST_NAME || 'MediTrace',
+                    email: EMERGENCY_ADMIN_EMAIL || 'admin@example.com',
+                    sessionTtlMinutes: AUTH_SESSION_TTL_MINUTES,
+                })
+                sessionToken = adminPayload.session?.token
+                state.hasUsers = true
+            } catch (err) {
+                console.warn('[auth] Impossibile creare admin su Supabase:', err.message)
+            }
+        } else {
+            // Try to get session token from stored session or admin login
+            try {
+                const payload = await restoreSession(AUTH_SESSION_TTL_MINUTES)
+                sessionToken = payload?.session?.token || payload?.token
+            } catch { /* no session yet */ }
+        }
+
+        // Create/update operators if we have a session token
+        if (sessionToken) {
+            const operators = [
+                { username: DEFAULT_OPERATOR_VALERIO_USERNAME, password: DEFAULT_OPERATOR_VALERIO_PASSWORD, email: DEFAULT_OPERATOR_VALERIO_EMAIL, firstName: 'Valerio', lastName: 'Graziani' },
+                { username: DEFAULT_OPERATOR_ANNA_USERNAME, password: DEFAULT_OPERATOR_ANNA_PASSWORD, email: DEFAULT_OPERATOR_ANNA_EMAIL, firstName: 'Anna Maria', lastName: 'Cigliano' },
+            ]
+            for (const op of operators) {
+                try {
+                    const { error: rpcError } = await supabase.rpc('app_create_user', {
+                        p_token: sessionToken,
+                        p_username: op.username,
+                        p_password: op.password,
+                        p_first_name: op.firstName,
+                        p_last_name: op.lastName,
+                        p_email: op.email,
+                        p_phone: '',
+                        p_role: 'operator',
+                        p_is_seeded: false,
+                        p_session_ttl_minutes: AUTH_SESSION_TTL_MINUTES,
+                    })
+                    if (rpcError && !String(rpcError.message || '').toLowerCase().includes('duplicate')) {
+                        console.warn(`[auth] Operatore ${op.username}:`, rpcError.message)
                     }
+                } catch (opErr) {
+                    console.warn(`[auth] Impossibile creare ${op.username}:`, opErr.message)
                 }
             }
-            state.hasUsers = true
-        } catch (err) {
-            console.warn('[auth] Impossibile creare utenti predefiniti su Supabase:', err.message)
         }
     }
 

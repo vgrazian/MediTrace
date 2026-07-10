@@ -4,13 +4,14 @@ import { ref, onMounted } from 'vue'
 import { RouterLink } from 'vue-router'
 import { buildHomeDashboardKpis } from '../services/homeDashboard'
 import { useHelpNavigation } from '../composables/useHelpNavigation'
+import { useSyncState } from '../composables/useSyncState'
 import { formatBuildTimestamp, getBuildTimestampIso, getDeployLabel } from '../services/buildInfo'
 
 
 const { currentUser } = useAuth()
 const { goToHelpSection } = useHelpNavigation()
+const { statoSync, dettagli, pendingCount } = useSyncState()
 const datasetVersion = ref(null)
-const syncStatus = ref('—')
 const homeKpi = ref(null)
 const buildTimestampLabel = formatBuildTimestamp('it-IT')
 const buildTimestampIso = getBuildTimestampIso()
@@ -76,12 +77,6 @@ function formatDateTime(value) {
 async function refreshHomeKpi() {
   homeKpi.value = await buildHomeDashboardKpis()
   datasetVersion.value = homeKpi.value.datasetVersion
-  const threshold = homeKpi.value.syncQueueThreshold ?? 25
-  if (homeKpi.value.pendingSync > 0) {
-    syncStatus.value = `In coda ${homeKpi.value.pendingSync} operazioni (soglia: ${threshold})`
-  } else {
-    syncStatus.value = 'Allineato (nessuna operazione in coda)'
-  }
 }
 
 onMounted(async () => {
@@ -127,8 +122,7 @@ onMounted(async () => {
         <div style="margin-top:.75rem">
           <p><strong>Stato sincronizzazione</strong></p>
           <p class="muted" style="margin-top:.25rem">
-            Stato: {{ syncStatus }}<br />
-            Ultima sincronizzazione: {{ formatDateTime(homeKpi?.lastSyncAt) }}
+            {{ dettagli }}
           </p>
         </div>
       </div>

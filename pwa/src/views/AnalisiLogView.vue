@@ -218,14 +218,14 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="analisi-view">
-    <header class="analisi-header">
+  <div class="view">
+    <div class="view-heading">
       <h2>Diagnostica</h2>
       <button class="btn-help" @click="goToHelpSection('diagnostica')" title="Aiuto su questa pagina">Aiuto</button>
       <p v-if="!configured" class="axiom-warning">
         ⚠️ Axiom non configurato — imposta <code>VITE_AXIOM_TOKEN</code> per attivare l'analisi.
       </p>
-    </header>
+    </div>
 
     <template v-if="configured">
       <!-- Filtri -->
@@ -357,18 +357,6 @@ onMounted(() => {
 </template>
 
 <style scoped>
-.analisi-view {
-  max-width: 960px;
-  margin: 0 auto;
-  padding: 1.5rem 1rem 3rem;
-}
-
-.analisi-header h2 {
-  margin: 0 0 0.5rem;
-  font-size: 1.5rem;
-  display: inline;
-}
-
 .btn-help {
   margin-left: .75rem;
   padding: .25rem .65rem;

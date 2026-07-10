@@ -55,7 +55,7 @@ async function checkCdnStatus() {
   } catch { cdnStatus.value = '' }
 }
 
-onMounted(async () => { await initAuth(); checkCdnStatus(); ensureDefaultResidenze().catch(() => {}); repairUnsyncedSeedData().catch(() => {}) })
+onMounted(async () => { await initAuth(); checkCdnStatus(); await ensureDefaultResidenze().catch(() => {}); repairUnsyncedSeedData().catch(() => {}) })
 
 function handleUsernameInput(event) {
   username.value = sanitizeUsernameInput(event.target.value)

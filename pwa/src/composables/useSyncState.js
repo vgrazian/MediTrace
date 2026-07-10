@@ -1,88 +1,83 @@
 import { ref, onMounted, onUnmounted } from 'vue'
-import { db, getSetting } from '../db'
-import { isSupabaseConfigured } from '../services/supabaseClient'
+import { db } from '../db'
+import { isDataServiceAvailable } from '../services/dataService'
 
-// Possible sync states
 const SYNC_STATES = {
-    SYNCED: 'sincronizzato',
-    PENDING: 'in attesa',
-    CONFLICT: 'conflitto',
-    ERROR: 'errore',
+    ONLINE: 'online',
     OFFLINE: 'offline',
+    PENDING: 'pending',
+    ERROR: 'error',
 }
 
 export function useSyncState() {
-    const statoSync = ref(SYNC_STATES.SYNCED)
+    const statoSync = ref(SYNC_STATES.ONLINE)
     const dettagli = ref('')
+    const pendingCount = ref(0)
+    const lastRefresh = ref('')
 
     let intervalId
 
     async function updateSyncState() {
         try {
-            // If Supabase is not configured, there's nothing to sync — always show green
-            if (!isSupabaseConfigured) {
-                statoSync.value = SYNC_STATES.SYNCED
-                dettagli.value = 'Sync remoto non configurato.'
-                return
-            }
+            const online = typeof navigator !== 'undefined' && navigator.onLine
+            const supabaseAvailable = isDataServiceAvailable()
 
-            // Check for offline (simple navigator check)
-            const offline = typeof navigator !== 'undefined' && !navigator.onLine
-            if (offline) {
+            if (!online) {
                 statoSync.value = SYNC_STATES.OFFLINE
-                dettagli.value = 'Sei offline. Le modifiche verranno sincronizzate appena possibile.'
+                const queueCount = await db.syncQueue.count()
+                pendingCount.value = queueCount
+                dettagli.value = queueCount > 0
+                    ? `Offline · ${queueCount} modifiche in coda`
+                    : 'Offline'
                 return
             }
 
-            // Check for pending sync operations
-            const pending = await db.syncQueue.count()
-            // Check for unresolved conflicts
-            const conflicts = await getSetting('pendingConflicts', [])
-            // Check threshold
-            const threshold = await getSetting('syncQueueThreshold', 25)
-
-            if (conflicts && conflicts.length > 0) {
-                statoSync.value = SYNC_STATES.CONFLICT
-                dettagli.value = `Sono presenti ${conflicts.length} conflitti da risolvere.`
-            } else if (pending > 0) {
-                statoSync.value = SYNC_STATES.PENDING
-                const thresholdMsg = pending >= threshold ? ` (soglia: ${threshold})` : ''
-                dettagli.value = `${pending} modifiche in attesa di sincronizzazione${thresholdMsg}.`
-            } else {
-                statoSync.value = SYNC_STATES.SYNCED
-                dettagli.value = 'Tutti i dati sono sincronizzati.'
+            if (!supabaseAvailable) {
+                statoSync.value = SYNC_STATES.ERROR
+                dettagli.value = 'Supabase non configurato'
+                return
             }
-        } catch (e) {
+
+            const queueCount = await db.syncQueue.count()
+            pendingCount.value = queueCount
+
+            if (queueCount > 0) {
+                statoSync.value = SYNC_STATES.PENDING
+                dettagli.value = `${queueCount} modifiche in coda`
+            } else {
+                statoSync.value = SYNC_STATES.ONLINE
+                dettagli.value = lastRefresh.value
+                    ? `Sincronizzato · ultimo refresh ${lastRefresh.value}`
+                    : 'Online · dati aggiornati'
+            }
+        } catch {
             statoSync.value = SYNC_STATES.ERROR
-            dettagli.value = 'Errore nel rilevamento dello stato di sincronizzazione.'
+            dettagli.value = 'Errore verifica stato'
         }
     }
 
-    /**
-     * Flush local sync queue — clears all pending sync entries.
-     * Useful when Supabase is not configured and we just want a clean state.
-     */
-    async function flushLocalSyncQueue() {
-        try {
-            await db.syncQueue.clear()
-            await updateSyncState()
-        } catch { /* ignore */ }
+    function setRefreshed() {
+        const now = new Date()
+        lastRefresh.value = now.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })
+        updateSyncState()
     }
 
     onMounted(() => {
         updateSyncState()
-        intervalId = setInterval(updateSyncState, 2000) // Aggiorna ogni 2s
+        intervalId = setInterval(updateSyncState, 5000)
         window.addEventListener('online', updateSyncState)
         window.addEventListener('offline', updateSyncState)
+        window.addEventListener('medi-trace:data-changed', updateSyncState)
     })
 
     onUnmounted(() => {
         clearInterval(intervalId)
         window.removeEventListener('online', updateSyncState)
         window.removeEventListener('offline', updateSyncState)
+        window.removeEventListener('medi-trace:data-changed', updateSyncState)
     })
 
-    return { statoSync, dettagli, updateSyncState, flushLocalSyncQueue }
+    return { statoSync, dettagli, pendingCount, updateSyncState, setRefreshed }
 }
 
 export { SYNC_STATES }

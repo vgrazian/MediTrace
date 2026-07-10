@@ -13,7 +13,7 @@ import { openConfirmDialog } from '../services/confirmDialog'
 const { currentUser, signOut } = useAuth()
 const logoSrc = `${import.meta.env.BASE_URL}branding/logo-header.svg`
 
-const { statoSync, dettagli, flushLocalSyncQueue } = useSyncState()
+const { statoSync, dettagli, pendingCount, setRefreshed } = useSyncState()
 
 // ── Residenza corrente ──────────────────────────────────────────────────────
 const currentResidenzaId = ref('')
@@ -28,11 +28,10 @@ const showResidenzaBadge = computed(() => Boolean(currentResidenzaId.value && cu
 // Sync button color based on state
 const syncColor = computed(() => {
   switch (statoSync.value) {
-    case SYNC_STATES.SYNCED: return '#22c55e'
+    case SYNC_STATES.ONLINE: return '#22c55e'
     case SYNC_STATES.PENDING: return '#f59e42'
-    case SYNC_STATES.CONFLICT: return '#ef4444'
-    case SYNC_STATES.ERROR: return '#a21caf'
     case SYNC_STATES.OFFLINE: return '#64748b'
+    case SYNC_STATES.ERROR: return '#ef4444'
     default: return '#93c5fd'
   }
 })
@@ -136,6 +135,7 @@ async function maybeAutoSync() {
       await retryQueue.flush()        // push local changes
       await refreshFromServer()       // pull remote changes
       lastSyncAttempt = Date.now()
+      setRefreshed()
     } catch (_) { }
     syncInProgress = false
     return
@@ -205,9 +205,7 @@ async function handleSignOut() {
   })
   if (!confirmed) return
   if (isSupabaseConfigured) {
-    try { await fullSync() } catch {}
-  } else {
-    await flushLocalSyncQueue()
+    try { await retryQueue.flush(); await refreshFromServer() } catch {}
   }
   await signOut()
 }
@@ -217,12 +215,14 @@ async function handleSync() {
     try {
       await retryQueue.flush()
       await refreshFromServer()
+      setRefreshed()
     } catch { }
     return
   }
   if (isSupabaseConfigured) {
     try {
       await fullSync()
+      setRefreshed()
     } catch {
       // silent fail
     }

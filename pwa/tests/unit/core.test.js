@@ -148,19 +148,19 @@ import { useSyncState, SYNC_STATES } from '../../src/composables/useSyncState'
 
 describe('useSyncState', () => {
     it('esporta SYNC_STATES con tutti i valori', () => {
-        expect(SYNC_STATES.SYNCED).toBe('sincronizzato')
-        expect(SYNC_STATES.PENDING).toBe('in attesa')
-        expect(SYNC_STATES.CONFLICT).toBe('conflitto')
-        expect(SYNC_STATES.ERROR).toBe('errore')
+        expect(SYNC_STATES.ONLINE).toBe('online')
+        expect(SYNC_STATES.PENDING).toBe('pending')
         expect(SYNC_STATES.OFFLINE).toBe('offline')
+        expect(SYNC_STATES.ERROR).toBe('error')
     })
 
     it('restituisce oggetto con proprietà corrette', () => {
         const state = useSyncState()
         expect(state).toHaveProperty('statoSync')
         expect(state).toHaveProperty('dettagli')
+        expect(state).toHaveProperty('pendingCount')
         expect(state).toHaveProperty('updateSyncState')
-        expect(state).toHaveProperty('flushLocalSyncQueue')
+        expect(state).toHaveProperty('setRefreshed')
     })
 })
 

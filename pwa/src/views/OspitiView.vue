@@ -17,7 +17,6 @@ import { useSmartDefaults } from '../composables/useSmartDefaults'
 import { useDraftSave } from '../composables/useDraftSave'
 import UndoDeleteBanner from '../components/UndoDeleteBanner.vue'
 import { useSessionViewState } from '../composables/useSessionViewState'
-import { ensureDefaultResidenze } from '../services/residenze'
 
 const { currentUser } = useAuth()
 const router = useRouter()
@@ -224,7 +223,6 @@ async function loadData() {
     loading.value = true
     errorMessage.value = ''
     try {
-        await ensureDefaultResidenze()
         const [rawHosts, rawTherapies, rooms] = await Promise.all([
             db.hosts.toArray(),
             db.therapies.toArray(),

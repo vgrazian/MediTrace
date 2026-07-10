@@ -88,7 +88,19 @@ export async function healDuplicateResidenze({ operatorId = null } = {}) {
     return cleaned
 }
 
+let _ensurePromise = null
+
 export async function ensureDefaultResidenze({ operatorId = null } = {}) {
+    if (_ensurePromise) return _ensurePromise
+    _ensurePromise = _ensureDefaultResidenze({ operatorId })
+    try {
+        return await _ensurePromise
+    } finally {
+        _ensurePromise = null
+    }
+}
+
+async function _ensureDefaultResidenze({ operatorId = null } = {}) {
     await healDuplicateResidenze({ operatorId })
 
     // Migrate legacy "Residenza Demo" → "Demo"
