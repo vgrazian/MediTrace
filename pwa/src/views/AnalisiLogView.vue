@@ -80,26 +80,81 @@ function getDefaultToDate() {
   return new Date().toISOString().split('T')[0]
 }
 
-async function buildAxiomQuery(aggregations) {
-  return {
-    startTime: queryDateRange.value.from,
-    endTime: queryDateRange.value.to,
-    aggregations,
-    resolution: '1h',
-  }
+/**
+ * Escapa caratteri speciali per stringhe APL.
+ * @param {string} val
+ * @returns {string}
+ */
+function escapeAplString(val) {
+  return val.replace(/\\/g, '\\\\').replace(/'/g, "\\'")
 }
 
-async function queryAxiom(body) {
-  const res = await fetch(`${AXIOM_EDGE_URL}/v1/datasets/${AXIOM_DATASET}/query`, {
+/**
+ * Costruisce clausole `where` aggiuntive per la query APL a partire dai filtri.
+ * @returns {string[]}
+ */
+function buildFilterClauses() {
+  const clauses = []
+  if (filterOperator.value.trim()) {
+    clauses.push(`operatorId == '${escapeAplString(filterOperator.value.trim())}'`)
+  }
+  if (filterEntity.value) {
+    clauses.push(`entityType == '${escapeAplString(filterEntity.value)}'`)
+  }
+  return clauses
+}
+
+/**
+ * Converte la risposta tabular di Axiom in array di oggetti row-oriented.
+ * Il formato tabular è column-oriented: tables[0].columns[i] = valori del campo i.
+ *
+ * @param {object} json - risposta JSON da Axiom
+ * @returns {Array<object>} array di oggetti row-oriented
+ */
+function parseTabularResponse(json) {
+  const table = json?.tables?.[0]
+  if (!table || !table.fields || !table.columns) return []
+  const fields = table.fields.map(f => f.name)
+  const columns = table.columns
+  if (columns.length === 0) return []
+  const rowCount = columns[0].length
+  const rows = []
+  for (let i = 0; i < rowCount; i++) {
+    const row = {}
+    for (let j = 0; j < fields.length; j++) {
+      const val = columns[j]?.[i]
+      row[fields[j]] = val === null ? undefined : val
+    }
+    rows.push(row)
+  }
+  return rows
+}
+
+/**
+ * Esegue una query APL sull'Edge endpoint di Axiom.
+ * L'Edge supporta solo /v1/query/_apl (NON /v1/datasets/{name}/query che è su api.axiom.co).
+ *
+ * @param {string} apl - query APL completa
+ * @returns {Promise<Array<object>>} array di oggetti row-oriented
+ */
+async function queryAxiomApl(apl) {
+  const res = await fetch(`${AXIOM_EDGE_URL}/v1/query/_apl?format=tabular`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${AXIOM_TOKEN}`,
     },
-    body: JSON.stringify(body),
+    body: JSON.stringify({
+      apl,
+      startTime: queryDateRange.value.from,
+      endTime: queryDateRange.value.to,
+    }),
   })
-  if (!res.ok) throw new Error(`Axiom query error: ${res.status}`)
-  return res.json()
+  if (!res.ok) {
+    const errorText = await res.text().catch(() => '')
+    throw new Error(`Axiom query error ${res.status}: ${errorText || res.statusText}`)
+  }
+  return parseTabularResponse(await res.json())
 }
 
 async function loadData() {
@@ -108,52 +163,45 @@ async function loadData() {
   error.value = ''
 
   try {
-    const filters = []
-    if (filterOperator.value.trim()) {
-      filters.push({ field: 'operatorId', op: 'eq', value: filterOperator.value.trim() })
-    }
-    if (filterAction.value) {
-      filters.push({ field: 'action', op: 'eq', value: filterAction.value })
-    }
-    if (filterEntity.value) {
-      filters.push({ field: 'entityType', op: 'eq', value: filterEntity.value })
-    }
+    const filterClauses = buildFilterClauses()
+    const whereExtra = filterClauses.length > 0 ? ' and ' + filterClauses.join(' and ') : ''
+
+    // Se è selezionato un tipo specifico (filterAction), lo usiamo per TUTTE le query;
+    // altrimenti ogni tab ha il suo tipo predefinito.
+    const opsType = filterAction.value || 'action'
+    const pagesType = filterAction.value || 'page_view'
+    const errsType = filterAction.value || 'error'
 
     const [ops, pages, errs] = await Promise.all([
       // Panoramica operatori
-      queryAxiom(await buildAxiomQuery([
-        { field: 'operatorId', op: 'count', aggregate: { type: 'count' } },
-        { groupBy: ['operatorId'], order: [{ field: 'count', desc: true }] },
-      ])),
+      queryAxiomApl(
+        `['${AXIOM_DATASET}'] | where type == '${opsType}'${whereExtra} | summarize count() by operatorId | order by count_ desc`
+      ),
       // Page views
-      queryAxiom({
-        startTime: queryDateRange.value.from,
-        endTime: queryDateRange.value.to,
-        filter: { field: 'type', op: 'eq', value: 'page_view' },
-        limit: 500,
-      }),
-      // Errori
-      queryAxiom(await buildAxiomQuery([
-        { field: 'errorHash', op: 'count', aggregate: { type: 'count' } },
-        { groupBy: ['errorHash'], order: [{ field: 'count', desc: true }] },
-        { limit: 50 },
-      ])),
+      queryAxiomApl(
+        `['${AXIOM_DATASET}'] | where type == '${pagesType}'${whereExtra} | limit 500`
+      ),
+      // Errori raggruppati per hash
+      queryAxiomApl(
+        `['${AXIOM_DATASET}'] | where type == '${errsType}'${whereExtra} | summarize count() by errorHash | order by count_ desc | limit 50`
+      ),
     ])
 
-    operatorStats.value = (ops?.buckets?.series?.[0]?.groups || []).map(g => ({
-      operatorId: g.group?.operatorId || 'unknown',
-      count: g.count || 0,
+    // Parsing: queryAxiomApl restituisce già array di oggetti row-oriented
+    operatorStats.value = ops.map(m => ({
+      operatorId: m.operatorId || 'unknown',
+      count: m.count_ || 0,
     }))
 
-    pageViews.value = (pages?.matches || []).map(m => ({
-      view: m.data?.view || '',
+    pageViews.value = pages.map(m => ({
+      view: m.view || '',
       ts: m._time,
-      operatorId: m.data?.operatorId || 'unknown',
+      operatorId: m.operatorId || 'unknown',
     }))
 
-    errorStats.value = (errs?.buckets?.series?.[0]?.groups || []).map(g => ({
-      errorHash: g.group?.errorHash || 'unknown',
-      count: g.count || 0,
+    errorStats.value = errs.map(m => ({
+      errorHash: m.errorHash || 'unknown',
+      count: m.count_ || 0,
     }))
   } catch (err) {
     error.value = err.message || 'Errore nel caricamento dati da Axiom'

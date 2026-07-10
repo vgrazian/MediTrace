@@ -9,6 +9,7 @@ Fix build critici e miglioramenti UI — 2026-07-10.
 |---|-------------|
 | 1 | **Empty views fix**: TDZ bug in minifier (esbuild/terser). `useKeyboardShortcuts({..., isFormOpen})` chiamato prima della dichiarazione di `const isFormOpen = ref(false)` in 5 viste (Farmaci, Movimenti, Ospiti, Terapie, Residenze). Spostato dopo la dichiarazione. Build config: `minify: 'terser'`. |
 | 2 | **AnalisiLogView**: Fix Axiom query URL (`/v1/query/meditrace` → `/v1/datasets/meditrace/query`) per risolvere errore 404. |
+| 8 | **AnalisiLogView (2026-07-10)**: Fix definitivo query Axiom. La fix #2 aveva cambiato il path ma usava ancora l'Edge URL (`eu-central-1.aws.edge.axiom.co`) che supporta solo `/v1/ingest` e `/v1/query/_apl`, NON `/v1/datasets/{name}/query` (solo su `api.axiom.co`). Riscritte tutte le query in formato APL usando l'endpoint `/v1/query/_apl?format=tabular`. Aggiunto parsing del formato tabular (column-oriented → row-oriented). Integrato filtro `filterAction` (prima non funzionante). Testata query APL contro l'Edge endpoint: OK. |
 | 3 | **AuditLogView**: Rinominato "Stato Supabase" → "Stato Applicazione"; aggiunto box stato Axiom; Operatore text input → dropdown con "TUTTI" + lista operatori; aggiunto pulsante "🔬 Diagnostica" per amministratori. |
 | 4 | **ScorteView**: Aggiunta colonna "Farmaco" in "Confezioni Monitorate" per allineamento con tabella scaduti. |
 | 5 | **Seed data**: `Anna Bianchi` → `Anna Maria Cigliano` in seedData.js. |
