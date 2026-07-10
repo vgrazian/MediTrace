@@ -262,6 +262,6 @@ describe('operational reporting', () => {
 
         expect(adherence.summary.totalScheduled).toBe(2)
         expect(adherence.summary.adherenceRate).toBe(50)
-        expect(adherence.hostRows[0].hostLabel).toBe('Rossi Mario')
+        expect(adherence.hostRows[0].hostLabel).toBe('Mario Rossi')
     })
 })

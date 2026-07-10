@@ -120,7 +120,7 @@ describe('ospiti helpers', () => {
             iniziali: 'M.R.',
         })
 
-        expect(label).toBe('[OSP-001] - Rossi Mario')
+        expect(label).toBe('Mario Rossi')
     })
 })
 

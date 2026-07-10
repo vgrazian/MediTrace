@@ -2,19 +2,6 @@
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useKeyboardShortcuts, shortcutHint } from '../composables/useKeyboardShortcuts'
-
-useKeyboardShortcuts({
-  searchPlaceholder: 'Cerca per ospite, farmaco, dose o note',
-  onNew: () => openAddForm(),
-  onSave: () => { if (isFormOpen.value) handleSave() },
-  onDelete: () => { if (selectedCount.value > 0) deleteSelectedTherapies() },
-  isFormOpen,
-})
-
-onMounted(() => {
-  void loadData()
-  markFormSnapshot()
-})
 import { db } from '../db'
 import { useAuth } from '../services/auth'
 import { deactivateTherapyRecord, restoreTherapyRecord, upsertTherapy } from '../services/terapie'
@@ -70,6 +57,20 @@ const saving = ref(false)
 const message = ref('')
 const errorMessage = ref('')
 const isFormOpen = ref(false)
+
+useKeyboardShortcuts({
+  searchPlaceholder: 'Cerca per ospite, farmaco, dose o note',
+  onNew: () => openAddForm(),
+  onSave: () => { if (isFormOpen.value) handleSave() },
+  onDelete: () => { if (selectedCount.value > 0) deleteSelectedTherapies() },
+  isFormOpen,
+})
+
+onMounted(() => {
+  void loadData()
+  markFormSnapshot()
+})
+
 const panelMode = ref('list')
 const filterQuery = ref('')
 const sortBy = ref('updatedDesc')

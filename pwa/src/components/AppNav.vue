@@ -215,7 +215,6 @@ async function handleSync() {
   <nav class="app-nav">
     <div class="brand" aria-label="MediTrace">
       <img class="brand-mark" :src="logoSrc" alt="Comunità di Sant'Egidio" />
-      <span class="brand-title">MediTrace</span>
     </div>
 
     <RouterLink to="/" title="Cruscotto — riepilogo e KPI">Cruscotto</RouterLink>
@@ -228,7 +227,7 @@ async function handleSync() {
     <RouterLink to="/residenze" title="Gestione residenze">Residenze</RouterLink>
     <RouterLink v-if="currentUser?.role === 'admin'" to="/operatori" title="Gestione operatori e permessi">Operatori</RouterLink>
     <RouterLink v-if="currentUser?.role === 'admin'" to="/audit" title="Registro audit e attività">Audit</RouterLink>
-    <RouterLink v-if="currentUser?.role === 'admin'" to="/analisi" title="Analisi operazionale e diagnostica">Analisi</RouterLink>
+    <RouterLink v-if="currentUser?.role === 'admin'" to="/diagnostica" title="Diagnostica sistema e log">Diagnostica</RouterLink>
     <RouterLink to="/manuale" title="Guida utente">Guida</RouterLink>
 
     <div class="user-area">

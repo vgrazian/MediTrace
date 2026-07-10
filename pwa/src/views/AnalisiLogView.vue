@@ -90,7 +90,7 @@ async function buildAxiomQuery(aggregations) {
 }
 
 async function queryAxiom(body) {
-  const res = await fetch(`${AXIOM_EDGE_URL}/v1/query/${AXIOM_DATASET}`, {
+  const res = await fetch(`${AXIOM_EDGE_URL}/v1/datasets/${AXIOM_DATASET}/query`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -170,7 +170,7 @@ onMounted(() => {
 <template>
   <div class="analisi-view">
     <header class="analisi-header">
-      <h2>Analisi Operazionale</h2>
+      <h2>Diagnostica</h2>
       <p v-if="!configured" class="axiom-warning">
         ⚠️ Axiom non configurato — imposta <code>VITE_AXIOM_TOKEN</code> per attivare l'analisi.
       </p>

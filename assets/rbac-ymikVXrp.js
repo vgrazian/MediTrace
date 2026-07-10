@@ -1,0 +1,1 @@
+const e="admin",n="operator",r={[e]:new Set(["sync:run","users:read","users:manage","invites:send","profiles:read","testData:manage","security:read","movements:delete"]),[n]:new Set(["sync:run","security:read"])};function t(t,s){var a;const u=function(r){return r===e?e:n}(t);return(null==(a=r[u])?void 0:a.has(s))??!1}export{t as c};

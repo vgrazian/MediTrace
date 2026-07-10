@@ -978,6 +978,7 @@ onMounted(() => {
         <thead>
           <tr>
             <th>Confezione</th>
+            <th>Farmaco</th>
             <th>Quantita'</th>
             <th>Soglia</th>
             <th>Scadenza</th>
@@ -986,7 +987,8 @@ onMounted(() => {
         </thead>
         <tbody>
           <tr v-for="batch in stockBatches" :key="batch.id">
-            <td>{{ batchLabel(batch) }}</td>
+            <td>{{ batch.nomeCommerciale || '—' }}</td>
+            <td>{{ drugLabel(batch.drugId) }}</td>
             <td>{{ formatNumber(batch.quantitaAttuale) }}</td>
             <td>{{ formatNumber(batch.sogliaRiordino) }}</td>
             <td>{{ batch.scadenza || '—' }}</td>
@@ -996,7 +998,7 @@ onMounted(() => {
             </td>
           </tr>
           <tr v-if="!hasBatches && !reportLoading">
-            <td colspan="5" class="muted">
+            <td colspan="6" class="muted">
               Nessuna confezione attiva. Aggiungi una confezione dalla sezione Farmaci.
             </td>
           </tr>

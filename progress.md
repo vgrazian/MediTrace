@@ -1,9 +1,29 @@
 # CURRENT STATUS
 
 ## Active Task
-Nessuna attiva. Pipeline completa — 13 PR deployate oggi (2026-07-09).
+Fix build critici e miglioramenti UI — 2026-07-10.
 
-## PR Completate Oggi
+## Fix Completati (2026-07-10)
+
+| # | Descrizione |
+|---|-------------|
+| 1 | **Empty views fix**: TDZ bug in minifier (esbuild/terser). `useKeyboardShortcuts({..., isFormOpen})` chiamato prima della dichiarazione di `const isFormOpen = ref(false)` in 5 viste (Farmaci, Movimenti, Ospiti, Terapie, Residenze). Spostato dopo la dichiarazione. Build config: `minify: 'terser'`. |
+| 2 | **AnalisiLogView**: Fix Axiom query URL (`/v1/query/meditrace` → `/v1/datasets/meditrace/query`) per risolvere errore 404. |
+| 3 | **AuditLogView**: Rinominato "Stato Supabase" → "Stato Applicazione"; aggiunto box stato Axiom; Operatore text input → dropdown con "TUTTI" + lista operatori; aggiunto pulsante "🔬 Diagnostica" per amministratori. |
+| 4 | **ScorteView**: Aggiunta colonna "Farmaco" in "Confezioni Monitorate" per allineamento con tabella scaduti. |
+| 5 | **Seed data**: `Anna Bianchi` → `Anna Maria Cigliano` in seedData.js. |
+| 6 | **Router**: Rinominato `/analisi` → `/diagnostica` (redirect automatico da vecchio path); AppNav aggiornato. |
+| 7 | **AppNav**: Rimosso testo "MediTrace" dalla barra navigazione (mantenuto solo logo). |
+
+## Root Cause: Empty Views (TDZ Bug)
+Le viste lazy-loaded (Farmaci, Movimenti, Ospiti, Terapie, Residenze) avevano `useKeyboardShortcuts({..., isFormOpen})` chiamato PRIMA della dichiarazione `const isFormOpen = ref(false)` nel `<script setup>`. I minifier (sia esbuild che terser) riordinano le dichiarazioni causando `ReferenceError: Cannot access 'qa' before initialization` al setup del componente. Vue Router cattura l'errore e rende `<!---->` (componente vuoto).
+
+**Fix**: Spostato `useKeyboardShortcuts()` DOPO `const isFormOpen = ref(false)` in tutte e 5 le viste.
+
+**Test gap**: I test E2E pre-caricano dati tramite CSV import e non verificano lo stato iniziale delle viste. I test unitari testano solo le funzioni di servizio, non il rendering dei componenti. → Nessun test verifica che le viste si carichino correttamente senza dati pre-popolati.
+
+## CI Configuration (Axiom)
+
 | PR | # | Descrizione |
 |----|---|-------------|
 | PR-LOG-1 | 109 | Axiom logger AES-256-GCM, dashboard analisi, APM |
@@ -23,6 +43,7 @@ Nessuna attiva. Pipeline completa — 13 PR deployate oggi (2026-07-09).
 Nessuno.
 
 ## CI Configuration (Axiom)
+
 | Variabile | Stato |
 |-----------|-------|
 | VITE_AXIOM_TOKEN (Secret) | ✅ xaat-0ea81953... (ingest+query) |

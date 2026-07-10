@@ -17,14 +17,6 @@ import CrudFilterBar from '../components/CrudFilterBar.vue'
 import { db } from '../db'
 import { useKeyboardShortcuts, shortcutHint } from '../composables/useKeyboardShortcuts'
 
-useKeyboardShortcuts({
-  searchPlaceholder: 'Cerca',
-  onNew: () => openAddForm(),
-  onSave: () => { if (isFormOpen.value) handleSave() },
-  onDelete: () => {}, // delete è gestito via conferma esplicita, shortcut 'd' non applicabile
-  isFormOpen,
-})
-
 const { currentUser } = useAuth()
 const { goToHelpSection } = useHelpNavigation()
 const { pendingUndo, scheduleUndo, executeUndo } = useUndoDelete(10_000)
@@ -37,6 +29,15 @@ const filterQuery = ref('')
 
 const residenze = ref([])
 const isFormOpen = ref(false)
+
+useKeyboardShortcuts({
+  searchPlaceholder: 'Cerca',
+  onNew: () => openAddForm(),
+  onSave: () => { if (isFormOpen.value) handleSave() },
+  onDelete: () => {}, // delete è gestito via conferma esplicita, shortcut 'd' non applicabile
+  isFormOpen,
+})
+
 const editId = ref('')
 const editName = ref('')
 

@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest'
 import { helpContent, manualeSezioni } from '../../src/data/helpContent'
 
 const EXPECTED_KEYS = [
-    'home', 'farmaci', 'ospiti', 'stanze', 'scorte',
+    'home', 'farmaci', 'ospiti', 'residenze', 'scorte',
     'movimenti', 'terapie', 'promemoria', 'audit', 'impostazioni',
 ]
 

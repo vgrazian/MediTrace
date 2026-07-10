@@ -1,26 +1,6 @@
 <script setup>
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useKeyboardShortcuts, shortcutHint } from '../composables/useKeyboardShortcuts'
-
-useKeyboardShortcuts({
-  searchPlaceholder: 'Cerca per nome farmaco, principio attivo, confezione o dosaggio',
-  onNew: () => openAddDrugForm(),
-  onSave: () => {
-    if (!isFormOpen.value) return
-    if (panelMode.value === 'create-drug' || panelMode.value === 'edit-drug') createDrug()
-    if (panelMode.value === 'create-batch' || panelMode.value === 'edit-batch') createBatch()
-  },
-  onDelete: () => {
-    if (selectedDrugsCount.value > 0) deleteSelectedDrugs()
-    else if (selectedBatchesCount.value > 0) deleteSelectedBatches()
-  },
-  isFormOpen,
-})
-
-onMounted(() => {
-  void loadData()
-  markFormSnapshot()
-})
 import { db, getSetting, setSetting } from '../db'
 import { useAuth } from '../services/auth'
 import { upsertDrug, deleteDrug, upsertBatch, deactivateBatch, restoreDrug, restoreBatch } from '../services/farmaci'
@@ -94,6 +74,27 @@ const batches = ref([])
 const editingDrugId = ref(null)
 const editingBatchId = ref(null)
 const isFormOpen = ref(false)
+
+useKeyboardShortcuts({
+  searchPlaceholder: 'Cerca per nome farmaco, principio attivo, confezione o dosaggio',
+  onNew: () => openAddDrugForm(),
+  onSave: () => {
+    if (!isFormOpen.value) return
+    if (panelMode.value === 'create-drug' || panelMode.value === 'edit-drug') createDrug()
+    if (panelMode.value === 'create-batch' || panelMode.value === 'edit-batch') createBatch()
+  },
+  onDelete: () => {
+    if (selectedDrugsCount.value > 0) deleteSelectedDrugs()
+    else if (selectedBatchesCount.value > 0) deleteSelectedBatches()
+  },
+  isFormOpen,
+})
+
+onMounted(() => {
+  void loadData()
+  markFormSnapshot()
+})
+
 const panelMode = ref('list')
 const filterQuery = ref('')
 const drugSortBy = ref('nome')

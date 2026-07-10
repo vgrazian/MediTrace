@@ -12,12 +12,13 @@
           </p>
         </div>
         <span class="readonly-pill">Sola lettura</span>
+        <button v-if="currentUser?.role === 'admin'" class="btn-ghost" style="margin-left:.75rem" @click="goToDiagnostica" title=" Dashboard diagnostica sistema e Axiom"> Diagnostica</button>
       </div>
     </div>
 
     <div class="card">
-      <p><strong>Stato Supabase</strong></p>
-      <p class="muted" style="margin-top:.15rem">Connettività e consumo risorse del database cloud.</p>
+      <p><strong>Stato Applicazione</strong></p>
+      <p class="muted" style="margin-top:.15rem">Connettività e consumo risorse del database cloud, stima traffico API e diagnostica Axiom.</p>
 
       <div class="supabase-stats-grid">
         <!-- Connections bar -->
@@ -56,6 +57,13 @@
           </div>
           <div class="supabase-stat-sub">{{ supabaseStats.apiPct }}% del limite giornaliero stimato</div>
         </div>
+
+        <!-- Axiom status -->
+        <div class="supabase-stat">
+          <div class="supabase-stat-label">Axiom Logging</div>
+          <div class="supabase-stat-value">{{ axiomConfigured ? 'Configurato' : 'Non configurato' }}</div>
+          <div class="supabase-stat-sub" style="margin-top:.35rem">{{ axiomConfigured ? 'EU Central · dataset meditrace' : 'Logger degradato a console.warn' }}</div>
+        </div>
       </div>
     </div>
 
@@ -78,12 +86,13 @@
       <div class="audit-filters" style="margin-top:.75rem">
         <label>
           Operatore
-          <input
+          <select
             v-model="filters.operator"
-            type="text"
-            placeholder="es. admin, op-1"
-            @input="applyFilters"
-          />
+            @change="applyFilters"
+          >
+            <option value="">TUTTI</option>
+            <option v-for="op in availableOperators" :key="op" :value="op">{{ op }}</option>
+          </select>
         </label>
 
         <label>
@@ -211,6 +220,7 @@
 
 <script setup>
 import { computed, onMounted, ref } from 'vue'
+import { useRouter } from 'vue-router'
 import {
   buildAuditReferences,
   countAllEvents,
@@ -223,11 +233,16 @@ import {
 } from '../services/auditLog'
 import { useHelpNavigation } from '../composables/useHelpNavigation'
 import { isSupabaseConfigured, supabase } from '../services/supabaseClient'
+import { isAxiomConfigured } from '../services/axiomLogger'
 import { jsPDF } from 'jspdf'
 import autoTable from 'jspdf-autotable'
 import { db, getSetting } from '../db'
 
 const { goToHelpSection } = useHelpNavigation()
+const router = useRouter()
+function goToDiagnostica() { router.push('/diagnostica') }
+const axiomConfigured = ref(isAxiomConfigured())
+const availableOperators = ref([])
 
 // ── Supabase stats ──────────────────────────────────────────────────────
 const supabaseStats = ref({
@@ -347,6 +362,13 @@ async function loadData() {
   const enriched = enrichAuditEvents(events, refs)
   allEvents.value = enriched
   filteredEvents.value = enriched
+
+  // Load unique operators for dropdown
+  const ops = new Set()
+  for (const ev of enriched) {
+    if (ev.operatorId) ops.add(ev.operatorId)
+  }
+  availableOperators.value = [...ops].sort()
 }
 
 function applyFilters() {

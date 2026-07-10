@@ -9,6 +9,10 @@ vi.mock('../../src/db', () => ({
     getSetting: vi.fn(),
 }))
 
+vi.mock('../../src/services/supabaseClient', () => ({
+    isSupabaseConfigured: true,
+}))
+
 describe('useSyncState', () => {
     beforeEach(() => {
         vi.clearAllMocks()

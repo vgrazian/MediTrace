@@ -14,6 +14,13 @@ export default defineConfig({
     // Set VITE_BASE_URL=/medi-trace/ in CI for GitHub Pages; default to / for local dev
     base: process.env.VITE_BASE_URL ?? '/',
 
+    build: {
+        // Use terser instead of esbuild for minification.
+        // esbuild can introduce TDZ (temporal dead zone) bugs in computed
+        // property chains that cause lazy-loaded Vue SFCs to fail silently.
+        minify: 'terser',
+    },
+
     server: {
         // Disable HMR when running E2E tests to prevent the Vite HMR WebSocket from
         // triggering a page reload when network connectivity is simulated as offline.

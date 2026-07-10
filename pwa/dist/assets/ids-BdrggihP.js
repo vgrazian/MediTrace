@@ -1,1 +1,0 @@
-function o(n){const t=Date.now().toString(36),r=Math.random().toString(36).slice(2,10);return`${n}_${t}${r}`}function a(n){var r;const t=String(n||"id").trim().toLowerCase().replace(/[^a-z0-9]+/g,"_")||"id";return(r=globalThis.crypto)!=null&&r.randomUUID?`${t}_${globalThis.crypto.randomUUID()}`:o(t)}export{a as g};

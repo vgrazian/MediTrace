@@ -1,19 +1,6 @@
 <script setup>
 import { onMounted, onUnmounted, ref, computed, watch } from 'vue'
 import { useKeyboardShortcuts, shortcutHint } from '../composables/useKeyboardShortcuts'
-
-useKeyboardShortcuts({
-  searchPlaceholder: 'Cerca per nome, cognome o residenza',
-  onNew: () => openAddForm(),
-  onSave: () => { if (isFormOpen.value) handleSave() },
-  onDelete: () => { if (selectedCount.value > 0) deleteSelectedHosts() },
-  isFormOpen,
-})
-
-onMounted(() => {
-  void loadData()
-  markFormSnapshot()
-})
 import { useAuth } from '../services/auth'
 import { useRouter } from 'vue-router'
 import { buildHostRows, createHost, deleteHost, formatHostDisplay, restoreHost, updateHost } from '../services/ospiti'
@@ -76,6 +63,20 @@ const roomsData = ref([])
 const showAll = ref(false)
 const editingHostId = ref(null)
 const isFormOpen = ref(false)
+
+useKeyboardShortcuts({
+  searchPlaceholder: 'Cerca per nome, cognome o residenza',
+  onNew: () => openAddForm(),
+  onSave: () => { if (isFormOpen.value) handleSave() },
+  onDelete: () => { if (selectedCount.value > 0) deleteSelectedHosts() },
+  isFormOpen,
+})
+
+onMounted(() => {
+  void loadData()
+  markFormSnapshot()
+})
+
 const panelMode = ref('list')
 const filterQuery = ref('')
 const sortBy = ref('nome')

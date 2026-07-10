@@ -57,9 +57,9 @@ const routes = [
         meta: { title: 'Audit Log' },
     },
     {
-        path: '/analisi',
+        path: '/diagnostica',
         component: () => import('../views/AnalisiLogView.vue'),
-        meta: { title: 'Analisi Operazionale' },
+        meta: { title: 'Diagnostica' },
     },
     {
         path: '/operatori',
@@ -74,6 +74,10 @@ const routes = [
     {
         path: '/informazioni',
         redirect: '/manuale',
+    },
+    {
+        path: '/analisi',
+        redirect: '/diagnostica',
     },
     {
         path: '/manuale',

@@ -1,20 +1,6 @@
 <script setup>
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useKeyboardShortcuts, shortcutHint } from '../composables/useKeyboardShortcuts'
-
-useKeyboardShortcuts({
-  searchPlaceholder: 'Cerca per tipo, confezione, ospite o note',
-  onNew: () => openAddForm(),
-  onSave: () => { if (isFormOpen.value) saveMovement() },
-  onDelete: () => { if (selectedCount.value > 0 && canDeleteMovements.value) deleteSelectedMovements() },
-  isFormOpen,
-})
-
-onMounted(() => {
-  form.value.dataMovimento = toLocalDateTimeInput()
-  void loadData()
-  markFormSnapshot()
-})
 import { db } from '../db'
 import { useAuth } from '../services/auth'
 import { restoreMovement, softDeleteMovement, upsertMovement } from '../services/movimenti'
@@ -46,6 +32,21 @@ const therapies = ref([])
 const movements = ref([])
 const editingMovementId = ref(null)
 const isFormOpen = ref(false)
+
+useKeyboardShortcuts({
+  searchPlaceholder: 'Cerca per tipo, confezione, ospite o note',
+  onNew: () => openAddForm(),
+  onSave: () => { if (isFormOpen.value) saveMovement() },
+  onDelete: () => { if (selectedCount.value > 0 && canDeleteMovements.value) deleteSelectedMovements() },
+  isFormOpen,
+})
+
+onMounted(() => {
+  form.value.dataMovimento = toLocalDateTimeInput()
+  void loadData()
+  markFormSnapshot()
+})
+
 const panelMode = ref('list')
 const filterQuery = ref('')
 const sortBy = ref('dataDesc')

@@ -5,7 +5,7 @@ export default defineConfig({
     plugins: [vue()],
     test: {
         environment: 'jsdom',
-        include: ['tests/**/*.test.js', 'tests/**/*.spec.js'],
+        include: ['tests/unit/**/*.test.js', 'tests/unit/**/*.spec.js'],
         setupFiles: ['tests/setup.js'],
     },
 })
