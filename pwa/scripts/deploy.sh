@@ -22,10 +22,10 @@ if [[ ! -f "$PWA_DIR/.env.production.local" ]]; then
   exit 1
 fi
 
-# 2. Build
-echo "[1/3] Build di produzione..."
+# 2. Build (VITE_BASE_URL deve essere sempre /MediTrace/)
+echo "[2/3] Build di produzione..."
 cd "$PWA_DIR"
-npm run build
+VITE_BASE_URL=/MediTrace/ npm run build
 echo ""
 
 # 3. Commit temporaneo del dist (necessario per git subtree split)
