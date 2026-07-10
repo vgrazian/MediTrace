@@ -13,8 +13,10 @@
 import { ref, computed, onMounted } from 'vue'
 import { useAuth } from '../services/auth'
 import { isAxiomConfigured } from '../services/axiomLogger'
+import { useHelpNavigation } from '../composables/useHelpNavigation'
 
 const { currentUser } = useAuth()
+const { goToHelpSection } = useHelpNavigation()
 
 // -- Config Axiom --
 const AXIOM_TOKEN = import.meta.env.VITE_AXIOM_TOKEN || ''
@@ -219,6 +221,7 @@ onMounted(() => {
   <div class="analisi-view">
     <header class="analisi-header">
       <h2>Diagnostica</h2>
+      <button class="btn-help" @click="goToHelpSection('diagnostica')" title="Aiuto su questa pagina">Aiuto</button>
       <p v-if="!configured" class="axiom-warning">
         ⚠️ Axiom non configurato — imposta <code>VITE_AXIOM_TOKEN</code> per attivare l'analisi.
       </p>
@@ -363,6 +366,22 @@ onMounted(() => {
 .analisi-header h2 {
   margin: 0 0 0.5rem;
   font-size: 1.5rem;
+  display: inline;
+}
+
+.btn-help {
+  margin-left: .75rem;
+  padding: .25rem .65rem;
+  font-size: .8rem;
+  background: #e8edf3;
+  border: 1px solid #b0bec5;
+  border-radius: 4px;
+  cursor: pointer;
+  color: #37474f;
+}
+
+.btn-help:hover {
+  background: #cfd8dc;
 }
 
 .axiom-warning {

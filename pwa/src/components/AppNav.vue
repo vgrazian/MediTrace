@@ -2,6 +2,7 @@
 import { ref, onMounted, onUnmounted, computed, nextTick, watch } from 'vue'
 import { useAuth } from '../services/auth'
 import { fullSync } from '../services/sync'
+import { retryQueue, refreshFromServer, isDataServiceAvailable } from '../services/dataService'
 import { isSupabaseConfigured } from '../services/supabaseClient'
 import { db, getSetting, setSetting } from '../db'
 import { useSyncState, SYNC_STATES } from '../composables/useSyncState'
@@ -127,6 +128,20 @@ async function getSyncIntervalMs() {
 async function maybeAutoSync() {
   if (syncInProgress) return
   if (!navigator.onLine) return
+
+  // Use direct Supabase (new) if available, fallback to snapshot sync (legacy)
+  if (isDataServiceAvailable()) {
+    syncInProgress = true
+    try {
+      await retryQueue.flush()        // push local changes
+      await refreshFromServer()       // pull remote changes
+      lastSyncAttempt = Date.now()
+    } catch (_) { }
+    syncInProgress = false
+    return
+  }
+
+  // Legacy snapshot sync
   if (!isSupabaseConfigured) return
 
   // Only sync if there are pending changes
@@ -198,6 +213,13 @@ async function handleSignOut() {
 }
 
 async function handleSync() {
+  if (isDataServiceAvailable()) {
+    try {
+      await retryQueue.flush()
+      await refreshFromServer()
+    } catch { }
+    return
+  }
   if (isSupabaseConfigured) {
     try {
       await fullSync()

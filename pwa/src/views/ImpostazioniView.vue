@@ -148,6 +148,7 @@ const deviceId = ref(null)
 const datasetVersion = ref(null)
 const syncMessage = ref('')
 const repairBusy = ref(false)
+const syncDiag = ref({ syncQueue: 0, hosts: 0, drugs: 0, stockBatches: 0, therapies: 0, movements: 0, reminders: 0, lastSync: '', datasetVersion: 0, conflicts: 0 })
 const syncIntervalMinutes = ref(1)
 const SYNC_INTERVAL_SETTING = 'syncIntervalMinutes'
 const syncQueueThreshold = ref(25)
@@ -605,6 +606,30 @@ async function repairAndSync() {
     syncMessage.value = `Errore riparazione: ${err.message}`
   } finally {
     repairBusy.value = false
+  }
+}
+
+async function refreshDiag() {
+  const tables = ['hosts', 'drugs', 'stockBatches', 'therapies', 'movements', 'reminders']
+  const counts = {}
+  for (const t of tables) {
+    try { counts[t] = (await db[t].filter(r => !r.deletedAt).count()) } catch { counts[t] = -1 }
+  }
+  const sqCount = await db.syncQueue.count()
+  const dv = await getSetting('datasetVersion')
+  const lastSync = await getSetting('lastSyncTime', '')
+  const conflicts = (await listPendingConflicts()).length
+  syncDiag.value = {
+    syncQueue: sqCount,
+    hosts: counts.hosts ?? 0,
+    drugs: counts.drugs ?? 0,
+    stockBatches: counts.stockBatches ?? 0,
+    therapies: counts.therapies ?? 0,
+    movements: counts.movements ?? 0,
+    reminders: counts.reminders ?? 0,
+    lastSync: lastSync || 'mai',
+    datasetVersion: dv ?? 0,
+    conflicts,
   }
 }
 
@@ -1268,6 +1293,23 @@ async function handleCreateUser() {
         La sincronizzazione parte automaticamente quando la coda supera {{ syncQueueThreshold }} operazioni (regolabile 1–100).
       </p>
       <p v-if="syncMessage" class="muted" style="margin-top:.5rem;font-size:.8rem;white-space:pre-line">{{ syncMessage }}</p>
+    </div>
+
+    <!-- Diagnostica sync -->
+    <div class="card">
+      <p>
+        <strong>🔍 Diagnostica Sincronizzazione</strong>
+        <button @click="refreshDiag" style="margin-left:.5rem;font-size:.75rem">Aggiorna</button>
+      </p>
+      <div v-if="syncDiag" style="margin-top:.4rem;font-size:.78rem;font-family:monospace;line-height:1.6">
+        <div>SyncQueue: <strong>{{ syncDiag.syncQueue }}</strong> in coda</div>
+        <div>Dataset v<strong>{{ syncDiag.datasetVersion }}</strong> · Ultimo sync: <strong>{{ syncDiag.lastSync }}</strong></div>
+        <div v-if="syncDiag.conflicts > 0" style="color:#c0392b">⚠ {{ syncDiag.conflicts }} conflitti pendenti</div>
+        <div style="margin-top:.3rem;color:#666">
+          Ospiti: {{ syncDiag.hosts }} · Farmaci: {{ syncDiag.drugs }} · Confezioni: {{ syncDiag.stockBatches }} ·
+          Terapie: {{ syncDiag.therapies }} · Movimenti: {{ syncDiag.movements }} · Promemoria: {{ syncDiag.reminders }}
+        </div>
+      </div>
     </div>
 
     <div class="card">

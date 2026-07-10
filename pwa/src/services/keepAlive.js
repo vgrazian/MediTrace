@@ -20,7 +20,7 @@ const PING_COOLDOWN_HOURS = 23 // ping at most once every 23 hours
 export async function isKeepAliveEnabled() {
     if (!isSupabaseConfigured) return false
     try {
-        return await getSetting(KEEP_ALIVE_SETTING, false)
+        return await getSetting(KEEP_ALIVE_SETTING, true)
     } catch {
         return false
     }
