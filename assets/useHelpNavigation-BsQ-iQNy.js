@@ -1,0 +1,1 @@
+import{e as o,f as n}from"./index-Cby5-V9c.js";function t(){const t=o(),e=n();return{goToHelpSection:function(o){const n=`#${o}`;t.push({path:"/manuale",hash:n,query:{from:e.fullPath,helpFrom:o}})}}}export{t as u};
