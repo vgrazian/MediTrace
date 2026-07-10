@@ -681,8 +681,8 @@ async function ensureDefaultOperators(users) {
             username: DEFAULT_OPERATOR_ANNA_USERNAME,
             password: DEFAULT_OPERATOR_ANNA_PASSWORD,
             email: DEFAULT_OPERATOR_ANNA_EMAIL,
-            firstName: 'Anna',
-            lastName: 'Bianchi',
+            firstName: 'Anna Maria',
+            lastName: 'Cigliano',
             role: 'operator',
         },
     ]
