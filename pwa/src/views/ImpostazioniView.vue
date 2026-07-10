@@ -1032,14 +1032,10 @@ async function handleCreateUser() {
               <th>Telefono</th>
               <th>Email</th>
               <th>Admin</th>
-              <th>Prova</th>
               <th>Disabilitato</th>
               <th>Ultima attività</th>
               <th>Creato il</th>
               <th>Azioni</th>
-              <th>Tipo</th>
-              <th>Stato</th>
-              <th>Azione</th>
             </tr>
           </thead>
           <tbody>
@@ -1057,9 +1053,6 @@ async function handleCreateUser() {
                 />
               </td>
               <td>
-                <span v-if="user.isSeeded" style="color:#b45309;font-weight:bold">✔</span>
-              </td>
-              <td>
                 <span v-if="user.disabled" style="color:#dc2626;font-weight:bold">✔</span>
               </td>
               <td>
@@ -1071,11 +1064,6 @@ async function handleCreateUser() {
               <td style="white-space:nowrap">
                 <button v-if="canManageUsers && user.username !== currentUser?.username && !user.disabled" @click="handleResetPassword(user)">Reset PW</button>
                 <button v-if="canManageUsers && user.username !== currentUser?.username && !user.disabled" @click="handleForceLogout(user)">Logout</button>
-              </td>
-                <p v-if="userRoleMessage" class="muted" style="margin-top:.5rem;font-size:.8rem">{{ userRoleMessage }}</p>
-              <td>{{ user.isSeeded ? 'prova' : 'standard' }}</td>
-              <td>{{ user.disabled ? 'disattivato' : 'attivo' }}</td>
-              <td>
                 <button
                   v-if="user.disabled"
                   :disabled="usersBusy"

@@ -610,7 +610,7 @@ details.add-panel[open] > summary::-webkit-details-marker {
 details.add-panel[open] > div {
   height: calc(100vh - 9.2rem);
   overflow: auto;
-  padding: .85rem 1rem 1.1rem;
+  padding: .85rem 1rem 3rem;
 }
 
 .dataset-frame {

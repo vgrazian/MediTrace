@@ -6,6 +6,7 @@ import HelpDrawer from './components/HelpDrawer.vue'
 import ConfirmDialog from './components/ConfirmDialog.vue'
 import { initAuth, sanitizeEmailInput, sanitizeUsernameInput, useAuth } from './services/auth'
 import { repairUnsyncedSeedData } from './services/seedData'
+import { ensureDefaultResidenze } from './services/residenze'
 import { formatBuildTimestamp, getBuildTimestampIso, getDeployLabel } from './services/buildInfo'
 
 const { currentUser, hasUsers, isInitialized, signIn, register, requestPasswordResetByEmail, supportsEmailReset } = useAuth()
@@ -54,7 +55,7 @@ async function checkCdnStatus() {
   } catch { cdnStatus.value = '' }
 }
 
-onMounted(async () => { await initAuth(); checkCdnStatus(); repairUnsyncedSeedData().catch(() => {}) })
+onMounted(async () => { await initAuth(); checkCdnStatus(); ensureDefaultResidenze().catch(() => {}); repairUnsyncedSeedData().catch(() => {}) })
 
 function handleUsernameInput(event) {
   username.value = sanitizeUsernameInput(event.target.value)

@@ -55,7 +55,8 @@ async function assertResidenzaCapacity({ roomId, excludeHostId = null }) {
 
     const room = await db.rooms?.get?.(safeRoomId)
     if (!room || room.deletedAt) {
-        throw new Error('Residenza selezionata non trovata')
+        console.warn('[ospiti] Residenza', safeRoomId, 'non trovata, salto controllo capacità')
+        return
     }
 
     const allHosts = await (db.hosts?.toArray?.() ?? Promise.resolve([]))
@@ -79,7 +80,8 @@ async function normalizeHostPlacement({ roomId, stanza }) {
 
     const room = await db.rooms?.get?.(safeRoomId)
     if (!room || room.deletedAt) {
-        throw new Error('Residenza selezionata non trovata')
+        // Consenti comunque: la residenza potrebbe non essere ancora sincronizzata
+        return { roomId: safeRoomId, stanza: stanza || '' }
     }
 
     return {
