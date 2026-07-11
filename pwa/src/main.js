@@ -6,7 +6,11 @@ import { startKeepAlive } from './services/keepAlive'
 import { logError } from './services/axiomLogger'
 import { initApm } from './services/apm'
 import { subscribeToRealtime, refreshFromServer } from './services/dataService'
+import { db } from './db'
 import './style.css'
+
+// Esponi db globalmente per debug/test E2E
+if (typeof window !== 'undefined') window.db = db
 
 const app = createApp(App)
 
