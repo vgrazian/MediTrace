@@ -7,7 +7,7 @@ Gestione terapie farmacologiche — offline-first PWA per strutture di assistenz
 ## Caratteristiche
 
 - 📱 **PWA offline-first** — funziona senza connessione, si installa su Android/iOS
-- 🔄 **Sync multi-dispositivo** — Supabase + Google Drive appDataFolder
+- 🔄 **Sync multi-dispositivo** — Supabase Realtime + Direct API
 - 💊 **Gestione farmaci** — catalogo principi attivi, confezioni, scorte, scadenze
 - 👤 **Anagrafica ospiti** — registro, assegnazione residenza, terapie attive
 - ⏰ **Promemoria somministrazioni** — piano terapeutico con orari, esiti, batch picker
@@ -24,9 +24,9 @@ Gestione terapie farmacologiche — offline-first PWA per strutture di assistenz
 | **Stile** | CSS vanilla (NO Tailwind) |
 | **Database locale** | Dexie.js (IndexedDB) |
 | **Auth** | Supabase + fallback locale |
-| **Sync** | Supabase Realtime + Google Drive |
+| **Sync** | Supabase Realtime + Direct API |
 | **PWA** | vite-plugin-pwa (Workbox) |
-| **Test** | Vitest (79 test) + Playwright (e2e) |
+| **Test** | Vitest (487 test) + Playwright (146 e2e) |
 
 ## Sviluppo
 
@@ -35,8 +35,8 @@ cd pwa
 npm install
 npm run dev          # http://localhost:5173
 npm run build        # build
-npm run test:unit    # 79 test
-npm run test:e2e     # playwright
+npm run test:unit    # 487 test
+npm run test:e2e     # playwright (146 test, --workers=1 raccomandato)
 ```
 
 ## Deploy (GitHub Pages)

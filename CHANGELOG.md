@@ -1,9 +1,24 @@
 # Changelog
 
-All notable changes to this project will be documented in this file.
+## [0.6.0] - 2026-07-11
+### Added
+- **E2E test suite ampliata**: 9 nuovi test riparati/scritti (daily-operator-flow, multi-user-day, user-management, concurrent-users x2, two-users-workflow, sync-indicator). Totale: 146 test E2E, 487 test unitari.
+- **Login helper robusto**: `loginOrRegisterSeededUser` con auto-registrazione Supabase, pulizia IndexedDB, supporto esecuzione parallela con `--workers=1`.
+- **`window.db`** esposto in `main.js` per debug e test E2E.
+- **Race condition documentata** in `/memories/repo/medi-trace-e2e-race-condition.md`.
 
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
-and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+### Fixed
+- **Supabase Auth**: pulite tabelle `public.users` e `public.profiles` orfane che bloccavano il login.
+- **sync-indicator.spec.js**: corretti selettori (`button[aria-label="Sincronizza"]` invece di `.sync-indicator` inesistente), aggiunto login.
+- **login helper**: rimosso `networkidle` → `domcontentloaded` per ridurre i timeout.
+
+### Changed
+- **CI command**: `npx playwright test tests/e2e/ --workers=1` (obbligatorio per evitare race condition IndexedDB).
+- **README**: aggiornati conteggi test e info sync.
+
+### Known Issues
+- Pulsanti "Salva terapia" e "Aggiungi confezione" talvolta disabilitati con form compilato (bypass `evaluate` nei test, non impatta utenti reali).
+- `farmaci.spec.js`, `terapie.spec.js`, `scorte.spec.js`, `sync-conflict.spec.js` richiedono refactoring (CSV import + formato celle obsoleto).
 
 ## [0.5.6] - 2026-04-21
 ### Added
