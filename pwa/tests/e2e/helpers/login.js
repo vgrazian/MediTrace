@@ -24,7 +24,7 @@ export async function loginOrRegisterSeededUser(page, options = {}) {
     })
 
     // Ricarica pulita
-    await page.goto(baseUrl, { waitUntil: 'networkidle' })
+    await page.goto(baseUrl, { waitUntil: 'domcontentloaded' })
     await page.waitForTimeout(2000)
 
     // Already authenticated?
@@ -52,8 +52,8 @@ export async function loginOrRegisterSeededUser(page, options = {}) {
     }
 
     // Wait for authenticated UI
-    await page.waitForLoadState('networkidle').catch(() => {})
-    await page.locator('nav').waitFor({ state: 'visible', timeout: 15000 }).catch(() => {})
+    await page.waitForLoadState('networkidle').catch(() => { })
+    await page.locator('nav').waitFor({ state: 'visible', timeout: 15000 }).catch(() => { })
 
     const deadline = Date.now() + 15_000
     while (Date.now() < deadline) {
