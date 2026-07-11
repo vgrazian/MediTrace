@@ -59,29 +59,45 @@ async function getLastDbActivity() {
 }
 
 /**
- * Perform a lightweight ping to Supabase to keep the project alive.
+ * Perform a lightweight write to Supabase to keep the project alive.
+ * Uses a dedicated keep-alive upsert — more reliable than a read query.
+ * Retries up to 3 times with exponential backoff.
  */
 async function pingSupabase() {
-    if (!isSupabaseConfigured) return false
-    try {
-        // Simple lightweight query
-        const { error } = await supabase
-            .from('sync_files')
-            .select('name', { count: 'exact', head: true })
-            .limit(1)
+    if (!isSupabaseConfigured || !supabase) return false
 
-        if (error) {
-            console.warn('[keepAlive] Ping error:', error.message)
+    const maxRetries = 3
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        try {
+            const { error } = await supabase
+                .from('sync_files')
+                .upsert({
+                    name: '_keep_alive',
+                    content: { lastPing: new Date().toISOString() },
+                    updated_at: new Date().toISOString(),
+                }, { onConflict: 'name' })
+
+            if (error) {
+                if (attempt < maxRetries) {
+                    await new Promise(r => setTimeout(r, Math.pow(2, attempt) * 1000))
+                    continue
+                }
+                console.warn('[keepAlive] Ping error after retries:', error.message)
+                return false
+            }
+
+            await setSetting(LAST_ALIVE_PING, new Date().toISOString())
+            return true
+        } catch (err) {
+            if (attempt < maxRetries) {
+                await new Promise(r => setTimeout(r, Math.pow(2, attempt) * 1000))
+                continue
+            }
+            console.warn('[keepAlive] Ping failed after retries:', err.message)
             return false
         }
-
-        await setSetting(LAST_ALIVE_PING, new Date().toISOString())
-        console.log('[keepAlive] Ping successful')
-        return true
-    } catch (err) {
-        console.warn('[keepAlive] Ping failed:', err.message)
-        return false
     }
+    return false
 }
 
 /**

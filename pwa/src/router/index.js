@@ -97,6 +97,23 @@ const router = createRouter({
     routes,
 })
 
+// Admin-only route guard
+router.beforeEach((to, _from, next) => {
+    if (to.meta.requiresAdmin) {
+        // Check admin role from localStorage session (available before Vue mounts)
+        try {
+            const sessionRaw = localStorage.getItem('meditrace_auth_session')
+            if (sessionRaw) {
+                const session = JSON.parse(sessionRaw)
+                if (session?.role === 'admin') { next(); return }
+            }
+        } catch { /* proceed to redirect */ }
+        next('/')
+        return
+    }
+    next()
+})
+
 router.onError((error) => {
     const message = String(error?.message || '')
     const isChunkLoadError =
