@@ -142,6 +142,6 @@ test.describe('Navigation smoke test', () => {
 
     test('Impostazioni tab', async ({ page }) => {
         await navigateTo(page, 'Impostazioni')
-        await expect(page.locator('text=Stato Applicazione').or(page.locator('text=Keep-Alive'))).toBeVisible({ timeout: 5000 })
+        await expect(page.locator('text=Keep-Alive')).toBeVisible({ timeout: 5000 })
     })
 })
