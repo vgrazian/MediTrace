@@ -386,15 +386,8 @@ export async function loadDemoData(options = {}) {
             if (availableStores.has('reminders')) for (const record of DEMO_REMINDERS) await db.reminders.put(record)
         })
 
-        // Enqueue all seed records for sync to Supabase so other devices can pull them
-        const enqueueAll = []
-        if (availableStores.has('hosts')) for (const r of patchedHosts) enqueueAll.push(enqueue('hosts', r.id, 'upsert'))
-        if (availableStores.has('drugs')) for (const r of DEMO_DRUGS) enqueueAll.push(enqueue('drugs', r.id, 'upsert'))
-        if (availableStores.has('stockBatches')) for (const r of DEMO_STOCK_BATCHES) enqueueAll.push(enqueue('stockBatches', r.id, 'upsert'))
-        if (availableStores.has('therapies')) for (const r of DEMO_THERAPIES) enqueueAll.push(enqueue('therapies', r.id, 'upsert'))
-        if (availableStores.has('movements')) for (const r of DEMO_MOVEMENTS) enqueueAll.push(enqueue('movements', r.id, 'upsert'))
-        if (availableStores.has('reminders')) for (const r of DEMO_REMINDERS) enqueueAll.push(enqueue('reminders', r.id, 'upsert'))
-        await Promise.all(enqueueAll)
+        // Notify UI that data has changed
+        window.dispatchEvent(new CustomEvent('medi-trace:data-changed', { detail: { table: 'hosts' } }))
     }
 
     await setSetting(DEMO_MANIFEST_KEY, {
