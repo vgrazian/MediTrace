@@ -182,7 +182,14 @@ async function maybeAutoSync() {
 
 onMounted(() => {
   loadCurrentResidenza()
+  loadAvailableResidenze()
+  // Retry after short delay to catch residences from ensureDefaultResidenze
+  setTimeout(() => { loadAvailableResidenze() }, 2000)
+  setTimeout(() => { loadAvailableResidenze() }, 5000)
   document.addEventListener('click', closeResidenzaDropdown)
+  // Reload residences on any data change
+  window.addEventListener('medi-trace:local-change', loadAvailableResidenze)
+  window.addEventListener('medi-trace:data-changed', loadAvailableResidenze)
   if (isSupabaseConfigured) {
     // Check every 30 seconds; debounce prevents sync during active edits
     periodicTimer = setInterval(maybeAutoSync, 30_000)
@@ -198,6 +205,8 @@ onMounted(() => {
 onUnmounted(() => {
   if (periodicTimer) clearInterval(periodicTimer)
   window.removeEventListener('medi-trace:local-change', onLocalChange)
+  window.removeEventListener('medi-trace:local-change', loadAvailableResidenze)
+  window.removeEventListener('medi-trace:data-changed', loadAvailableResidenze)
   document.removeEventListener('click', closeResidenzaDropdown)
 })
 // ── End periodic sync ────────────────────────────────────────────────────────

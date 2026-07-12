@@ -155,6 +155,9 @@ export async function upsertRecord(table, record) {
 
             // Cache in IndexedDB
             await db[table].put({ ...data, _fromServer: true })
+            window.dispatchEvent(new CustomEvent('medi-trace:data-changed', {
+                detail: { table, eventType: 'UPSERT', id: data.id }
+            }))
             return data
         } catch (err) {
             // Server failed → save locally for retry
