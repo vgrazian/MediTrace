@@ -7,6 +7,7 @@ import ConfirmDialog from './components/ConfirmDialog.vue'
 import { initAuth, sanitizeEmailInput, sanitizeUsernameInput, useAuth } from './services/auth'
 import { repairUnsyncedSeedData } from './services/seedData'
 import { ensureDefaultResidenze } from './services/residenze'
+import { retryQueue, isDataServiceAvailable } from './services/dataService'
 import { formatBuildTimestamp, getBuildTimestampIso, getDeployLabel } from './services/buildInfo'
 
 const { currentUser, hasUsers, isInitialized, signIn, register, requestPasswordResetByEmail, supportsEmailReset } = useAuth()
@@ -55,7 +56,16 @@ async function checkCdnStatus() {
   } catch { cdnStatus.value = '' }
 }
 
-onMounted(async () => { await initAuth(); checkCdnStatus(); await ensureDefaultResidenze().catch(() => {}); repairUnsyncedSeedData().catch(() => {}) })
+onMounted(async () => {
+  await initAuth()
+  checkCdnStatus()
+  await ensureDefaultResidenze().catch(() => {})
+  // Flush any pending items from init (e.g., default residences created offline)
+  if (isDataServiceAvailable() && navigator.onLine) {
+    retryQueue.flush().catch(() => {})
+  }
+  repairUnsyncedSeedData().catch(() => {})
+})
 
 function handleUsernameInput(event) {
   username.value = sanitizeUsernameInput(event.target.value)
@@ -171,7 +181,7 @@ async function handleRegister() {
 
       <div v-else class="login-screen">
         <div class="login-logo">
-          <img :src="logoSrc" alt="MediTrace" width="200" height="109" />
+          <img :src="logoSrc" alt="MediTrace" width="230" height="95" />
         </div>
         <h1>MediTrace</h1>
         <p>Accesso con utenza e password</p>
