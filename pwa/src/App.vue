@@ -181,7 +181,7 @@ async function handleRegister() {
 
       <div v-else class="login-screen">
         <div class="login-logo">
-          <img :src="logoSrc" alt="MediTrace" width="230" height="95" />
+          <img :src="logoSrc" alt="MediTrace" width="220" height="120" />
         </div>
         <h1>MediTrace</h1>
         <p>Accesso con utenza e password</p>
