@@ -314,63 +314,61 @@ export async function markReminder({ reminderId, outcome, operatorId = null, not
         syncStatus: 'synced',
     }
 
-    await db.transaction('rw', db.reminders, db.activityLog, db.movements, db.stockBatches, db.therapies, async () => {
-        await upsertRecord('reminders', updated)
+    await upsertRecord('reminders', updated)
 
-        // Se ESEGUITO, deducere dal magazzino
-        if (outcome === 'ESEGUITO') {
-            const therapy = await db.therapies.get(existing.therapyId)
-            if (therapy && !therapy.deletedAt) {
-                const dosePerSomministrazione = therapy.dosePerSomministrazione ?? 1
+    // Se ESEGUITO, deducere dal magazzino
+    if (outcome === 'ESEGUITO') {
+        const therapy = await db.therapies.get(existing.therapyId)
+        if (therapy && !therapy.deletedAt) {
+            const dosePerSomministrazione = therapy.dosePerSomministrazione ?? 1
 
-                // Trovare batch di magazzino per il farmaco
-                const batches = await db.stockBatches
-                    .where('drugId')
-                    .equals(therapy.drugId)
-                    .toArray()
-                const activeBatches = batches.filter(b => !b.deletedAt && b.quantitaAttuale > 0)
-                const batchDaScarico = batchId
-                    ? activeBatches.find(b => b.id === batchId)
-                    : activeBatches[0]
+            // Trovare batch di magazzino per il farmaco
+            const batches = await db.stockBatches
+                .where('drugId')
+                .equals(therapy.drugId)
+                .toArray()
+            const activeBatches = batches.filter(b => !b.deletedAt && b.quantitaAttuale > 0)
+            const batchDaScarico = batchId
+                ? activeBatches.find(b => b.id === batchId)
+                : activeBatches[0]
 
-                if (batchDaScarico) {
-                    const newQty = Math.max(0, batchDaScarico.quantitaAttuale - dosePerSomministrazione)
-                    const updatedBatch = {
-                        ...batchDaScarico,
-                        quantitaAttuale: newQty,
-                        updatedAt: now,
-                        syncStatus: 'synced',
-                    }
-                    await upsertRecord('stockBatches', updatedBatch)
-
-                    // Creare movimento SOMMINISTRAZIONE
-                    const movement = {
-                        id: `__movement_${reminderId}_${now.replace(/[^0-9]/g, '')}`,
-                        type: 'SOMMINISTRAZIONE',
-                        drugId: therapy.drugId,
-                        batchId: batchDaScarico.id,
-                        quantita: dosePerSomministrazione,
-                        hostId: existing.hostId,
-                        therapyId: existing.therapyId,
-                        reminderId: reminderId,
-                        note: `Somministrazione registrata: ${existing.note || 'somministrazione'}`,
-                        createdAt: now,
-                        createdBy: operatorId ?? 'system',
-                        syncStatus: 'synced',
-                    }
-                    await upsertRecord('movements', movement)
+            if (batchDaScarico) {
+                const newQty = Math.max(0, batchDaScarico.quantitaAttuale - dosePerSomministrazione)
+                const updatedBatch = {
+                    ...batchDaScarico,
+                    quantitaAttuale: newQty,
+                    updatedAt: now,
+                    syncStatus: 'synced',
                 }
+                await upsertRecord('stockBatches', updatedBatch)
+
+                // Creare movimento SOMMINISTRAZIONE
+                const movement = {
+                    id: `__movement_${reminderId}_${now.replace(/[^0-9]/g, '')}`,
+                    type: 'SOMMINISTRAZIONE',
+                    drugId: therapy.drugId,
+                    batchId: batchDaScarico.id,
+                    quantita: dosePerSomministrazione,
+                    hostId: existing.hostId,
+                    therapyId: existing.therapyId,
+                    reminderId: reminderId,
+                    note: `Somministrazione registrata: ${existing.note || 'somministrazione'}`,
+                    createdAt: now,
+                    createdBy: operatorId ?? 'system',
+                    syncStatus: 'synced',
+                }
+                await upsertRecord('movements', movement)
             }
         }
+    }
 
-        await db.activityLog.add({
-            entityType: 'reminders',
-            entityId: reminderId,
-            action: `reminder_${outcome.toLowerCase()}`,
-            deviceId,
-            operatorId,
-            ts: now,
-        })
+    await db.activityLog.add({
+        entityType: 'reminders',
+        entityId: reminderId,
+        action: `reminder_${outcome.toLowerCase()}`,
+        deviceId,
+        operatorId,
+        ts: now,
     })
 
     return updated

@@ -203,16 +203,14 @@ export async function createHost({
         syncStatus: 'synced',
     }
 
-    await db.transaction('rw', db.hosts, db.activityLog, async () => {
-        await upsertRecord('hosts', record)
-        await db.activityLog.add({
-            entityType: 'hosts',
-            entityId: record.id,
-            action: 'host_created',
-            deviceId,
-            operatorId: operatorId ?? null,
-            ts: now,
-        })
+    await upsertRecord('hosts', record)
+    await db.activityLog.add({
+        entityType: 'hosts',
+        entityId: record.id,
+        action: 'host_created',
+        deviceId,
+        operatorId: operatorId ?? null,
+        ts: now,
     })
 
     return record

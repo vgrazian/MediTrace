@@ -65,16 +65,14 @@ export async function upsertTherapy({
 
     const deviceId = await getSetting('deviceId', 'unknown')
 
-    await db.transaction('rw', db.therapies, db.activityLog, async () => {
-        await upsertRecord('therapies', record)
-        await db.activityLog.add({
-            entityType: 'therapies',
-            entityId: record.id,
-            action: existing ? 'therapy_updated' : 'therapy_created',
-            deviceId,
-            operatorId,
-            ts: now,
-        })
+    await upsertRecord('therapies', record)
+    await db.activityLog.add({
+        entityType: 'therapies',
+        entityId: record.id,
+        action: existing ? 'therapy_updated' : 'therapy_created',
+        deviceId,
+        operatorId,
+        ts: now,
     })
 
     return record

@@ -89,16 +89,14 @@ export async function upsertDrug({
 
     const deviceId = await getSetting('deviceId', 'unknown')
 
-    await db.transaction('rw', db.drugs, db.activityLog, async () => {
-        await upsertRecord('drugs', record)
-        await db.activityLog.add({
-            entityType: 'drugs',
-            entityId: record.id,
-            action: existing ? 'drug_updated' : 'drug_created',
-            deviceId,
-            operatorId,
-            ts: now,
-        })
+    await upsertRecord('drugs', record)
+    await db.activityLog.add({
+        entityType: 'drugs',
+        entityId: record.id,
+        action: existing ? 'drug_updated' : 'drug_created',
+        deviceId,
+        operatorId,
+        ts: now,
     })
 
     return record
@@ -238,16 +236,14 @@ export async function upsertBatch({
 
     const deviceId = await getSetting('deviceId', 'unknown')
 
-    await db.transaction('rw', db.stockBatches, db.activityLog, async () => {
-        await upsertRecord('stockBatches', record)
-        await db.activityLog.add({
-            entityType: 'stockBatches',
-            entityId: record.id,
-            action: existing ? 'stock_batch_updated' : 'stock_batch_created',
-            deviceId,
-            operatorId,
-            ts: now,
-        })
+    await upsertRecord('stockBatches', record)
+    await db.activityLog.add({
+        entityType: 'stockBatches',
+        entityId: record.id,
+        action: existing ? 'stock_batch_updated' : 'stock_batch_created',
+        deviceId,
+        operatorId,
+        ts: now,
     })
 
     return record

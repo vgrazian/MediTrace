@@ -224,16 +224,14 @@ export async function createResidenza({ codice, note = '', maxOspiti = DEFAULT_M
         syncStatus: 'synced',
     }
 
-    await db.transaction('rw', db.rooms, db.activityLog, async () => {
-        await upsertRecord('rooms', record)
-        await db.activityLog.add({
-            entityType: 'rooms',
-            entityId: record.id,
-            action: 'room_created',
-            deviceId,
-            operatorId,
-            ts: now,
-        })
+    await upsertRecord('rooms', record)
+    await db.activityLog.add({
+        entityType: 'rooms',
+        entityId: record.id,
+        action: 'room_created',
+        deviceId,
+        operatorId,
+        ts: now,
     })
 
     return record
@@ -272,16 +270,14 @@ export async function updateResidenza({ roomId, codice, note = '', maxOspiti = D
         piano: existing.piano ?? '',
     }
 
-    await db.transaction('rw', db.rooms, db.activityLog, async () => {
-        await upsertRecord('rooms', record)
-        await db.activityLog.add({
-            entityType: 'rooms',
-            entityId: record.id,
-            action: 'room_updated',
-            deviceId,
-            operatorId,
-            ts: now,
-        })
+    await upsertRecord('rooms', record)
+    await db.activityLog.add({
+        entityType: 'rooms',
+        entityId: record.id,
+        action: 'room_updated',
+        deviceId,
+        operatorId,
+        ts: now,
     })
 
     return record
@@ -336,16 +332,14 @@ export async function deactivateResidenza({ roomId, operatorId = null }) {
         syncStatus: 'synced',
     }
 
-    await db.transaction('rw', db.rooms, db.activityLog, async () => {
-        await upsertRecord('rooms', record)
-        await db.activityLog.add({
-            entityType: 'rooms',
-            entityId: record.id,
-            action: 'room_deactivated',
-            deviceId,
-            operatorId,
-            ts: now,
-        })
+    await upsertRecord('rooms', record)
+    await db.activityLog.add({
+        entityType: 'rooms',
+        entityId: record.id,
+        action: 'room_deactivated',
+        deviceId,
+        operatorId,
+        ts: now,
     })
 
     return record
@@ -368,16 +362,14 @@ export async function restoreResidenza({ roomId, existing, operatorId = null }) 
         syncStatus: 'synced',
     }
 
-    await db.transaction('rw', db.rooms, db.activityLog, async () => {
-        await upsertRecord('rooms', record)
-        await db.activityLog.add({
-            entityType: 'rooms',
-            entityId: record.id,
-            action: 'room_restored',
-            deviceId,
-            operatorId,
-            ts: now,
-        })
+    await upsertRecord('rooms', record)
+    await db.activityLog.add({
+        entityType: 'rooms',
+        entityId: record.id,
+        action: 'room_restored',
+        deviceId,
+        operatorId,
+        ts: now,
     })
 
     return record
