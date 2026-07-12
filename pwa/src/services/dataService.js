@@ -141,9 +141,10 @@ export async function upsertRecord(table, record) {
         id: record.id || crypto.randomUUID(),
         updatedAt: record.updatedAt || now,
     }
+    const online = navigator.onLine && isSupabaseConfigured && supabase
 
     // Try Supabase first
-    if (isSupabaseConfigured && supabase && navigator.onLine) {
+    if (online) {
         try {
             const { data, error } = await supabase
                 .from(table)
@@ -160,16 +161,23 @@ export async function upsertRecord(table, record) {
             }))
             return data
         } catch (err) {
-            // Server failed → save locally for retry
-            console.warn(`[dataService] upsert ${table} failed, offline queue:`, err.message)
+            console.warn(`[dataService] upsert ${table} failed:`, err.message)
+            // Fall through to save locally
         }
     }
 
-    // Offline path
-    normalized.syncStatus = 'pending'
-    normalized._offline = true
-    await db[table].put(normalized)
-    await retryQueue.add({ entityType: table, entityId: normalized.id, operation: 'upsert' })
+    if (!navigator.onLine || !isSupabaseConfigured) {
+        // Truly offline — queue for later sync
+        normalized.syncStatus = 'pending'
+        normalized._offline = true
+        await db[table].put(normalized)
+        await retryQueue.add({ entityType: table, entityId: normalized.id, operation: 'upsert' })
+    } else {
+        // Online but Supabase failed — save locally, will retry on next periodic sync
+        normalized.syncStatus = 'synced'
+        normalized._offline = false
+        await db[table].put(normalized)
+    }
     return normalized
 }
 
@@ -196,12 +204,13 @@ export async function deleteRecord(table, id) {
     }
 
     // Always update IndexedDB
+    const isOffline = !navigator.onLine || !isSupabaseConfigured
     const existing = await db[table].get(id)
     if (existing) {
-        await db[table].put({ ...existing, deletedAt: now, updatedAt: now, syncStatus: 'pending', _offline: !navigator.onLine })
+        await db[table].put({ ...existing, deletedAt: now, updatedAt: now, syncStatus: isOffline ? 'pending' : 'synced', _offline: isOffline })
     }
 
-    if (!navigator.onLine || !isSupabaseConfigured) {
+    if (isOffline) {
         await retryQueue.add({ entityType: table, entityId: id, operation: 'upsert' })
     }
 }
