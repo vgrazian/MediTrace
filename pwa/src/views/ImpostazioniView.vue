@@ -124,6 +124,7 @@ onMounted(async () => {
   await loadFasceOrarie()
   await loadAvailableRooms()
 })
+
   <script setup>
 import { computed, ref, onMounted, watch } from 'vue'
 import { suggestUsernameFromName, useAuth } from '../services/auth'
