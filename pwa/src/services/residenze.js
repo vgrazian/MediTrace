@@ -1,5 +1,6 @@
 import { db, enqueue, getSetting } from '../db'
 import { generateEntityId } from './ids'
+import { upsertRecord } from './dataService'
 
 export const DEFAULT_RESIDENZE = [
     { codice: 'Il Rifugio', maxOspiti: 5, note: 'Casa alloggio attiva (5 ospiti target)' },
@@ -119,12 +120,12 @@ async function _ensureDefaultResidenze({ operatorId = null } = {}) {
             const hosts = await db.hosts.toArray()
             const hostsOnLegacy = hosts.filter(h => !h.deletedAt && h.roomId === legacyDemo.id)
             for (const host of hostsOnLegacy) {
-                await db.hosts.put({ ...host, roomId: newDemo.id, updatedAt: now, syncStatus: 'pending' })
+                await db.hosts.put({ ...host, roomId: newDemo.id, updatedAt: now, syncStatus: 'synced' })
             }
-            await db.rooms.put({ id: legacyDemo.id, codice: legacyDemo.codice, note: legacyDemo.note ?? '', metadata: legacyDemo.metadata ?? {}, reparto: legacyDemo.reparto ?? '', piano: legacyDemo.piano ?? '', deletedAt: now, updatedAt: now, syncStatus: 'pending' })
+            await db.rooms.put({ id: legacyDemo.id, codice: legacyDemo.codice, note: legacyDemo.note ?? '', metadata: legacyDemo.metadata ?? {}, reparto: legacyDemo.reparto ?? '', piano: legacyDemo.piano ?? '', deletedAt: now, updatedAt: now, syncStatus: 'synced' })
         } else {
             // Only legacy exists — rename it
-            await db.rooms.put({ id: legacyDemo.id, codice: 'Demo', note: legacyDemo.note ?? '', metadata: legacyDemo.metadata ?? {}, reparto: legacyDemo.reparto ?? '', piano: legacyDemo.piano ?? '', updatedAt: now, syncStatus: 'pending' })
+            await db.rooms.put({ id: legacyDemo.id, codice: 'Demo', note: legacyDemo.note ?? '', metadata: legacyDemo.metadata ?? {}, reparto: legacyDemo.reparto ?? '', piano: legacyDemo.piano ?? '', updatedAt: now, syncStatus: 'synced' })
         }
     }
 
@@ -142,10 +143,10 @@ async function _ensureDefaultResidenze({ operatorId = null } = {}) {
             // Reassign any hosts on this dupe to keeper
             for (const host of hosts) {
                 if (!host.deletedAt && host.roomId === dupe.id) {
-                    await db.hosts.put({ ...host, roomId: keeper.id, updatedAt: now, syncStatus: 'pending' })
+                    await db.hosts.put({ ...host, roomId: keeper.id, updatedAt: now, syncStatus: 'synced' })
                 }
             }
-            await db.rooms.put({ id: dupe.id, codice: dupe.codice, note: dupe.note ?? '', metadata: dupe.metadata ?? {}, reparto: dupe.reparto ?? '', piano: dupe.piano ?? '', deletedAt: now, updatedAt: now, syncStatus: 'pending' })
+            await db.rooms.put({ id: dupe.id, codice: dupe.codice, note: dupe.note ?? '', metadata: dupe.metadata ?? {}, reparto: dupe.reparto ?? '', piano: dupe.piano ?? '', deletedAt: now, updatedAt: now, syncStatus: 'synced' })
         }
     }
 
@@ -220,12 +221,11 @@ export async function createResidenza({ codice, note = '', maxOspiti = DEFAULT_M
         },
         updatedAt: now,
         deletedAt: null,
-        syncStatus: 'pending',
+        syncStatus: 'synced',
     }
 
-    await db.transaction('rw', db.rooms, db.syncQueue, db.activityLog, async () => {
-        await db.rooms.put(record)
-        await enqueue('rooms', record.id, 'upsert')
+    await db.transaction('rw', db.rooms, db.activityLog, async () => {
+        await upsertRecord('rooms', record)
         await db.activityLog.add({
             entityType: 'rooms',
             entityId: record.id,
@@ -266,15 +266,14 @@ export async function updateResidenza({ roomId, codice, note = '', maxOspiti = D
         },
         updatedAt: now,
         deletedAt: existing.deletedAt,
-        syncStatus: 'pending',
+        syncStatus: 'synced',
         // Preserve legacy fields from older schema versions
         reparto: existing.reparto ?? '',
         piano: existing.piano ?? '',
     }
 
-    await db.transaction('rw', db.rooms, db.syncQueue, db.activityLog, async () => {
-        await db.rooms.put(record)
-        await enqueue('rooms', record.id, 'upsert')
+    await db.transaction('rw', db.rooms, db.activityLog, async () => {
+        await upsertRecord('rooms', record)
         await db.activityLog.add({
             entityType: 'rooms',
             entityId: record.id,
@@ -311,7 +310,7 @@ export async function deactivateResidenza({ roomId, operatorId = null }) {
     if (activeBeds.length > 0) {
         await db.transaction('rw', db.beds, db.syncQueue, db.activityLog, async () => {
             for (const bed of activeBeds) {
-                const record = { ...bed, deletedAt: now, updatedAt: now, syncStatus: 'pending' }
+                const record = { ...bed, deletedAt: now, updatedAt: now, syncStatus: 'synced' }
                 await db.beds.put(record)
                 await enqueue('beds', record.id, 'upsert')
                 await db.activityLog.add({
@@ -335,12 +334,11 @@ export async function deactivateResidenza({ roomId, operatorId = null }) {
         piano: room.piano ?? '',
         deletedAt: now,
         updatedAt: now,
-        syncStatus: 'pending',
+        syncStatus: 'synced',
     }
 
-    await db.transaction('rw', db.rooms, db.syncQueue, db.activityLog, async () => {
-        await db.rooms.put(record)
-        await enqueue('rooms', record.id, 'upsert')
+    await db.transaction('rw', db.rooms, db.activityLog, async () => {
+        await upsertRecord('rooms', record)
         await db.activityLog.add({
             entityType: 'rooms',
             entityId: record.id,
@@ -368,12 +366,11 @@ export async function restoreResidenza({ roomId, existing, operatorId = null }) 
         piano: existing.piano ?? '',
         deletedAt: null,
         updatedAt: now,
-        syncStatus: 'pending',
+        syncStatus: 'synced',
     }
 
-    await db.transaction('rw', db.rooms, db.syncQueue, db.activityLog, async () => {
-        await db.rooms.put(record)
-        await enqueue('rooms', record.id, 'upsert')
+    await db.transaction('rw', db.rooms, db.activityLog, async () => {
+        await upsertRecord('rooms', record)
         await db.activityLog.add({
             entityType: 'rooms',
             entityId: record.id,

@@ -37,7 +37,11 @@ const syncColor = computed(() => {
 })
 
 async function loadCurrentResidenza() {
-  const savedId = await getSetting(CURRENT_RESIDENZA_SETTING_KEY, '')
+  // Leggi da IndexedDB, con fallback a localStorage
+  let savedId = await getSetting(CURRENT_RESIDENZA_SETTING_KEY, '')
+  if (!savedId && typeof localStorage !== 'undefined') {
+    savedId = localStorage.getItem('medi-residenza') || ''
+  }
   currentResidenzaId.value = String(savedId || '')
   if (currentResidenzaId.value) {
     try {
@@ -79,6 +83,9 @@ function toggleResidenzaDropdown() {
 
 async function selectResidenza(roomId) {
   await setSetting(CURRENT_RESIDENZA_SETTING_KEY, roomId)
+  if (typeof localStorage !== 'undefined') {
+    localStorage.setItem('medi-residenza', String(roomId))
+  }
   currentResidenzaId.value = roomId
   const room = availableResidenze.value.find(r => r.id === roomId)
   currentResidenzaLabel.value = room?.label || roomId
