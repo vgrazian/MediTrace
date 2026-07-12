@@ -8,6 +8,7 @@ import { initAuth, sanitizeEmailInput, sanitizeUsernameInput, useAuth } from './
 import { repairUnsyncedSeedData } from './services/seedData'
 import { ensureDefaultResidenze } from './services/residenze'
 import { retryQueue, isDataServiceAvailable } from './services/dataService'
+import { db, getSetting, setSetting } from './db'
 import { formatBuildTimestamp, getBuildTimestampIso, getDeployLabel } from './services/buildInfo'
 
 const { currentUser, hasUsers, isInitialized, signIn, register, requestPasswordResetByEmail, supportsEmailReset } = useAuth()
@@ -60,12 +61,30 @@ onMounted(async () => {
   await initAuth()
   checkCdnStatus()
   await ensureDefaultResidenze().catch(() => {})
+  await ensureDefaultFasceOrarie()
   // Flush any pending items from init (e.g., default residences created offline)
   if (isDataServiceAvailable() && navigator.onLine) {
     retryQueue.flush().catch(() => {})
   }
   repairUnsyncedSeedData().catch(() => {})
 })
+
+const FASCE_ORARIE_KEY = 'fasceOrarieConfig'
+const DEFAULT_FASCE_ORARIE = [
+  { nome: 'Mattina', inizio: '06:00', fine: '11:59' },
+  { nome: 'Pomeriggio', inizio: '12:00', fine: '17:59' },
+  { nome: 'Sera', inizio: '18:00', fine: '23:59' },
+  { nome: 'Notte', inizio: '00:00', fine: '05:59' },
+]
+
+async function ensureDefaultFasceOrarie() {
+  try {
+    const existing = await getSetting(FASCE_ORARIE_KEY, null)
+    if (!Array.isArray(existing) || existing.length === 0) {
+      await setSetting(FASCE_ORARIE_KEY, JSON.parse(JSON.stringify(DEFAULT_FASCE_ORARIE)))
+    }
+  } catch { /* ignore */ }
+}
 
 function handleUsernameInput(event) {
   username.value = sanitizeUsernameInput(event.target.value)
