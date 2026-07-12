@@ -210,7 +210,10 @@ a.btn:active:not(:disabled) {
 }
 .brand-mark {
   width: auto;
-  height: 2rem;
+  height: 1.8rem;
+  padding: 2px 4px;
+  background: #fff;
+  border-radius: 6px;
   filter: drop-shadow(0 2px 6px rgba(8, 17, 35, 0.4));
 }
 .brand-title {
@@ -688,8 +691,8 @@ details.add-panel[open] > div {
   width: 300px;
   height: 120px;
   border-radius: 1.5rem;
-  background: #1a2e4f;
-  box-shadow: 0 8px 24px rgba(9, 30, 53, 0.25);
+  background: #ffffff;
+  box-shadow: 0 8px 24px rgba(9, 30, 53, 0.15);
 }
 .login-screen p { color: var(--muted); }
 /* ── credentials auth form ── */
@@ -1162,7 +1165,7 @@ details[open] .help-section-title::before { content: '▼ '; }
 @media (max-width: 600px) {
   .app-nav { gap: .5rem; }
   .app-nav a { font-size: .8rem; }
-  .brand-mark { width: auto; height: 1.75rem; }
+  .brand-mark { width: auto; height: 1.6rem; padding: 1px 3px; }
   .brand-title {
     display: block;
     font-size: 1.05rem;
