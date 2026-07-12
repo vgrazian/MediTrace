@@ -79,9 +79,25 @@ const DEFAULT_FASCE_ORARIE = [
 
 async function ensureDefaultFasceOrarie() {
   try {
+    // Global default
     const existing = await getSetting(FASCE_ORARIE_KEY, null)
     if (!Array.isArray(existing) || existing.length === 0) {
       await setSetting(FASCE_ORARIE_KEY, JSON.parse(JSON.stringify(DEFAULT_FASCE_ORARIE)))
+    }
+    // Per-residence: ensure Demo has different fasce for demo purposes
+    const rooms = await db.rooms.toArray()
+    const demoRoom = rooms.find(r => !r.deletedAt && String(r.codice || '').trim().toLowerCase() === 'demo')
+    if (demoRoom) {
+      const demoKey = `${FASCE_ORARIE_KEY}:${demoRoom.id}`
+      const demoExisting = await getSetting(demoKey, null)
+      if (!Array.isArray(demoExisting) || demoExisting.length === 0) {
+        await setSetting(demoKey, [
+          { nome: 'Mattino', inizio: '07:00', fine: '11:59' },
+          { nome: 'Pomeriggio', inizio: '12:00', fine: '17:59' },
+          { nome: 'Sera', inizio: '18:00', fine: '22:59' },
+          { nome: 'Notte', inizio: '23:00', fine: '06:59' },
+        ])
+      }
     }
   } catch { /* ignore */ }
 }

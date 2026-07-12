@@ -47,7 +47,7 @@ async function handleToggleAdmin(user) {
     userRoleBusy.value = ''
   }
 }
-// Fasce orarie configurabili
+// Fasce orarie configurabili (globali e per residenza)
 const DEFAULT_FASCE_ORARIE = [
   { nome: 'Mattina', inizio: '06:00', fine: '11:59' },
   { nome: 'Pomeriggio', inizio: '12:00', fine: '17:59' },
@@ -58,26 +58,57 @@ const FASCE_ORARIE_KEY = 'fasceOrarieConfig'
 const fasceOrarie = ref([...DEFAULT_FASCE_ORARIE])
 const fasceOrarieBusy = ref(false)
 const fasceOrarieMessage = ref('')
+const fasceOrarieRoomId = ref('')  // '' = globale
+const availableRooms = ref([])
+
+function fasceOrarieKey() {
+  return fasceOrarieRoomId.value ? `${FASCE_ORARIE_KEY}:${fasceOrarieRoomId.value}` : FASCE_ORARIE_KEY
+}
 
 async function loadFasceOrarie() {
   try {
-    const saved = await getSetting(FASCE_ORARIE_KEY, null)
+    const saved = await getSetting(fasceOrarieKey(), null)
     if (Array.isArray(saved) && saved.length > 0) {
       fasceOrarie.value = saved
+    } else if (fasceOrarieRoomId.value) {
+      // Se non c'è override per questa residenza, carica il globale
+      const global = await getSetting(FASCE_ORARIE_KEY, null)
+      fasceOrarie.value = Array.isArray(global) && global.length > 0 ? [...global] : [...DEFAULT_FASCE_ORARIE]
+    } else {
+      fasceOrarie.value = [...DEFAULT_FASCE_ORARIE]
     }
-  } catch {}
+  } catch {
+    fasceOrarie.value = [...DEFAULT_FASCE_ORARIE]
+  }
 }
 
 async function saveFasceOrarie() {
   fasceOrarieBusy.value = true
   fasceOrarieMessage.value = ''
   try {
-    await setSetting(FASCE_ORARIE_KEY, JSON.parse(JSON.stringify(fasceOrarie.value)))
+    await setSetting(fasceOrarieKey(), JSON.parse(JSON.stringify(fasceOrarie.value)))
     fasceOrarieMessage.value = 'Fasce orarie salvate.'
   } catch (err) {
     fasceOrarieMessage.value = `Errore salvataggio: ${err.message}`
   } finally {
     fasceOrarieBusy.value = false
+  }
+}
+
+async function selectFasceOrarieRoom(roomId) {
+  fasceOrarieRoomId.value = roomId
+  await loadFasceOrarie()
+}
+
+async function loadAvailableRooms() {
+  try {
+    const rooms = await db.rooms.toArray()
+    availableRooms.value = rooms
+      .filter(r => !r.deletedAt)
+      .map(r => ({ id: r.id, label: r.codice || r.nome || r.id }))
+      .sort((a, b) => a.label.localeCompare(b.label))
+  } catch {
+    availableRooms.value = []
   }
 }
 
@@ -91,6 +122,7 @@ function removeFasciaOraria(idx) {
 
 onMounted(async () => {
   await loadFasceOrarie()
+  await loadAvailableRooms()
 })
   <script setup>
 import { computed, ref, onMounted, watch } from 'vue'
@@ -847,6 +879,14 @@ async function handleCreateUser() {
 
     <div v-if="canManageUsers" class="card">
       <p><strong>Fasce orarie configurabili</strong></p>
+      <div style="margin-bottom:.5rem">
+        <label style="font-size:.85rem;color:#334155">Residenza:</label>
+        <select v-model="fasceOrarieRoomId" @change="selectFasceOrarieRoom(fasceOrarieRoomId)" style="margin-left:.5rem">
+          <option value="">— Globale (default) —</option>
+          <option v-for="r in availableRooms" :key="r.id" :value="r.id">{{ r.label }}</option>
+        </select>
+        <span v-if="fasceOrarieRoomId" class="muted" style="margin-left:.5rem;font-size:.8rem">override per questa residenza</span>
+      </div>
       <div>
         <table class="conflict-table" style="min-width:600px">
           <thead>
