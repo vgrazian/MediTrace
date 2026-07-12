@@ -1,3 +1,4 @@
+import { upsertRecord } from './dataService'
 /**
  * farmaci.js — Drug (farmaco) and batch (confezione) persistence with audit trails
  *
@@ -7,7 +8,7 @@
  *   - upsertBatch()        create or update stock batch record
  *   - deactivateBatch()    soft-delete stock batch record
  */
-import { db, enqueue, getSetting } from '../db'
+import { db, getSetting } from '../db'
 import { generateEntityId } from './ids'
 import { AppError, ErrorCategory, ErrorSeverity } from './errorHandling'
 
@@ -83,14 +84,13 @@ export async function upsertDrug({
         sogliaGiorniAutonomia: Number(sogliaGiorniAutonomia ?? 30) || 30,
         updatedAt: now,
         deletedAt: null,
-        syncStatus: 'pending',
+        syncStatus: 'synced',
     }
 
     const deviceId = await getSetting('deviceId', 'unknown')
 
-    await db.transaction('rw', db.drugs, db.syncQueue, db.activityLog, async () => {
-        await db.drugs.put(record)
-        await enqueue('drugs', record.id, 'upsert')
+    await db.transaction('rw', db.drugs, db.activityLog, async () => {
+        await upsertRecord('drugs', record)
         await db.activityLog.add({
             entityType: 'drugs',
             entityId: record.id,
@@ -144,14 +144,13 @@ export async function deleteDrug({ drugId, existing, operatorId = null }) {
         ...existing,
         deletedAt: now,
         updatedAt: now,
-        syncStatus: 'pending',
+        syncStatus: 'synced',
     }
 
     const deviceId = await getSetting('deviceId', 'unknown')
 
-    await db.transaction('rw', db.drugs, db.syncQueue, db.activityLog, async () => {
+    await db.transaction('rw', db.drugs, db.activityLog, async () => {
         await db.drugs.put(record)
-        await enqueue('drugs', drugId, 'upsert')
         await db.activityLog.add({
             entityType: 'drugs',
             entityId: drugId,
@@ -175,14 +174,13 @@ export async function restoreDrug({ drugId, existing, operatorId = null }) {
         ...existing,
         deletedAt: null,
         updatedAt: now,
-        syncStatus: 'pending',
+        syncStatus: 'synced',
     }
 
     const deviceId = await getSetting('deviceId', 'unknown')
 
-    await db.transaction('rw', db.drugs, db.syncQueue, db.activityLog, async () => {
+    await db.transaction('rw', db.drugs, db.activityLog, async () => {
         await db.drugs.put(record)
-        await enqueue('drugs', drugId, 'upsert')
         await db.activityLog.add({
             entityType: 'drugs',
             entityId: drugId,
@@ -235,14 +233,13 @@ export async function upsertBatch({
         scadenza: scadenza || null,
         updatedAt: now,
         deletedAt: null,
-        syncStatus: 'pending',
+        syncStatus: 'synced',
     }
 
     const deviceId = await getSetting('deviceId', 'unknown')
 
-    await db.transaction('rw', db.stockBatches, db.syncQueue, db.activityLog, async () => {
-        await db.stockBatches.put(record)
-        await enqueue('stockBatches', record.id, 'upsert')
+    await db.transaction('rw', db.stockBatches, db.activityLog, async () => {
+        await upsertRecord('stockBatches', record)
         await db.activityLog.add({
             entityType: 'stockBatches',
             entityId: record.id,
@@ -283,14 +280,13 @@ export async function deactivateBatch({ batchId, existing, operatorId = null }) 
         ...existing,
         deletedAt: now,
         updatedAt: now,
-        syncStatus: 'pending',
+        syncStatus: 'synced',
     }
 
     const deviceId = await getSetting('deviceId', 'unknown')
 
-    await db.transaction('rw', db.stockBatches, db.syncQueue, db.activityLog, async () => {
+    await db.transaction('rw', db.stockBatches, db.activityLog, async () => {
         await db.stockBatches.put(record)
-        await enqueue('stockBatches', batchId, 'upsert')
         await db.activityLog.add({
             entityType: 'stockBatches',
             entityId: batchId,
@@ -314,14 +310,13 @@ export async function restoreBatch({ batchId, existing, operatorId = null }) {
         ...existing,
         deletedAt: null,
         updatedAt: now,
-        syncStatus: 'pending',
+        syncStatus: 'synced',
     }
 
     const deviceId = await getSetting('deviceId', 'unknown')
 
-    await db.transaction('rw', db.stockBatches, db.syncQueue, db.activityLog, async () => {
+    await db.transaction('rw', db.stockBatches, db.activityLog, async () => {
         await db.stockBatches.put(record)
-        await enqueue('stockBatches', batchId, 'upsert')
         await db.activityLog.add({
             entityType: 'stockBatches',
             entityId: batchId,

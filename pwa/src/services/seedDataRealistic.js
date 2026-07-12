@@ -263,7 +263,7 @@ async function softDeleteRealisticRecords(storeName, ids, now) {
             ...existing,
             deletedAt: now,
             updatedAt: now,
-            syncStatus: 'pending',
+            syncStatus: 'synced',
         })
         await enqueue(storeName, id, 'upsert')
         changed += 1
@@ -515,7 +515,7 @@ function generateRealisticHosts(now, { roomsById = new Map(), bedsById = new Map
             attivo: true,
             updatedAt: now,
             deletedAt: null,
-            syncStatus: 'pending',
+            syncStatus: 'synced',
             _seeded: true,
         }
     })
@@ -540,7 +540,7 @@ function generateRealisticDrugs() {
         note: '',
         updatedAt: now,
         deletedAt: null,
-        syncStatus: 'pending',
+        syncStatus: 'synced',
         _seeded: true,
     }))
 }
@@ -565,7 +565,7 @@ function generateRealisticRoomsAndBeds(now) {
             },
             updatedAt: now,
             deletedAt: null,
-            syncStatus: 'pending',
+            syncStatus: 'synced',
             _seeded: true,
         }
     })
@@ -578,7 +578,7 @@ function generateRealisticRoomsAndBeds(now) {
             occupato: true,
             updatedAt: now,
             deletedAt: null,
-            syncStatus: 'pending',
+            syncStatus: 'synced',
             _seeded: true,
         }))
     })
@@ -654,7 +654,7 @@ function generateRealisticStockBatches(drugs) {
                 sogliaRiordino,
                 updatedAt: now,
                 deletedAt: null,
-                syncStatus: 'pending',
+                syncStatus: 'synced',
                 _seeded: true,
             })
         }
@@ -709,7 +709,7 @@ function generateRealisticTherapies(hosts, drugs, batches, now) {
             attiva: true,
             updatedAt: now,
             deletedAt: null,
-            syncStatus: 'pending',
+            syncStatus: 'synced',
             _seeded: true,
         }
     })
@@ -757,7 +757,7 @@ function generateRealisticMovements(therapies, batches, now) {
                 note: `Somministrazione ${batch?.nomeCommerciale || 'farmaco'}`,
                 updatedAt: performedAt,
                 deletedAt: null,
-                syncStatus: 'pending',
+                syncStatus: 'synced',
                 _seeded: true,
             })
             movementId += 1
@@ -784,7 +784,7 @@ function generateRealisticMovements(therapies, batches, now) {
             note: 'Consegna settimanale',
             updatedAt: recordedAt,
             deletedAt: null,
-            syncStatus: 'pending',
+            syncStatus: 'synced',
             _seeded: true,
         })
         movementId += 1
@@ -833,7 +833,7 @@ function generateRealisticReminders(therapies, now) {
                     note: therapy.note || '',
                     updatedAt: scheduledAt,
                     deletedAt: null,
-                    syncStatus: 'pending',
+                    syncStatus: 'synced',
                     _seeded: true,
                 })
                 reminderId += 1

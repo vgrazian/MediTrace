@@ -1,3 +1,4 @@
+import { upsertRecord } from './dataService'
 /**
  * dataPruning.js — Automatic data pruning to keep sync payloads lean
  *
@@ -10,7 +11,7 @@
  *  - activityLog: elimina eventi >90 giorni (solo locale, non sync)
  *  - Esegue al massimo una volta al giorno
  */
-import { db, getSetting, setSetting, enqueue } from '../db'
+import { db, getSetting, setSetting } from '../db'
 
 const PRUNING_LAST_RUN_KEY = 'pruningLastRunIso'
 const PRUNING_MIN_INTERVAL_MS = 24 * 60 * 60 * 1000
@@ -55,8 +56,7 @@ async function pruneOldReminders(maxAgeDays, nowIso) {
 
     let count = 0
     for (const reminder of oldReminders) {
-        await db.reminders.put({ ...reminder, deletedAt: nowIso, updatedAt: nowIso, syncStatus: 'pending' })
-        await enqueue('reminders', reminder.id, 'upsert')
+        await db.reminders.put({ ...reminder, deletedAt: nowIso, updatedAt: nowIso })
         count++
     }
     if (count > 0) console.log(`[dataPruning] Soft-deleted ${count} old reminders (>${maxAgeDays} days)`)
@@ -75,7 +75,6 @@ async function pruneOldMovements(maxAgeDays, nowIso) {
     let count = 0
     for (const movement of oldMovements) {
         await db.movements.put({ ...movement, deletedAt: nowIso, updatedAt: nowIso, syncStatus: 'pending' })
-        await enqueue('movements', movement.id, 'upsert')
         count++
     }
     if (count > 0) console.log(`[dataPruning] Soft-deleted ${count} old movements (>${maxAgeDays} days)`)

@@ -312,7 +312,6 @@ export async function deactivateResidenza({ roomId, operatorId = null }) {
             for (const bed of activeBeds) {
                 const record = { ...bed, deletedAt: now, updatedAt: now, syncStatus: 'synced' }
                 await db.beds.put(record)
-                await enqueue('beds', record.id, 'upsert')
                 await db.activityLog.add({
                     entityType: 'beds',
                     entityId: record.id,

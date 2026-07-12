@@ -1,4 +1,5 @@
-import { db, enqueue, getSetting } from '../db'
+import { upsertRecord } from './dataService'
+import { db, getSetting } from '../db'
 import { generateEntityId } from './ids'
 
 export async function upsertMovement({
@@ -26,14 +27,13 @@ export async function upsertMovement({
         note: form.note?.trim() || '',
         updatedAt: now,
         deletedAt: existing?.deletedAt ?? null,
-        syncStatus: 'pending',
+        syncStatus: 'synced',
     }
 
     const deviceId = await getSetting('deviceId', 'unknown')
 
-    await db.transaction('rw', db.movements, db.syncQueue, db.activityLog, async () => {
+    await db.transaction('rw', db.movements, db.activityLog, async () => {
         await db.movements.put(record)
-        await enqueue('movements', record.id, 'upsert')
         await db.activityLog.add({
             entityType: 'movements',
             entityId: record.id,
@@ -55,12 +55,11 @@ export async function softDeleteMovement({ movement, operatorId = null }) {
         ...movement,
         deletedAt: now,
         updatedAt: now,
-        syncStatus: 'pending',
+        syncStatus: 'synced',
     }
 
-    await db.transaction('rw', db.movements, db.syncQueue, db.activityLog, async () => {
+    await db.transaction('rw', db.movements, db.activityLog, async () => {
         await db.movements.put(updated)
-        await enqueue('movements', movement.id, 'upsert')
         await db.activityLog.add({
             entityType: 'movements',
             entityId: movement.id,
@@ -86,12 +85,11 @@ export async function restoreMovement({ movement, operatorId = null }) {
         ...movement,
         deletedAt: null,
         updatedAt: now,
-        syncStatus: 'pending',
+        syncStatus: 'synced',
     }
 
-    await db.transaction('rw', db.movements, db.syncQueue, db.activityLog, async () => {
+    await db.transaction('rw', db.movements, db.activityLog, async () => {
         await db.movements.put(updated)
-        await enqueue('movements', movement.id, 'upsert')
         await db.activityLog.add({
             entityType: 'movements',
             entityId: movement.id,

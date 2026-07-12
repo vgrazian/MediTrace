@@ -1,3 +1,4 @@
+import { upsertRecord } from './dataService'
 /**
  * ospiti.js — Helpers per la gestione degli ospiti
  *
@@ -6,7 +7,7 @@
  *   - createHost()        crea un nuovo ospite (scrive su DB + audit log)
  *   - deactivateHost()    disattiva un ospite (soft-delete + audit log)
  */
-import { db, enqueue, getSetting } from '../db'
+import { db, getSetting } from '../db'
 import { generateEntityId } from './ids'
 
 const DEFAULT_RESIDENZA_CAPACITY = 10
@@ -199,12 +200,11 @@ export async function createHost({
         createdAt: now,
         updatedAt: now,
         deletedAt: null,
-        syncStatus: 'pending',
+        syncStatus: 'synced',
     }
 
-    await db.transaction('rw', db.hosts, db.syncQueue, db.activityLog, async () => {
-        await db.hosts.put(record)
-        await enqueue('hosts', record.id)
+    await db.transaction('rw', db.hosts, db.activityLog, async () => {
+        await upsertRecord('hosts', record)
         await db.activityLog.add({
             entityType: 'hosts',
             entityId: record.id,
@@ -245,7 +245,7 @@ export async function deactivateHost({ hostId, operatorId }) {
         attivo: false,
         deletedAt: now,
         updatedAt: now,
-        syncStatus: 'pending',
+        syncStatus: 'synced',
     }
 
     const deactivatedTherapies = therapiesToDeactivate.map((therapy) => ({
@@ -253,16 +253,14 @@ export async function deactivateHost({ hostId, operatorId }) {
         attiva: false,
         deletedAt: now,
         updatedAt: now,
-        syncStatus: 'pending',
+        syncStatus: 'synced',
     }))
 
-    await db.transaction('rw', db.hosts, db.therapies, db.syncQueue, db.activityLog, async () => {
+    await db.transaction('rw', db.hosts, db.therapies, db.activityLog, async () => {
         await db.hosts.put(updated)
-        await enqueue('hosts', hostId, 'delete')
 
         for (const therapy of deactivatedTherapies) {
             await db.therapies.put(therapy)
-            await enqueue('therapies', therapy.id, 'upsert')
         }
 
         await db.activityLog.add({
@@ -306,12 +304,11 @@ export async function restoreHost({ hostId, existing, operatorId }) {
         attivo: true,
         deletedAt: null,
         updatedAt: now,
-        syncStatus: 'pending',
+        syncStatus: 'synced',
     }
 
-    await db.transaction('rw', db.hosts, db.therapies, db.syncQueue, db.activityLog, async () => {
+    await db.transaction('rw', db.hosts, db.therapies, db.activityLog, async () => {
         await db.hosts.put(updated)
-        await enqueue('hosts', hostId, 'upsert')
 
         const cascadeTherapies = Array.isArray(existing._cascadeDeletedTherapies)
             ? existing._cascadeDeletedTherapies
@@ -322,10 +319,9 @@ export async function restoreHost({ hostId, existing, operatorId }) {
                 attiva: true,
                 deletedAt: null,
                 updatedAt: now,
-                syncStatus: 'pending',
+                syncStatus: 'synced',
             }
             await db.therapies.put(restoredTherapy)
-            await enqueue('therapies', restoredTherapy.id, 'upsert')
             await db.activityLog.add({
                 entityType: 'therapies',
                 entityId: restoredTherapy.id,
@@ -389,12 +385,11 @@ export async function updateHost({
         stanza: normalizedPlacement.stanza,
         note: note?.trim() ?? '',
         updatedAt: now,
-        syncStatus: 'pending',
+        syncStatus: 'synced',
     }
 
-    await db.transaction('rw', db.hosts, db.syncQueue, db.activityLog, async () => {
+    await db.transaction('rw', db.hosts, db.activityLog, async () => {
         await db.hosts.put(updated)
-        await enqueue('hosts', hostId, 'upsert')
         await db.activityLog.add({
             entityType: 'hosts',
             entityId: hostId,

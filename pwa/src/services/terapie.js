@@ -1,4 +1,5 @@
-import { db, enqueue, getSetting } from '../db'
+import { upsertRecord } from './dataService'
+import { db, getSetting } from '../db'
 import { generateEntityId } from './ids'
 
 function normalizeDay(value) {
@@ -59,14 +60,13 @@ export async function upsertTherapy({
         attiva: true,
         updatedAt: now,
         deletedAt: existing?.deletedAt ?? null,
-        syncStatus: 'pending',
+        syncStatus: 'synced',
     }
 
     const deviceId = await getSetting('deviceId', 'unknown')
 
-    await db.transaction('rw', db.therapies, db.syncQueue, db.activityLog, async () => {
-        await db.therapies.put(record)
-        await enqueue('therapies', record.id, 'upsert')
+    await db.transaction('rw', db.therapies, db.activityLog, async () => {
+        await upsertRecord('therapies', record)
         await db.activityLog.add({
             entityType: 'therapies',
             entityId: record.id,
@@ -89,12 +89,11 @@ export async function deactivateTherapyRecord({ therapy, operatorId = null }) {
         attiva: false,
         deletedAt: now,
         updatedAt: now,
-        syncStatus: 'pending',
+        syncStatus: 'synced',
     }
 
-    await db.transaction('rw', db.therapies, db.syncQueue, db.activityLog, async () => {
+    await db.transaction('rw', db.therapies, db.activityLog, async () => {
         await db.therapies.put(updated)
-        await enqueue('therapies', therapy.id, 'upsert')
         await db.activityLog.add({
             entityType: 'therapies',
             entityId: therapy.id,
@@ -121,12 +120,11 @@ export async function restoreTherapyRecord({ therapy, operatorId = null }) {
         attiva: true,
         deletedAt: null,
         updatedAt: now,
-        syncStatus: 'pending',
+        syncStatus: 'synced',
     }
 
-    await db.transaction('rw', db.therapies, db.syncQueue, db.activityLog, async () => {
+    await db.transaction('rw', db.therapies, db.activityLog, async () => {
         await db.therapies.put(updated)
-        await enqueue('therapies', therapy.id, 'upsert')
         await db.activityLog.add({
             entityType: 'therapies',
             entityId: therapy.id,

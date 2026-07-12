@@ -1,3 +1,4 @@
+import { upsertRecord } from './dataService'
 /**
  * Calcola gli orari di somministrazione previsti per una terapia in una data.
  * Usa therapy.orariSomministrazione (array di stringhe 'HH:MM') e somministrazioniGiornaliere.
@@ -25,7 +26,7 @@ export function getScheduledTimesForTherapy(therapy, date = new Date()) {
  *   - markReminder()        registra l'esito di una somministrazione (scrive su DB)
  *   - VALID_STATES / OUTCOMES
  */
-import { db, enqueue, getSetting } from '../db'
+import { db, getSetting } from '../db'
 
 export const REMINDER_OUTCOMES = ['ESEGUITO', 'SALTATO', 'POSTICIPATO', 'ANNULLATO']
 export const BED_SEQUENCE_SETTING_KEY = 'promemoriaBedSequence'
@@ -310,12 +311,11 @@ export async function markReminder({ reminderId, outcome, operatorId = null, not
         operatore: operatorId ?? existing.operatore,
         note: note || existing.note || '',
         updatedAt: now,
-        syncStatus: 'pending',
+        syncStatus: 'synced',
     }
 
-    await db.transaction('rw', db.reminders, db.syncQueue, db.activityLog, db.movements, db.stockBatches, db.therapies, async () => {
-        await db.reminders.put(updated)
-        await enqueue('reminders', reminderId, 'upsert')
+    await db.transaction('rw', db.reminders, db.activityLog, db.movements, db.stockBatches, db.therapies, async () => {
+        await upsertRecord('reminders', updated)
 
         // Se ESEGUITO, deducere dal magazzino
         if (outcome === 'ESEGUITO') {
@@ -339,10 +339,9 @@ export async function markReminder({ reminderId, outcome, operatorId = null, not
                         ...batchDaScarico,
                         quantitaAttuale: newQty,
                         updatedAt: now,
-                        syncStatus: 'pending',
+                        syncStatus: 'synced',
                     }
-                    await db.stockBatches.put(updatedBatch)
-                    await enqueue('stockBatches', batchDaScarico.id, 'upsert')
+                    await upsertRecord('stockBatches', updatedBatch)
 
                     // Creare movimento SOMMINISTRAZIONE
                     const movement = {
@@ -357,10 +356,9 @@ export async function markReminder({ reminderId, outcome, operatorId = null, not
                         note: `Somministrazione registrata: ${existing.note || 'somministrazione'}`,
                         createdAt: now,
                         createdBy: operatorId ?? 'system',
-                        syncStatus: 'pending',
+                        syncStatus: 'synced',
                     }
-                    await db.movements.put(movement)
-                    await enqueue('movements', movement.id, 'upsert')
+                    await upsertRecord('movements', movement)
                 }
             }
         }
