@@ -5,7 +5,7 @@ import AppNav from './components/AppNav.vue'
 import HelpDrawer from './components/HelpDrawer.vue'
 import ConfirmDialog from './components/ConfirmDialog.vue'
 import { initAuth, sanitizeEmailInput, sanitizeUsernameInput, useAuth } from './services/auth'
-import { repairUnsyncedSeedData } from './services/seedData'
+import { loadDemoData, repairUnsyncedSeedData } from './services/seedData'
 import { ensureDefaultResidenze } from './services/residenze'
 import { retryQueue, isDataServiceAvailable } from './services/dataService'
 import { db, getSetting, setSetting } from './db'
@@ -61,6 +61,7 @@ onMounted(async () => {
   await initAuth()
   checkCdnStatus()
   await ensureDefaultResidenze().catch(() => {})
+  await loadDemoData().catch(() => {})
   await ensureDefaultFasceOrarie()
   // Flush any pending items from init (e.g., default residences created offline)
   if (isDataServiceAvailable() && navigator.onLine) {
