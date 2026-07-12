@@ -2,7 +2,26 @@ import { getSetting, setSetting } from '../db'
 
 const AUTH_USERS_KEY = 'authUsers'
 
-const DEMO_OPERATORS = []
+const DEMO_OPERATORS = [
+    {
+        username: 'valerio',
+        passwordSalt: 'demo-salt-valerio',
+        passwordHash: 'demo-hash-valerio',
+        firstName: 'Valerio',
+        lastName: 'Graziani',
+        email: 'valeriograziani@gmail.com',
+        role: 'admin',
+    },
+    {
+        username: 'anna',
+        passwordSalt: 'demo-salt-anna',
+        passwordHash: 'demo-hash-anna',
+        firstName: 'Anna Maria',
+        lastName: 'Cigliano',
+        email: 'anna@example.com',
+        role: 'admin',
+    },
+]
 
 // Legacy seeded demo operators kept only for cleanup/backward compatibility.
 const LEGACY_DEMO_OPERATOR_USERNAMES = new Set(['rosa', 'margherita', 'giglio'])
@@ -31,7 +50,7 @@ function buildDemoAuthRecord(template, existing, now) {
         email: String(template.email || '').trim().toLowerCase(),
         phone: '',
         avatarUrl: '',
-        role: 'operator',
+        role: template.role || 'operator',
         createdAt: existing?.createdAt || now,
         updatedAt: now,
         disabled: false,

@@ -675,7 +675,7 @@ async function ensureDefaultOperators(users) {
             email: DEFAULT_OPERATOR_VALERIO_EMAIL,
             firstName: 'Valerio',
             lastName: 'Graziani',
-            role: 'operator',
+            role: 'admin',
         },
         {
             username: DEFAULT_OPERATOR_ANNA_USERNAME,
@@ -683,7 +683,7 @@ async function ensureDefaultOperators(users) {
             email: DEFAULT_OPERATOR_ANNA_EMAIL,
             firstName: 'Anna Maria',
             lastName: 'Cigliano',
-            role: 'operator',
+            role: 'admin',
         },
     ]
 
@@ -854,7 +854,7 @@ async function initAuthSupabase() {
                         p_last_name: op.lastName,
                         p_email: op.email,
                         p_phone: '',
-                        p_role: 'operator',
+                        p_role: 'admin',
                         p_is_seeded: false,
                         p_session_ttl_minutes: AUTH_SESSION_TTL_MINUTES,
                     })
