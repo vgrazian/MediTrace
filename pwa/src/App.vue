@@ -12,7 +12,7 @@ import { formatBuildTimestamp, getBuildTimestampIso, getDeployLabel } from './se
 const { currentUser, hasUsers, isInitialized, signIn, register, requestPasswordResetByEmail, supportsEmailReset } = useAuth()
 const route = useRoute()
 const isAuthRecoveryRoute = computed(() => route.path === '/auth/reset-password')
-const logoSrc = `${import.meta.env.BASE_URL}branding/logo-header.svg`
+const logoSrc = `${import.meta.env.BASE_URL}branding/logo-header.png`
 
 const username = ref('')
 const password = ref('')
@@ -171,7 +171,7 @@ async function handleRegister() {
 
       <div v-else class="login-screen">
         <div class="login-logo">
-          <img :src="logoSrc" alt="MediTrace" width="110" height="110" />
+          <img :src="logoSrc" alt="MediTrace" width="200" height="109" />
         </div>
         <h1>MediTrace</h1>
         <p>Accesso con utenza e password</p>

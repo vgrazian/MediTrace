@@ -210,8 +210,8 @@ a.btn:active:not(:disabled) {
 }
 .brand-mark {
   width: auto;
-  height: 1.65rem;
-  filter: drop-shadow(0 2px 4px rgba(8, 17, 35, 0.3));
+  height: 2rem;
+  filter: drop-shadow(0 2px 6px rgba(8, 17, 35, 0.4));
 }
 .brand-title {
   font-family: 'Domine', Georgia, serif;
@@ -685,10 +685,10 @@ details.add-panel[open] > div {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 280px;
-  height: 110px;
+  width: 300px;
+  height: 120px;
   border-radius: 1.5rem;
-  background: #263561;
+  background: #1a2e4f;
   box-shadow: 0 8px 24px rgba(9, 30, 53, 0.25);
 }
 .login-screen p { color: var(--muted); }
@@ -1162,7 +1162,7 @@ details[open] .help-section-title::before { content: '▼ '; }
 @media (max-width: 600px) {
   .app-nav { gap: .5rem; }
   .app-nav a { font-size: .8rem; }
-  .brand-mark { width: 8.6rem; }
+  .brand-mark { width: auto; height: 1.75rem; }
   .brand-title {
     display: block;
     font-size: 1.05rem;

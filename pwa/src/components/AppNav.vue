@@ -11,7 +11,7 @@ import { pruneStaleData } from '../services/dataPruning'
 import { openConfirmDialog } from '../services/confirmDialog'
 
 const { currentUser, signOut } = useAuth()
-const logoSrc = `${import.meta.env.BASE_URL}branding/logo-header.svg`
+const logoSrc = `${import.meta.env.BASE_URL}branding/logo-header.png`
 
 const { statoSync, dettagli, pendingCount, setRefreshed } = useSyncState()
 
@@ -243,7 +243,7 @@ async function handleSync() {
 <template>
   <nav class="app-nav">
     <div class="brand" aria-label="MediTrace">
-      <img class="brand-mark" :src="logoSrc" alt="Comunità di Sant'Egidio" />
+      <img class="brand-mark" :src="logoSrc" alt="MediTrace" />
     </div>
 
     <RouterLink to="/" title="Cruscotto — riepilogo e KPI">Cruscotto</RouterLink>
