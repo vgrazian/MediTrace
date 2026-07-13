@@ -351,7 +351,7 @@ export const helpContent = {
             {
                 titolo: 'Cambiare la password',
                 testo:
-                    'Vai al pannello "Profilo", inserisci la password attuale e quella nuova (almeno 8 caratteri), poi premi "Salva password".',
+                    'Vai al pannello "Profilo", inserisci la password attuale e quella nuova. La password deve avere almeno 10 caratteri, una maiuscola, una minuscola, un numero e un simbolo. Premi "Salva password" per confermare.',
             },
             {
                 titolo: 'Importare dati da CSV',
