@@ -10,10 +10,12 @@ Gestione terapie farmacologiche — offline-first PWA per strutture di assistenz
 - 🔄 **Sync multi-dispositivo** — Supabase Realtime + Direct API
 - 💊 **Gestione farmaci** — catalogo principi attivi, confezioni, scorte, scadenze
 - 👤 **Anagrafica ospiti** — registro, assegnazione residenza, terapie attive
-- ⏰ **Promemoria somministrazioni** — piano terapeutico con orari, esiti, batch picker
-- 📊 **Dashboard KPI** — riepilogo turno, scorte critiche, sincronizzazione
-- 📋 **Audit trail** — registro operazioni con statistiche Supabase in tempo reale
+- ⏰ **Promemoria somministrazioni** — piano terapeutico, 6 fasce orarie configurabili per residenza
+- 📊 **Dashboard KPI** — riepilogo turno, alert scorte critiche, stato sincronizzazione
+- 📋 **Audit trail** — registro operazioni con filtri, export JSON/PDF
 - 🗂️ **Import CSV** — importazione guidata da fogli Google Sheets
+- 🔑 **Password reset via email** — Supabase Edge Function + Resend API
+- 🏢 **Multi-residenza** — switch residenza, fasce orarie per sede, ruoli admin/operatore
 
 ## Stack
 
@@ -23,10 +25,12 @@ Gestione terapie farmacologiche — offline-first PWA per strutture di assistenz
 | **Build** | Vite 5 |
 | **Stile** | CSS vanilla (NO Tailwind) |
 | **Database locale** | Dexie.js (IndexedDB) |
-| **Auth** | Supabase + fallback locale |
+| **Backend** | Supabase PostgreSQL + Edge Functions |
+| **Auth** | Table-auth + RLS |
 | **Sync** | Supabase Realtime + Direct API |
+| **Email** | Resend API via Supabase Edge Function |
 | **PWA** | vite-plugin-pwa (Workbox) |
-| **Test** | Vitest (487 test) + Playwright (146 e2e) |
+| **Test** | Vitest (487 unit) + Playwright (146 E2E) |
 
 ## Sviluppo
 
@@ -34,7 +38,7 @@ Gestione terapie farmacologiche — offline-first PWA per strutture di assistenz
 cd pwa
 npm install
 npm run dev          # http://localhost:5173
-npm run build        # build
+npm run build        # build (include dati demo con VITE_SEED_DATA=1)
 npm run test:unit    # 487 test
 npm run test:e2e     # playwright (146 test, --workers=1 raccomandato)
 ```
@@ -42,22 +46,19 @@ npm run test:e2e     # playwright (146 test, --workers=1 raccomandato)
 ## Deploy (GitHub Pages)
 
 ```bash
-# Build con base path corretto
-cd pwa && VITE_BASE_URL=/MediTrace/ npx vite build
-
-# Sync dist → root
-cd .. && cp pwa/dist/index.html index.html
-cp pwa/dist/manifest.webmanifest manifest.webmanifest
-cp pwa/dist/sw.js sw.js
-cp pwa/dist/favicon.svg favicon.svg
-cp -r pwa/dist/assets/* assets/
-cp -r pwa/dist/icons/* icons/
-
-# Oppure:
-bash scripts/deploy-gh-pages.sh
-
-git add -A && git commit -m "deploy: ..." && git push origin gh-pages
+# Deploy automatico con cleanup
+bash scripts/deploy.sh
 ```
+
+## Demo credentials
+
+| Ruolo | Utente | Password |
+|---|---|---|
+| Admin | `admin` | `A9m4K2qL!Xy` |
+| Admin | `valerio` | `V@lerio123!` |
+| Admin | `anna` | `Anna@456!Xy` |
+
+Dati demo precaricati: 3 residenze, 10 ospiti, 10 farmaci, terapie attive, promemoria giornalieri.
 
 **CDN cache**: GitHub Pages ha TTL 10 minuti. Dopo il push attendere prima di verificare.
 
