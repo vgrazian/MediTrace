@@ -16,7 +16,6 @@ const datasetVersion = ref(null)
 const homeKpi = ref(null)
 const operatorStats = ref([])
 const trendSettimanale = ref([])
-const eccezioniCount = ref({ saltati: 0, scorteCritiche: 0, conflitti: 0, syncPendenti: 0 })
 const buildTimestampLabel = formatBuildTimestamp('it-IT')
 const buildTimestampIso = getBuildTimestampIso()
 const deployLabel = getDeployLabel()
@@ -32,6 +31,15 @@ const attentionItems = computed(() => {
       label: `${homeKpi.value.remindersPending} promemoria da eseguire oggi`,
       to: '/promemoria',
       tooltip: 'Vai ai promemoria da eseguire',
+    })
+  }
+  // Skipped reminders today
+  if (homeKpi.value.remindersSkipped > 0) {
+    items.push({
+      type: 'skipped',
+      label: `${homeKpi.value.remindersSkipped} promemoria saltati oggi`,
+      to: '/promemoria',
+      tooltip: 'Vai ai promemoria saltati',
     })
   }
   // Low/critical stock
@@ -143,47 +151,12 @@ async function loadTrendSettimanale() {
   }
 }
 
-async function loadEccezioni() {
-  try {
-    const [reminders, batches, conflicts] = await Promise.all([
-      db.reminders.toArray(),
-      db.stockBatches.toArray(),
-      db.syncQueue.count(),
-    ])
-    const now = new Date()
-    const dayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate())
-    const dayEnd = new Date(dayStart.getTime() + 24 * 60 * 60 * 1000 - 1)
-
-    const saltati = reminders.filter(r => {
-      if (r.deletedAt) return false
-      const when = new Date(r.scheduledAt)
-      return !Number.isNaN(when.getTime()) && when >= dayStart && when <= dayEnd && r.stato === 'SALTATO'
-    }).length
-
-    const scorteCritiche = batches.filter(b => !b.deletedAt && (Number(b.quantitaAttuale) || 0) <= (Number(b.sogliaRiordino) || 0)).length
-
-    eccezioniCount.value = {
-      saltati,
-      scorteCritiche,
-      conflitti: homeKpi.value?.pendingConflicts || 0,
-      syncPendenti: conflicts,
-    }
-  } catch {
-    eccezioniCount.value = { saltati: 0, scorteCritiche: 0, conflitti: 0, syncPendenti: 0 }
-  }
-}
-
 const trendMax = computed(() => Math.max(1, ...trendSettimanale.value.map(w => w.total)))
-const hasEccezioni = computed(() => {
-  const e = eccezioniCount.value
-  return (e.saltati + e.scorteCritiche + e.conflitti + e.syncPendenti) > 0
-})
 
 onMounted(async () => {
   await refreshHomeKpi()
   await loadOperatorStats()
   await loadTrendSettimanale()
-  await loadEccezioni()
 })
 </script>
 
@@ -228,16 +201,6 @@ onMounted(async () => {
             {{ dettagli }}
           </p>
         </div>
-      </div>
-    </div>
-
-    <div v-if="hasEccezioni" class="card" style="border-left: 3px solid #f59e0b">
-      <p><strong>⚠️ Riepilogo eccezioni di oggi</strong></p>
-      <div style="display:flex;gap:1.5rem;flex-wrap:wrap;margin-top:.5rem">
-        <RouterLink v-if="eccezioniCount.saltati > 0" to="/promemoria" style="color:#991b1b;text-decoration:none">❌ {{ eccezioniCount.saltati }} promemoria saltati</RouterLink>
-        <RouterLink v-if="eccezioniCount.scorteCritiche > 0" to="/scorte" style="color:#d97706;text-decoration:none">📦 {{ eccezioniCount.scorteCritiche }} scorte critiche</RouterLink>
-        <RouterLink v-if="eccezioniCount.conflitti > 0" to="/impostazioni" style="color:#d97706;text-decoration:none">⚡ {{ eccezioniCount.conflitti }} conflitti sync</RouterLink>
-        <RouterLink v-if="eccezioniCount.syncPendenti > 0" to="/impostazioni" style="color:#6b7280;text-decoration:none">🔄 {{ eccezioniCount.syncPendenti }} sync in attesa</RouterLink>
       </div>
     </div>
 
