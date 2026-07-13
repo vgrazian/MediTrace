@@ -126,7 +126,7 @@ const newUserPasswordPolicyState = computed(() => getPasswordPolicy(newUserPassw
 const suggestedUsername = computed(() => suggestUsernameFromName(newUserFirstName.value, newUserLastName.value))
 const canManageUsers = computed(() => canRole(currentUser.value?.role, 'users:read'))
 const canManageTestData = computed(() => canRole(currentUser.value?.role, 'testData:manage'))
-const syncBackendLabel = computed(() => (isSupabaseConfigured ? 'Supabase' : 'GitHub Gist (legacy)'))
+const syncBackendLabel = computed(() => (isSupabaseConfigured ? '✅ Supabase' : '⚠️ Non configurato'))
 const testDataActionLabel = computed(() => {
   if (seedBusy.value) return seedActionMode.value === 'clear' ? 'Rimozione in corso…' : 'Generazione in corso…'
   return seedActionMode.value === 'clear' ? 'Rimuovi dati demo' : 'Genera dati demo'
@@ -930,8 +930,8 @@ async function handleCreateUser() {
       <p class="muted">Telefono: {{ currentUser?.phone || '—' }}</p>
       <p class="muted">Email: {{ currentUser?.email || '—' }}</p>
       <p class="muted">Ruolo: {{ currentUser?.role === 'admin' ? 'amministratore' : 'operatore' }}</p>
-      <p class="muted">Backend sincronizzazione: {{ syncBackendLabel }}</p>
-      <p class="muted">Logging operazionale: {{ axiomLoggingActive ? '✅ Attivo (Axiom)' : '⚠️ Non configurato' }}</p>
+      <p class="muted">Sync database: {{ syncBackendLabel }}</p>
+      <p class="muted">Logging operazionale: {{ axiomLoggingActive ? '✅ Axiom' : '⚠️ Non configurato' }}</p>
       <button style="margin-top:.75rem" @click="handleSignOut">Esci</button>
 
       <div class="legal-links">
