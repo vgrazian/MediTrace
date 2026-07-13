@@ -202,6 +202,13 @@ export function buildReminderRows({ reminders, hosts, drugs, therapies, beds = [
             const when = new Date(r.scheduledAt)
             if (Number.isNaN(when.getTime())) return true
             if (dateFilter === 'today') return when >= dayStart && when <= dayEnd
+            if (dateFilter === 'tomorrow') {
+                const tomorrowStart = new Date(dayStart)
+                tomorrowStart.setDate(tomorrowStart.getDate() + 1)
+                const tomorrowEnd = new Date(dayEnd)
+                tomorrowEnd.setDate(tomorrowEnd.getDate() + 1)
+                return when >= tomorrowStart && when <= tomorrowEnd
+            }
             if (dateFilter === 'all') return true
             // Specific YYYY-MM-DD date
             const dayStart2 = new Date(dateFilter + 'T00:00:00')

@@ -1,130 +1,3 @@
-import { openConfirmDialog } from '../services/confirmDialog'
-import { signOut } from '../services/auth'
-async function handleResetPassword(user) {
-  if (!canManageUsers.value || user.username === currentUser.value?.username) return
-  const confirmed = await openConfirmDialog({
-    title: 'Reset password',
-    message: `Vuoi inviare una mail di reset password a ${user.email}?`,
-    confirmText: 'Invia',
-    cancelText: 'Annulla',
-    tone: 'primary',
-  })
-  if (!confirmed) return
-  // TODO: integrare con flusso reale invio reset password
-  userRoleMessage.value = `Reset password richiesto per ${user.username}`
-}
-
-async function handleForceLogout(user) {
-  if (!canManageUsers.value || user.username === currentUser.value?.username) return
-  const confirmed = await openConfirmDialog({
-    title: 'Forza logout',
-    message: `Vuoi forzare il logout per ${user.username}?`,
-    confirmText: 'Forza logout',
-    cancelText: 'Annulla',
-    tone: 'danger',
-  })
-  if (!confirmed) return
-  // TODO: integrare con logica reale di invalidazione sessione
-  userRoleMessage.value = `Logout forzato per ${user.username}`
-}
-import { setUserRole } from '../services/userManagement'
-const userRoleBusy = ref('')
-const userRoleMessage = ref('')
-
-async function handleToggleAdmin(user) {
-  if (!canManageUsers.value) return
-  if (user.username === currentUser.value?.username) return // non puoi cambiare il tuo ruolo
-  userRoleBusy.value = user.username
-  userRoleMessage.value = ''
-  try {
-    const newRole = user.role === 'admin' ? 'operator' : 'admin'
-    await setUserRole({ username: user.username, role: newRole })
-    await refreshUsers()
-    userRoleMessage.value = `Ruolo aggiornato per ${user.username}`
-  } catch (err) {
-    userRoleMessage.value = `Errore ruolo: ${err.message}`
-  } finally {
-    userRoleBusy.value = ''
-  }
-}
-// Fasce orarie configurabili (globali e per residenza)
-const DEFAULT_FASCE_ORARIE = [
-  { nome: 'Mattina', inizio: '06:00', fine: '11:59' },
-  { nome: 'Pomeriggio', inizio: '12:00', fine: '17:59' },
-  { nome: 'Sera', inizio: '18:00', fine: '23:59' },
-  { nome: 'Notte', inizio: '00:00', fine: '05:59' },
-]
-const FASCE_ORARIE_KEY = 'fasceOrarieConfig'
-const fasceOrarie = ref([...DEFAULT_FASCE_ORARIE])
-const fasceOrarieBusy = ref(false)
-const fasceOrarieMessage = ref('')
-const fasceOrarieRoomId = ref('')  // '' = globale
-const availableRooms = ref([])
-
-function fasceOrarieKey() {
-  return fasceOrarieRoomId.value ? `${FASCE_ORARIE_KEY}:${fasceOrarieRoomId.value}` : FASCE_ORARIE_KEY
-}
-
-async function loadFasceOrarie() {
-  try {
-    const saved = await getSetting(fasceOrarieKey(), null)
-    if (Array.isArray(saved) && saved.length > 0) {
-      fasceOrarie.value = saved
-    } else if (fasceOrarieRoomId.value) {
-      // Se non c'è override per questa residenza, carica il globale
-      const global = await getSetting(FASCE_ORARIE_KEY, null)
-      fasceOrarie.value = Array.isArray(global) && global.length > 0 ? [...global] : [...DEFAULT_FASCE_ORARIE]
-    } else {
-      fasceOrarie.value = [...DEFAULT_FASCE_ORARIE]
-    }
-  } catch {
-    fasceOrarie.value = [...DEFAULT_FASCE_ORARIE]
-  }
-}
-
-async function saveFasceOrarie() {
-  fasceOrarieBusy.value = true
-  fasceOrarieMessage.value = ''
-  try {
-    await setSetting(fasceOrarieKey(), JSON.parse(JSON.stringify(fasceOrarie.value)))
-    fasceOrarieMessage.value = 'Fasce orarie salvate.'
-  } catch (err) {
-    fasceOrarieMessage.value = `Errore salvataggio: ${err.message}`
-  } finally {
-    fasceOrarieBusy.value = false
-  }
-}
-
-async function selectFasceOrarieRoom(roomId) {
-  fasceOrarieRoomId.value = roomId
-  await loadFasceOrarie()
-}
-
-async function loadAvailableRooms() {
-  try {
-    const rooms = await db.rooms.toArray()
-    availableRooms.value = rooms
-      .filter(r => !r.deletedAt)
-      .map(r => ({ id: r.id, label: r.codice || r.nome || r.id }))
-      .sort((a, b) => a.label.localeCompare(b.label))
-  } catch {
-    availableRooms.value = []
-  }
-}
-
-function addFasciaOraria() {
-  fasceOrarie.value.push({ nome: '', inizio: '08:00', fine: '12:00' })
-}
-
-function removeFasciaOraria(idx) {
-  fasceOrarie.value.splice(idx, 1)
-}
-
-onMounted(async () => {
-  await loadFasceOrarie()
-  await loadAvailableRooms()
-})
-
   <script setup>
 import { computed, ref, onMounted, watch } from 'vue'
 import { suggestUsernameFromName, useAuth } from '../services/auth'
@@ -155,6 +28,7 @@ import { useHelpNavigation } from '../composables/useHelpNavigation'
 import { openConfirmDialog } from '../services/confirmDialog'
 import { isKeepAliveEnabled, setKeepAliveEnabled } from '../services/keepAlive'
 import { isAxiomConfigured } from '../services/axiomLogger'
+import { setUserRole } from '../services/userManagement'
 
 const {
   accessToken,
@@ -257,6 +131,135 @@ const testDataActionLabel = computed(() => {
   if (seedBusy.value) return seedActionMode.value === 'clear' ? 'Rimozione in corso…' : 'Generazione in corso…'
   return seedActionMode.value === 'clear' ? 'Rimuovi dati demo' : 'Genera dati demo'
 })
+
+// ── Gestione utenti (admin) ──────────────────────────────────────────────
+const userRoleBusy = ref('')
+const userRoleMessage = ref('')
+
+async function handleToggleAdmin(user) {
+  if (!canManageUsers.value) return
+  if (user.username === currentUser.value?.username) return
+  userRoleBusy.value = user.username
+  userRoleMessage.value = ''
+  try {
+    const newRole = user.role === 'admin' ? 'operator' : 'admin'
+    await setUserRole({ username: user.username, role: newRole })
+    await refreshUsers()
+    userRoleMessage.value = `Ruolo aggiornato per ${user.username}`
+  } catch (err) {
+    userRoleMessage.value = `Errore ruolo: ${err.message}`
+  } finally {
+    userRoleBusy.value = ''
+  }
+}
+
+async function handleResetPassword(user) {
+  if (!canManageUsers.value || user.username === currentUser.value?.username) return
+  const confirmed = await openConfirmDialog({
+    title: 'Reset password',
+    message: `Vuoi inviare una mail di reset password a ${user.email}?`,
+    confirmText: 'Invia',
+    cancelText: 'Annulla',
+    tone: 'primary',
+  })
+  if (!confirmed) return
+  // TODO: integrare con flusso reale invio reset password
+  userRoleMessage.value = `Reset password richiesto per ${user.username}`
+}
+
+async function handleForceLogout(user) {
+  if (!canManageUsers.value || user.username === currentUser.value?.username) return
+  const confirmed = await openConfirmDialog({
+    title: 'Forza logout',
+    message: `Vuoi forzare il logout per ${user.username}?`,
+    confirmText: 'Forza logout',
+    cancelText: 'Annulla',
+    tone: 'danger',
+  })
+  if (!confirmed) return
+  // TODO: integrare con logica reale di invalidazione sessione
+  userRoleMessage.value = `Logout forzato per ${user.username}`
+}
+
+// ── Fasce orarie (globali e per residenza) ───────────────────────────────
+const DEFAULT_FASCE_ORARIE = [
+  { nome: 'Mattina', inizio: '06:00', fine: '11:59' },
+  { nome: 'Pomeriggio', inizio: '12:00', fine: '17:59' },
+  { nome: 'Sera', inizio: '18:00', fine: '23:59' },
+  { nome: 'Notte', inizio: '00:00', fine: '05:59' },
+]
+const FASCE_ORARIE_KEY = 'fasceOrarieConfig'
+const fasceOrarie = ref([...DEFAULT_FASCE_ORARIE])
+const fasceOrarieBusy = ref(false)
+const fasceOrarieMessage = ref('')
+const fasceOrarieRoomId = ref('')
+const availableRooms = ref([])
+
+function fasceOrarieKey() {
+  return fasceOrarieRoomId.value ? `${FASCE_ORARIE_KEY}:${fasceOrarieRoomId.value}` : FASCE_ORARIE_KEY
+}
+
+async function loadFasceOrarie() {
+  try {
+    const saved = await getSetting(fasceOrarieKey(), null)
+    if (Array.isArray(saved) && saved.length > 0) {
+      fasceOrarie.value = saved
+    } else if (fasceOrarieRoomId.value) {
+      const global = await getSetting(FASCE_ORARIE_KEY, null)
+      fasceOrarie.value = Array.isArray(global) && global.length > 0 ? [...global] : [...DEFAULT_FASCE_ORARIE]
+    } else {
+      fasceOrarie.value = [...DEFAULT_FASCE_ORARIE]
+    }
+  } catch {
+    fasceOrarie.value = [...DEFAULT_FASCE_ORARIE]
+  }
+}
+
+async function saveFasceOrarie() {
+  fasceOrarieBusy.value = true
+  fasceOrarieMessage.value = ''
+  try {
+    await setSetting(fasceOrarieKey(), JSON.parse(JSON.stringify(fasceOrarie.value)))
+    fasceOrarieMessage.value = 'Fasce orarie salvate.'
+  } catch (err) {
+    fasceOrarieMessage.value = `Errore salvataggio: ${err.message}`
+  } finally {
+    fasceOrarieBusy.value = false
+  }
+}
+
+async function selectFasceOrarieRoom(roomId) {
+  fasceOrarieRoomId.value = roomId
+  await loadFasceOrarie()
+}
+
+async function loadAvailableRooms() {
+  try {
+    const rooms = await db.rooms.toArray()
+    availableRooms.value = rooms
+      .filter(r => !r.deletedAt)
+      .map(r => ({ id: r.id, label: r.codice || r.nome || r.id }))
+      .sort((a, b) => a.label.localeCompare(b.label))
+  } catch {
+    availableRooms.value = []
+  }
+}
+
+function addFasciaOraria() {
+  fasceOrarie.value.push({ nome: '', inizio: '08:00', fine: '12:00' })
+}
+
+function removeFasciaOraria(idx) {
+  fasceOrarie.value.splice(idx, 1)
+}
+
+// ── Lifecycle ─────────────────────────────────────────────────────────────
+onMounted(async () => {
+  await loadFasceOrarie()
+  await loadAvailableRooms()
+})
+
+// ═══════════════════════════════════════════════════════════════════════════
 
 function hydrateProfileForm() {
   profileUsername.value = currentUser.value?.username ?? ''

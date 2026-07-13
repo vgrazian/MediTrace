@@ -603,6 +603,7 @@ watch(residenzaFilter, async (value) => {
           Data
           <select v-model="dateFilter">
             <option value="today">Oggi</option>
+            <option value="tomorrow">Domani</option>
             <option value="all">Tutti</option>
           </select>
         </label>
