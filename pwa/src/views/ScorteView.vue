@@ -130,6 +130,8 @@ function formatWeekLabel(weekKey) {
 
 // ── Consumption chart ─────────────────────────────────────────────────────
 const consumoMensile = ref([])
+const consumoPerFarmaco = ref([])
+const coperturaGiorni = ref([])
 const chartMax = computed(() => {
   const max = Math.max(1, ...consumoMensile.value.map(m => m.total))
   return Math.ceil(max / 5) * 5 || 10
@@ -138,6 +140,9 @@ const chartMax = computed(() => {
 async function loadConsumoMensile() {
   try {
     const movements = await db.movements.toArray()
+    const drugs = await db.drugs.toArray()
+    const stockBatches = await db.stockBatches.toArray()
+    const drugsById = new Map(drugs.filter(d => !d.deletedAt).map(d => [d.id, d]))
     const now = new Date()
     const months = []
     // Last 6 months
@@ -148,15 +153,71 @@ async function loadConsumoMensile() {
       months.push({ key, label, total: 0 })
     }
 
+    // Per-drug consumption tracking (last 6 months)
+    const drugConsumption = new Map()
     for (const m of movements) {
-      if (m.deletedAt || m.type !== 'scarico') continue
-      const date = new Date(m.updatedAt || m.createdAt || 0)
+      if (m.deletedAt || m.tipoMovimento !== 'SCARICO') continue
+      const date = new Date(m.dataMovimento || m.updatedAt || m.createdAt || 0)
       if (Number.isNaN(date.getTime())) continue
       const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
       const month = months.find(mo => mo.key === key)
       if (month) month.total += Number(m.quantita || 1)
+
+      // Per-drug tracking
+      const drugId = m.drugId
+      if (drugId) {
+        const existing = drugConsumption.get(drugId) || { drugId, total: 0, months: {} }
+        existing.total += Number(m.quantita || 1)
+        existing.months[key] = (existing.months[key] || 0) + Number(m.quantita || 1)
+        drugConsumption.set(drugId, existing)
+      }
     }
     consumoMensile.value = months
+
+    // Build per-drug consumption list with drug names
+    const drugList = []
+    for (const [drugId, data] of drugConsumption) {
+      const drug = drugsById.get(drugId)
+      const nome = drug ? (drug.nomeFarmaco || drug.principioAttivo || drugId) : drugId
+      drugList.push({ drugId, nome, total: data.total, months: data.months })
+    }
+    drugList.sort((a, b) => b.total - a.total)
+    consumoPerFarmaco.value = drugList.slice(0, 10)
+
+    // Coverage days: for each drug, estimate days remaining
+    const trentaGiorniFa = new Date(now)
+    trentaGiorniFa.setDate(trentaGiorniFa.getDate() - 30)
+    const copertura = []
+    for (const [drugId, data] of drugConsumption) {
+      const drug = drugsById.get(drugId)
+      if (!drug) continue
+      // Total stock across all batches for this drug
+      const batches = stockBatches.filter(b => b.drugId === drugId && !b.deletedAt)
+      const stockAttuale = batches.reduce((sum, b) => sum + (Number(b.quantitaAttuale) || 0), 0)
+      if (stockAttuale <= 0) continue
+      // Average daily consumption over last 30 days
+      const consumo30gg = movements
+        .filter(m => m.drugId === drugId && !m.deletedAt && m.tipoMovimento === 'SCARICO')
+        .filter(m => {
+          const d = new Date(m.dataMovimento || m.updatedAt || 0)
+          return !Number.isNaN(d.getTime()) && d >= trentaGiorniFa
+        })
+        .reduce((sum, m) => sum + (Number(m.quantita) || 0), 0)
+      const mediaGiornaliera = consumo30gg / 30
+      const giorniRimanenti = mediaGiornaliera > 0 ? Math.round(stockAttuale / mediaGiornaliera) : 999
+      if (giorniRimanenti <= 90) {
+        copertura.push({
+          drugId,
+          nome: drug.nomeFarmaco || drug.principioAttivo || drugId,
+          stockAttuale,
+          mediaGiornaliera: Math.round(mediaGiornaliera * 10) / 10,
+          giorniRimanenti,
+          urgency: giorniRimanenti <= 7 ? 'critica' : giorniRimanenti <= 30 ? 'alta' : 'media',
+        })
+      }
+    }
+    copertura.sort((a, b) => a.giorniRimanenti - b.giorniRimanenti)
+    coperturaGiorni.value = copertura
   } catch { /* ignore */ }
 }
 
@@ -928,6 +989,67 @@ onMounted(() => {
             <text :x="i * 70 + 65" y="178" text-anchor="middle" font-size="9" fill="#64748b">{{ m.label }}</text>
           </g>
         </svg>
+      </div>
+    </div>
+
+    <!-- ── Consumo per farmaco ── -->
+    <div v-if="consumoPerFarmaco.length > 0" class="card">
+      <p><strong>💊 Consumo per farmaco (ultimi 6 mesi)</strong></p>
+      <p class="muted" style="margin-top:.25rem">Top 10 farmaci per volume di scarichi.</p>
+      <div class="dataset-frame" style="margin-top:.75rem;max-height:18rem;overflow:auto">
+        <table class="conflict-table">
+          <thead>
+            <tr>
+              <th>Farmaco</th>
+              <th>Totale unità</th>
+              <th>Trend</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="d in consumoPerFarmaco" :key="d.drugId">
+              <td>{{ d.nome }}</td>
+              <td style="text-align:center">{{ d.total }}</td>
+              <td style="text-align:center">
+                <svg width="120" height="20">
+                  <rect v-for="(m, i) in consumoMensile" :key="m.key"
+                    :x="i * 20" :y="20 - Math.max(1, (d.months[m.key] || 0) / Math.max(1, d.total) * 18)"
+                    :width="16" :height="Math.max(1, (d.months[m.key] || 0) / Math.max(1, d.total) * 18)"
+                    rx="2" fill="#2563eb" opacity="0.6"
+                  />
+                </svg>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ── Copertura giorni rimanenti ── -->
+    <div v-if="coperturaGiorni.length > 0" class="card" style="border-left: 3px solid #f59e0b">
+      <p><strong>📅 Copertura scorte (giorni stimati)</strong></p>
+      <p class="muted" style="margin-top:.25rem">Basata sul consumo medio giornaliero degli ultimi 30 giorni. Mostra solo farmaci con ≤90 giorni di copertura.</p>
+      <div class="dataset-frame" style="margin-top:.75rem;max-height:18rem;overflow:auto">
+        <table class="conflict-table">
+          <thead>
+            <tr>
+              <th>Farmaco</th>
+              <th>Scorta</th>
+              <th>Media/giorno</th>
+              <th>Giorni rimanenti</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="c in coperturaGiorni" :key="c.drugId"
+              :style="{ background: c.urgency === 'critica' ? '#fee2e2' : c.urgency === 'alta' ? '#fff3cd' : 'transparent' }">
+              <td>{{ c.nome }}</td>
+              <td style="text-align:center">{{ c.stockAttuale }}</td>
+              <td style="text-align:center">{{ c.mediaGiornaliera }}</td>
+              <td style="text-align:center;font-weight:600" :style="{ color: c.urgency === 'critica' ? '#991b1b' : c.urgency === 'alta' ? '#92400e' : '#1e6f6b' }">
+                {{ c.giorniRimanenti >= 999 ? '—' : c.giorniRimanenti + ' gg' }}
+              </td>
+            </tr>
+          </tbody>
+        </table>
       </div>
     </div>
 

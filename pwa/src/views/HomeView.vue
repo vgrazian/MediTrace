@@ -6,6 +6,7 @@ import { buildHomeDashboardKpis } from '../services/homeDashboard'
 import { useHelpNavigation } from '../composables/useHelpNavigation'
 import { useSyncState } from '../composables/useSyncState'
 import { formatBuildTimestamp, getBuildTimestampIso, getDeployLabel } from '../services/buildInfo'
+import { db } from '../db'
 
 
 const { currentUser } = useAuth()
@@ -13,6 +14,7 @@ const { goToHelpSection } = useHelpNavigation()
 const { statoSync, dettagli, pendingCount } = useSyncState()
 const datasetVersion = ref(null)
 const homeKpi = ref(null)
+const operatorStats = ref([])
 const buildTimestampLabel = formatBuildTimestamp('it-IT')
 const buildTimestampIso = getBuildTimestampIso()
 const deployLabel = getDeployLabel()
@@ -79,8 +81,39 @@ async function refreshHomeKpi() {
   datasetVersion.value = homeKpi.value.datasetVersion
 }
 
+async function loadOperatorStats() {
+  try {
+    const reminders = await db.reminders.toArray()
+    const now = new Date()
+    const dayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+    const dayEnd = new Date(dayStart.getTime() + 24 * 60 * 60 * 1000 - 1)
+
+    const todayReminders = reminders.filter(r => {
+      if (r.deletedAt) return false
+      const when = new Date(r.scheduledAt)
+      return !Number.isNaN(when.getTime()) && when >= dayStart && when <= dayEnd
+    })
+
+    const byOperator = new Map()
+    for (const r of todayReminders) {
+      const op = (r.operatore || 'n.d.').trim()
+      if (!byOperator.has(op)) byOperator.set(op, { operator: op, total: 0, eseguiti: 0, daEseguire: 0, saltati: 0 })
+      const stats = byOperator.get(op)
+      stats.total++
+      if (r.stato === 'ESEGUITO') stats.eseguiti++
+      else if (r.stato === 'SALTATO') stats.saltati++
+      else stats.daEseguire++
+    }
+
+    operatorStats.value = [...byOperator.values()].sort((a, b) => b.total - a.total)
+  } catch {
+    operatorStats.value = []
+  }
+}
+
 onMounted(async () => {
   await refreshHomeKpi()
+  await loadOperatorStats()
 })
 </script>
 
@@ -131,6 +164,31 @@ onMounted(async () => {
       </div>
     </div>
 
+    <div v-if="operatorStats.length > 0" class="card">
+      <p><strong>👥 Attività operatori di oggi</strong></p>
+      <div class="dataset-frame" style="margin-top:.5rem;max-height:12rem;overflow:auto">
+        <table class="conflict-table" style="font-size:.9em">
+          <thead>
+            <tr>
+              <th>Operatore</th>
+              <th>Eseguiti</th>
+              <th>Da fare</th>
+              <th>Saltati</th>
+              <th>Totale</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="op in operatorStats" :key="op.operator">
+              <td>{{ op.operator }}</td>
+              <td style="text-align:center;color:#2e7d32">{{ op.eseguiti }}</td>
+              <td style="text-align:center;color:#d97706">{{ op.daEseguire }}</td>
+              <td style="text-align:center;color:#991b1b">{{ op.saltati }}</td>
+              <td style="text-align:center;font-weight:600">{{ op.total }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
 
     <div class="card">
       <p><strong>Navigazione rapida</strong></p>
