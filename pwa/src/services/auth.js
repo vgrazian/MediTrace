@@ -1309,6 +1309,7 @@ export function useAuth() {
                             resetUrl: payload.resetUrl,
                             expiresAt: payload.expiresAt,
                             app: 'MediTrace',
+                            type: 'password-reset',
                         }),
                     })
 
