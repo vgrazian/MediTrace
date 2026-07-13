@@ -213,6 +213,10 @@ async function loadFasceOrarie() {
   } catch {
     fasceOrarie.value = [...DEFAULT_FASCE_ORARIE]
   }
+  // Safety: never show empty fasce
+  if (!Array.isArray(fasceOrarie.value) || fasceOrarie.value.length === 0) {
+    fasceOrarie.value = [...DEFAULT_FASCE_ORARIE]
+  }
 }
 
 async function saveFasceOrarie() {
