@@ -146,12 +146,13 @@ async function handleForgotPassword() {
   try {
     const result = await requestPasswordResetByEmail(normalizedEmail)
     if (result.resetUrl && !result.emailSent) {
-      forgotMessage.value = `⚠️ Email non configurata. Usa questo link per il reset (valido 30 min): ${result.resetUrl}`
+      forgotMessage.value = `⚠️ Email non configurata. Usa questo link: ${result.resetUrl}`
     } else {
-      forgotMessage.value = 'Se l\'indirizzo esiste, riceverai una email con il link per reimpostare la password.'
+      forgotMessage.value = '✅ Se l\'indirizzo è registrato, riceverai una email con il link per reimpostare la password. Controlla anche la cartella spam.'
+      forgotEmail.value = ''
     }
   } catch (err) {
-    loginError.value = err.message
+    forgotMessage.value = `❌ ${err.message}`
   } finally {
     forgotBusy.value = false
   }
@@ -286,7 +287,23 @@ async function handleRegister() {
             {{ loginBusy ? 'Accesso in corso…' : 'Accedi' }}
           </button>
 
-          <p class="auth-help" style="margin-top:.75rem">Password dimenticata? Contatta un amministratore per il reset.</p>
+          <template v-if="supportsEmailReset">
+            <label for="forgot-email-input" style="margin-top:.75rem">Password dimenticata?</label>
+            <input
+              id="forgot-email-input"
+              v-model="forgotEmail"
+              type="email"
+              placeholder="Inserisci la tua email"
+              autocomplete="email"
+              @input="handleForgotEmailInput"
+              @keyup.enter="handleForgotPassword"
+            />
+            <button :disabled="forgotBusy || !forgotEmail.trim()" @click="handleForgotPassword" class="btn-secondary">
+              {{ forgotBusy ? 'Invio in corso…' : 'Invia link di reset' }}
+            </button>
+            <p v-if="forgotMessage" class="auth-help" style="color:#1e6f6b">{{ forgotMessage }}</p>
+          </template>
+          <p v-else class="auth-help" style="margin-top:.75rem">Password dimenticata? Contatta un amministratore per il reset.</p>
 
         </div>
 
