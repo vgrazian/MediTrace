@@ -239,6 +239,10 @@ async function handleDelete(item) {
 onMounted(() => {
   void loadData()
 })
+
+onUnmounted(() => { window.removeEventListener('medi-trace:data-changed', handleDataChanged) })
+function handleDataChanged() { void loadData() }
+window.addEventListener('medi-trace:data-changed', handleDataChanged)
 </script>
 
 <template>

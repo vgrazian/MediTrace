@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { db, enqueue, getSetting } from '../db'
 import { buildOperationalReport, buildOrderDraftText, operationalReportToCsv } from '../services/reporting'
 import { confirmDeleteDrug, confirmDeleteBatch } from '../services/confirmations'
@@ -798,6 +798,10 @@ onMounted(() => {
   void refreshReport()
   void loadConsumoMensile()
 })
+
+onUnmounted(() => { window.removeEventListener('medi-trace:data-changed', handleDataChanged) })
+function handleDataChanged() { void refreshReport(); void loadConsumoMensile() }
+window.addEventListener('medi-trace:data-changed', handleDataChanged)
 </script>
 
 <template>

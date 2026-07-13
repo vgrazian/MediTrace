@@ -386,8 +386,8 @@ export async function loadDemoData(options = {}) {
             if (availableStores.has('reminders')) for (const record of DEMO_REMINDERS) await db.reminders.put(record)
         })
 
-        // Notify UI that data has changed
-        window.dispatchEvent(new CustomEvent('medi-trace:data-changed', { detail: { table: 'hosts' } }))
+        // Notify UI that data has changed — all views should reload
+        window.dispatchEvent(new CustomEvent('medi-trace:data-changed'))
     }
 
     await setSetting(DEMO_MANIFEST_KEY, {
@@ -463,6 +463,9 @@ export async function clearDemoData(options = {}) {
 
     await setSetting(DEMO_MANIFEST_KEY, null)
     const authResult = await clearDemoAuthUsers({ preserveAdminUsername: 'admin' })
+
+    // Notify UI that data has changed
+    window.dispatchEvent(new CustomEvent('medi-trace:data-changed'))
 
     return { cleared: true, tables: Object.keys(manifest), removedOperators: authResult.removed }
 }

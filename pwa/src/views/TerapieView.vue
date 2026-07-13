@@ -71,6 +71,11 @@ onMounted(() => {
   markFormSnapshot()
 })
 
+// Reload when demo data or other bulk changes occur
+onUnmounted(() => { window.removeEventListener('medi-trace:data-changed', handleDataChanged) })
+function handleDataChanged() { void loadData() }
+window.addEventListener('medi-trace:data-changed', handleDataChanged)
+
 const panelMode = ref('list')
 const filterQuery = ref('')
 const sortBy = ref('updatedDesc')
@@ -509,10 +514,6 @@ async function deleteSelectedTherapies() {
   }
 }
 
-onMounted(() => {
-  void loadData()
-  markFormSnapshot()
-})
 </script>
 
 <template>
