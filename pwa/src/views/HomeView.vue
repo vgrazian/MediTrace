@@ -222,9 +222,6 @@ onMounted(async () => {
       <div class="card">
         <p>Benvenuto/a, <strong>{{ currentUser?.name }}</strong></p>
         <p class="muted">Ruolo attivo: {{ currentUser?.role === 'admin' ? 'amministratore' : 'operatore' }}</p>
-        <div v-if="currentUser?.role === 'admin'" class="card attention-panel" style="margin-top:.75rem;padding:.6rem .9rem">
-          <p style="font-size:.75rem;margin:0">🔑 <strong>Gestione password:</strong> se un operatore dimentica la password, vai su <RouterLink to="/operatori">Operatori →</RouterLink> per assegnarne una nuova.</p>
-        </div>
         <div style="margin-top:.75rem">
           <p><strong>Stato sincronizzazione</strong></p>
           <p class="muted" style="margin-top:.25rem">
@@ -237,10 +234,10 @@ onMounted(async () => {
     <div v-if="hasEccezioni" class="card" style="border-left: 3px solid #f59e0b">
       <p><strong>⚠️ Riepilogo eccezioni di oggi</strong></p>
       <div style="display:flex;gap:1.5rem;flex-wrap:wrap;margin-top:.5rem">
-        <span v-if="eccezioniCount.saltati > 0" style="color:#991b1b">❌ {{ eccezioniCount.saltati }} promemoria saltati</span>
-        <span v-if="eccezioniCount.scorteCritiche > 0" style="color:#d97706">📦 {{ eccezioniCount.scorteCritiche }} scorte critiche</span>
-        <span v-if="eccezioniCount.conflitti > 0" style="color:#d97706">⚡ {{ eccezioniCount.conflitti }} conflitti sync</span>
-        <span v-if="eccezioniCount.syncPendenti > 0" style="color:#6b7280">🔄 {{ eccezioniCount.syncPendenti }} sync in attesa</span>
+        <RouterLink v-if="eccezioniCount.saltati > 0" to="/promemoria" style="color:#991b1b;text-decoration:none">❌ {{ eccezioniCount.saltati }} promemoria saltati</RouterLink>
+        <RouterLink v-if="eccezioniCount.scorteCritiche > 0" to="/scorte" style="color:#d97706;text-decoration:none">📦 {{ eccezioniCount.scorteCritiche }} scorte critiche</RouterLink>
+        <RouterLink v-if="eccezioniCount.conflitti > 0" to="/impostazioni" style="color:#d97706;text-decoration:none">⚡ {{ eccezioniCount.conflitti }} conflitti sync</RouterLink>
+        <RouterLink v-if="eccezioniCount.syncPendenti > 0" to="/impostazioni" style="color:#6b7280;text-decoration:none">🔄 {{ eccezioniCount.syncPendenti }} sync in attesa</RouterLink>
       </div>
     </div>
 
