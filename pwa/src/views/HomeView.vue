@@ -15,6 +15,8 @@ const { statoSync, dettagli, pendingCount } = useSyncState()
 const datasetVersion = ref(null)
 const homeKpi = ref(null)
 const operatorStats = ref([])
+const trendSettimanale = ref([])
+const eccezioniCount = ref({ saltati: 0, scorteCritiche: 0, conflitti: 0, syncPendenti: 0 })
 const buildTimestampLabel = formatBuildTimestamp('it-IT')
 const buildTimestampIso = getBuildTimestampIso()
 const deployLabel = getDeployLabel()
@@ -111,9 +113,77 @@ async function loadOperatorStats() {
   }
 }
 
+async function loadTrendSettimanale() {
+  try {
+    const movements = await db.movements.toArray()
+    const now = new Date()
+    const weeks = []
+    for (let i = 3; i >= 0; i--) {
+      const d = new Date(now)
+      d.setDate(d.getDate() - i * 7)
+      const weekStart = new Date(d)
+      weekStart.setDate(d.getDate() - d.getDay() + 1)
+      weekStart.setHours(0, 0, 0, 0)
+      const weekEnd = new Date(weekStart)
+      weekEnd.setDate(weekStart.getDate() + 7)
+      const label = `W${Math.ceil(weekStart.getDate() / 7)}`
+      weeks.push({ label, total: 0, start: weekStart, end: weekEnd })
+    }
+
+    for (const m of movements) {
+      if (m.deletedAt || m.tipoMovimento !== 'SCARICO') continue
+      const date = new Date(m.dataMovimento || m.updatedAt || 0)
+      if (Number.isNaN(date.getTime())) continue
+      const week = weeks.find(w => date >= w.start && date < w.end)
+      if (week) week.total += Number(m.quantita || 1)
+    }
+    trendSettimanale.value = weeks
+  } catch {
+    trendSettimanale.value = []
+  }
+}
+
+async function loadEccezioni() {
+  try {
+    const [reminders, batches, conflicts] = await Promise.all([
+      db.reminders.toArray(),
+      db.stockBatches.toArray(),
+      db.syncQueue.count(),
+    ])
+    const now = new Date()
+    const dayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+    const dayEnd = new Date(dayStart.getTime() + 24 * 60 * 60 * 1000 - 1)
+
+    const saltati = reminders.filter(r => {
+      if (r.deletedAt) return false
+      const when = new Date(r.scheduledAt)
+      return !Number.isNaN(when.getTime()) && when >= dayStart && when <= dayEnd && r.stato === 'SALTATO'
+    }).length
+
+    const scorteCritiche = batches.filter(b => !b.deletedAt && (Number(b.quantitaAttuale) || 0) <= (Number(b.sogliaRiordino) || 0)).length
+
+    eccezioniCount.value = {
+      saltati,
+      scorteCritiche,
+      conflitti: homeKpi.value?.pendingConflicts || 0,
+      syncPendenti: conflicts,
+    }
+  } catch {
+    eccezioniCount.value = { saltati: 0, scorteCritiche: 0, conflitti: 0, syncPendenti: 0 }
+  }
+}
+
+const trendMax = computed(() => Math.max(1, ...trendSettimanale.value.map(w => w.total)))
+const hasEccezioni = computed(() => {
+  const e = eccezioniCount.value
+  return (e.saltati + e.scorteCritiche + e.conflitti + e.syncPendenti) > 0
+})
+
 onMounted(async () => {
   await refreshHomeKpi()
   await loadOperatorStats()
+  await loadTrendSettimanale()
+  await loadEccezioni()
 })
 </script>
 
@@ -160,6 +230,27 @@ onMounted(async () => {
           <p class="muted" style="margin-top:.25rem">
             {{ dettagli }}
           </p>
+        </div>
+      </div>
+    </div>
+
+    <div v-if="hasEccezioni" class="card" style="border-left: 3px solid #f59e0b">
+      <p><strong>⚠️ Riepilogo eccezioni di oggi</strong></p>
+      <div style="display:flex;gap:1.5rem;flex-wrap:wrap;margin-top:.5rem">
+        <span v-if="eccezioniCount.saltati > 0" style="color:#991b1b">❌ {{ eccezioniCount.saltati }} promemoria saltati</span>
+        <span v-if="eccezioniCount.scorteCritiche > 0" style="color:#d97706">📦 {{ eccezioniCount.scorteCritiche }} scorte critiche</span>
+        <span v-if="eccezioniCount.conflitti > 0" style="color:#d97706">⚡ {{ eccezioniCount.conflitti }} conflitti sync</span>
+        <span v-if="eccezioniCount.syncPendenti > 0" style="color:#6b7280">🔄 {{ eccezioniCount.syncPendenti }} sync in attesa</span>
+      </div>
+    </div>
+
+    <div v-if="trendSettimanale.length > 0" class="card">
+      <p><strong>📈 Trend consumi (4 settimane)</strong></p>
+      <div style="margin-top:.5rem;display:flex;align-items:flex-end;gap:.75rem;height:3.5rem">
+        <div v-for="w in trendSettimanale" :key="w.label" style="display:flex;flex-direction:column;align-items:center;flex:1;min-width:2rem">
+          <span style="font-size:.65rem;color:#64748b;margin-bottom:.15rem">{{ w.total }}</span>
+          <div :style="{ width: '100%', height: Math.max(2, (w.total / trendMax) * 100) + '%', background: '#2563eb', borderRadius: '3px 3px 0 0', opacity: 0.75, minHeight: '2px' }"></div>
+          <span style="font-size:.6rem;color:#94a3b8;margin-top:.15rem">{{ w.label }}</span>
         </div>
       </div>
     </div>

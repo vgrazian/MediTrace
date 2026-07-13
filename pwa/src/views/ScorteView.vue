@@ -131,6 +131,7 @@ function formatWeekLabel(weekKey) {
 // ── Consumption chart ─────────────────────────────────────────────────────
 const consumoMensile = ref([])
 const consumoPerFarmaco = ref([])
+const consumoPerClasse = ref([])
 const coperturaGiorni = ref([])
 const chartMax = computed(() => {
   const max = Math.max(1, ...consumoMensile.value.map(m => m.total))
@@ -218,7 +219,41 @@ async function loadConsumoMensile() {
     }
     copertura.sort((a, b) => a.giorniRimanenti - b.giorniRimanenti)
     coperturaGiorni.value = copertura
+
+    // Per-class consumption (therapeutic class)
+    const classMap = new Map()
+    for (const [drugId, data] of drugConsumption) {
+      const drug = drugsById.get(drugId)
+      const classe = (drug?.classeTerapeutica || 'Altro').trim()
+      const existing = classMap.get(classe) || { classe, total: 0 }
+      existing.total += data.total
+      classMap.set(classe, existing)
+    }
+    consumoPerClasse.value = [...classMap.values()].sort((a, b) => b.total - a.total)
   } catch { /* ignore */ }
+}
+
+// ── Pie chart helpers ─────────────────────────────────────────────────────
+const pieColors = ['#2563eb', '#059669', '#d97706', '#7c3aed', '#dc2626', '#0891b2', '#ca8a04', '#be185d']
+const pieTotal = computed(() => consumoPerClasse.value.reduce((s, c) => s + c.total, 0))
+
+function pieCommand(slice, index, total) {
+  let cumulative = 0
+  for (let i = 0; i < index; i++) {
+    cumulative += (consumoPerClasse.value[i].total / total) * 360
+  }
+  const startAngle = cumulative
+  const sliceAngle = (slice.total / total) * 360
+  const endAngle = startAngle + sliceAngle
+
+  const toRad = deg => (deg - 90) * Math.PI / 180
+  const x1 = 50 + 38 * Math.cos(toRad(startAngle))
+  const y1 = 50 + 38 * Math.sin(toRad(startAngle))
+  const x2 = 50 + 38 * Math.cos(toRad(endAngle))
+  const y2 = 50 + 38 * Math.sin(toRad(endAngle))
+  const largeArc = sliceAngle > 180 ? 1 : 0
+
+  return `M 50 50 L ${x1} ${y1} A 38 38 0 ${largeArc} 1 ${x2} ${y2} Z`
 }
 
 // ── Expired / expiring batches ────────────────────────────────────────────
@@ -984,10 +1019,19 @@ onMounted(() => {
           <line x1="30" :y1="10" :x2="consumoMensile.length * 70 + 40" y2="10" stroke="#e2e8f0" stroke-width="1"/>
           <line x1="30" :y1="90" :x2="consumoMensile.length * 70 + 40" y2="90" stroke="#e2e8f0" stroke-width="1"/>
           <g v-for="(m, i) in consumoMensile" :key="m.key">
-            <rect :x="i * 70 + 40" :y="170 - (m.total / chartMax) * 160" width="50" :height="(m.total / chartMax) * 160" rx="3" fill="#2563eb" opacity="0.85"/>
+            <rect :x="i * 70 + 40" :y="170 - (m.total / chartMax) * 160" width="50" :height="(m.total / chartMax) * 160" rx="3" fill="#2563eb" opacity="0.6"/>
             <text :x="i * 70 + 65" :y="168 - (m.total / chartMax) * 160" text-anchor="middle" font-size="10" :fill="m.total > chartMax * 0.15 ? '#fff' : '#1e293b'">{{ m.total }}</text>
             <text :x="i * 70 + 65" y="178" text-anchor="middle" font-size="9" fill="#64748b">{{ m.label }}</text>
           </g>
+          <!-- Line overlay -->
+          <polyline
+            :points="consumoMensile.map((m, i) => `${i * 70 + 65},${170 - (m.total / chartMax) * 160}`).join(' ')"
+            fill="none" stroke="#059669" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" opacity="0.8"
+          />
+          <circle v-for="(m, i) in consumoMensile" :key="'d'+m.key"
+            :cx="i * 70 + 65" :cy="170 - (m.total / chartMax) * 160" r="3.5"
+            fill="#059669" stroke="#fff" stroke-width="1"
+          />
         </svg>
       </div>
     </div>
@@ -1021,6 +1065,29 @@ onMounted(() => {
             </tr>
           </tbody>
         </table>
+      </div>
+    </div>
+
+    <!-- ── Consumo per classe terapeutica ── -->
+    <div v-if="consumoPerClasse.length > 0" class="card">
+      <p><strong>🥧 Consumo per classe terapeutica (6 mesi)</strong></p>
+      <p class="muted" style="margin-top:.25rem">Distribuzione scarichi per categoria di farmaco.</p>
+      <div style="margin-top:.75rem;display:flex;gap:1.5rem;flex-wrap:wrap;align-items:center">
+        <svg viewBox="0 0 100 100" width="140" height="140">
+          <path v-for="(c, i) in consumoPerClasse" :key="c.classe"
+            :d="pieCommand(c, i, pieTotal)"
+            :fill="pieColors[i % pieColors.length]"
+            stroke="#fff" stroke-width="0.5"
+          />
+        </svg>
+        <div style="flex:1;min-width:12rem">
+          <div v-for="(c, i) in consumoPerClasse" :key="c.classe" style="display:flex;align-items:center;gap:.4rem;margin-bottom:.25rem;font-size:.78rem">
+            <span :style="{ width: '.7rem', height: '.7rem', borderRadius: '2px', background: pieColors[i % pieColors.length], display: 'inline-block', flexShrink: 0 }"></span>
+            <span style="flex:1">{{ c.classe }}</span>
+            <span style="font-weight:600;color:#1a1a1a">{{ c.total }}</span>
+            <span style="color:#94a3b8;font-size:.7rem">{{ Math.round(c.total / pieTotal * 100) }}%</span>
+          </div>
+        </div>
       </div>
     </div>
 
