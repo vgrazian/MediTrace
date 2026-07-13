@@ -1268,11 +1268,20 @@ export function useAuth() {
 
             if (isSupabaseConfigured && supabase) {
                 const resetRedirect = String(redirectTo || getSupabaseRedirectTo('/#/auth/reset-password')).trim()
+                // Extract hash path before sending to Supabase RPC (hash gets stripped by PostgREST)
+                const hashMatch = resetRedirect.match(/(#\/[\w\-/]+)/)
+                const resetPath = hashMatch ? hashMatch[1] : '#/auth/reset-password'
+                const baseWithoutHash = resetRedirect.replace(/#.*$/, '').replace(/\/$/, '')
                 const payload = await requestPasswordResetWithTable({
                     email: normalizedEmail,
-                    redirectTo: resetRedirect,
+                    redirectTo: baseWithoutHash,
                     resetTtlMinutes: PASSWORD_RESET_TTL_MINUTES,
                 })
+
+                // Reconstruct correct URL: inject hash path before the token query
+                if (payload.resetUrl) {
+                    payload.resetUrl = payload.resetUrl.replace(/\?token=/, `${resetPath}?token=`)
+                }
 
                 if (payload.resetUrl) {
                     if (!PASSWORD_RESET_EMAIL_API) {
