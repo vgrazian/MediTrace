@@ -5,7 +5,7 @@ import { useHelpNavigation } from '../composables/useHelpNavigation'
 import { db } from '../db'
 import { openConfirmDialog } from '../services/confirmDialog'
 
-const { currentUser, listUsers, createUser, setUserDisabled, deleteUser, setUserDefaultResidenza, setUserProfile } = useAuth()
+const { currentUser, listUsers, createUser, setUserDisabled, deleteUser, setUserDefaultResidenza, setUserProfile, requestPasswordResetByEmail } = useAuth()
 const { goToHelpSection } = useHelpNavigation()
 
 const canManage = computed(() => currentUser.value?.role === 'admin')
@@ -216,6 +216,20 @@ function closeForm() {
   editingUsername.value = ''
 }
 
+async function handleResetPasswordForUser() {
+  if (!editEmail.value) return
+  editBusy.value = true
+  editMessage.value = ''
+  try {
+    await requestPasswordResetByEmail(editEmail.value.trim())
+    editMessage.value = `✅ Email di reset inviata a ${editEmail.value}. L'operatore riceverà il link per reimpostare la password.`
+  } catch (e) {
+    editMessage.value = 'Errore: ' + e.message
+  } finally {
+    editBusy.value = false
+  }
+}
+
 onMounted(() => {
   refreshUsers()
   loadResidenze()
@@ -378,7 +392,9 @@ onMounted(() => {
                 <button :disabled="editBusy || !editFirstName || !editLastName || !editEmail" @click="handleEditUser">
                   {{ editBusy ? 'Salvataggio…' : 'Salva modifiche' }}
                 </button>
-                <button type="button" :disabled="editBusy" @click="closeForm">Annulla</button>
+                <button type="button" class="btn-secondary" :disabled="editBusy || !editEmail" @click="handleResetPasswordForUser" style="margin-top:.4rem">
+                  🔑 Invia reset password via email
+                </button>
                 <p v-if="editMessage" class="muted">{{ editMessage }}</p>
               </div>
             </template>

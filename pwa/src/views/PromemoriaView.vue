@@ -28,6 +28,42 @@ import { useRoute } from 'vue-router'
 import { db, enqueue, getSetting, setSetting } from '../db'
 import { useAuth } from '../services/auth'
 import { BED_SEQUENCE_SETTING_KEY, CURRENT_RESIDENZA_SETTING_KEY, buildReminderRows, markReminder, reminderStateBadge, reminderActionButtonColor, REMINDER_OUTCOMES, assertUniqueReminderSlot } from '../services/promemoria'
+
+const FASCE_ORARIE_KEY = 'fasceOrarieConfig'
+const fasceOrarieConfig = ref([])
+const currentResidenzaId = ref('')
+
+const fasciaOptions = computed(() => {
+  if (fasceOrarieConfig.value.length === 0) {
+    return [
+      { value: 'mattina', label: 'Mattina (06:00-11:59)' },
+      { value: 'pomeriggio', label: 'Pomeriggio (12:00-17:59)' },
+      { value: 'sera', label: 'Sera (18:00-23:59)' },
+      { value: 'notte', label: 'Notte (00:00-05:59)' },
+    ]
+  }
+  return fasceOrarieConfig.value.map(f => ({
+    value: f.nome.toLowerCase(),
+    label: `${f.nome} (${f.inizio}-${f.fine})`,
+  }))
+})
+
+async function loadFasceOrarie() {
+  try {
+    const residenzaId = currentResidenzaId.value
+    if (residenzaId) {
+      const perRoom = await getSetting(`${FASCE_ORARIE_KEY}:${residenzaId}`, null)
+      if (Array.isArray(perRoom) && perRoom.length > 0) {
+        fasceOrarieConfig.value = perRoom
+        return
+      }
+    }
+    const global = await getSetting(FASCE_ORARIE_KEY, null)
+    fasceOrarieConfig.value = Array.isArray(global) && global.length > 0 ? global : []
+  } catch {
+    fasceOrarieConfig.value = []
+  }
+}
 import { confirmDeleteReminder } from '../services/confirmations'
 import { openConfirmDialog } from '../services/confirmDialog'
 import { useFormValidation } from '../services/formValidation'
@@ -191,7 +227,7 @@ const rows = computed(() => buildReminderRows({
   stateFilter: stateFilter.value,
   residenzaFilter: residenzaFilter.value,
   hostIdFilter: hostIdFilter.value,
-  fasciaOrariaFilter: fasciaOrariaFilter.value,
+  fasceOrarie: fasceOrarieConfig.value,
 }))
 
 const residenzaOptions = computed(() => {
@@ -263,6 +299,8 @@ async function loadData() {
     selectedReminderIds.value = selectedReminderIds.value.filter((id) => validIds.has(id))
 
     const savedResidenza = await getSetting(CURRENT_RESIDENZA_SETTING_KEY, '')
+    currentResidenzaId.value = String(savedResidenza || '')
+    await loadFasceOrarie()
     const validResidenza = String(savedResidenza || '')
     if (!validResidenza || rooms.value.some(room => room.id === validResidenza)) {
       residenzaFilter.value = validResidenza
@@ -640,10 +678,7 @@ watch(residenzaFilter, async (value) => {
           Fascia oraria
           <select v-model="fasciaOrariaFilter">
             <option value="">Tutte le fasce</option>
-            <option value="mattina">Mattina (06:00-11:59)</option>
-            <option value="pomeriggio">Pomeriggio (12:00-17:59)</option>
-            <option value="sera">Sera (18:00-23:59)</option>
-            <option value="notte">Notte (00:00-05:59)</option>
+            <option v-for="f in fasciaOptions" :key="f.value" :value="f.value">{{ f.label }}</option>
           </select>
         </label>
         <label>

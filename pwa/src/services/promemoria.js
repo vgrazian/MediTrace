@@ -148,10 +148,11 @@ function compareReminderRows(a, b, bedSequenceIndex) {
  * @param {string|string[]} [params.stateFilter]
  * @param {string} [params.residenzaFilter]
  * @param {string} [params.hostIdFilter] — se valorizzato, mostra solo promemoria di quell'ospite
- * @param {string} [params.fasciaOrariaFilter] — se valorizzato, mostra solo promemoria in quella fascia ('mattina','pomeriggio','sera','notte')
+ * @param {string} [params.fasciaOrariaFilter] — se valorizzato, mostra solo promemoria in quella fascia
+ * @param {Array}  [params.fasceOrarie] — array of { nome, inizio, fine } from fasceOrarieConfig (per-residence)
  * @param {Date} [params.now]
  */
-export function buildReminderRows({ reminders, hosts, drugs, therapies, beds = [], rooms = [], bedSequence = [], dateFilter = 'today', stateFilter = '', residenzaFilter = '', hostIdFilter = '', fasciaOrariaFilter = '', now = new Date() }) {
+export function buildReminderRows({ reminders, hosts, drugs, therapies, beds = [], rooms = [], bedSequence = [], dateFilter = 'today', stateFilter = '', residenzaFilter = '', hostIdFilter = '', fasciaOrariaFilter = '', fasceOrarie = [], now = new Date() }) {
     const hostsById = new Map(hosts.map(h => [h.id, h]))
     const drugsById = new Map(drugs.map(d => [d.id, d]))
     const therapiesById = new Map(therapies.map(t => [t.id, t]))
@@ -220,12 +221,32 @@ export function buildReminderRows({ reminders, hosts, drugs, therapies, beds = [
             const when = new Date(r.scheduledAt)
             if (Number.isNaN(when.getTime())) return true
             const hour = when.getHours()
-            switch (fasciaOrariaFilter) {
-                case 'mattina': return hour >= 6 && hour < 12
-                case 'pomeriggio': return hour >= 12 && hour < 18
-                case 'sera': return hour >= 18 && hour < 24
-                case 'notte': return hour >= 0 && hour < 6
-                default: return true
+            const minute = when.getMinutes()
+            const timeMinutes = hour * 60 + minute
+
+            // Use dynamic fasce orarie if available, otherwise fall back to defaults
+            const fasce = Array.isArray(fasceOrarie) && fasceOrarie.length > 0
+                ? fasceOrarie
+                : [
+                    { nome: 'mattina', inizio: '06:00', fine: '11:59' },
+                    { nome: 'pomeriggio', inizio: '12:00', fine: '17:59' },
+                    { nome: 'sera', inizio: '18:00', fine: '23:59' },
+                    { nome: 'notte', inizio: '00:00', fine: '05:59' },
+                ]
+
+            const fascia = fasce.find(f => f.nome.toLowerCase() === fasciaOrariaFilter.toLowerCase())
+            if (!fascia) return true
+
+            const [startH, startM] = (fascia.inizio || '06:00').split(':').map(Number)
+            const [endH, endM] = (fascia.fine || '11:59').split(':').map(Number)
+            const startMin = startH * 60 + startM
+            const endMin = endH * 60 + endM
+
+            if (startMin <= endMin) {
+                return timeMinutes >= startMin && timeMinutes <= endMin
+            } else {
+                // Overnight range (e.g., 23:00-06:59)
+                return timeMinutes >= startMin || timeMinutes <= endMin
             }
         })
         .map(r => {
