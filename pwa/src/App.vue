@@ -144,8 +144,12 @@ async function handleForgotPassword() {
   forgotMessage.value = ''
 
   try {
-    await requestPasswordResetByEmail(normalizedEmail)
-    forgotMessage.value = 'Se l\'indirizzo esiste, riceverai una email con il link per reimpostare la password.'
+    const result = await requestPasswordResetByEmail(normalizedEmail)
+    if (result.resetUrl && !result.emailSent) {
+      forgotMessage.value = `⚠️ Email non configurata. Usa questo link per il reset (valido 30 min): ${result.resetUrl}`
+    } else {
+      forgotMessage.value = 'Se l\'indirizzo esiste, riceverai una email con il link per reimpostare la password.'
+    }
   } catch (err) {
     loginError.value = err.message
   } finally {

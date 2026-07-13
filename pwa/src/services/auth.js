@@ -1276,7 +1276,18 @@ export function useAuth() {
 
                 if (payload.resetUrl) {
                     if (!PASSWORD_RESET_EMAIL_API) {
-                        throw new Error('Invio email reset non configurato: imposta VITE_PASSWORD_RESET_EMAIL_API')
+                        // No email API configured — return the reset URL directly
+                        // so the UI can show it (useful in dev/demo/CI environments)
+                        await appendAuthAudit('auth_password_reset_email_requested', normalizedEmail, {
+                            provider: 'supabase-table',
+                            emailSent: false,
+                            reason: 'no-email-api',
+                        })
+                        return {
+                            queued: false,
+                            resetUrl: payload.resetUrl,
+                            emailSent: false,
+                        }
                     }
 
                     const response = await fetch(PASSWORD_RESET_EMAIL_API, {
@@ -1303,6 +1314,8 @@ export function useAuth() {
                 })
                 return {
                     queued: true,
+                    resetUrl: payload.resetUrl,
+                    emailSent: true,
                 }
             }
 
