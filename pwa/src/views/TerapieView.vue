@@ -3,6 +3,7 @@ import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useKeyboardShortcuts, shortcutHint } from '../composables/useKeyboardShortcuts'
 import { db } from '../db'
+import { dataReady } from '../services/seedData'
 import { useAuth } from '../services/auth'
 import { deactivateTherapyRecord, restoreTherapyRecord, upsertTherapy } from '../services/terapie'
 import { confirmDeactivateTherapy, confirmDeleteMultiple } from '../services/confirmations'
@@ -271,6 +272,7 @@ async function loadData() {
   errorMessage.value = ''
 
   try {
+    await dataReady
     const [rawHosts, rawDrugs, rawTherapies, rawBatches] = await Promise.all([
       db.hosts.toArray(),
       db.drugs.toArray(),

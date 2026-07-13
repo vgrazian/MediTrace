@@ -3,6 +3,7 @@ import { useAuth } from '../services/auth'
 import { ref, onMounted } from 'vue'
 import { RouterLink } from 'vue-router'
 import { buildHomeDashboardKpis } from '../services/homeDashboard'
+import { dataReady } from '../services/seedData'
 import { useHelpNavigation } from '../composables/useHelpNavigation'
 import { useSyncState } from '../composables/useSyncState'
 import { formatBuildTimestamp, getBuildTimestampIso, getDeployLabel } from '../services/buildInfo'
@@ -87,12 +88,14 @@ function formatDateTime(value) {
 }
 
 async function refreshHomeKpi() {
+  await dataReady
   homeKpi.value = await buildHomeDashboardKpis()
   datasetVersion.value = homeKpi.value.datasetVersion
 }
 
 async function loadOperatorStats() {
   try {
+    await dataReady
     const reminders = await db.reminders.toArray()
     const now = new Date()
     const dayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate())
@@ -123,6 +126,7 @@ async function loadOperatorStats() {
 
 async function loadTrendSettimanale() {
   try {
+    await dataReady
     const movements = await db.movements.toArray()
     const now = new Date()
     const weeks = []

@@ -10,6 +10,7 @@ import ValidatedInput from '../components/ValidatedInput.vue'
 import CrudFilterBar from '../components/CrudFilterBar.vue'
 import { useSelection } from '../composables/useSelection'
 import { db } from '../db'
+import { dataReady } from '../services/seedData'
 import { useHelpNavigation } from '../composables/useHelpNavigation'
 import { useUnsavedChangesGuard } from '../composables/useUnsavedChangesGuard'
 import { useUndoDelete } from '../composables/useUndoDelete'
@@ -229,6 +230,7 @@ async function loadData() {
     loading.value = true
     errorMessage.value = ''
     try {
+        await dataReady
         await ensureDefaultResidenze()
         const [rawHosts, rawTherapies, rooms] = await Promise.all([
             db.hosts.toArray(),

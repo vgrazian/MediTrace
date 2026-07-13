@@ -1,6 +1,7 @@
 <script setup>
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { db, enqueue, getSetting } from '../db'
+import { dataReady } from '../services/seedData'
 import { buildOperationalReport, buildOrderDraftText, operationalReportToCsv } from '../services/reporting'
 import { confirmDeleteDrug, confirmDeleteBatch } from '../services/confirmations'
 import { openConfirmDialog } from '../services/confirmDialog'
@@ -140,6 +141,7 @@ const chartMax = computed(() => {
 
 async function loadConsumoMensile() {
   try {
+    await dataReady
     const movements = await db.movements.toArray()
     const drugs = await db.drugs.toArray()
     const stockBatches = await db.stockBatches.toArray()
@@ -316,6 +318,7 @@ async function refreshReport() {
   reportLoading.value = true
   reportError.value = ''
   try {
+    await dataReady
     const [nextReport, rawDrugs, rawBatches] = await Promise.all([
       buildOperationalReport(),
       db.drugs.toArray(),

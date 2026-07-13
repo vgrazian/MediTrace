@@ -27,6 +27,16 @@ const DEMO_STORE_NAMES = ['rooms', 'hosts', 'drugs', 'stockBatches', 'therapies'
 
 const NOW = '2026-04-04T08:00:00.000Z'
 
+/**
+ * Promise that resolves when demo data seeding is complete (or immediately
+ * if seeding is disabled). Views should await this before reading from the DB
+ * to avoid rendering empty tables on first paint.
+ */
+let dataReadyResolve
+export const dataReady = new Promise(resolve => {
+  dataReadyResolve = resolve
+})
+
 /** Build an ISO date string relative to today: dayOffset (0=today, -1=yesterday, 1=tomorrow), hour, minute */
 function buildDateStr(dayOffset, hour, minute) {
     const d = new Date()
@@ -343,6 +353,11 @@ export async function repairUnsyncedSeedData() {
 export async function loadDemoData(options = {}) {
     assertSeedEnabled(options)
 
+    if (!SEED_ENABLED && !options.allowInProduction) {
+        dataReadyResolve()
+        return { skipped: true, reason: 'seed-disabled' }
+    }
+
     // Ensure default residences exist (now includes "Residenza Demo")
     await ensureDefaultResidenze()
 
@@ -389,6 +404,8 @@ export async function loadDemoData(options = {}) {
         // Notify UI that data has changed — all views should reload
         window.dispatchEvent(new CustomEvent('medi-trace:data-changed'))
     }
+
+    dataReadyResolve()
 
     await setSetting(DEMO_MANIFEST_KEY, {
         rooms: [], // Residenza Demo is now a permanent default — never cleared
@@ -466,6 +483,9 @@ export async function clearDemoData(options = {}) {
 
     // Notify UI that data has changed
     window.dispatchEvent(new CustomEvent('medi-trace:data-changed'))
+
+    // Re-resolve dataReady so any late-mounted views can also proceed immediately
+    dataReadyResolve()
 
     return { cleared: true, tables: Object.keys(manifest), removedOperators: authResult.removed }
 }

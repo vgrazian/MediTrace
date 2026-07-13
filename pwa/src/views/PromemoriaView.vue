@@ -26,6 +26,7 @@ onUnmounted(() => {
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { db, enqueue, getSetting, setSetting } from '../db'
+import { dataReady } from '../services/seedData'
 import { useAuth } from '../services/auth'
 import { BED_SEQUENCE_SETTING_KEY, CURRENT_RESIDENZA_SETTING_KEY, buildReminderRows, markReminder, reminderStateBadge, reminderActionButtonColor, REMINDER_OUTCOMES, assertUniqueReminderSlot } from '../services/promemoria'
 
@@ -279,6 +280,7 @@ async function loadData() {
   loading.value = true
   errorMessage.value = ''
   try {
+    await dataReady
     const [rawReminders, rawHosts, rawDrugs, rawTherapies, rawBeds, rawRooms, savedBedSequence] = await Promise.all([
       db.reminders.toArray(),
       db.hosts.toArray(),

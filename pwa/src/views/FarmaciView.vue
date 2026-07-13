@@ -2,6 +2,7 @@
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useKeyboardShortcuts, shortcutHint } from '../composables/useKeyboardShortcuts'
 import { db, getSetting, setSetting } from '../db'
+import { dataReady } from '../services/seedData'
 import { useAuth } from '../services/auth'
 import { upsertDrug, deleteDrug, upsertBatch, deactivateBatch, restoreDrug, restoreBatch } from '../services/farmaci'
 import { confirmDeleteDrug, confirmDeleteBatch, confirmDeleteMultiple } from '../services/confirmations'
@@ -377,6 +378,7 @@ async function loadData() {
   loading.value = true
   errorMessage.value = ''
   try {
+    await dataReady
     const [rawDrugs, rawBatches] = await Promise.all([
       db.drugs.toArray(),
       db.stockBatches.toArray(),

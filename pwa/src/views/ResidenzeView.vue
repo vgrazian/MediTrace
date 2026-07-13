@@ -15,6 +15,7 @@ import { useUndoDelete } from '../composables/useUndoDelete'
 import UndoDeleteBanner from '../components/UndoDeleteBanner.vue'
 import CrudFilterBar from '../components/CrudFilterBar.vue'
 import { db } from '../db'
+import { dataReady } from '../services/seedData'
 import { useKeyboardShortcuts, shortcutHint } from '../composables/useKeyboardShortcuts'
 
 const { currentUser } = useAuth()
@@ -107,6 +108,7 @@ async function loadData() {
   loading.value = true
   errorMessage.value = ''
   try {
+    await dataReady
     await ensureDefaultResidenze({ operatorId: currentUser.value?.login ?? null })
     residenze.value = await listResidenze()
     await loadGenderStats()

@@ -2,6 +2,7 @@
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useKeyboardShortcuts, shortcutHint } from '../composables/useKeyboardShortcuts'
 import { db } from '../db'
+import { dataReady } from '../services/seedData'
 import { useAuth } from '../services/auth'
 import { restoreMovement, softDeleteMovement, upsertMovement } from '../services/movimenti'
 import { confirmDeleteMovement, confirmDeleteMultiple } from '../services/confirmations'
@@ -241,6 +242,7 @@ async function loadData() {
   loading.value = true
   errorMessage.value = ''
   try {
+    await dataReady
     const [rawBatches, rawDrugs, rawHosts, rawTherapies, rawMovements] = await Promise.all([
       db.stockBatches.toArray(),
       db.drugs.toArray(),
@@ -487,12 +489,6 @@ async function deleteSelectedMovements() {
     errorMessage.value = `Errore eliminazione movimento: ${err.message}`
   }
 }
-
-onMounted(() => {
-  form.value.dataMovimento = toLocalDateTimeInput()
-  void loadData()
-  markFormSnapshot()
-})
 </script>
 
 <template>
