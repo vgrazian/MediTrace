@@ -119,6 +119,9 @@ onMounted(async () => {
       <div class="card">
         <p>Benvenuto/a, <strong>{{ currentUser?.name }}</strong></p>
         <p class="muted">Ruolo attivo: {{ currentUser?.role === 'admin' ? 'amministratore' : 'operatore' }}</p>
+        <div v-if="currentUser?.role === 'admin'" class="card attention-panel" style="margin-top:.75rem;padding:.6rem .9rem">
+          <p style="font-size:.75rem;margin:0">🔑 <strong>Gestione password:</strong> se un operatore dimentica la password, vai su <RouterLink to="/operatori">Operatori →</RouterLink> per assegnarne una nuova.</p>
+        </div>
         <div style="margin-top:.75rem">
           <p><strong>Stato sincronizzazione</strong></p>
           <p class="muted" style="margin-top:.25rem">

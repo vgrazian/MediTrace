@@ -286,23 +286,7 @@ async function handleRegister() {
             {{ loginBusy ? 'Accesso in corso…' : 'Accedi' }}
           </button>
 
-          <template v-if="supportsEmailReset">
-            <label for="forgot-email-input" style="margin-top:.75rem">Password dimenticata</label>
-            <input
-              id="forgot-email-input"
-              v-model="forgotEmail"
-              type="email"
-              placeholder="Inserisci email account"
-              autocomplete="email"
-              @input="handleForgotEmailInput"
-              @keyup.enter="handleForgotPassword"
-            />
-
-            <button :disabled="forgotBusy || !forgotEmail.trim()" @click="handleForgotPassword">
-              {{ forgotBusy ? 'Invio email…' : 'Invia link reset password' }}
-            </button>
-            <p v-if="forgotMessage" class="auth-help">{{ forgotMessage }}</p>
-          </template>
+          <p class="auth-help" style="margin-top:.75rem">Password dimenticata? Contatta un amministratore per il reset.</p>
 
         </div>
 
