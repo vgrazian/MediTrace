@@ -243,7 +243,7 @@ onMounted(() => {
 })
 
 onUnmounted(() => { window.removeEventListener('medi-trace:data-changed', handleDataChanged) })
-function handleDataChanged() { void loadData() }
+function handleDataChanged() { console.log('[ResidenzeView] data-changed event, reloading...'); void loadData() }
 window.addEventListener('medi-trace:data-changed', handleDataChanged)
 </script>
 

@@ -803,7 +803,7 @@ onMounted(() => {
 })
 
 onUnmounted(() => { window.removeEventListener('medi-trace:data-changed', handleDataChanged) })
-function handleDataChanged() { void refreshReport(); void loadConsumoMensile() }
+function handleDataChanged() { console.log('[ScorteView] data-changed event, reloading...'); void refreshReport(); void loadConsumoMensile() }
 window.addEventListener('medi-trace:data-changed', handleDataChanged)
 </script>
 

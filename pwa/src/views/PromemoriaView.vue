@@ -623,7 +623,7 @@ async function deleteReminder(reminderId) {
 onMounted(() => void loadData())
 
 onUnmounted(() => { window.removeEventListener('medi-trace:data-changed', handleDataChanged) })
-function handleDataChanged() { void loadData() }
+function handleDataChanged() { console.log('[PromemoriaView] data-changed event, reloading...'); void loadData() }
 window.addEventListener('medi-trace:data-changed', handleDataChanged)
 
 watch(() => route.fullPath, () => void loadData())

@@ -1,6 +1,6 @@
 <script setup>
 import { useAuth } from '../services/auth'
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { RouterLink } from 'vue-router'
 import { buildHomeDashboardKpis } from '../services/homeDashboard'
 import { dataReady } from '../services/seedData'
@@ -162,6 +162,14 @@ onMounted(async () => {
   await loadOperatorStats()
   await loadTrendSettimanale()
 })
+
+// Reload when demo data or other bulk changes occur
+onUnmounted(() => { window.removeEventListener('medi-trace:data-changed', handleDataChanged) })
+function handleDataChanged() {
+  console.log('[HomeView] data-changed event, reloading...')
+  void refreshHomeKpi(); void loadOperatorStats(); void loadTrendSettimanale()
+}
+window.addEventListener('medi-trace:data-changed', handleDataChanged)
 </script>
 
 <template>

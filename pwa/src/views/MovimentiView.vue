@@ -48,6 +48,11 @@ onMounted(() => {
   markFormSnapshot()
 })
 
+// Reload when demo data or other bulk changes occur
+onUnmounted(() => { window.removeEventListener('medi-trace:data-changed', handleDataChanged) })
+function handleDataChanged() { console.log('[MovimentiView] data-changed event, reloading...'); void loadData() }
+window.addEventListener('medi-trace:data-changed', handleDataChanged)
+
 const panelMode = ref('list')
 const filterQuery = ref('')
 const sortBy = ref('dataDesc')

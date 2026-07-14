@@ -34,7 +34,7 @@ const NOW = '2026-04-04T08:00:00.000Z'
  */
 let dataReadyResolve
 export const dataReady = new Promise(resolve => {
-  dataReadyResolve = resolve
+    dataReadyResolve = resolve
 })
 
 /** Build an ISO date string relative to today: dayOffset (0=today, -1=yesterday, 1=tomorrow), hour, minute */
@@ -402,10 +402,12 @@ export async function loadDemoData(options = {}) {
         })
 
         // Notify UI that data has changed — all views should reload
+        console.log('[seedData] loadDemoData done, dispatching medi-trace:data-changed')
         window.dispatchEvent(new CustomEvent('medi-trace:data-changed'))
     }
 
     dataReadyResolve()
+    console.log('[seedData] dataReady resolved')
 
     await setSetting(DEMO_MANIFEST_KEY, {
         rooms: [], // Residenza Demo is now a permanent default — never cleared
@@ -482,6 +484,7 @@ export async function clearDemoData(options = {}) {
     const authResult = await clearDemoAuthUsers({ preserveAdminUsername: 'admin' })
 
     // Notify UI that data has changed
+    console.log('[seedData] clearDemoData done, dispatching medi-trace:data-changed')
     window.dispatchEvent(new CustomEvent('medi-trace:data-changed'))
 
     // Re-resolve dataReady so any late-mounted views can also proceed immediately

@@ -98,7 +98,7 @@ onMounted(() => {
 
 // Reload when demo data or other bulk changes occur
 onUnmounted(() => { window.removeEventListener('medi-trace:data-changed', handleDataChanged) })
-function handleDataChanged() { void loadData() }
+function handleDataChanged() { console.log('[FarmaciView] data-changed event, reloading...'); void loadData() }
 window.addEventListener('medi-trace:data-changed', handleDataChanged)
 
 const panelMode = ref('list')
