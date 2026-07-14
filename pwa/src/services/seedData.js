@@ -393,12 +393,13 @@ export async function loadDemoData(options = {}) {
     if (transactionTables.length > 0) {
         await db.transaction('rw', transactionTables, async () => {
             // Skip DEMO_ROOMS — "Residenza Demo" is now a permanent default residence
-            if (availableStores.has('hosts')) for (const record of patchedHosts) await db.hosts.put(record)
-            if (availableStores.has('drugs')) for (const record of DEMO_DRUGS) await db.drugs.put(record)
-            if (availableStores.has('stockBatches')) for (const record of DEMO_STOCK_BATCHES) await db.stockBatches.put(record)
-            if (availableStores.has('therapies')) for (const record of DEMO_THERAPIES) await db.therapies.put(record)
-            if (availableStores.has('movements')) for (const record of DEMO_MOVEMENTS) await db.movements.put(record)
-            if (availableStores.has('reminders')) for (const record of DEMO_REMINDERS) await db.reminders.put(record)
+            // _offline: true prevents refreshFromServer from soft-deleting demo data
+            if (availableStores.has('hosts')) for (const record of patchedHosts) await db.hosts.put({ ...record, _offline: true })
+            if (availableStores.has('drugs')) for (const record of DEMO_DRUGS) await db.drugs.put({ ...record, _offline: true })
+            if (availableStores.has('stockBatches')) for (const record of DEMO_STOCK_BATCHES) await db.stockBatches.put({ ...record, _offline: true })
+            if (availableStores.has('therapies')) for (const record of DEMO_THERAPIES) await db.therapies.put({ ...record, _offline: true })
+            if (availableStores.has('movements')) for (const record of DEMO_MOVEMENTS) await db.movements.put({ ...record, _offline: true })
+            if (availableStores.has('reminders')) for (const record of DEMO_REMINDERS) await db.reminders.put({ ...record, _offline: true })
         })
 
         // Notify UI that data has changed — all views should reload

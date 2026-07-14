@@ -96,7 +96,13 @@ export async function refreshFromServer() {
                 .is('deletedAt', null)
 
             if (error) {
-                console.warn(`[dataService] refresh ${table}:`, error.message)
+                // Table not yet created in Supabase — expected for local-first PWA
+                const isMissingTable = /Could not find the table/i.test(error.message)
+                if (isMissingTable) {
+                    console.info(`[dataService] refresh ${table}: table not in Supabase (local-only)`)
+                } else {
+                    console.warn(`[dataService] refresh ${table}:`, error.message)
+                }
                 counts[table] = -1
                 continue
             }
@@ -105,11 +111,11 @@ export async function refreshFromServer() {
                 await db[table].bulkPut(data.map(r => ({ ...r, _fromServer: true })))
             }
 
-            // Soft-delete local records not on server
+            // Soft-delete local records not on server (skip seeded/demo data)
             const serverIds = new Set((data || []).map(r => r.id))
             const localRows = await db[table].toArray()
             for (const local of localRows) {
-                if (!local.deletedAt && !serverIds.has(local.id) && !local._offline) {
+                if (!local.deletedAt && !serverIds.has(local.id) && !local._offline && !local._seeded) {
                     await db[table].put({ ...local, deletedAt: new Date().toISOString(), _fromServer: true })
                 }
             }
