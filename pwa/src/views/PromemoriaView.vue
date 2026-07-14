@@ -702,7 +702,7 @@ watch(residenzaFilter, async (value) => {
     <div class="card">
       <p><strong>Somministrazioni previste</strong></p>
       <p class="muted" style="margin-top:.25rem">
-        Registra l'esito di ogni somministrazione. Sincronizzato con gli altri dispositivi.
+        Seleziona uno o più promemoria per applicare un'azione in blocco con i pulsanti sotto.
       </p>
       <p v-if="highlightedReminderId" class="muted" style="margin-top:.35rem;font-style:italic">
         Evidenziato da notifica: {{ highlightedReminderId }}

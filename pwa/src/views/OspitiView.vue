@@ -81,7 +81,7 @@ window.addEventListener('medi-trace:data-changed', handleDataChanged)
 
 const panelMode = ref('list')
 const filterQuery = ref('')
-const sortBy = ref('nome')
+const sortBy = ref('cognome')
 const formSnapshot = ref('')
 const showSearchPanel = ref(false)
 const searchRoomId = ref('')
@@ -168,9 +168,13 @@ const filteredRows = computed(() => {
   }
 
   const result = [...baseRows]
-  const byName = (host) => [host.cognome, host.nome].filter(Boolean).join(' ').toLowerCase()
+  const byCognomeNome = (host) => [host.cognome, host.nome].filter(Boolean).join(' ').toLowerCase()
+  const byNomeCognome = (host) => [host.nome, host.cognome].filter(Boolean).join(' ').toLowerCase()
+  if (sortBy.value === 'cognome') {
+    return result.sort((a, b) => byCognomeNome(a).localeCompare(byCognomeNome(b)))
+  }
   if (sortBy.value === 'nome') {
-    return result.sort((a, b) => byName(a).localeCompare(byName(b)))
+    return result.sort((a, b) => byNomeCognome(a).localeCompare(byNomeCognome(b)))
   }
   if (sortBy.value === 'residenza') {
     return result.sort((a, b) => String(a.stanza || '').localeCompare(String(b.stanza || '')))
@@ -512,7 +516,8 @@ function resetForm() {
       <label style="margin-top:.5rem;display:flex;align-items:center;gap:.4rem;max-width:22rem">
         Ordina per
         <select v-model="sortBy" aria-label="Ordina ospiti">
-          <option value="nome">Cognome/Nome</option>
+          <option value="cognome">Cognome/Nome</option>
+          <option value="nome">Nome/Cognome</option>
           <option value="residenza">Residenza</option>
           <option value="terapie">Terapie attive</option>
         </select>
