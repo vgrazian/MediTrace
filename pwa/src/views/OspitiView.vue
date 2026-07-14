@@ -81,7 +81,7 @@ window.addEventListener('medi-trace:data-changed', handleDataChanged)
 
 const panelMode = ref('list')
 const filterQuery = ref('')
-const sortBy = ref('cognome')
+const sortBy = ref('nome')
 const formSnapshot = ref('')
 const showSearchPanel = ref(false)
 const searchRoomId = ref('')

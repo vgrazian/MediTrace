@@ -111,7 +111,10 @@ async function softDeleteDemoRecords(storeName, ids, now) {
             updatedAt: now,
             syncStatus: 'synced',
         })
-        await enqueue(storeName, id, 'upsert')
+        // Demo data is local-only (_offline: true), never enqueue for sync
+        if (!existing._offline && !existing._seeded) {
+            await enqueue(storeName, id, 'upsert')
+        }
         changed += 1
     }
     return changed
