@@ -7,7 +7,7 @@
  * Accepts JSON: { to, subject?, resetUrl?, expiresAt?, type?, app? }
  *   type = 'password-reset' | 'welcome' | 'notification'
  */
-import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
+import { serve } from 'https://deno.land/std@0.224.0/http/server.ts'
 
 const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY')!
 const FROM_ADDRESS = 'MediTrace <noreply@meditrace.app>'
@@ -117,7 +117,7 @@ serve(async (req: Request) => {
         }
 
         // Send via Resend API
-        const res = await fetch('https://api.resend.com/emails', {
+        let res = await fetch('https://api.resend.com/emails', {
             method: 'POST',
             headers: {
                 'Authorization': `Bearer ${RESEND_API_KEY}`,
@@ -131,7 +131,26 @@ serve(async (req: Request) => {
             }),
         })
 
-        const data = await res.json()
+        let data = await res.json()
+
+        // Fallback to Resend's test sender if the custom domain is not yet verified
+        if (!res.ok && data?.message?.includes('domain')) {
+            console.warn('Domain not verified, falling back to test sender:', data)
+            res = await fetch('https://api.resend.com/emails', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${RESEND_API_KEY}`,
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    from: FROM_TEST,
+                    to: [body.to],
+                    subject: email.subject,
+                    html: email.html,
+                }),
+            })
+            data = await res.json()
+        }
 
         if (!res.ok) {
             console.error('Resend error:', data)
