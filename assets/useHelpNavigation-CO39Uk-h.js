@@ -1,1 +1,0 @@
-import{e as o,f as n}from"./index-BEPdHREG.js";function t(){const t=o(),e=n();return{goToHelpSection:function(o){const n=`#${o}`;t.push({path:"/manuale",hash:n,query:{from:e.fullPath,helpFrom:o}})}}}export{t as u};
