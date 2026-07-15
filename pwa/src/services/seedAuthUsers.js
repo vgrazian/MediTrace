@@ -18,7 +18,7 @@ const DEMO_OPERATORS = [
         passwordHash: 'demo-hash-anna',
         firstName: 'Anna Maria',
         lastName: 'Cigliano',
-        email: 'anna@example.com',
+        email: 'anna.cigliano@gmail.com',
         role: 'admin',
     },
 ]

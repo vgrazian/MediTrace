@@ -51,7 +51,7 @@ const DEFAULT_OPERATOR_VALERIO_PASSWORD = String(import.meta.env.VITE_DEFAULT_VA
 const DEFAULT_OPERATOR_VALERIO_EMAIL = normalizeEmail(import.meta.env.VITE_DEFAULT_VALERIO_EMAIL || 'valeriograziani@gmail.com')
 const DEFAULT_OPERATOR_ANNA_USERNAME = normalizeUsername(import.meta.env.VITE_DEFAULT_ANNA_USERNAME || 'anna')
 const DEFAULT_OPERATOR_ANNA_PASSWORD = String(import.meta.env.VITE_DEFAULT_ANNA_PASSWORD || 'Anna@456!Xy')
-const DEFAULT_OPERATOR_ANNA_EMAIL = normalizeEmail(import.meta.env.VITE_DEFAULT_ANNA_EMAIL || 'anna@example.com')
+const DEFAULT_OPERATOR_ANNA_EMAIL = normalizeEmail(import.meta.env.VITE_DEFAULT_ANNA_EMAIL || 'anna.cigliano@gmail.com')
 const PASSWORD_RESET_EMAIL_API = String(import.meta.env.VITE_PASSWORD_RESET_EMAIL_API || '').trim() // Trimmed for consistency
 const PASSWORD_RESET_TTL_MINUTES = Number.parseInt(import.meta.env.VITE_PASSWORD_RESET_TTL_MINUTES || '30', 10)
 
