@@ -2,7 +2,7 @@
  * MediTrace Email Edge Function
  *
  * Deploy: supabase functions deploy send-email --no-verify-jwt
- * Set secret: supabase secrets set RESEND_API_KEY=re_M97Y8rfk_GpRAweoZLHaBEYXRw9AE9EPh
+ * Set secret: supabase secrets set RESEND_API_KEY=re_YOUR_KEY_HERE
  *
  * Accepts JSON: { to, subject?, resetUrl?, expiresAt?, type?, app? }
  *   type = 'password-reset' | 'welcome' | 'notification'
