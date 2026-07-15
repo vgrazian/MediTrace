@@ -2,16 +2,18 @@
  * MediTrace Email Edge Function
  *
  * Deploy: supabase functions deploy send-email --no-verify-jwt
- * Set secret: supabase secrets set RESEND_API_KEY=re_YOUR_KEY_HERE
+ * Set secret: supabase secrets set SENDGRID_API_KEY=SG.your_key_here
  *
  * Accepts JSON: { to, subject?, resetUrl?, expiresAt?, type?, app? }
  *   type = 'password-reset' | 'welcome' | 'notification'
+ *
+ * Uses SendGrid free tier (100 emails/day). Sender email must be verified
+ * as a Single Sender at https://app.sendgrid.com/settings/sender_auth
  */
 import { serve } from 'https://deno.land/std@0.224.0/http/server.ts'
 
-const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY')!
-const FROM_ADDRESS = 'MediTrace <noreply@meditrace.app>'
-const FROM_TEST = 'MediTrace <onboarding@resend.dev>' // fallback until domain is verified
+const SENDGRID_API_KEY = Deno.env.get('SENDGRID_API_KEY')!
+const FROM_ADDRESS = 'MediTrace <meditrace0@gmail.com>'
 
 const corsHeaders = {
     'Access-Control-Allow-Origin': '*',
@@ -116,51 +118,34 @@ serve(async (req: Request) => {
                 break
         }
 
-        // Send via Resend API
-        let res = await fetch('https://api.resend.com/emails', {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${RESEND_API_KEY}`,
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                from: FROM_ADDRESS,
-                to: [body.to],
-                subject: email.subject,
-                html: email.html,
-            }),
-        })
-
-        let data = await res.json()
-
-        // Fallback to Resend's test sender if the custom domain is not yet verified
-        if (!res.ok && data?.message?.includes('domain')) {
-            console.warn('Domain not verified, falling back to test sender:', data)
-            res = await fetch('https://api.resend.com/emails', {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${RESEND_API_KEY}`,
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    from: FROM_TEST,
-                    to: [body.to],
-                    subject: email.subject,
-                    html: email.html,
-                }),
-            })
-            data = await res.json()
+        // Send via SendGrid API
+        const sendgridPayload = {
+            personalizations: [{ to: [{ email: body.to }] }],
+            from: { email: FROM_ADDRESS.match(/<(.+)>/)?.[1] || FROM_ADDRESS, name: 'MediTrace' },
+            subject: email.subject,
+            content: [{ type: 'text/html', value: email.html }],
         }
 
+        const res = await fetch('https://api.sendgrid.com/v3/mail/send', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${SENDGRID_API_KEY}`,
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(sendgridPayload),
+        })
+
         if (!res.ok) {
-            console.error('Resend error:', data)
+            let data: unknown
+            try { data = await res.json() } catch { data = await res.text() }
+            console.error('SendGrid error:', data)
             return new Response(JSON.stringify({ error: 'Invio email fallito', detail: data }), {
                 status: 502,
                 headers: { ...corsHeaders, 'Content-Type': 'application/json' },
             })
         }
 
-        return new Response(JSON.stringify({ success: true, id: data.id }), {
+        return new Response(JSON.stringify({ success: true }), {
             status: 200,
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         })
