@@ -159,15 +159,21 @@ async function handleForgotPassword() {
 }
 
 async function handleForceRefresh() {
+  // 1. Clear all Cache API caches
   if ('caches' in window) {
     const keys = await caches.keys()
     await Promise.all(keys.map(k => caches.delete(k)))
   }
+  // 2. Unregister all service workers
   if ('serviceWorker' in navigator) {
     const regs = await navigator.serviceWorker.getRegistrations()
     await Promise.all(regs.map(r => r.unregister()))
   }
-  window.location.reload()
+  // 3. Force CDN + browser bypass: navigate to the same page with a unique
+  //    cache-busting query parameter so GitHub Pages CDN serves a fresh copy
+  const url = new URL(window.location.href)
+  url.searchParams.set('v', Date.now().toString())
+  window.location.replace(url.toString())
 }
 
 async function handleRegister() {
