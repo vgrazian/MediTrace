@@ -23,6 +23,9 @@ out/
 credentials.local.env
 .env.local
 
+# Agent skills and memory (may contain API keys)
+.agents/
+
 # PWA
 pwa/node_modules/
 pwa/dist/
