@@ -15,6 +15,10 @@ import { useAuth } from '../services/auth'
 import { isAxiomConfigured } from '../services/axiomLogger'
 import { useHelpNavigation } from '../composables/useHelpNavigation'
 
+const props = defineProps({
+  embedded: { type: Boolean, default: false },
+})
+
 const { currentUser } = useAuth()
 const { goToHelpSection } = useHelpNavigation()
 
@@ -218,14 +222,14 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="view">
-    <div class="view-heading">
+  <div :class="{ view: !embedded }">
+    <div v-if="!embedded" class="view-heading">
       <h2>Diagnostica</h2>
       <button class="btn-help" @click="goToHelpSection('diagnostica')" title="Aiuto su questa pagina">Aiuto</button>
-      <p v-if="!configured" class="axiom-warning">
-        ⚠️ Axiom non configurato — imposta <code>VITE_AXIOM_TOKEN</code> per attivare l'analisi.
-      </p>
     </div>
+    <p v-if="!configured" class="axiom-warning">
+      ⚠️ Axiom non configurato — imposta <code>VITE_AXIOM_TOKEN</code> per attivare l'analisi.
+    </p>
 
     <template v-if="configured">
       <!-- Filtri -->

@@ -12,7 +12,7 @@
           </p>
         </div>
         <span class="readonly-pill">Sola lettura</span>
-        <button v-if="currentUser?.role === 'admin'" class="btn-ghost" style="margin-left:.75rem" @click="goToDiagnostica" title=" Dashboard diagnostica sistema e Axiom"> Diagnostica</button>
+        <button v-if="currentUser?.role === 'admin'" class="btn-ghost" style="margin-left:.75rem" @click="toggleDiagnostica" title="Dashboard diagnostica sistema e Axiom">🔍 Diagnostica</button>
       </div>
     </div>
 
@@ -215,12 +215,21 @@
         <button :disabled="currentPage >= totalPages" @click="currentPage += 1">Successiva</button>
       </div>
     </div>
+
+    <!-- ── Pannello Diagnostica ── -->
+    <div v-if="showDiagnostica" class="card" style="border-left: 3px solid #6366f1">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.5rem">
+        <p style="font-weight:700;margin:0">🔍 Diagnostica Sistema</p>
+        <button class="btn-ghost" @click="showDiagnostica = false" title="Chiudi diagnostica">✕ Chiudi</button>
+      </div>
+      <AnalisiLogView :embedded="true" />
+    </div>
   </div>
 </template>
 
 <script setup>
 import { computed, onMounted, ref } from 'vue'
-import { useRouter } from 'vue-router'
+import AnalisiLogView from './AnalisiLogView.vue'
 import {
   buildAuditReferences,
   countAllEvents,
@@ -239,8 +248,8 @@ import autoTable from 'jspdf-autotable'
 import { db, getSetting } from '../db'
 
 const { goToHelpSection } = useHelpNavigation()
-const router = useRouter()
-function goToDiagnostica() { router.push('/diagnostica') }
+const showDiagnostica = ref(false)
+function toggleDiagnostica() { showDiagnostica.value = !showDiagnostica.value }
 const axiomConfigured = ref(isAxiomConfigured())
 const availableOperators = ref([])
 

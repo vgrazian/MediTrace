@@ -1,7 +1,7 @@
 <script setup>
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { db, enqueue, getSetting } from '../db'
-import { dataReady } from '../services/seedData'
+import { dataReady, isDemoDataLoaded } from '../services/seedData'
 import { buildOperationalReport, buildOrderDraftText, operationalReportToCsv } from '../services/reporting'
 import { confirmDeleteDrug, confirmDeleteBatch } from '../services/confirmations'
 import { openConfirmDialog } from '../services/confirmDialog'
@@ -134,6 +134,7 @@ const consumoMensile = ref([])
 const consumoPerFarmaco = ref([])
 const consumoPerClasse = ref([])
 const coperturaGiorni = ref([])
+const showTrendSettimanale = ref(false)
 const chartMax = computed(() => {
   const max = Math.max(1, ...consumoMensile.value.map(m => m.total))
   return Math.ceil(max / 5) * 5 || 10
@@ -154,6 +155,42 @@ async function loadConsumoMensile() {
       const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
       const label = d.toLocaleDateString('it-IT', { month: 'short', year: '2-digit' })
       months.push({ key, label, total: 0 })
+    }
+
+    const hasRealMovements = movements.some(m => !m.deletedAt && m.tipoMovimento === 'SCARICO')
+    const demoLoaded = await isDemoDataLoaded()
+
+    // Generate synthetic demo consumption data when demo mode is active and no real data exists
+    if (!hasRealMovements && demoLoaded && drugs.length > 0) {
+      const activeDrugs = drugs.filter(d => !d.deletedAt).slice(0, 8)
+      const drugConsumption = new Map()
+      for (const month of months) {
+        // Random total between 40 and 200 with an upward trend
+        const base = 40 + Math.random() * 160
+        const trendMultiplier = 0.7 + (months.indexOf(month) / months.length) * 0.6
+        month.total = Math.round(base * trendMultiplier)
+      }
+      for (const drug of activeDrugs) {
+        const data = { drugId: drug.id, total: 0, months: {} }
+        for (const month of months) {
+          const portion = Math.round(month.total * (0.05 + Math.random() * 0.3))
+          data.months[month.key] = portion
+          data.total += portion
+        }
+        drugConsumption.set(drug.id, data)
+      }
+      consumoMensile.value = months
+      const drugList = []
+      for (const [drugId, data] of drugConsumption) {
+        const drug = drugsById.get(drugId)
+        const nome = drug ? (drug.nomeFarmaco || drug.principioAttivo || drugId) : drugId
+        drugList.push({ drugId, nome, total: data.total, months: data.months })
+      }
+      drugList.sort((a, b) => b.total - a.total)
+      consumoPerFarmaco.value = drugList
+      consumoPerClasse.value = []
+      coperturaGiorni.value = []
+      return
     }
 
     // Per-drug consumption tracking (last 6 months)
@@ -945,37 +982,6 @@ window.addEventListener('medi-trace:data-changed', handleDataChanged)
     </div>
 
     <div v-if="report" class="card">
-      <p><strong>Trend settimanale consumo per farmaco</strong></p>
-      <p class="muted" style="margin-top:.25rem">
-        Consumi scaricati sulle ultime settimane (movimenti di tipo consumo/scarico/somministrazione).
-      </p>
-
-      <div class="dataset-frame" style="margin-top:.75rem">
-      <table class="conflict-table">
-        <thead>
-          <tr>
-            <th>Farmaco</th>
-            <th v-for="weekKey in report.trendWeeks" :key="`head-${weekKey}`">{{ formatWeekLabel(weekKey) }}</th>
-            <th>Totale periodo</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="row in report.trendRows" :key="`trend-${row.drugId}`">
-            <td>{{ row.principioAttivo }}</td>
-            <td v-for="weekKey in report.trendWeeks" :key="`${row.drugId}-${weekKey}`">
-              {{ formatNumber(row.weeklyConsumptionByWeek[weekKey]) }}
-            </td>
-            <td>{{ formatNumber(row.totalPeriodConsumption) }}</td>
-          </tr>
-          <tr v-if="(report.trendRows || []).length === 0">
-            <td :colspan="(report.trendWeeks || []).length + 2" class="muted">Nessun trend disponibile nel dataset locale.</td>
-          </tr>
-        </tbody>
-      </table>
-      </div>
-    </div>
-
-    <div v-if="report" class="card">
       <p><strong>Aderenza terapie (ultimi {{ report.adherence?.windowDays || 7 }} giorni)</strong></p>
       <p class="muted" style="margin-top:.25rem">
         Somministrazioni pianificate: {{ report.adherence?.totalScheduled || 0 }}<br />
@@ -1045,7 +1051,12 @@ window.addEventListener('medi-trace:data-changed', handleDataChanged)
 
     <!-- ── Consumo per farmaco ── -->
     <div v-if="consumoPerFarmaco.length > 0" class="card">
-      <p><strong>💊 Consumo per farmaco (ultimi 6 mesi)</strong></p>
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <p style="margin:0"><strong>💊 Consumo per farmaco (ultimi 6 mesi)</strong></p>
+        <button class="btn-ghost" @click="showTrendSettimanale = !showTrendSettimanale" :title="showTrendSettimanale ? 'Nascondi trend settimanale' : 'Mostra trend settimanale'">
+          {{ showTrendSettimanale ? '📊 Nascondi trend' : '📊 Trend settimanale' }}
+        </button>
+      </div>
       <p class="muted" style="margin-top:.25rem">Top 10 farmaci per volume di scarichi.</p>
       <div class="dataset-frame" style="margin-top:.75rem;max-height:18rem;overflow:auto">
         <table class="conflict-table">
@@ -1072,6 +1083,38 @@ window.addEventListener('medi-trace:data-changed', handleDataChanged)
             </tr>
           </tbody>
         </table>
+      </div>
+    </div>
+
+    <!-- ── Trend settimanale (pannello espandibile da Consumo per farmaco) ── -->
+    <div v-if="showTrendSettimanale && report" class="card" style="border-left: 3px solid #6366f1">
+      <p><strong>📊 Trend settimanale consumo per farmaco</strong></p>
+      <p class="muted" style="margin-top:.25rem">
+        Consumi scaricati sulle ultime settimane (movimenti di tipo consumo/scarico/somministrazione).
+      </p>
+
+      <div class="dataset-frame" style="margin-top:.75rem">
+      <table class="conflict-table">
+        <thead>
+          <tr>
+            <th>Farmaco</th>
+            <th v-for="weekKey in report.trendWeeks" :key="`head-${weekKey}`">{{ formatWeekLabel(weekKey) }}</th>
+            <th>Totale periodo</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="row in report.trendRows" :key="`trend-${row.drugId}`">
+            <td>{{ row.principioAttivo }}</td>
+            <td v-for="weekKey in report.trendWeeks" :key="`${row.drugId}-${weekKey}`">
+              {{ formatNumber(row.weeklyConsumptionByWeek[weekKey]) }}
+            </td>
+            <td>{{ formatNumber(row.totalPeriodConsumption) }}</td>
+          </tr>
+          <tr v-if="(report.trendRows || []).length === 0">
+            <td :colspan="(report.trendWeeks || []).length + 2" class="muted">Nessun trend disponibile nel dataset locale.</td>
+          </tr>
+        </tbody>
+      </table>
       </div>
     </div>
 
