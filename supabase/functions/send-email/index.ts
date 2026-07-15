@@ -2,18 +2,20 @@
  * MediTrace Email Edge Function
  *
  * Deploy: supabase functions deploy send-email --no-verify-jwt
- * Set secret: supabase secrets set SENDGRID_API_KEY=SG.your_key_here
+ * Set secrets:
+ *   supabase secrets set GMAIL_USER=meditrace0@gmail.com
+ *   supabase secrets set GMAIL_APP_PASSWORD=your_16_char_app_password
  *
  * Accepts JSON: { to, subject?, resetUrl?, expiresAt?, type?, app? }
  *   type = 'password-reset' | 'welcome' | 'notification'
  *
- * Uses SendGrid free tier (100 emails/day). Sender email must be verified
- * as a Single Sender at https://app.sendgrid.com/settings/sender_auth
+ * Uses Gmail SMTP directly (no third-party service needed).
+ * Requires: 2FA enabled + App Password from https://myaccount.google.com/apppasswords
  */
 import { serve } from 'https://deno.land/std@0.224.0/http/server.ts'
 
-const SENDGRID_API_KEY = Deno.env.get('SENDGRID_API_KEY')!
-const FROM_ADDRESS = 'MediTrace <meditrace0@gmail.com>'
+const GMAIL_USER = Deno.env.get('GMAIL_USER')!
+const GMAIL_APP_PASSWORD = Deno.env.get('GMAIL_APP_PASSWORD')!
 
 const corsHeaders = {
     'Access-Control-Allow-Origin': '*',
@@ -29,6 +31,13 @@ interface EmailRequest {
     app?: string
     username?: string
     message?: string
+}
+
+function btoaUTF8(str: string): string {
+    const bytes = new TextEncoder().encode(str)
+    let binary = ''
+    for (const b of bytes) binary += String.fromCharCode(b)
+    return btoa(binary)
 }
 
 function buildPasswordResetEmail(req: EmailRequest) {
@@ -118,31 +127,39 @@ serve(async (req: Request) => {
                 break
         }
 
-        // Send via SendGrid API
-        const sendgridPayload = {
-            personalizations: [{ to: [{ email: body.to }] }],
-            from: { email: FROM_ADDRESS.match(/<(.+)>/)?.[1] || FROM_ADDRESS, name: 'MediTrace' },
-            subject: email.subject,
-            content: [{ type: 'text/html', value: email.html }],
+        // Send via Gmail SMTP
+        const conn = await Deno.connectTls({ hostname: 'smtp.gmail.com', port: 465 })
+        const buf = new Uint8Array(1024)
+        const enc = new TextEncoder()
+        const dec = new TextDecoder()
+
+        const send = async (line: string): Promise<string> => {
+            await conn.write(enc.encode(line + '\r\n'))
+            const n = await conn.read(buf)
+            if (n === null) throw new Error('SMTP connection closed')
+            const resp = dec.decode(buf.subarray(0, n))
+            if (resp.startsWith('4') || resp.startsWith('5')) throw new Error(`SMTP error: ${resp.trim()}`)
+            return resp
         }
 
-        const res = await fetch('https://api.sendgrid.com/v3/mail/send', {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${SENDGRID_API_KEY}`,
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(sendgridPayload),
-        })
-
-        if (!res.ok) {
-            let data: unknown
-            try { data = await res.json() } catch { data = await res.text() }
-            console.error('SendGrid error:', data)
-            return new Response(JSON.stringify({ error: 'Invio email fallito', detail: data }), {
-                status: 502,
-                headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            })
+        try {
+            await send(`EHLO meditrace`)
+            await send('AUTH LOGIN')
+            await send(btoa(GMAIL_USER))
+            await send(btoa(GMAIL_APP_PASSWORD))
+            await send(`MAIL FROM:<${GMAIL_USER}>`)
+            await send(`RCPT TO:<${body.to}>`)
+            await send('DATA')
+            await send(
+                `From: MediTrace <${GMAIL_USER}>\r\n` +
+                `To: <${body.to}>\r\n` +
+                `Subject: =?UTF-8?B?${btoaUTF8(email.subject)}?=\r\n` +
+                `Content-Type: text/html; charset=UTF-8\r\n` +
+                `\r\n${email.html}\r\n.`
+            )
+            await send('QUIT')
+        } finally {
+            try { conn.close() } catch { /* ignore */ }
         }
 
         return new Response(JSON.stringify({ success: true }), {
