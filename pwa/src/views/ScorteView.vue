@@ -1247,7 +1247,8 @@ window.addEventListener('medi-trace:data-changed', handleDataChanged)
 
       <details v-if="isFormOpen" class="deep-panel add-panel" style="margin-top:.75rem" open @toggle="(e) => { if (!e.target.open) isFormOpen = false }">
         <summary><strong>{{ editingBatchId ? 'Modifica confezione' : 'Aggiungi confezione' }}</strong></summary>
-        <div class="panel-breadcrumb" style="margin-top:.75rem">
+        <div style="margin-top:.75rem">
+        <div class="panel-breadcrumb">
           <button type="button" class="panel-breadcrumb-link" @click="isFormOpen = false">Scorte</button>
           <span class="panel-breadcrumb-current">/</span>
           <span class="panel-breadcrumb-current">{{ editingBatchId ? 'Modifica' : 'Aggiungi' }}</span>
@@ -1309,6 +1310,7 @@ window.addEventListener('medi-trace:data-changed', handleDataChanged)
             {{ savingBatch ? 'Salvataggio...' : (editingBatchId ? 'Salva modifica' : 'Aggiungi confezione') }}
           </button>
           <button type="button" :disabled="savingBatch" @click="resetBatchForm">Annulla</button>
+        </div>
         </div>
       </details>
 

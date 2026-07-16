@@ -1139,7 +1139,6 @@ async function deleteSelectedBatches() {
             <button type="button" :disabled="savingDrug" @click="() => { resetDrugForm(); closeFormPanel() }">Annulla</button>
           </div>
           </div>
-        </div>
 
         <div v-if="panelMode.includes('batch')" style="margin-top:1rem">
           <p><strong>{{ editingBatchId ? 'Modifica confezione di magazzino' : 'Aggiungi confezione di magazzino' }}</strong></p>
@@ -1258,6 +1257,7 @@ async function deleteSelectedBatches() {
           <p v-if="!canCreateBatch" class="muted" style="margin-top:.5rem;font-size:.85rem">
             ⚠️ Prima crea almeno un farmaco dalla sezione sopra, poi potrai aggiungere le confezioni.
           </p>
+        </div>
         </div>
       </details>
     </div>
