@@ -647,7 +647,72 @@ Trend consumi e grafici mostrano dati sintetici significativi anche in modalità
 
 # Sincronizzazione
 
-![height:460px](dataflow.png)
+<div class="row">
+<div class="col">
+
+<h3 style="font-family:'Newsreader',Georgia,serif;font-size:1.15rem;color:var(--brand);margin-bottom:.8rem">Architettura offline‑first</h3>
+
+<div class="card accent">
+
+**IndexedDB (Dexie.js)** — tutti i dati risiedono sul dispositivo.
+L'app funziona sempre, anche senza connessione.
+Nessun dato clinico bloccato in attesa del server.
+
+</div>
+
+<div class="card accent">
+
+**Sync Queue** — ogni modifica (crea/modifica/elimina) viene accodata in `syncQueue` con stato `pending`. La coda persiste su IndexedDB e sopravvive a chiusure dell'app.
+
+</div>
+
+<div class="card accent">
+
+**Auto‑healing** — `ensureAllPendingEnqueued()` scansiona periodicamente tutte le tabelle e riaccoda record rimasti orfani (es. dopo import CSV, restore backup, seed data).
+
+</div>
+
+</div>
+<div class="col">
+
+<h3 style="font-family:'Newsreader',Georgia,serif;font-size:1.15rem;color:var(--brand);margin-bottom:.8rem">Strategia e resilienza</h3>
+
+<div class="card">
+
+**Last‑write‑wins** — per dati anagrafici (ospiti, farmaci, scorte, terapie). Vince il timestamp `updatedAt` più recente.
+
+</div>
+
+<div class="card">
+
+**Append‑only** — movimenti e promemoria non sovrascrivono mai record esistenti. Ogni dispositivo aggiunge i propri, garantendo zero perdita dati.
+
+</div>
+
+<div class="card">
+
+**Conflitti** — campi critici tracciati per terapie (dose, frequenza, date). Se due dispositivi modificano lo stesso campo, l'operatore viene guidato nella risoluzione.
+
+</div>
+
+<div class="card">
+
+**Dispositivo offline** — la coda si accumula in locale. Quando la rete torna disponibile, il sync engine processa la coda in ordine FIFO e aggiorna lo stato UI in tempo reale.
+
+</div>
+
+</div>
+</div>
+
+<div style="text-align:center;margin-top:1.2rem">
+  <span class="badge brand">IndexedDB</span>
+  <span class="badge brand">Dexie.js</span>
+  <span class="badge green">Last‑write‑wins</span>
+  <span class="badge green">Append‑only</span>
+  <span class="badge blue">Conflict resolution</span>
+  <span class="badge blue">Auto‑healing</span>
+  <span class="badge amber">FIFO queue</span>
+</div>
 
 ---
 
