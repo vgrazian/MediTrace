@@ -11,6 +11,8 @@ import {
 } from '../services/residenze'
 import { useHelpNavigation } from '../composables/useHelpNavigation'
 import { openConfirmDialog } from '../services/confirmDialog'
+import { useFormValidation } from '../services/formValidation'
+import ValidatedInput from '../components/ValidatedInput.vue'
 import { useUndoDelete } from '../composables/useUndoDelete'
 import UndoDeleteBanner from '../components/UndoDeleteBanner.vue'
 import CrudFilterBar from '../components/CrudFilterBar.vue'
@@ -29,6 +31,22 @@ const TURNI_KEY = 'fasceOrarieConfig'
 const { currentUser } = useAuth()
 const { goToHelpSection } = useHelpNavigation()
 const { pendingUndo, scheduleUndo, executeUndo } = useUndoDelete(10_000)
+
+const {
+  errors,
+  validateField,
+  validateForm,
+  clearErrors,
+  hasErrors,
+} = useFormValidation({
+  codice: { required: true, minLength: 1, maxLength: 80 },
+  maxOspiti: { required: true, numeric: true, positiveNumber: true, integer: true },
+  email: { email: true },
+}, {
+  codice: 'Nome residenza',
+  maxOspiti: 'Max ospiti',
+  email: 'Email',
+})
 
 const loading = ref(false)
 const saving = ref(false)
@@ -137,7 +155,7 @@ function removeTurnoRow(idx) {
 const canSave = computed(() => {
   const code = form.value.codice.trim()
   const max = Number(form.value.maxOspiti)
-  return Boolean(code) && Number.isFinite(max) && max > 0
+  return Boolean(code) && Number.isFinite(max) && max > 0 && !hasErrors.value
 })
 
 function resetForm() {
@@ -152,6 +170,7 @@ function resetForm() {
     email: '',
     note: '',
   }
+  clearErrors()
 }
 
 function openAddForm() {
@@ -245,6 +264,17 @@ function pieArcs(stats, cx, cy, r) {
 
 async function handleSave() {
   if (!canSave.value) return
+
+  const formData = {
+    codice: form.value.codice,
+    maxOspiti: form.value.maxOspiti,
+    email: form.value.email,
+  }
+  if (!validateForm(formData)) {
+    errorMessage.value = 'Correggi gli errori nel form prima di salvare.'
+    return
+  }
+
   message.value = ''
   errorMessage.value = ''
   saving.value = true
@@ -404,14 +434,25 @@ window.addEventListener('medi-trace:data-changed', handleDataChanged)
             <button type="button" class="panel-close-btn" @click="resetForm">Chiudi</button>
           </div>
           <div class="import-form" style="margin-top:.65rem">
-            <label>
-              Nome residenza
-              <input v-model="form.codice" type="text" placeholder="Es. Il Rifugio" />
-            </label>
-            <label>
-              Max ospiti
-              <input v-model="form.maxOspiti" type="number" min="1" step="1" placeholder="10" />
-            </label>
+            <ValidatedInput
+              v-model="form.codice"
+              field-name="codice"
+              label="Nome residenza"
+              :error="errors.codice"
+              :required="true"
+              placeholder="Es. Il Rifugio"
+              @validate="validateField"
+            />
+            <ValidatedInput
+              v-model="form.maxOspiti"
+              field-name="maxOspiti"
+              label="Max ospiti"
+              type="number"
+              :error="errors.maxOspiti"
+              :required="true"
+              placeholder="10"
+              @validate="validateField"
+            />
             <label>
               Indirizzo
               <input v-model="form.indirizzo" type="text" placeholder="Via Roma 123, Milano" />
@@ -420,10 +461,15 @@ window.addEventListener('medi-trace:data-changed', handleDataChanged)
               Telefono
               <input v-model="form.telefono" type="tel" placeholder="+39 02 1234567" />
             </label>
-            <label>
-              Email
-              <input v-model="form.email" type="email" placeholder="residenza@esempio.it" />
-            </label>
+            <ValidatedInput
+              v-model="form.email"
+              field-name="email"
+              label="Email"
+              type="email"
+              :error="errors.email"
+              placeholder="residenza@esempio.it"
+              @validate="validateField"
+            />
             <label>
               Note
               <input v-model="form.note" type="text" placeholder="Note opzionali" />

@@ -16,6 +16,14 @@ const route = useRoute()
 const isAuthRecoveryRoute = computed(() => route.path === '/auth/reset-password')
 const logoSrc = `${import.meta.env.BASE_URL}branding/logo-header.png`
 
+// ── Connectivity status ───────────────────────────────────────────────────
+const isOnline = ref(navigator.onLine)
+function updateOnlineStatus() { isOnline.value = navigator.onLine }
+onMounted(() => {
+  window.addEventListener('online', updateOnlineStatus)
+  window.addEventListener('offline', updateOnlineStatus)
+})
+
 const username = ref('')
 const password = ref('')
 
@@ -327,6 +335,9 @@ async function handleRegister() {
     <template v-else>
       <a href="#main-content" class="skip-link">Salta al contenuto principale</a>
       <AppNav />
+      <div v-if="!isOnline" class="offline-banner" role="alert">
+        ⚠️ Modalità offline — i salvataggi saranno sincronizzati al ripristino della connessione
+      </div>
       <main id="main-content">
         <RouterView />
       </main>

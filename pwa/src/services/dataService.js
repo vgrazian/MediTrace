@@ -167,7 +167,7 @@ export async function upsertRecord(table, record) {
             }))
             return data
         } catch (err) {
-            console.warn(`[dataService] upsert ${table} failed:`, err.message)
+            console.error(`[dataService] upsert ${table} failed — table=${table} id=${normalized.id} online=${online} supabase=${!!supabase} error=`, err.message, err)
             // Fall through to save locally
         }
     }

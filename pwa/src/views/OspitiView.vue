@@ -38,14 +38,14 @@ const {
   cognome: { required: true, minLength: 2, maxLength: 50 },
   dataNascita: { date: true },
   codiceFiscale: {
-    pattern: '^[A-Z]{6}[0-9]{2}[A-Z][0-9]{2}[A-Z][0-9]{3}[A-Z]$',
+    pattern: '^(?:[A-Z]{6}[0-9]{2}[A-Z][0-9]{2}[A-Z][0-9]{3}[A-Z]|STP[0-9A-Z]{4,20}|ENI[0-9A-Z]{4,20}|[A-Z0-9]{4,24})$',
   },
   roomId: { required: true },
 }, {
   nome: 'Nome',
   cognome: 'Cognome',
   dataNascita: 'Data di nascita',
-  codiceFiscale: 'Codice fiscale',
+  codiceFiscale: 'Codice fiscale / STP / ENI',
   roomId: 'Residenza',
 })
 
@@ -202,13 +202,8 @@ const isDirty = computed(() => {
 
 useUnsavedChangesGuard(isDirty)
 
-const canCreate = computed(() => ((form.value.nome || '').trim() || (form.value.cognome || '').trim()))
-const canSave = computed(() => ((form.value.nome || '').trim() || (form.value.cognome || '').trim()))
-
-const availableBeds = computed(() => {
-    const room = roomsData.value.find(r => r.id === form.value.roomId)
-    return room?.beds ?? []
-})
+const canCreate = computed(() => (form.value.nome || '').trim().length >= 2 && (form.value.cognome || '').trim().length >= 2 && !!form.value.roomId)
+const canSave = computed(() => (form.value.nome || '').trim().length >= 2 && (form.value.cognome || '').trim().length >= 2 && !!form.value.roomId)
 
 const {
   selectedItems,
@@ -279,9 +274,7 @@ async function handleSave() {
     saving.value = true
     try {
         const roomId = form.value.roomId || null
-        const bedId = form.value.bedId || null
         const room = roomId ? roomsData.value.find(r => r.id === roomId) : null
-        const bed = bedId ? room?.beds.find(b => b.id === bedId) : null
 
         if (editingHostId.value) {
           await updateHost({
@@ -296,8 +289,8 @@ async function handleSave() {
             codiceFiscale: form.value.codiceFiscale,
             patologie: form.value.patologie,
             roomId,
-                        stanza: room?.codice || '',
-                        note: form.value.note,
+            stanza: room?.codice || '',
+            note: form.value.note,
             operatorId: currentUser.value?.login ?? null,
           })
           message.value = `Ospite "${editingHostId.value}" aggiornato.`
@@ -315,8 +308,8 @@ async function handleSave() {
             codiceFiscale: form.value.codiceFiscale,
             patologie: form.value.patologie,
             roomId,
-                        stanza: room?.codice || '',
-                        note: form.value.note,
+            stanza: room?.codice || '',
+            note: form.value.note,
             operatorId: currentUser.value?.login ?? null,
           })
           message.value = `Ospite "${created.id}" creato.`
@@ -721,11 +714,12 @@ function resetForm() {
             <ValidatedInput
               v-model="form.codiceFiscale"
               field-name="codiceFiscale"
-              label="Codice fiscale"
+              label="Codice fiscale / STP / ENI"
               :error="errors.codiceFiscale"
-              placeholder="RSSMRA80A01H501U"
+              placeholder="CF 16 caratteri, STP... o ENI..."
               @validate="(field, value) => validateField(field, String(value || '').toUpperCase())"
             />
+            <p class="muted" style="font-size:.75rem;margin-top:-.4rem;margin-bottom:.5rem">Formati accettati: codice fiscale italiano (16 caratteri), STP (STP + numeri), ENI (ENI + codice)</p>
             <label>
               Patologie
               <input v-model="form.patologie" type="text" placeholder="Patologie o note cliniche" list="patologie-suggestions" />
@@ -750,15 +744,6 @@ function resetForm() {
               <span v-if="errors.roomId" id="roomId-error" class="error-message" role="alert">
                 {{ errors.roomId }}
               </span>
-            </label>
-            <label v-if="!editingHostId">
-              Letto
-              <select v-model="form.bedId" :disabled="!form.roomId || !availableBeds.length || saving">
-                <option value="">Seleziona letto (opzionale)</option>
-                <option v-for="bed in availableBeds" :key="bed.id" :value="bed.id">
-                  Letto {{ bed.numero }}
-                </option>
-              </select>
             </label>
             <label>
               Note

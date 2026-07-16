@@ -52,14 +52,18 @@ const {
   drugId: { required: true },
   nomeCommerciale: { required: true, minLength: 2, maxLength: 100 },
   dosaggio: { maxLength: 50 },
-  quantitaAttuale: { numeric: true, positiveNumber: true, integer: true },
-  sogliaRiordino: { numeric: true, positiveNumber: true, integer: true },
+  unitaMisura: { maxLength: 30 },
+  quantitaAttuale: { numeric: true, positiveNumber: true },
+  quantitaPerConfezione: { numeric: true, positiveNumber: true, integer: true },
+  sogliaRiordino: { numeric: true, positiveNumber: true },
   scadenza: { date: true }
 }, {
   drugId: 'Farmaco',
   nomeCommerciale: 'Nome commerciale',
   dosaggio: 'Dosaggio',
+  unitaMisura: 'Unità di misura',
   quantitaAttuale: 'Quantità attuale',
+  quantitaPerConfezione: 'Quantità per confezione',
   sogliaRiordino: 'Soglia riordino',
   scadenza: 'Scadenza'
 })
@@ -122,7 +126,9 @@ const batchForm = ref({
   drugId: '',
   nomeCommerciale: '',
   dosaggio: '',
+  unitaMisura: 'compresse',
   quantitaAttuale: '',
+  quantitaPerConfezione: '',
   sogliaRiordino: '',
   scadenza: '',
   isDefault: false,
@@ -469,7 +475,9 @@ async function createBatch() {
       drugId: batchForm.value.drugId,
       nomeCommerciale: name,
       dosaggio: batchForm.value.dosaggio.trim() || '',
+      unitaMisura: batchForm.value.unitaMisura || 'compresse',
       quantitaAttuale: Number(batchForm.value.quantitaAttuale || 0),
+      quantitaPerConfezione: Number(batchForm.value.quantitaPerConfezione || 0),
       sogliaRiordino: Number(batchForm.value.sogliaRiordino || 0),
       scadenza: batchForm.value.scadenza || null,
       operatorId: currentUser.value?.login ?? null,
@@ -484,7 +492,9 @@ async function createBatch() {
       drugId: '',
       nomeCommerciale: '',
       dosaggio: '',
+      unitaMisura: 'compresse',
       quantitaAttuale: '',
+      quantitaPerConfezione: '',
       sogliaRiordino: '',
       scadenza: '',
     }
@@ -579,7 +589,9 @@ function startEditBatch(batch) {
       drugId: batch.drugId || '',
       nomeCommerciale: batch.nomeCommerciale || '',
       dosaggio: batch.dosaggio || '',
+      unitaMisura: batch.unitaMisura || 'compresse',
       quantitaAttuale: String(batch.quantitaAttuale ?? ''),
+      quantitaPerConfezione: String(batch.quantitaPerConfezione ?? ''),
       sogliaRiordino: String(batch.sogliaRiordino ?? ''),
       scadenza: batch.scadenza ? String(batch.scadenza).slice(0, 10) : '',
       isDefault: defaultId === batch.id,
@@ -607,7 +619,9 @@ function resetBatchForm() {
     drugId: '',
     nomeCommerciale: '',
     dosaggio: '',
+    unitaMisura: 'compresse',
     quantitaAttuale: '',
+    quantitaPerConfezione: '',
     sogliaRiordino: '',
     scadenza: '',
     isDefault: false,
@@ -986,6 +1000,7 @@ async function deleteSelectedBatches() {
             <th>Farmaco</th>
             <th>Nome commerciale</th>
             <th>Dosaggio</th>
+            <th>Unità</th>
             <th>Quantita'</th>
             <th>Soglia</th>
             <th>Scadenza</th>
@@ -1009,6 +1024,7 @@ async function deleteSelectedBatches() {
             <td>{{ drugLabel(batch.drugId) }}</td>
             <td>{{ batch.nomeCommerciale }}</td>
             <td>{{ batch.dosaggio || '—' }}</td>
+            <td>{{ batch.unitaMisura || 'compresse' }}</td>
             <td>{{ batch.quantitaAttuale ?? 0 }}</td>
             <td>{{ batch.sogliaRiordino ?? 0 }}</td>
             <td>{{ formatDate(batch.scadenza) }}</td>
@@ -1018,7 +1034,7 @@ async function deleteSelectedBatches() {
             </td>
           </tr>
           <tr v-if="filteredBatches.length === 0 && !loading">
-            <td colspan="8" class="muted">
+            <td colspan="9" class="muted">
               Nessuna confezione attiva. Clicca <strong>Aggiungi</strong> per creare una confezione.
             </td>
           </tr>
@@ -1050,7 +1066,7 @@ async function deleteSelectedBatches() {
             <button type="button" class="panel-close-btn" @click="closeFormPanel">Chiudi</button>
           </div>
           <p class="muted" style="margin-bottom:.55rem">
-            Pannello rapido: ogni click su Aggiungi apre il modulo corretto e al salvataggio torni alla lista.
+            <strong>Due passaggi:</strong> prima crea il farmaco (principio attivo), poi aggiungi le confezioni con le quantità in unità (compresse, gocce, ml).
           </p>
 
           <div v-if="panelMode.includes('drug')">
@@ -1168,13 +1184,45 @@ async function deleteSelectedBatches() {
               @validate="(field, value) => validateBatchField(field, value)"
             />
 
+            <label>
+              Unità di misura
+              <select
+                v-model="batchForm.unitaMisura"
+                :disabled="savingBatch"
+                @blur="validateBatchField('unitaMisura', batchForm.unitaMisura)"
+                :aria-invalid="!!batchErrors.unitaMisura"
+                :aria-describedby="batchErrors.unitaMisura ? 'unita-error' : undefined"
+              >
+                <option value="compresse">Compresse</option>
+                <option value="gocce">Gocce</option>
+                <option value="ml">ml (millilitri)</option>
+                <option value="bustine">Bustine</option>
+                <option value="fiale">Fiale</option>
+                <option value="cerotti">Cerotti</option>
+              </select>
+              <span v-if="batchErrors.unitaMisura" id="unita-error" class="error-message" role="alert">
+                {{ batchErrors.unitaMisura }}
+              </span>
+            </label>
+
             <ValidatedInput
               v-model="batchForm.quantitaAttuale"
               field-name="quantitaAttuale"
-              label="Quantità attuale"
+              label="Quantità attuale (unità/confezioni aperte)"
               type="number"
+              step="any"
               :error="batchErrors.quantitaAttuale"
-              placeholder="0"
+              placeholder="Es. 15.5 compresse o 120 gocce"
+              @validate="(field, value) => validateBatchField(field, value)"
+            />
+
+            <ValidatedInput
+              v-model="batchForm.quantitaPerConfezione"
+              field-name="quantitaPerConfezione"
+              label="Quantità per confezione intera"
+              type="number"
+              :error="batchErrors.quantitaPerConfezione"
+              placeholder="Es. 30 compresse per scatola"
               @validate="(field, value) => validateBatchField(field, value)"
             />
 
@@ -1208,7 +1256,7 @@ async function deleteSelectedBatches() {
             <button type="button" :disabled="savingBatch" @click="() => { resetBatchForm(); closeFormPanel() }">Annulla</button>
           </div>
           <p v-if="!canCreateBatch" class="muted" style="margin-top:.5rem;font-size:.85rem">
-            Prima crea almeno un farmaco.
+            ⚠️ Prima crea almeno un farmaco dalla sezione sopra, poi potrai aggiungere le confezioni.
           </p>
         </div>
       </details>

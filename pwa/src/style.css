@@ -725,6 +725,15 @@ details.add-panel[open] > div {
 .auth-form button:hover:not(:disabled) { filter: brightness(1.05); }
 .auth-form button:disabled { opacity: .5; cursor: default; }
 .login-error { color: #dc2626; font-size: .85rem; margin-top: .25rem; }
+.offline-banner {
+  background: #fef3c7;
+  color: #92400e;
+  text-align: center;
+  padding: .5rem 1rem;
+  font-size: .85rem;
+  font-weight: 500;
+  border-bottom: 1px solid #fcd34d;
+}
 .auth-help { font-size: .8rem; color: #94a3b8; max-width: 360px; }
 .auth-help a { color: var(--brand-700); }
 
