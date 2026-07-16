@@ -757,11 +757,11 @@ I dati clinici risiedono **solo sul dispositivo locale** (IndexedDB). Nessun dat
 
 ### Credenziali demo
 
-| Ruolo | Utente | Password |
-|---|---|---|
-| Admin | `valerio` | `V@lerio123!` |
-| Admin | `anna` | `Anna@456!Xy` |
-| Admin | `admin` | `A9m4K2qL!Xy` |
+| Ruolo | Utente |
+|---|---|
+| Admin | `valerio` |
+| Admin | `anna` |
+| Admin | `admin` |
 
 <div class="card" style="margin-top:1rem;font-size:.73rem">
 <span class="badge brand">Dati demo</span> 3 residenze · 10 ospiti · 10 farmaci · terapie attive · promemoria giornalieri
