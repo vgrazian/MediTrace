@@ -203,7 +203,7 @@ const isDirty = computed(() => {
 useUnsavedChangesGuard(isDirty)
 
 const canCreate = computed(() => (form.value.nome || '').trim().length >= 2 && (form.value.cognome || '').trim().length >= 2 && !!form.value.roomId)
-const canSave = computed(() => (form.value.nome || '').trim().length >= 2 && (form.value.cognome || '').trim().length >= 2 && !!form.value.roomId)
+const canSave = computed(() => (form.value.nome || '').trim().length >= 2 && !!form.value.roomId)
 
 const {
   selectedItems,
