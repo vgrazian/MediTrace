@@ -181,60 +181,59 @@ async function handleForceLogout(user) {
   userRoleMessage.value = `Logout forzato per ${user.username}`
 }
 
-// ── Fasce orarie (globali e per residenza) ───────────────────────────────
-const DEFAULT_FASCE_ORARIE = [
+// ── Turni (globali e per residenza) ─────────────────────────────────────
+const DEFAULT_TURNI = [
   { nome: 'Mattina', inizio: '06:00', fine: '11:59' },
   { nome: 'Pomeriggio', inizio: '12:00', fine: '17:59' },
   { nome: 'Sera', inizio: '18:00', fine: '23:59' },
   { nome: 'Notte', inizio: '00:00', fine: '05:59' },
 ]
-const FASCE_ORARIE_KEY = 'fasceOrarieConfig'
-const fasceOrarie = ref([...DEFAULT_FASCE_ORARIE])
-const fasceOrarieBusy = ref(false)
-const fasceOrarieMessage = ref('')
-const fasceOrarieRoomId = ref('')
+const TURNI_KEY = 'fasceOrarieConfig'
+const turni = ref([...DEFAULT_TURNI])
+const turniBusy = ref(false)
+const turniMessage = ref('')
+const turniRoomId = ref('')
 const availableRooms = ref([])
 
-function fasceOrarieKey() {
-  return fasceOrarieRoomId.value ? `${FASCE_ORARIE_KEY}:${fasceOrarieRoomId.value}` : FASCE_ORARIE_KEY
+function turniSettingsKey() {
+  return turniRoomId.value ? `${TURNI_KEY}:${turniRoomId.value}` : TURNI_KEY
 }
 
-async function loadFasceOrarie() {
+async function loadTurni() {
   try {
-    const saved = await getSetting(fasceOrarieKey(), null)
+    const saved = await getSetting(turniSettingsKey(), null)
     if (Array.isArray(saved) && saved.length > 0) {
-      fasceOrarie.value = saved
-    } else if (fasceOrarieRoomId.value) {
-      const global = await getSetting(FASCE_ORARIE_KEY, null)
-      fasceOrarie.value = Array.isArray(global) && global.length > 0 ? [...global] : [...DEFAULT_FASCE_ORARIE]
+      turni.value = saved
+    } else if (turniRoomId.value) {
+      const global = await getSetting(TURNI_KEY, null)
+      turni.value = Array.isArray(global) && global.length > 0 ? [...global] : [...DEFAULT_TURNI]
     } else {
-      fasceOrarie.value = [...DEFAULT_FASCE_ORARIE]
+      turni.value = [...DEFAULT_TURNI]
     }
   } catch {
-    fasceOrarie.value = [...DEFAULT_FASCE_ORARIE]
+    turni.value = [...DEFAULT_TURNI]
   }
-  // Safety: never show empty fasce
-  if (!Array.isArray(fasceOrarie.value) || fasceOrarie.value.length === 0) {
-    fasceOrarie.value = [...DEFAULT_FASCE_ORARIE]
+  if (!Array.isArray(turni.value) || turni.value.length === 0) {
+    turni.value = [...DEFAULT_TURNI]
   }
 }
 
-async function saveFasceOrarie() {
-  fasceOrarieBusy.value = true
-  fasceOrarieMessage.value = ''
+async function saveTurni() {
+  turniBusy.value = true
+  turniMessage.value = ''
   try {
-    await setSetting(fasceOrarieKey(), JSON.parse(JSON.stringify(fasceOrarie.value)))
-    fasceOrarieMessage.value = 'Fasce orarie salvate.'
+    await setSetting(turniSettingsKey(), JSON.parse(JSON.stringify(turni.value)))
+    turniMessage.value = 'Turni salvati.'
   } catch (err) {
-    fasceOrarieMessage.value = `Errore salvataggio: ${err.message}`
+    turniMessage.value = `Errore salvataggio: ${err.message}`
   } finally {
-    fasceOrarieBusy.value = false
+    turniBusy.value = false
   }
 }
 
-async function selectFasceOrarieRoom(roomId) {
-  fasceOrarieRoomId.value = roomId
-  await loadFasceOrarie()
+async function selectTurniRoom(roomId) {
+  turniRoomId.value = roomId
+  await loadTurni()
 }
 
 async function loadAvailableRooms() {
@@ -249,17 +248,17 @@ async function loadAvailableRooms() {
   }
 }
 
-function addFasciaOraria() {
-  fasceOrarie.value.push({ nome: '', inizio: '08:00', fine: '12:00' })
+function addTurno() {
+  turni.value.push({ nome: '', inizio: '08:00', fine: '12:00' })
 }
 
-function removeFasciaOraria(idx) {
-  fasceOrarie.value.splice(idx, 1)
+function removeTurno(idx) {
+  turni.value.splice(idx, 1)
 }
 
 // ── Lifecycle ─────────────────────────────────────────────────────────────
 onMounted(async () => {
-  await loadFasceOrarie()
+  await loadTurni()
   await loadAvailableRooms()
 })
 
@@ -886,41 +885,41 @@ async function handleCreateUser() {
     </div>
 
     <div v-if="canManageUsers" class="card">
-      <p><strong>Fasce orarie configurabili</strong></p>
+      <p><strong>Turni configurabili</strong></p>
       <div style="margin-bottom:.5rem">
         <label style="font-size:.85rem;color:#334155">Residenza:</label>
-        <select v-model="fasceOrarieRoomId" @change="selectFasceOrarieRoom(fasceOrarieRoomId)" style="margin-left:.5rem">
+        <select v-model="turniRoomId" @change="selectTurniRoom(turniRoomId)" style="margin-left:.5rem">
           <option value="">— Globale (default) —</option>
           <option v-for="r in availableRooms" :key="r.id" :value="r.id">{{ r.label }}</option>
         </select>
-        <span v-if="fasceOrarieRoomId" class="muted" style="margin-left:.5rem;font-size:.8rem">override per questa residenza</span>
+        <span v-if="turniRoomId" class="muted" style="margin-left:.5rem;font-size:.8rem">override per questa residenza</span>
       </div>
       <div>
         <table class="conflict-table" style="min-width:600px">
           <thead>
             <tr>
-              <th>Nome fascia</th>
+              <th>Nome turno</th>
               <th>Inizio</th>
               <th>Fine</th>
               <th>Azioni</th>
             </tr>
           </thead>
           <tbody>
-            <tr v-for="(fascia, idx) in fasceOrarie" :key="idx">
-              <td><input v-model="fascia.nome" type="text" /></td>
-              <td><input v-model="fascia.inizio" type="time" /></td>
-              <td><input v-model="fascia.fine" type="time" /></td>
+            <tr v-for="(turno, idx) in turni" :key="idx">
+              <td><input v-model="turno.nome" type="text" /></td>
+              <td><input v-model="turno.inizio" type="time" /></td>
+              <td><input v-model="turno.fine" type="time" /></td>
               <td>
-                <button @click="removeFasciaOraria(idx)">Rimuovi</button>
+                <button @click="removeTurno(idx)">Rimuovi</button>
               </td>
             </tr>
           </tbody>
         </table>
-        <button style="margin-top:.5rem" @click="addFasciaOraria">Aggiungi fascia</button>
-        <button style="margin-top:.5rem" :disabled="fasceOrarieBusy" @click="saveFasceOrarie">
-          {{ fasceOrarieBusy ? 'Salvataggio...' : 'Salva fasce orarie' }}
+        <button style="margin-top:.5rem" @click="addTurno">Aggiungi turno</button>
+        <button style="margin-top:.5rem" :disabled="turniBusy" @click="saveTurni">
+          {{ turniBusy ? 'Salvataggio...' : 'Salva turni' }}
         </button>
-        <p v-if="fasceOrarieMessage" class="muted" style="margin-top:.5rem;font-size:.8rem">{{ fasceOrarieMessage }}</p>
+        <p v-if="turniMessage" class="muted" style="margin-top:.5rem;font-size:.8rem">{{ turniMessage }}</p>
       </div>
     </div>
     <div class="card">

@@ -149,7 +149,7 @@ function compareReminderRows(a, b, bedSequenceIndex) {
  * @param {string} [params.residenzaFilter]
  * @param {string} [params.hostIdFilter] — se valorizzato, mostra solo promemoria di quell'ospite
  * @param {string} [params.fasciaOrariaFilter] — se valorizzato, mostra solo promemoria in quella fascia
- * @param {Array}  [params.fasceOrarie] — array of { nome, inizio, fine } from fasceOrarieConfig (per-residence)
+ * @param {Array}  [params.fasceOrarie] — array of { nome, inizio, fine } from turni config (per-residence)
  * @param {Date} [params.now]
  */
 export function buildReminderRows({ reminders, hosts, drugs, therapies, beds = [], rooms = [], bedSequence = [], dateFilter = 'today', stateFilter = '', residenzaFilter = '', hostIdFilter = '', fasciaOrariaFilter = '', fasceOrarie = [], now = new Date() }) {

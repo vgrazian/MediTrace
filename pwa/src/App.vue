@@ -62,7 +62,7 @@ onMounted(async () => {
   checkCdnStatus()
   await ensureDefaultResidenze().catch(() => {})
   await loadDemoData().catch(() => {})
-  await ensureDefaultFasceOrarie()
+  await ensureDefaultTurni()
   // Flush any pending items from init (e.g., default residences created offline)
   if (isDataServiceAvailable() && navigator.onLine) {
     retryQueue.flush().catch(() => {})
@@ -70,26 +70,26 @@ onMounted(async () => {
   repairUnsyncedSeedData().catch(() => {})
 })
 
-const FASCE_ORARIE_KEY = 'fasceOrarieConfig'
-const DEFAULT_FASCE_ORARIE = [
+const TURNI_KEY = 'fasceOrarieConfig'
+const DEFAULT_TURNI = [
   { nome: 'Mattina', inizio: '06:00', fine: '11:59' },
   { nome: 'Pomeriggio', inizio: '12:00', fine: '17:59' },
   { nome: 'Sera', inizio: '18:00', fine: '23:59' },
   { nome: 'Notte', inizio: '00:00', fine: '05:59' },
 ]
 
-async function ensureDefaultFasceOrarie() {
+async function ensureDefaultTurni() {
   try {
     // Global default
-    const existing = await getSetting(FASCE_ORARIE_KEY, null)
+    const existing = await getSetting(TURNI_KEY, null)
     if (!Array.isArray(existing) || existing.length === 0) {
-      await setSetting(FASCE_ORARIE_KEY, JSON.parse(JSON.stringify(DEFAULT_FASCE_ORARIE)))
+      await setSetting(TURNI_KEY, JSON.parse(JSON.stringify(DEFAULT_TURNI)))
     }
-    // Per-residence: ensure Demo has different fasce for demo purposes
+    // Per-residence: ensure Demo has different turni for demo purposes
     const rooms = await db.rooms.toArray()
     const demoRoom = rooms.find(r => !r.deletedAt && String(r.codice || '').trim().toLowerCase() === 'demo')
     if (demoRoom) {
-      const demoKey = `${FASCE_ORARIE_KEY}:${demoRoom.id}`
+      const demoKey = `${TURNI_KEY}:${demoRoom.id}`
       const demoExisting = await getSetting(demoKey, null)
       if (!Array.isArray(demoExisting) || demoExisting.length === 0) {
         await setSetting(demoKey, [

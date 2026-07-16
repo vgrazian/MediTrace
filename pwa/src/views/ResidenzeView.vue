@@ -18,13 +18,13 @@ import { db, getSetting, setSetting } from '../db'
 import { dataReady } from '../services/seedData'
 import { useKeyboardShortcuts, shortcutHint } from '../composables/useKeyboardShortcuts'
 
-const DEFAULT_FASCE_ORARIE = [
+const DEFAULT_TURNI = [
   { nome: 'Mattina', inizio: '06:00', fine: '11:59' },
   { nome: 'Pomeriggio', inizio: '12:00', fine: '17:59' },
   { nome: 'Sera', inizio: '18:00', fine: '23:59' },
   { nome: 'Notte', inizio: '00:00', fine: '05:59' },
 ]
-const FASCE_ORARIE_KEY = 'fasceOrarieConfig'
+const TURNI_KEY = 'fasceOrarieConfig'
 
 const { currentUser } = useAuth()
 const { goToHelpSection } = useHelpNavigation()
@@ -68,70 +68,70 @@ const filteredResidenze = computed(() => {
   })
 })
 
-// ── Fasce orarie per residenza ────────────────────────────────────────────
-const showFasceOrariePanel = ref(false)
-const fasceOrarieRoomId = ref('')
-const fasceOrarieRoomLabel = ref('')
-const fasceOrarieRows = ref([...DEFAULT_FASCE_ORARIE])
-const fasceOrarieMessage = ref('')
-const fasceOrarieBusy = ref(false)
+// ── Turni per residenza ──────────────────────────────────────────────────
+const showTurniPanel = ref(false)
+const turniRoomId = ref('')
+const turniRoomLabel = ref('')
+const turniRows = ref([...DEFAULT_TURNI])
+const turniMessage = ref('')
+const turniBusy = ref(false)
 
-function fasceOrarieSettingsKey() {
-  return fasceOrarieRoomId.value ? `${FASCE_ORARIE_KEY}:${fasceOrarieRoomId.value}` : FASCE_ORARIE_KEY
+function turniSettingsKey() {
+  return turniRoomId.value ? `${TURNI_KEY}:${turniRoomId.value}` : TURNI_KEY
 }
 
-async function openFasceOrarie(item) {
-  fasceOrarieRoomId.value = item.id
-  fasceOrarieRoomLabel.value = item.codice || item.id
+async function openTurni(item) {
+  turniRoomId.value = item.id
+  turniRoomLabel.value = item.codice || item.id
   try {
-    const saved = await getSetting(fasceOrarieSettingsKey(), null)
+    const saved = await getSetting(turniSettingsKey(), null)
     if (Array.isArray(saved) && saved.length > 0) {
-      fasceOrarieRows.value = saved
+      turniRows.value = saved
     } else {
-      const global = await getSetting(FASCE_ORARIE_KEY, null)
-      fasceOrarieRows.value = Array.isArray(global) && global.length > 0 ? [...global] : [...DEFAULT_FASCE_ORARIE]
+      const global = await getSetting(TURNI_KEY, null)
+      turniRows.value = Array.isArray(global) && global.length > 0 ? [...global] : [...DEFAULT_TURNI]
     }
   } catch {
-    fasceOrarieRows.value = [...DEFAULT_FASCE_ORARIE]
+    turniRows.value = [...DEFAULT_TURNI]
   }
-  showFasceOrariePanel.value = true
+  showTurniPanel.value = true
 }
 
-function closeFasceOrarie() {
-  showFasceOrariePanel.value = false
-  fasceOrarieRoomId.value = ''
+function closeTurni() {
+  showTurniPanel.value = false
+  turniRoomId.value = ''
 }
 
-async function saveFasceOrarie() {
-  fasceOrarieBusy.value = true
-  fasceOrarieMessage.value = ''
+async function saveTurni() {
+  turniBusy.value = true
+  turniMessage.value = ''
   try {
-    await setSetting(fasceOrarieSettingsKey(), JSON.parse(JSON.stringify(fasceOrarieRows.value)))
-    fasceOrarieMessage.value = 'Fasce orarie salvate.'
+    await setSetting(turniSettingsKey(), JSON.parse(JSON.stringify(turniRows.value)))
+    turniMessage.value = 'Turni salvati.'
   } catch (err) {
-    fasceOrarieMessage.value = `Errore: ${err.message}`
+    turniMessage.value = `Errore: ${err.message}`
   } finally {
-    fasceOrarieBusy.value = false
+    turniBusy.value = false
   }
 }
 
-async function resetFasceOrarie() {
+async function resetTurni() {
   try {
-    await setSetting(fasceOrarieSettingsKey(), null)
-    const global = await getSetting(FASCE_ORARIE_KEY, null)
-    fasceOrarieRows.value = Array.isArray(global) && global.length > 0 ? [...global] : [...DEFAULT_FASCE_ORARIE]
-    fasceOrarieMessage.value = 'Fasce orarie ripristinate ai valori globali.'
+    await setSetting(turniSettingsKey(), null)
+    const global = await getSetting(TURNI_KEY, null)
+    turniRows.value = Array.isArray(global) && global.length > 0 ? [...global] : [...DEFAULT_TURNI]
+    turniMessage.value = 'Turni ripristinati ai valori globali.'
   } catch (err) {
-    fasceOrarieMessage.value = `Errore: ${err.message}`
+    turniMessage.value = `Errore: ${err.message}`
   }
 }
 
-function addFasciaRow() {
-  fasceOrarieRows.value.push({ nome: '', inizio: '08:00', fine: '12:00' })
+function addTurnoRow() {
+  turniRows.value.push({ nome: '', inizio: '08:00', fine: '12:00' })
 }
 
-function removeFasciaRow(idx) {
-  fasceOrarieRows.value.splice(idx, 1)
+function removeTurnoRow(idx) {
+  turniRows.value.splice(idx, 1)
 }
 
 const canSave = computed(() => {
@@ -371,7 +371,7 @@ window.addEventListener('medi-trace:data-changed', handleDataChanged)
               <td>{{ item.note || '—' }}</td>
               <td>
                 <button @click="startEdit(item)">Modifica</button>
-                <button class="btn-ghost" @click="openFasceOrarie(item)" title="Fasce orarie personalizzate per questa residenza">🕐 Fasce</button>
+                <button class="btn-ghost" @click="openTurni(item)" title="Turni personalizzati per questa residenza">🕐 Turni</button>
                 <button class="btn-danger" @click="handleDelete(item)">Elimina</button>
               </td>
             </tr>
@@ -455,33 +455,33 @@ window.addEventListener('medi-trace:data-changed', handleDataChanged)
       </div>
     </div>
 
-    <!-- ── Pannello Fasce Orarie per Residenza ── -->
-    <div v-if="showFasceOrariePanel" class="card" style="border-left: 3px solid #f59e0b">
+    <!-- ── Pannello Turni per Residenza ── -->
+    <div v-if="showTurniPanel" class="card" style="border-left: 3px solid #f59e0b">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.5rem">
-        <p style="margin:0"><strong>🕐 Fasce orarie — {{ fasceOrarieRoomLabel }}</strong></p>
-        <button class="btn-ghost" @click="closeFasceOrarie">✕ Chiudi</button>
+        <p style="margin:0"><strong>🕐 Turni — {{ turniRoomLabel }}</strong></p>
+        <button class="btn-ghost" @click="closeTurni">✕ Chiudi</button>
       </div>
       <p class="muted" style="margin-top:.25rem">
-        Personalizza le fasce orarie per questa residenza. Se non configurate, vengono usate le fasce orarie globali.
+        Personalizza i turni per questa residenza. Se non configurati, vengono usati i turni globali.
       </p>
 
       <div style="margin-top:.75rem;display:flex;flex-direction:column;gap:.5rem">
-        <div v-for="(f, idx) in fasceOrarieRows" :key="idx" style="display:flex;gap:.5rem;align-items:center">
-          <input v-model="f.nome" type="text" placeholder="Nome fascia" style="flex:1" />
-          <input v-model="f.inizio" type="time" style="width:7rem" />
+        <div v-for="(t, idx) in turniRows" :key="idx" style="display:flex;gap:.5rem;align-items:center">
+          <input v-model="t.nome" type="text" placeholder="Nome turno" style="flex:1" />
+          <input v-model="t.inizio" type="time" style="width:7rem" />
           <span style="color:#64748b">–</span>
-          <input v-model="f.fine" type="time" style="width:7rem" />
-          <button class="btn-sm btn-danger" @click="removeFasciaRow(idx)" :disabled="fasceOrarieRows.length <= 1" title="Rimuovi fascia">✕</button>
+          <input v-model="t.fine" type="time" style="width:7rem" />
+          <button class="btn-sm btn-danger" @click="removeTurnoRow(idx)" :disabled="turniRows.length <= 1" title="Rimuovi turno">✕</button>
         </div>
       </div>
 
       <div style="display:flex;gap:.5rem;margin-top:.75rem;flex-wrap:wrap">
-        <button class="btn-ghost" @click="addFasciaRow">+ Aggiungi fascia</button>
-        <button @click="saveFasceOrarie" :disabled="fasceOrarieBusy">{{ fasceOrarieBusy ? 'Salvataggio...' : 'Salva' }}</button>
-        <button class="btn-ghost" @click="resetFasceOrarie" title="Ripristina fasce orarie globali">↺ Ripristina globali</button>
+        <button class="btn-ghost" @click="addTurnoRow">+ Aggiungi turno</button>
+        <button @click="saveTurni" :disabled="turniBusy">{{ turniBusy ? 'Salvataggio...' : 'Salva' }}</button>
+        <button class="btn-ghost" @click="resetTurni" title="Ripristina turni globali">↺ Ripristina globali</button>
       </div>
 
-      <p v-if="fasceOrarieMessage" class="muted" style="margin-top:.5rem">{{ fasceOrarieMessage }}</p>
+      <p v-if="turniMessage" class="muted" style="margin-top:.5rem">{{ turniMessage }}</p>
     </div>
 
     <UndoDeleteBanner

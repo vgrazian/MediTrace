@@ -12,7 +12,7 @@
           </p>
         </div>
         <span class="readonly-pill">Sola lettura</span>
-        <button v-if="currentUser?.role === 'admin'" class="btn-primary" style="margin-left:.75rem" @click="toggleDiagnostica" title="Dashboard diagnostica sistema e Axiom">🔍 Diagnostica</button>
+        <button class="btn-primary" style="margin-left:.75rem" @click="toggleDiagnostica" title="Dashboard diagnostica sistema e Axiom">🔍 Diagnostica</button>
       </div>
     </div>
 

@@ -30,12 +30,12 @@ import { dataReady } from '../services/seedData'
 import { useAuth } from '../services/auth'
 import { BED_SEQUENCE_SETTING_KEY, CURRENT_RESIDENZA_SETTING_KEY, buildReminderRows, markReminder, reminderStateBadge, reminderActionButtonColor, REMINDER_OUTCOMES, assertUniqueReminderSlot } from '../services/promemoria'
 
-const FASCE_ORARIE_KEY = 'fasceOrarieConfig'
-const fasceOrarieConfig = ref([])
+const TURNI_KEY = 'fasceOrarieConfig'
+const turniConfig = ref([])
 const currentResidenzaId = ref('')
 
-const fasciaOptions = computed(() => {
-  if (fasceOrarieConfig.value.length === 0) {
+const turnoOptions = computed(() => {
+  if (turniConfig.value.length === 0) {
     return [
       { value: 'mattina', label: 'Mattina (06:00-11:59)' },
       { value: 'pomeriggio', label: 'Pomeriggio (12:00-17:59)' },
@@ -43,26 +43,26 @@ const fasciaOptions = computed(() => {
       { value: 'notte', label: 'Notte (00:00-05:59)' },
     ]
   }
-  return fasceOrarieConfig.value.map(f => ({
+  return turniConfig.value.map(f => ({
     value: f.nome.toLowerCase(),
     label: `${f.nome} (${f.inizio}-${f.fine})`,
   }))
 })
 
-async function loadFasceOrarie() {
+async function loadTurni() {
   try {
     const residenzaId = currentResidenzaId.value
     if (residenzaId) {
-      const perRoom = await getSetting(`${FASCE_ORARIE_KEY}:${residenzaId}`, null)
+      const perRoom = await getSetting(`${TURNI_KEY}:${residenzaId}`, null)
       if (Array.isArray(perRoom) && perRoom.length > 0) {
-        fasceOrarieConfig.value = perRoom
+        turniConfig.value = perRoom
         return
       }
     }
-    const global = await getSetting(FASCE_ORARIE_KEY, null)
-    fasceOrarieConfig.value = Array.isArray(global) && global.length > 0 ? global : []
+    const global = await getSetting(TURNI_KEY, null)
+    turniConfig.value = Array.isArray(global) && global.length > 0 ? global : []
   } catch {
-    fasceOrarieConfig.value = []
+    turniConfig.value = []
   }
 }
 import { confirmDeleteReminder } from '../services/confirmations'
@@ -183,7 +183,7 @@ const stateFilter = ref([])
 const residenzaFilter = ref('')
 
 const hostIdFilter = ref('')
-const fasciaOrariaFilter = ref('')
+const turnoFilter = ref('')
 
 const editingReminderId = ref('')
 const form = ref({
@@ -228,7 +228,7 @@ const rows = computed(() => buildReminderRows({
   stateFilter: stateFilter.value,
   residenzaFilter: residenzaFilter.value,
   hostIdFilter: hostIdFilter.value,
-  fasceOrarie: fasceOrarieConfig.value,
+  fasceOrarie: turniConfig.value,
 }))
 
 const residenzaOptions = computed(() => {
@@ -302,7 +302,7 @@ async function loadData() {
 
     const savedResidenza = await getSetting(CURRENT_RESIDENZA_SETTING_KEY, '')
     currentResidenzaId.value = String(savedResidenza || '')
-    await loadFasceOrarie()
+    await loadTurni()
     const validResidenza = String(savedResidenza || '')
     if (!validResidenza || rooms.value.some(room => room.id === validResidenza)) {
       residenzaFilter.value = validResidenza
@@ -681,10 +681,10 @@ watch(residenzaFilter, async (value) => {
           </select>
         </label>
         <label>
-          Fascia oraria
-          <select v-model="fasciaOrariaFilter">
-            <option value="">Tutte le fasce</option>
-            <option v-for="f in fasciaOptions" :key="f.value" :value="f.value">{{ f.label }}</option>
+          Turno
+          <select v-model="turnoFilter">
+            <option value="">Tutti i turni</option>
+            <option v-for="f in turnoOptions" :key="f.value" :value="f.value">{{ f.label }}</option>
           </select>
         </label>
         <label>

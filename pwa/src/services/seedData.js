@@ -435,7 +435,7 @@ export async function loadDemoData(options = {}) {
 
     await upsertDemoAuthUsers()
 
-    // Pre-configure fasce orarie with production defaults
+    // Pre-configure turni with production defaults
     await setSetting('fasceOrarieConfig', [
         { nome: 'Mattina', inizio: '06:00', fine: '11:59' },
         { nome: 'Pomeriggio', inizio: '12:00', fine: '17:59' },
