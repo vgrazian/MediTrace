@@ -728,7 +728,7 @@ function resetForm() {
               <option v-for="p in existingPatologie" :key="p" :value="p" />
             </datalist>
             <label>
-              Residenza
+              Residenza <span class="required-indicator" aria-label="obbligatorio">*</span>
               <select
                 v-model="form.roomId"
                 :disabled="!roomsData.length || saving"
