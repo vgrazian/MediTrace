@@ -7,28 +7,29 @@ paginate: true
 size: 16:9
 footer: '![h:14px](logo-mark.png) MediTrace · github.com/vgrazian/MediTrace'
 style: |
-  @import url('https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&family=Inter:wght@300;400;500;600&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&family=Inter:wght@300;400;500;600;700&display=swap');
 
   :root {
-    --primary:   #1e6f6b;
-    --primary-l: #e8f4f3;
-    --accent:    #d97706;
-    --accent-l:  #fef7ed;
-    --muted:     #787774;
-    --border:    #eaeaea;
-    --bg-card:   #fafaf9;
+    --brand:        #223564;
+    --brand-light:  #edf3fb;
+    --brand-lighter:#f4f8fd;
+    --accent:       #c26b0a;
+    --accent-light: #fef7ed;
+    --text:         #1a2e4f;
+    --text-muted:   #5f6b7a;
+    --border:       #dfe6f0;
+    --surface:      #f7fbff;
   }
 
   section {
     font-family: 'Inter', -apple-system, sans-serif;
-    color: #2f3437;
+    color: var(--text);
     background: #ffffff;
-    padding: 3.5rem 4.5rem;
+    padding: 3.2rem 4.2rem;
     font-size: .82rem;
     line-height: 1.7;
   }
 
-  /* ── Lead / Title slides ── */
   section.lead {
     display: flex;
     flex-direction: column;
@@ -36,65 +37,66 @@ style: |
     align-items: center;
     text-align: center;
     padding: 3rem 5rem;
-    background: linear-gradient(180deg, #f6fbfa 0%, #ffffff 100%);
+    background: linear-gradient(180deg, #edf3fb 0%, #ffffff 100%);
   }
   section.lead h1 {
     font-family: 'Newsreader', Georgia, serif;
-    font-size: 2.4rem;
+    font-size: 2.6rem;
     font-weight: 500;
     letter-spacing: -0.04em;
-    line-height: 1.15;
-    color: #1a1a1a;
-    margin: 0 0 .6rem 0;
+    line-height: 1.12;
+    color: var(--brand);
+    margin: 0 0 .65rem 0;
   }
   section.lead p {
-    font-size: .9rem;
+    font-size: .92rem;
     font-weight: 400;
-    color: var(--muted);
+    color: var(--text-muted);
     margin: 0;
   }
   section.lead .tagline {
     display: inline-flex;
     gap: .6rem;
-    margin-top: 1.2rem;
-    font-size: .72rem;
-    color: var(--primary);
-    letter-spacing: .02em;
+    margin-top: 1.3rem;
+    font-size: .7rem;
+    color: var(--brand);
+    letter-spacing: .03em;
   }
   section.lead .tagline span {
-    background: var(--primary-l);
+    background: var(--brand-light);
     padding: .2rem .7rem;
     border-radius: 99px;
+    font-weight: 500;
   }
 
   section h1 {
     font-family: 'Newsreader', Georgia, serif;
-    font-size: 1.45rem;
+    font-size: 1.5rem;
     font-weight: 500;
     letter-spacing: -0.025em;
-    color: #1a1a1a;
-    margin: 0 0 1.2rem 0;
+    color: var(--brand);
+    margin: 0 0 1.1rem 0;
   }
   section h2 {
     font-family: 'Inter', sans-serif;
-    font-size: .8rem;
+    font-size: .78rem;
     font-weight: 600;
     text-transform: uppercase;
-    letter-spacing: .07em;
-    color: var(--primary);
+    letter-spacing: .08em;
+    color: var(--brand);
     margin: 0 0 .4rem 0;
   }
   section h3 {
     font-family: 'Newsreader', Georgia, serif;
-    font-size: 1.05rem;
+    font-size: 1.08rem;
     font-weight: 500;
     margin: 0 0 .3rem 0;
-    color: #1a1a1a;
+    color: var(--text);
   }
 
-  section p { font-size: .82rem; color: var(--muted); margin: 0 0 .5rem 0; }
-  section a { color: var(--primary); text-decoration: none; }
-  section img { border-radius: 6px; border: 1px solid var(--border); }
+  section p  { font-size: .82rem; color: var(--text-muted); margin: 0 0 .5rem 0; }
+  section a  { color: var(--brand); text-decoration: none; }
+  section img { border-radius: 7px; border: 1px solid var(--border); }
 
   section table {
     width: 100%;
@@ -102,74 +104,74 @@ style: |
     font-size: .76rem;
   }
   section th {
-    background: var(--primary-l);
+    background: var(--brand-light);
     font-weight: 600;
     padding: .35rem .6rem;
-    border-bottom: 1.5px solid var(--primary);
+    border-bottom: 2px solid var(--brand);
     text-align: left;
-    font-size: .68rem;
+    font-size: .66rem;
     text-transform: uppercase;
-    letter-spacing: .05em;
-    color: var(--primary);
+    letter-spacing: .06em;
+    color: var(--brand);
   }
   section td {
     padding: .3rem .6rem;
-    border-bottom: 1px solid #f2f2f2;
-    color: #4a4a4a;
+    border-bottom: 1px solid var(--border);
+    color: var(--text);
     font-size: .76rem;
   }
-  section td:first-child { font-weight: 500; color: #2f3437; }
+  section td:first-child { font-weight: 500; }
   section code {
-    background: #f7f6f3;
+    background: var(--brand-lighter);
     padding: .1rem .4rem;
     border-radius: 3px;
     font-size: .73rem;
     font-family: 'SF Mono', 'JetBrains Mono', monospace;
-    color: #1a1a1a;
+    color: var(--brand);
   }
 
   section .row { display: flex; gap: 2.2rem; margin-top: .6rem; }
   section .col { flex: 1; min-width: 0; }
   section .label {
-    font-size: .62rem;
+    font-size: .6rem;
     text-transform: uppercase;
-    letter-spacing: .07em;
-    color: #b0b0b0;
+    letter-spacing: .08em;
+    color: #9aa8be;
     margin-bottom: .15rem;
   }
-  section .quiet { color: #b0b0b0; font-size: .73rem; }
+  section .quiet { color: #9aa8be; font-size: .73rem; }
 
   section .card {
-    background: var(--bg-card);
+    background: var(--surface);
     border: 1px solid var(--border);
     border-radius: 8px;
-    padding: 1rem 1.2rem;
-    margin-bottom: .7rem;
+    padding: .95rem 1.15rem;
+    margin-bottom: .65rem;
   }
-  section .card.accent { border-left: 3px solid var(--primary); }
-  section .card.warn   { border-left: 3px solid var(--accent); }
+  section .card.accent { border-left: 3px solid var(--brand); background: var(--brand-lighter); }
+  section .card.warn   { border-left: 3px solid var(--accent); background: #fffbf5; }
 
   section .badge {
     display: inline-block;
-    font-size: .68rem;
+    font-size: .66rem;
     font-weight: 600;
     padding: .12rem .6rem;
     border-radius: 99px;
     margin-right: .3rem;
     margin-bottom: .2rem;
   }
-  section .badge.green  { background: #e8f5e9; color: #2e7d32; }
+  section .badge.brand  { background: var(--brand-light); color: var(--brand); }
+  section .badge.green  { background: #eaf5ea; color: #2e7d32; }
   section .badge.blue   { background: #e3f2fd; color: #1565c0; }
-  section .badge.teal   { background: var(--primary-l); color: var(--primary); }
-  section .badge.amber  { background: var(--accent-l); color: var(--accent); }
-  section .badge.gray   { background: #f5f5f4; color: #787774; }
+  section .badge.amber  { background: var(--accent-light); color: var(--accent); }
+  section .badge.gray   { background: #f3f5f7; color: #5f6b7a; }
 
   section .big-num {
     font-family: 'Newsreader', Georgia, serif;
-    font-size: 2.8rem;
+    font-size: 3rem;
     font-weight: 500;
     letter-spacing: -0.04em;
-    color: var(--primary);
+    color: var(--brand);
     line-height: 1;
   }
 
@@ -185,7 +187,7 @@ style: |
     content: counter(step);
     flex-shrink: 0;
     width: 1.6rem; height: 1.6rem;
-    background: var(--primary);
+    background: var(--brand);
     color: #fff;
     border-radius: 99px;
     display: flex;
@@ -195,11 +197,11 @@ style: |
     font-weight: 600;
     margin-top: .1rem;
   }
-  section .step h3 { font-size: .85rem; margin: 0; font-family: 'Inter', sans-serif; font-weight: 600; }
+  section .step h3 { font-size: .85rem; margin: 0; font-family: 'Inter', sans-serif; font-weight: 600; color: var(--text); }
   section .step p   { font-size: .75rem; margin: .1rem 0 0 0; }
 
-  section::after { font-size: .52rem; color: #d4d4d2; right: 2rem; bottom: 1rem; }
-  footer { font-size: .55rem; color: #c0c0c0; left: 2rem; bottom: 1rem; }
+  section::after { font-size: .52rem; color: #c8d0dc; right: 2rem; bottom: 1rem; }
+  footer { font-size: .55rem; color: #b4bfd1; left: 2rem; bottom: 1rem; }
 ---
 
 <!-- _footer: '' -->
@@ -224,7 +226,7 @@ Gestione farmaci per le Residenze<br>della Comunità di Sant'Egidio
 
 <div class="card warn">
 
-### ❌ Errori di somministrazione
+### Errori di somministrazione
 
 Terapie cartacee o fogli Excel. Nessuna
 tracciabilità. Orari sbagliati, farmaci confusi.
@@ -233,7 +235,7 @@ tracciabilità. Orari sbagliati, farmaci confusi.
 
 <div class="card warn">
 
-### ❌ Scorte non monitorate
+### Scorte non monitorate
 
 Farmaci esauriti senza preavviso.
 Scadenze non tracciate. Riordini d'emergenza.
@@ -245,7 +247,7 @@ Scadenze non tracciate. Riordini d'emergenza.
 
 <div class="card warn">
 
-### ❌ Nessuna continuità
+### Nessuna continuità
 
 Passaggi di turno senza storico.
 Nessuna visibilità su cosa è stato fatto
@@ -255,7 +257,7 @@ o su cosa resta da fare.
 
 <div class="card warn">
 
-### ❌ Zero audit
+### Zero audit
 
 Nessuna registrazione di chi ha fatto cosa.
 Impossibile risalire a errori o responsabilità.
@@ -269,16 +271,16 @@ Impossibile risalire a errori o responsabilità.
 
 # La soluzione
 
-<div style="text-align:center;margin:1.2rem 0">
+<div style="text-align:center;margin:1.6rem 0">
 
 ## Un'unica app, sempre disponibile,<br>che guida l'operatore in ogni fase
 
 </div>
 
-<div class="row" style="margin-top:1.8rem">
+<div class="row" style="margin-top:2rem">
 <div class="col" style="text-align:center">
 
-<div class="big-num" style="color:#d97706">1</div>
+<div class="big-num" style="color:var(--accent)">1</div>
 **Dispositivo**  
 Tablet o smartphone.
 Installabile su home screen.
@@ -287,7 +289,7 @@ Funziona senza internet.
 </div>
 <div class="col" style="text-align:center">
 
-<div class="big-num" style="color:#2e7d32">∞</div>
+<div class="big-num" style="color:#2e7d32">&infin;</div>
 **Sempre attivo**  
 Dati locali via IndexedDB.
 Sync con Supabase quando
@@ -313,45 +315,45 @@ GDPR-ready, dati clinici on-device.
 <div class="col">
 
 <div class="card accent">
-<h3>🏠 Cruscotto</h3>
+<h3>Cruscotto</h3>
 KPI turno · Alert scorte · Stato sync · Promemoria in scadenza
 </div>
 
 <div class="card accent">
-<h3>👤 Ospiti</h3>
+<h3>Ospiti</h3>
 Anagrafica · Assegnazione stanza/letto · Ricerca avanzata · Soft-delete
 </div>
 
 <div class="card accent">
-<h3>💊 Farmaci</h3>
+<h3>Farmaci</h3>
 Catalogo principi attivi · Confezioni multiple · Lotto/scadenza · Scorta minima
 </div>
 
 <div class="card accent">
-<h3>⏰ Terapie e Promemoria</h3>
-Piano terapeutico · 6 fasce orarie per residenza · Push notification · Azioni batch
+<h3>Terapie e Promemoria</h3>
+Piano terapeutico · Turni personalizzabili per residenza · Push notification · Azioni batch
 </div>
 
 </div>
 <div class="col">
 
 <div class="card accent">
-<h3>📦 Scorte e Movimenti</h3>
-Report KPI · Consumo settimanale · Carico/scarico · Export PDF/CSV
+<h3>Scorte e Movimenti</h3>
+Report KPI · Consumo settimanale · Copertura giorni · Carico/scarico · Export PDF/CSV
 </div>
 
 <div class="card accent">
-<h3>📋 Audit</h3>
-Registro operazioni · Filtri avanzati · Dettaglio JSON · Export
+<h3>Audit e Diagnostica</h3>
+Registro operazioni · Filtri avanzati · Dettaglio JSON · Dashboard Axiom integrata
 </div>
 
 <div class="card accent">
-<h3>🔒 Multi‑tenancy</h3>
-Accesso per residenza · Ruoli admin/operatore · Password policy
+<h3>Multi‑tenancy</h3>
+Accesso per residenza · Ruoli admin/operatore · Turni orari per sede · Password policy
 </div>
 
 <div class="card accent">
-<h3>🗂️ Import CSV</h3>
+<h3>Import CSV</h3>
 Caricamento massivo · Compatibile Google Sheets · Validazione automatica
 </div>
 
@@ -364,7 +366,7 @@ Caricamento massivo · Compatibile Google Sheets · Validazione automatica
 
 # Numeri del progetto
 
-<div class="row" style="text-align:center;margin-top:1.5rem">
+<div class="row" style="text-align:center;margin-top:1.8rem">
 <div class="col">
 <div class="big-num">15</div>
 <p style="margin:0">viste<br>applicative</p>
@@ -387,14 +389,14 @@ Caricamento massivo · Compatibile Google Sheets · Validazione automatica
 </div>
 </div>
 
-<div style="text-align:center;margin-top:2.5rem">
+<div style="text-align:center;margin-top:2.8rem">
 
-<span class="badge teal">Vue 3 Composition API</span>
-<span class="badge teal">Vite 5</span>
-<span class="badge teal">Dexie.js IndexedDB</span>
-<span class="badge teal">Supabase PostgreSQL</span>
-<span class="badge teal">Workbox PWA</span>
-<span class="badge teal">GitHub Pages</span>
+<span class="badge brand">Vue 3 Composition API</span>
+<span class="badge brand">Vite 5</span>
+<span class="badge brand">Dexie.js IndexedDB</span>
+<span class="badge brand">Supabase PostgreSQL</span>
+<span class="badge brand">Workbox PWA</span>
+<span class="badge brand">GitHub Pages</span>
 
 </div>
 
@@ -426,6 +428,7 @@ Caricamento massivo · Compatibile Google Sheets · Validazione automatica
 |---|---|---|
 | Database | Supabase PostgreSQL | Dati operativi e sync |
 | Auth | Table-auth + RLS | Accesso per residenza, ruoli |
+| Email | Supabase Edge Function | Reset password via Gmail SMTP |
 | Realtime | Supabase Realtime | Sync multi-dispositivo |
 | Hosting | GitHub Pages | Deploy automatico |
 | CI/CD | GitHub Actions | Build, test, keep-alive |
@@ -470,7 +473,7 @@ Piano terapeutico · Dose, frequenza · 6 orari/giorno · Data inizio/fine · Qu
 
 # Promemoria
 
-Pianificazione automatica · Fasce orarie per residenza · Stati multipli · Azioni batch
+Pianificazione automatica · Turni orari per residenza · Stati multipli · Azioni batch
 
 ---
 
@@ -494,7 +497,69 @@ Carico/scarico · Aggancio a ospite/terapia/confezione · Ricerca avanzata · Va
 
 # Audit
 
-Registro completo · Filtro operatore · Dettaglio JSON · Export PDF · Badge sync
+Registro completo · Filtro operatore · Dettaglio JSON · Export PDF · Dashboard Axiom
+
+---
+
+# Funzionalità recenti
+
+<div class="row">
+<div class="col">
+
+<div class="card accent">
+
+### Turni personalizzabili per residenza
+
+Ogni residenza può avere i propri turni (Mattina, Pomeriggio, Sera, Notte) con orari indipendenti. Configurabili dal pannello Residenze o Impostazioni. Override automatico dei turni globali.
+<br>
+<span class="badge brand">Luglio 2026</span>
+
+</div>
+
+</div>
+<div class="col">
+
+<div class="card accent">
+
+### Reset password autonomo
+
+Ogni operatore può reimpostare la propria password dal login tramite link email. Invio via Edge Function Supabase + Gmail SMTP. Token monouso con scadenza configurabile.
+<br>
+<span class="badge brand">Luglio 2026</span>
+
+</div>
+
+</div>
+</div>
+
+<div class="row" style="margin-top:.3rem">
+<div class="col">
+
+<div class="card accent">
+
+### Diagnostica integrata
+
+Dashboard Axiom accessibile direttamente dal pannello Audit: panoramica operatori, heatmap percorsi, errori raggruppati. Nessun tab separato.
+<br>
+<span class="badge brand">Luglio 2026</span>
+
+</div>
+
+</div>
+<div class="col">
+
+<div class="card accent">
+
+### Dati demo per analytics
+
+Trend consumi e grafici mostrano dati sintetici significativi anche in modalità demo. Utile per valutazione e formazione senza dati reali.
+<br>
+<span class="badge brand">Luglio 2026</span>
+
+</div>
+
+</div>
+</div>
 
 ---
 
@@ -503,7 +568,7 @@ Registro completo · Filtro operatore · Dettaglio JSON · Export PDF · Badge s
 <div class="row">
 <div class="col">
 
-<h3 style="font-family:'Newsreader',Georgia,serif;font-size:1.1rem;color:var(--primary)">☀️ Inizio turno</h3>
+<h3 style="font-family:'Newsreader',Georgia,serif;font-size:1.15rem;color:var(--brand);margin-bottom:.8rem">Inizio turno</h3>
 
 <div class="steps">
 <div class="step">
@@ -513,24 +578,24 @@ Registro completo · Filtro operatore · Dettaglio JSON · Export PDF · Badge s
 <div><h3>Cruscotto</h3><p>Verifica KPI, alert scorte, promemoria in scadenza</p></div>
 </div>
 <div class="step">
-<div><h3>Promemoria</h3><p>Apri la fascia oraria corrente. Lista somministrazioni</p></div>
+<div><h3>Promemoria</h3><p>Apri il turno corrente. Lista somministrazioni</p></div>
 </div>
 </div>
 
 </div>
 <div class="col">
 
-<h3 style="font-family:'Newsreader',Georgia,serif;font-size:1.1rem;color:var(--primary)">🔄 Giro terapia</h3>
+<h3 style="font-family:'Newsreader',Georgia,serif;font-size:1.15rem;color:var(--brand);margin-bottom:.8rem">Giro terapia</h3>
 
 <div class="steps">
 <div class="step">
-<div><h3>Scheda ospite</h3><p>Apri da promemoria → verifica terapia → conferma dose</p></div>
+<div><h3>Scheda ospite</h3><p>Apri da promemoria &rarr; verifica terapia &rarr; conferma dose</p></div>
 </div>
 <div class="step">
-<div><h3>Esito</h3><p>Eseguito / Posticipato / Saltato → eventuale nota</p></div>
+<div><h3>Esito</h3><p>Eseguito / Posticipato / Saltato &rarr; eventuale nota</p></div>
 </div>
 <div class="step">
-<div><h3>Scarico</h3><p>Se farmaco esaurito: Movimenti → scarico automatico</p></div>
+<div><h3>Scarico</h3><p>Se farmaco esaurito: Movimenti &rarr; scarico automatico</p></div>
 </div>
 </div>
 
@@ -544,9 +609,9 @@ Registro completo · Filtro operatore · Dettaglio JSON · Export PDF · Badge s
 <div class="row">
 <div class="col">
 
-<h3 style="font-family:'Newsreader',Georgia,serif;font-size:1.1rem;color:#d97706">📋 Passaggio di turno</h3>
+<h3 style="font-family:'Newsreader',Georgia,serif;font-size:1.15rem;color:var(--accent);margin-bottom:.8rem">Passaggio di turno</h3>
 
-<div class="card accent" style="margin-top:.8rem">
+<div class="card accent" style="margin-top:.6rem">
 **Promemoria in sospeso** — filtrati per stato "da eseguire". Note su terapie saltate o posticipate. Verifica scorte per il fabbisogno del turno successivo.
 </div>
 
@@ -557,9 +622,9 @@ Registro completo · Filtro operatore · Dettaglio JSON · Export PDF · Badge s
 </div>
 <div class="col">
 
-<h3 style="font-family:'Newsreader',Georgia,serif;font-size:1.1rem;color:#d97706">📅 Operazioni periodiche</h3>
+<h3 style="font-family:'Newsreader',Georgia,serif;font-size:1.15rem;color:var(--accent);margin-bottom:.8rem">Operazioni periodiche</h3>
 
-<div class="card" style="margin-top:.8rem">
+<div class="card" style="margin-top:.6rem">
 **Import CSV** — carico iniziale o aggiornamento massivo da Google Sheets
 </div>
 
@@ -591,13 +656,14 @@ Registro completo · Filtro operatore · Dettaglio JSON · Export PDF · Badge s
 <div class="row">
 <div class="col">
 
-### 🔐 Autenticazione
+### Autenticazione
 - Table-auth con session token
 - Password policy: 10+ caratteri, maiuscola, minuscola, numero, simbolo
+- Reset password autonomo via email (Edge Function + Gmail SMTP)
 - Session TTL configurabile
 - Due ruoli: `admin` e `operator`
 
-### 🛡️ Row Level Security
+### Row Level Security
 - RLS su ogni tabella Supabase
 - CRUD via RPC functions autenticate
 - 8 migration SQL versionate
@@ -606,7 +672,7 @@ Registro completo · Filtro operatore · Dettaglio JSON · Export PDF · Badge s
 </div>
 <div class="col">
 
-### 🔒 Privacy
+### Privacy
 <div class="card accent" style="margin-top:.5rem">
 I dati clinici risiedono **solo sul dispositivo locale** (IndexedDB). Nessun dato sanitario transita su server cloud. La sincronizzazione scambia solo metadati operativi e stato delle scorte.
 </div>
@@ -622,7 +688,7 @@ I dati clinici risiedono **solo sul dispositivo locale** (IndexedDB). Nessun dat
 
 # Qualità e test
 
-<div class="row" style="text-align:center;margin-top:1rem">
+<div class="row" style="text-align:center;margin-top:1.2rem">
 <div class="col">
 <div class="big-num">72</div>
 <p style="margin:0">unit test<br><span class="quiet">servizi, modelli, KPI, reporting</span></p>
@@ -637,7 +703,7 @@ I dati clinici risiedono **solo sul dispositivo locale** (IndexedDB). Nessun dat
 </div>
 </div>
 
-<div style="text-align:center;margin-top:2rem">
+<div style="text-align:center;margin-top:2.2rem">
 
 <span class="badge green">41 test CRUD</span>
 <span class="badge green">Duplicate detection</span>
@@ -655,9 +721,10 @@ I dati clinici risiedono **solo sul dispositivo locale** (IndexedDB). Nessun dat
 |---|---|---|
 | ✅ | PWA offline-first | Service Worker, IndexedDB, installabile |
 | ✅ | Sync multi-dispositivo | Supabase Realtime + Direct API |
-| ✅ | Multi-residenza | Switch residenza, fasce orarie per sede |
+| ✅ | Multi-residenza | Switch residenza, turni personalizzabili per sede |
+| ✅ | Reset password via email | Edge Function + Gmail SMTP, link monouso |
 | ✅ | Import CSV | Multi-sorgente, validazione automatica |
-| ✅ | Keep-alive | GitHub Actions cron + client-side ping |
+| ✅ | Diagnostica integrata | Dashboard Axiom nel pannello Audit |
 | ✅ | Audit trail | Registro completo, export JSON/PDF |
 | 🔄 | Push notification | Web Push API, notifiche promemoria |
 | 📋 | Analytics avanzate | Dashboard consumi, trend predittivi |
@@ -670,7 +737,7 @@ I dati clinici risiedono **solo sul dispositivo locale** (IndexedDB). Nessun dat
 <div class="row">
 <div class="col">
 
-### 🌐 Risorse
+### Risorse
 
 <div class="card accent">
 
@@ -688,7 +755,7 @@ I dati clinici risiedono **solo sul dispositivo locale** (IndexedDB). Nessun dat
 </div>
 <div class="col">
 
-### 🔑 Credenziali demo
+### Credenziali demo
 
 | Ruolo | Utente | Password |
 |---|---|---|
@@ -697,7 +764,7 @@ I dati clinici risiedono **solo sul dispositivo locale** (IndexedDB). Nessun dat
 | Admin | `admin` | `A9m4K2qL!Xy` |
 
 <div class="card" style="margin-top:1rem;font-size:.73rem">
-<span class="badge teal">Dati demo</span> 3 residenze · 10 ospiti · 10 farmaci · terapie attive · promemoria giornalieri
+<span class="badge brand">Dati demo</span> 3 residenze · 10 ospiti · 10 farmaci · terapie attive · promemoria giornalieri
 </div>
 
 </div>
@@ -709,7 +776,7 @@ I dati clinici risiedono **solo sul dispositivo locale** (IndexedDB). Nessun dat
 
 # Grazie
 
-<div style="text-align:center;margin-top:2.5rem">
+<div style="text-align:center;margin-top:2.8rem">
 
 ![w:72px](logo-mark.png)
 
@@ -724,7 +791,7 @@ Gestione farmaci per le Residenze della Comunità di Sant'Egidio
   <span>Open source</span>
 </div>
 
-<p style="margin-top:2.5rem;font-size:.85rem">
+<p style="margin-top:2.8rem;font-size:.85rem">
   <a href="https://github.com/vgrazian/MediTrace">github.com/vgrazian/MediTrace</a>
 </p>
 
