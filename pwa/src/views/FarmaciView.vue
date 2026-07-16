@@ -157,7 +157,7 @@ const canCreateBatch = computed(() => drugs.value.length > 0)
 
 const showDefaultCheckbox = computed(() => {
   if (!batchForm.value.drugId) return false
-  const batchesForDrug = stockBatches.value.filter(
+  const batchesForDrug = batches.value.filter(
     b => !b.deletedAt && b.drugId === batchForm.value.drugId
   )
   return batchesForDrug.length > 0
