@@ -111,11 +111,17 @@ export async function refreshFromServer() {
                 await db[table].bulkPut(data.map(r => ({ ...r, _fromServer: true })))
             }
 
-            // Soft-delete local records not on server (skip seeded/demo data)
+            // Soft-delete local records not on server (skip seeded/demo/offline data)
+            // Only delete records that were previously synced (syncStatus === 'synced' && !_offline)
+            // and are at least 60 seconds old (prevent race condition with concurrent upserts)
             const serverIds = new Set((data || []).map(r => r.id))
             const localRows = await db[table].toArray()
+            const cutoff = Date.now() - 60_000
             for (const local of localRows) {
-                if (!local.deletedAt && !serverIds.has(local.id) && !local._offline && !local._seeded) {
+                const age = local.createdAt ? new Date(local.createdAt).getTime() : 0
+                const wasSynced = local.syncStatus === 'synced' && !local._offline && !local._seeded
+                if (!local.deletedAt && !serverIds.has(local.id) && wasSynced && age < cutoff) {
+                    console.log(`[dataService] cleanup: soft-deleting ${table}/${local.id} (not on server, was synced, age > 60s)`)
                     await db[table].put({ ...local, deletedAt: new Date().toISOString(), _fromServer: true })
                 }
             }
@@ -180,9 +186,11 @@ export async function upsertRecord(table, record) {
         await retryQueue.add({ entityType: table, entityId: normalized.id, operation: 'upsert' })
     } else {
         // Online but Supabase failed — save locally, will retry on next periodic sync
+        // IMPORTANT: keep _offline=true so refreshFromServer doesn't soft-delete it
         normalized.syncStatus = 'synced'
-        normalized._offline = false
+        normalized._offline = true
         await db[table].put(normalized)
+        await retryQueue.add({ entityType: table, entityId: normalized.id, operation: 'upsert' })
     }
     return normalized
 }
