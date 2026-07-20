@@ -81,10 +81,10 @@ async function getLastSupabasePing() {
 /**
  * Get comprehensive keep-alive status for UI display.
  * Returns:
- *  - isOk: true if there was activity within the last INACTIVITY_DAYS_THRESHOLD days
+ *  - isOk: true if there was activity (local or ping) within threshold days
  *  - lastLocalActivity: Date | null (last IndexedDB write)
  *  - lastSupabasePing: Date | null (last ping read from Supabase)
- *  - daysSinceActivity: number | null
+ *  - daysSinceActivity: number | null (days since most recent activity of any kind)
  *  - enabled: boolean
  */
 export async function getKeepAliveStatus() {
@@ -99,13 +99,18 @@ export async function getKeepAliveStatus() {
     ])
 
     const now = new Date()
-    let daysSinceActivity = null
-    let isOk = false
 
-    if (lastActivity) {
-        daysSinceActivity = (now.getTime() - lastActivity.getTime()) / (1000 * 60 * 60 * 24)
-        isOk = daysSinceActivity < INACTIVITY_DAYS_THRESHOLD
-    }
+    // The most recent timestamp of ANY activity (local DB or Supabase ping)
+    const mostRecent = [lastActivity, lastPing]
+        .filter(Boolean)
+        .reduce((latest, d) => (d > latest ? d : latest), new Date(0))
+
+    const hasAnyActivity = mostRecent.getTime() > 0
+    const daysSinceActivity = hasAnyActivity
+        ? (now.getTime() - mostRecent.getTime()) / (1000 * 60 * 60 * 24)
+        : null
+
+    const isOk = hasAnyActivity && daysSinceActivity < INACTIVITY_DAYS_THRESHOLD
 
     return {
         isOk,

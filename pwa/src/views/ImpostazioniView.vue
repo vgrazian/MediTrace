@@ -1399,8 +1399,11 @@ async function handleCreateUser() {
           <span v-if="keepAliveStatus.isOk === true" style="font-size:1.1rem">✅</span>
           <span v-else-if="keepAliveStatus.isOk === false" style="font-size:1.1rem">⚠️</span>
           <span v-else style="font-size:1.1rem">⏳</span>
-          <span v-if="keepAliveStatus.isOk === true">DB attivo — attività recente rilevata</span>
-          <span v-else-if="keepAliveStatus.isOk === false">DB inattivo da {{ keepAliveStatus.daysSinceActivity?.toFixed(1) }} giorni — verrà eseguito un ping</span>
+          <span v-if="keepAliveStatus.isOk === true">DB attivo — ultima attività {{ keepAliveStatus.daysSinceActivity?.toFixed(1) }} giorni fa</span>
+          <span v-else-if="keepAliveStatus.isOk === false">
+            <template v-if="keepAliveStatus.daysSinceActivity !== null">DB inattivo da {{ keepAliveStatus.daysSinceActivity.toFixed(1) }} giorni — verrà eseguito un ping</template>
+            <template v-else>Nessuna attività rilevata — verrà eseguito un ping al prossimo controllo</template>
+          </span>
           <span v-else>Verifica in corso…</span>
         </div>
         <div class="muted">
