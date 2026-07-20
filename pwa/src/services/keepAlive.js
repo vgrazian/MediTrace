@@ -2,8 +2,9 @@
  * Supabase Keep-Alive Service
  *
  * Supabase free tier pauses projects after 7 days of inactivity.
- * This service checks if the local DB has been "touched" in the last 6 days
+ * This service checks if the local DB has been "touched" in the last 7 days
  * and, if not, performs a lightweight read to keep the project alive.
+ * Also reads back the last ping timestamp from Supabase for visual feedback.
  */
 
 import { db, getSetting, setSetting, getSyncState } from '../db'
@@ -11,7 +12,7 @@ import { isSupabaseConfigured, supabase } from './supabaseClient'
 
 const KEEP_ALIVE_SETTING = 'keepAliveEnabled'
 const LAST_ALIVE_PING = 'lastKeepAlivePing'
-const INACTIVITY_DAYS_THRESHOLD = 6
+const INACTIVITY_DAYS_THRESHOLD = 7
 const PING_COOLDOWN_HOURS = 23 // ping at most once every 23 hours
 
 /**
@@ -51,7 +52,6 @@ async function getLastDbActivity() {
             return new Date(lastSync)
         }
 
-        // Fallback: check datasetVersion timestamp (when it was set)
         return null
     } catch {
         return null
@@ -59,8 +59,66 @@ async function getLastDbActivity() {
 }
 
 /**
- * Perform a lightweight write to Supabase to keep the project alive.
- * Uses a dedicated keep-alive upsert — more reliable than a read query.
+ * Read the last keep-alive ping timestamp from Supabase.
+ * This is a lightweight SELECT — purely for status display.
+ */
+async function getLastSupabasePing() {
+    if (!isSupabaseConfigured || !supabase) return null
+    try {
+        const { data, error } = await supabase
+            .from('sync_files')
+            .select('updated_at')
+            .eq('name', '_keep_alive')
+            .maybeSingle()
+
+        if (error || !data?.updated_at) return null
+        return new Date(data.updated_at)
+    } catch {
+        return null
+    }
+}
+
+/**
+ * Get comprehensive keep-alive status for UI display.
+ * Returns:
+ *  - isOk: true if there was activity within the last INACTIVITY_DAYS_THRESHOLD days
+ *  - lastLocalActivity: Date | null (last IndexedDB write)
+ *  - lastSupabasePing: Date | null (last ping read from Supabase)
+ *  - daysSinceActivity: number | null
+ *  - enabled: boolean
+ */
+export async function getKeepAliveStatus() {
+    const enabled = await isKeepAliveEnabled()
+    if (!enabled) {
+        return { isOk: null, lastLocalActivity: null, lastSupabasePing: null, daysSinceActivity: null, enabled: false }
+    }
+
+    const [lastActivity, lastPing] = await Promise.all([
+        getLastDbActivity(),
+        getLastSupabasePing(),
+    ])
+
+    const now = new Date()
+    let daysSinceActivity = null
+    let isOk = false
+
+    if (lastActivity) {
+        daysSinceActivity = (now.getTime() - lastActivity.getTime()) / (1000 * 60 * 60 * 24)
+        isOk = daysSinceActivity < INACTIVITY_DAYS_THRESHOLD
+    }
+
+    return {
+        isOk,
+        lastLocalActivity: lastActivity,
+        lastSupabasePing: lastPing,
+        daysSinceActivity,
+        enabled: true,
+    }
+}
+
+/**
+ * Perform a lightweight READ on Supabase to keep the project alive.
+ * A simple SELECT is sufficient to count as activity for Supabase free tier.
  * Retries up to 3 times with exponential backoff.
  */
 async function pingSupabase() {
@@ -69,20 +127,19 @@ async function pingSupabase() {
     const maxRetries = 3
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
         try {
+            // Lightweight read: just check the _keep_alive row exists
             const { error } = await supabase
                 .from('sync_files')
-                .upsert({
-                    name: '_keep_alive',
-                    content: { lastPing: new Date().toISOString() },
-                    updated_at: new Date().toISOString(),
-                }, { onConflict: 'name' })
+                .select('name')
+                .eq('name', '_keep_alive')
+                .limit(1)
 
             if (error) {
                 if (attempt < maxRetries) {
                     await new Promise(r => setTimeout(r, Math.pow(2, attempt) * 1000))
                     continue
                 }
-                console.warn('[keepAlive] Ping error after retries:', error.message)
+                console.warn('[keepAlive] Ping read error after retries:', error.message)
                 return false
             }
 

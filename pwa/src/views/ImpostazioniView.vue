@@ -26,7 +26,7 @@ import {
 } from '../services/seedData'
 import { useHelpNavigation } from '../composables/useHelpNavigation'
 import { openConfirmDialog } from '../services/confirmDialog'
-import { isKeepAliveEnabled, setKeepAliveEnabled } from '../services/keepAlive'
+import { isKeepAliveEnabled, setKeepAliveEnabled, getKeepAliveStatus } from '../services/keepAlive'
 import { isAxiomConfigured } from '../services/axiomLogger'
 import { setUserRole } from '../services/userManagement'
 
@@ -113,6 +113,8 @@ const seedLoaded = ref(false)
 const seedActionMode = ref('load')
 const seedBusy = ref(false)
 const keepAliveEnabled = ref(false)
+const keepAliveStatus = ref({ isOk: null, lastLocalActivity: null, lastSupabasePing: null, daysSinceActivity: null, enabled: false })
+const keepAliveBusy = ref(false)
 const showNewUserForm = ref(false)
 const axiomLoggingActive = ref(false)
 const seedMessage = ref('')
@@ -465,6 +467,25 @@ async function runCsvImport() {
 async function toggleKeepAlive() {
   keepAliveEnabled.value = !keepAliveEnabled.value
   await setKeepAliveEnabled(keepAliveEnabled.value)
+  await refreshKeepAliveStatus()
+}
+
+async function refreshKeepAliveStatus() {
+  keepAliveBusy.value = true
+  try {
+    keepAliveStatus.value = await getKeepAliveStatus()
+  } catch {
+    keepAliveStatus.value = { isOk: null, lastLocalActivity: null, lastSupabasePing: null, daysSinceActivity: null, enabled: keepAliveEnabled.value }
+  } finally {
+    keepAliveBusy.value = false
+  }
+}
+
+function formatKeepAliveDate(d) {
+  if (!d) return '—'
+  const date = d instanceof Date ? d : new Date(d)
+  if (isNaN(date.getTime())) return '—'
+  return date.toLocaleString('it-IT', { dateStyle: 'medium', timeStyle: 'short' })
 }
 
 onMounted(async () => {
@@ -478,6 +499,7 @@ onMounted(async () => {
     keepAliveEnabled.value = true
     await setKeepAliveEnabled(true)
   }
+  await refreshKeepAliveStatus()
   axiomLoggingActive.value = isAxiomConfigured()
   await refreshPendingConflicts()
   await refreshUsers()
@@ -1348,11 +1370,19 @@ async function handleCreateUser() {
     </div>
 
     <div class="card">
-      <p><strong>Keep-Alive Supabase</strong></p>
+      <div style="display:flex;align-items:center;justify-content:space-between">
+        <p><strong>Keep-Alive Supabase</strong></p>
+        <button
+          v-if="keepAliveEnabled"
+          @click="refreshKeepAliveStatus"
+          :disabled="keepAliveBusy"
+          style="font-size:.75rem;padding:.15rem .4rem"
+        >{{ keepAliveBusy ? '…' : '🔄 Aggiorna' }}</button>
+      </div>
       <p class="muted" style="margin-top:.25rem">
         Supabase free tier sospende i progetti dopo 7 giorni di inattività.
-        Attiva il keep-alive per eseguire automaticamente una lettura leggera se il DB locale
-        non è stato toccato negli ultimi 6 giorni, mantenendo il progetto attivo.
+        Se il DB locale non viene toccato per 7 giorni, il servizio esegue una lettura
+        automatica per mantenere attivo il progetto.
       </p>
       <label style="display:flex;align-items:center;gap:.5rem;margin-top:.65rem">
         <input
@@ -1362,6 +1392,24 @@ async function handleCreateUser() {
         />
         {{ keepAliveEnabled ? 'Keep-alive attivo' : 'Keep-alive disattivato' }}
       </label>
+
+      <!-- Status indicators (only when enabled) -->
+      <div v-if="keepAliveEnabled && keepAliveStatus.enabled" style="margin-top:.75rem;display:flex;flex-direction:column;gap:.35rem;font-size:.82rem">
+        <div style="display:flex;align-items:center;gap:.35rem">
+          <span v-if="keepAliveStatus.isOk === true" style="font-size:1.1rem">✅</span>
+          <span v-else-if="keepAliveStatus.isOk === false" style="font-size:1.1rem">⚠️</span>
+          <span v-else style="font-size:1.1rem">⏳</span>
+          <span v-if="keepAliveStatus.isOk === true">DB attivo — attività recente rilevata</span>
+          <span v-else-if="keepAliveStatus.isOk === false">DB inattivo da {{ keepAliveStatus.daysSinceActivity?.toFixed(1) }} giorni — verrà eseguito un ping</span>
+          <span v-else>Verifica in corso…</span>
+        </div>
+        <div class="muted">
+          Ultima attività DB locale: <strong>{{ formatKeepAliveDate(keepAliveStatus.lastLocalActivity) }}</strong>
+        </div>
+        <div class="muted">
+          Ultimo ping Supabase: <strong>{{ formatKeepAliveDate(keepAliveStatus.lastSupabasePing) }}</strong>
+        </div>
+      </div>
     </div>
 
     <div class="card">
