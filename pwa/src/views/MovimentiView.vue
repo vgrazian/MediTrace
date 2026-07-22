@@ -225,13 +225,26 @@ function drugLabel(drugId) {
   return item.nomeFarmaco || item.principioAttivo || 'Farmaco senza nome'
 }
 
-function batchLabel(batch) {
+function batchLabel(batch, showStock = false) {
   if (!batch) return '—'
   const drugName = drugLabel(batch.drugId)
   const commercialName = batch.nomeCommerciale || 'Confezione'
   const dosage = batch.dosaggio ? ` (${batch.dosaggio})` : ''
-  return `${drugName} - ${commercialName}${dosage}`
+  const unit = batch.unitaMisura ? ` [${batch.unitaMisura}]` : ''
+  const stock = showStock && batch.quantitaAttuale !== undefined ? ` — disp: ${batch.quantitaAttuale}` : ''
+  return `${drugName} - ${commercialName}${dosage}${unit}${stock}`
 }
+
+const selectedBatchUnit = computed(() => {
+  const batch = stockBatches.value.find(b => b.id === form.value.stockBatchId)
+  return batch?.unitaMisura || ''
+})
+
+const selectedBatchStock = computed(() => {
+  const batch = stockBatches.value.find(b => b.id === form.value.stockBatchId)
+  if (!batch || batch.quantitaAttuale === undefined || batch.quantitaAttuale === null) return null
+  return Number(batch.quantitaAttuale)
+})
 
 function hostLabel(hostId) {
   if (!hostId) return '—'
@@ -710,7 +723,7 @@ async function deleteSelectedMovements() {
 
           <div class="import-form" style="margin-top:.65rem">
             <label>
-              Confezione
+              Confezione (farmaco in unita)
               <select
                 v-model="form.stockBatchId"
                 :disabled="saving || !stockBatches.length"
@@ -720,7 +733,7 @@ async function deleteSelectedMovements() {
               >
                 <option value="">Seleziona confezione</option>
                 <option v-for="batch in stockBatches" :key="batch.id" :value="batch.id">
-                  {{ batchLabel(batch) }}
+                  {{ batchLabel(batch, true) }}
                 </option>
               </select>
               <span v-if="errors.stockBatchId" id="stockBatchId-error" class="error-message" role="alert">
@@ -750,13 +763,19 @@ async function deleteSelectedMovements() {
             <ValidatedInput
               v-model="form.quantita"
               field-name="quantita"
-              label="Quantita"
+              :label="selectedBatchUnit ? `Quantita (${selectedBatchUnit})` : 'Quantita'"
               type="number"
               :error="errors.quantita"
               :required="true"
               :disabled="saving"
               @validate="(field, value) => validateField(field, value)"
             />
+            <p v-if="selectedBatchStock !== null" class="muted" style="margin-top:-.35rem;margin-bottom:.35rem">
+              Disponibile: {{ selectedBatchStock }} {{ selectedBatchUnit }}.
+              <span v-if="form.quantita && Number(form.quantita) > selectedBatchStock && form.tipoMovimento !== 'carico'" style="color:#c0392b">
+                ⚠ Supera la scorta disponibile!
+              </span>
+            </p>
 
             <label>
               Data e ora
