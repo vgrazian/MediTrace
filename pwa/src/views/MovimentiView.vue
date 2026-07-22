@@ -313,6 +313,14 @@ watch(() => form.value.hostId, (newHostId) => {
   }
 })
 
+// When switching away from somministrazione, clear host + therapy
+watch(() => form.value.tipoMovimento, (newType) => {
+  if (newType !== 'somministrazione') {
+    form.value.hostId = ''
+    form.value.therapyId = ''
+  }
+})
+
 function hostLabel(hostId) {
   if (!hostId) return '—'
   const host = hosts.value.find((item) => item.id === hostId)
@@ -850,8 +858,8 @@ async function deleteSelectedMovements() {
             </label>
 
             <label>
-              Ospite (opzionale)
-              <select v-model="form.hostId" :disabled="saving || !filteredHosts.length">
+              Ospite (solo per somministrazione)
+              <select v-model="form.hostId" :disabled="saving || form.tipoMovimento !== 'somministrazione' || !filteredHosts.length">
                 <option value="">Nessuno</option>
                 <option v-for="host in filteredHosts" :key="host.id" :value="host.id">
                   {{ hostLabel(host.id) }}
@@ -863,8 +871,8 @@ async function deleteSelectedMovements() {
             </label>
 
             <label>
-              Terapia (opzionale)
-              <select v-model="form.therapyId" :disabled="saving || !filteredTherapies.length">
+              Terapia (solo per somministrazione)
+              <select v-model="form.therapyId" :disabled="saving || form.tipoMovimento !== 'somministrazione' || !filteredTherapies.length">
                 <option value="">Nessuna</option>
                 <option v-for="therapy in filteredTherapies" :key="therapy.id" :value="therapy.id">
                   {{ therapyLabel(therapy.id) }}
