@@ -108,7 +108,18 @@ export async function refreshFromServer() {
             }
 
             if (data && data.length > 0) {
-                await db[table].bulkPut(data.map(r => ({ ...r, _fromServer: true })))
+                // Merge server data with existing local records to preserve client-only fields
+                // (syncStatus, iniziali, stanza, note, createdAt, _seeded are not in Supabase schema)
+                const existingMap = new Map()
+                const existing = await db[table].toArray()
+                for (const local of existing) {
+                    existingMap.set(local.id, local)
+                }
+                const merged = data.map(r => {
+                    const local = existingMap.get(r.id)
+                    return local ? { ...local, ...r, _fromServer: true } : { ...r, _fromServer: true }
+                })
+                await db[table].bulkPut(merged)
             }
 
             // Soft-delete local records not on server (skip seeded/demo/offline data)
@@ -166,12 +177,15 @@ export async function upsertRecord(table, record) {
 
             if (error) throw new Error(error.message)
 
-            // Cache in IndexedDB
-            await db[table].put({ ...data, _fromServer: true })
+            // Cache in IndexedDB — merge server response with client fields
+            // Supabase doesn't store client-only fields (syncStatus, iniziali, stanza, note, createdAt, _seeded)
+            // so we preserve them from the original record
+            const merged = { ...normalized, ...data, _fromServer: true }
+            await db[table].put(merged)
             window.dispatchEvent(new CustomEvent('medi-trace:data-changed', {
                 detail: { table, eventType: 'UPSERT', id: data.id }
             }))
-            return data
+            return merged
         } catch (err) {
             console.error(`[dataService] upsert ${table} failed — table=${table} id=${normalized.id} online=${online} supabase=${!!supabase} error=`, err.message, err)
             // Fall through to save locally
