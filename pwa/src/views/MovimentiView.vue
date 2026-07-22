@@ -126,7 +126,7 @@ const filteredMovements = computed(() => {
 
   // Advanced search filters
   if (searchType.value) {
-    baseRows = baseRows.filter(m => m.tipoMovimento === searchType.value || m.type === searchType.value)
+    baseRows = baseRows.filter(m => (m.tipoMovimento || m.type || '').toLowerCase() === searchType.value.toLowerCase())
   }
   if (searchDateFrom.value) {
     const from = new Date(searchDateFrom.value)
@@ -422,7 +422,7 @@ async function saveMovement() {
       form.value.causale = ''
       form.value.note = ''
       sessionMovementCount.value++
-      lastSavedMovementLabel.value = `${form.value.tipoMovimento} — ${batchLabel(selectedBatch)} (${quantity})`
+      lastSavedMovementLabel.value = `${form.value.tipoMovimento.toUpperCase()} — ${batchLabel(selectedBatch)} (${quantity})`
       message.value = `Registrato (#${sessionMovementCount.value}): ${lastSavedMovementLabel.value}`
       editingMovementId.value = null
       await loadData()
@@ -466,7 +466,7 @@ function startEditMovement(movement) {
   editingMovementId.value = movement.id
   form.value = {
     stockBatchId: movement.stockBatchId || '',
-    tipoMovimento: movement.tipoMovimento || movement.type || 'scarico',
+    tipoMovimento: (movement.tipoMovimento || movement.type || 'scarico').toLowerCase(),
     quantita: movement.quantita ?? '',
     dataMovimento: toDateTimeLocal(movement.dataMovimento || movement.updatedAt),
     hostId: movement.hostId || '',
