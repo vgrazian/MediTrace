@@ -1,5 +1,5 @@
 <script setup>
-import { computed, onMounted, onUnmounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useKeyboardShortcuts, shortcutHint } from '../composables/useKeyboardShortcuts'
 import { db } from '../db'
 import { dataReady } from '../services/seedData'
@@ -264,6 +264,53 @@ const causalePlaceholder = computed(() => {
     correzione: 'Es. Rettifica inventario, Errore registrazione...',
   }
   return map[form.value.tipoMovimento] || map.scarico
+})
+
+// Context-aware Ospiti: when a batch is selected, only show hosts
+// that have at least one active therapy using that batch's drug
+const selectedBatchDrugId = computed(() => {
+  const batch = stockBatches.value.find(b => b.id === form.value.stockBatchId)
+  return batch?.drugId || null
+})
+
+const filteredHosts = computed(() => {
+  if (!selectedBatchDrugId.value) return hosts.value
+  const matchingTherapies = therapies.value.filter(
+    t => t.drugId === selectedBatchDrugId.value && !t.deletedAt
+  )
+  const matchingHostIds = new Set(matchingTherapies.map(t => t.hostId))
+  return hosts.value.filter(h => matchingHostIds.has(h.id))
+})
+
+// Context-aware Terapie: filtered by host + batch drug
+const filteredTherapies = computed(() => {
+  let filtered = therapies.value
+  if (selectedBatchDrugId.value) {
+    filtered = filtered.filter(t => t.drugId === selectedBatchDrugId.value)
+  }
+  if (form.value.hostId) {
+    filtered = filtered.filter(t => t.hostId === form.value.hostId)
+  }
+  return filtered
+})
+
+// When batch changes, clear host + therapy (drug changed)
+watch(() => form.value.stockBatchId, () => {
+  form.value.hostId = ''
+  form.value.therapyId = ''
+})
+
+// When host changes, clear therapy then auto-select if only one match
+watch(() => form.value.hostId, (newHostId) => {
+  form.value.therapyId = ''
+  if (newHostId && selectedBatchDrugId.value) {
+    const matches = therapies.value.filter(
+      t => t.hostId === newHostId && t.drugId === selectedBatchDrugId.value && !t.deletedAt
+    )
+    if (matches.length === 1) {
+      form.value.therapyId = matches[0].id
+    }
+  }
 })
 
 function hostLabel(hostId) {
@@ -804,22 +851,28 @@ async function deleteSelectedMovements() {
 
             <label>
               Ospite (opzionale)
-              <select v-model="form.hostId" :disabled="saving || !hosts.length">
+              <select v-model="form.hostId" :disabled="saving || !filteredHosts.length">
                 <option value="">Nessuno</option>
-                <option v-for="host in hosts" :key="host.id" :value="host.id">
+                <option v-for="host in filteredHosts" :key="host.id" :value="host.id">
                   {{ hostLabel(host.id) }}
                 </option>
               </select>
+              <span v-if="selectedBatchDrugId && filteredHosts.length === 0 && hosts.length > 0" class="muted" style="font-size:.8rem">
+                Nessun ospite ha terapie con questo farmaco
+              </span>
             </label>
 
             <label>
               Terapia (opzionale)
-              <select v-model="form.therapyId" :disabled="saving || !therapies.length">
+              <select v-model="form.therapyId" :disabled="saving || !filteredTherapies.length">
                 <option value="">Nessuna</option>
-                <option v-for="therapy in therapies" :key="therapy.id" :value="therapy.id">
+                <option v-for="therapy in filteredTherapies" :key="therapy.id" :value="therapy.id">
                   {{ therapyLabel(therapy.id) }}
                 </option>
               </select>
+              <span v-if="form.hostId && selectedBatchDrugId && filteredTherapies.length === 0" class="muted" style="font-size:.8rem">
+                Nessuna terapia trovata per ospite + farmaco
+              </span>
             </label>
 
             <label>
