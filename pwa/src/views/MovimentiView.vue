@@ -33,9 +33,12 @@ const therapies = ref([])
 const movements = ref([])
 const editingMovementId = ref(null)
 const isFormOpen = ref(false)
+const continuaDopoSalvataggio = ref(false)
+const sessionMovementCount = ref(0)
+const lastSavedMovementLabel = ref('')
 
 useKeyboardShortcuts({
-  searchPlaceholder: 'Cerca per tipo, confezione, ospite o note',
+  searchPlaceholder: 'Cerca per tipo, causale, confezione, ospite o note',
   onNew: () => openAddForm(),
   onSave: () => { if (isFormOpen.value) saveMovement() },
   onDelete: () => { if (selectedCount.value > 0 && canDeleteMovements.value) deleteSelectedMovements() },
@@ -71,6 +74,7 @@ const form = ref({
   dataMovimento: '',
   hostId: '',
   therapyId: '',
+  causale: '',
   note: '',
 })
 
@@ -84,11 +88,13 @@ const {
   stockBatchId: { required: true },
   tipoMovimento: { required: true },
   quantita: { required: true, numeric: true, positiveNumber: true },
+  causale: { maxLength: 200 },
   note: { maxLength: 500 },
 }, {
   stockBatchId: 'Confezione',
   tipoMovimento: 'Tipo movimento',
   quantita: 'Quantita',
+  causale: 'Causale',
   note: 'Note',
 })
 
@@ -108,6 +114,7 @@ const filteredMovements = computed(() => {
     const haystack = [
       movement.id,
       movement.tipoMovimento,
+      movement.causale,
       movement.note,
       movement.quantita,
       batchLabel(batch),
@@ -321,22 +328,37 @@ async function saveMovement() {
       operatorId: currentUser.value?.login ?? null,
     })
 
-    form.value = {
-      stockBatchId: '',
-      tipoMovimento: 'scarico',
-      quantita: '',
-      dataMovimento: toLocalDateTimeInput(),
-      hostId: '',
-      therapyId: '',
-      note: '',
-    }
-    editingMovementId.value = null
+    if (continuaDopoSalvataggio.value && !existing) {
+      // Batch mode: keep form open, only clear quantity + causale
+      form.value.quantita = ''
+      form.value.causale = ''
+      form.value.note = ''
+      sessionMovementCount.value++
+      lastSavedMovementLabel.value = `${form.value.tipoMovimento} — ${batchLabel(selectedBatch)} (${quantity})`
+      message.value = `Registrato (#${sessionMovementCount.value}): ${lastSavedMovementLabel.value}`
+      editingMovementId.value = null
+      await loadData()
+      markFormSnapshot()
+    } else {
+      form.value = {
+        stockBatchId: '',
+        tipoMovimento: 'scarico',
+        quantita: '',
+        dataMovimento: toLocalDateTimeInput(),
+        hostId: '',
+        therapyId: '',
+        causale: '',
+        note: '',
+      }
+      editingMovementId.value = null
+      sessionMovementCount.value = 0
 
-    message.value = existing ? 'Movimento aggiornato.' : `Movimento registrato (ID: ${saved.id}).`
-    await loadData()
-    isFormOpen.value = false
-    panelMode.value = 'list'
-    markFormSnapshot()
+      message.value = existing ? 'Movimento aggiornato.' : `Movimento registrato (ID: ${saved.id}).`
+      await loadData()
+      isFormOpen.value = false
+      panelMode.value = 'list'
+      markFormSnapshot()
+    }
   } catch (err) {
     errorMessage.value = `Errore registrazione movimento: ${err.message}`
   } finally {
@@ -361,6 +383,7 @@ function startEditMovement(movement) {
     dataMovimento: toDateTimeLocal(movement.dataMovimento || movement.updatedAt),
     hostId: movement.hostId || '',
     therapyId: movement.therapyId || '',
+    causale: movement.causale || '',
     note: movement.note || '',
   }
   panelMode.value = 'edit'
@@ -386,6 +409,8 @@ function openAddForm() {
 function resetForm() {
   editingMovementId.value = null
   panelMode.value = 'list'
+  sessionMovementCount.value = 0
+  lastSavedMovementLabel.value = ''
   form.value = {
     stockBatchId: '',
     tipoMovimento: 'scarico',
@@ -393,6 +418,7 @@ function resetForm() {
     dataMovimento: toLocalDateTimeInput(),
     hostId: '',
     therapyId: '',
+    causale: '',
     note: '',
   }
   clearErrors()
@@ -405,7 +431,7 @@ async function deleteMovement(movement) {
     return
   }
   const batch = stockBatches.value.find(b => b.id === movement.stockBatchId)
-  const movementLabel = `${movement.tipoMovimento || movement.type} - ${batchLabel(batch)} (${formatDateTime(movement.dataMovimento)})`
+  const movementLabel = `${movement.tipoMovimento || movement.type} - ${batchLabel(batch)} (${formatDateTime(movement.dataMovimento)})${movement.causale ? ' — ' + movement.causale : ''}`
   
   const confirmed = await confirmDeleteMovement(movementLabel)
   if (!confirmed) return
@@ -553,8 +579,10 @@ async function deleteSelectedMovements() {
             Tipo movimento
             <select v-model="searchType">
               <option value="">Tutti</option>
-              <option value="carico">Carico</option>
-              <option value="scarico">Scarico</option>
+              <option value="carico">Carico (aggiunge)</option>
+              <option value="scarico">Scarico (rimuove)</option>
+              <option value="somministrazione">Somministrazione (rimuove)</option>
+              <option value="correzione">Correzione (rettifica)</option>
             </select>
           </label>
           <label>
@@ -613,6 +641,7 @@ async function deleteSelectedMovements() {
             <th>Confezione</th>
             <th>Quantita</th>
             <th>Ospite</th>
+            <th>Causale</th>
             <th>Note</th>
             <th>Azioni</th>
           </tr>
@@ -636,6 +665,7 @@ async function deleteSelectedMovements() {
             <td>{{ batchLabel(stockBatches.find((item) => item.id === movement.stockBatchId)) }}</td>
             <td>{{ movement.quantita ?? '—' }}</td>
             <td>{{ hostLabel(movement.hostId) }}</td>
+            <td>{{ movement.causale || '—' }}</td>
             <td>{{ movement.note || '—' }}</td>
             <td>
               <button @click="startEditMovement(movement)">Modifica</button>
@@ -643,7 +673,7 @@ async function deleteSelectedMovements() {
             </td>
           </tr>
           <tr v-if="filteredMovements.length === 0">
-            <td colspan="8" class="muted">
+            <td colspan="9" class="muted">
               Nessun movimento registrato. Premi <strong>N</strong> o clicca <strong>Aggiungi</strong> per registrare il primo movimento.
             </td>
           </tr>
@@ -672,6 +702,7 @@ async function deleteSelectedMovements() {
           <p><strong>{{ editingMovementId ? 'Modifica movimento' : 'Nuovo movimento magazzino' }}</strong></p>
           <p class="muted" style="margin-top:.25rem">
             Registra carichi/scarichi operativi con tracciamento sincronizzazione e audit.
+            Per aggiornamenti di fine giornata, attiva <strong>"Continua dopo il salvataggio"</strong> per registrare piu movimenti in sequenza senza uscire dal form.
           </p>
           <p class="muted" style="margin-top:.25rem">
             Dopo il salvataggio di un nuovo movimento il pannello si chiude e torni alla lista.
@@ -706,10 +737,10 @@ async function deleteSelectedMovements() {
                 :aria-describedby="errors.tipoMovimento ? 'tipoMovimento-error' : undefined"
                 @blur="validateField('tipoMovimento', form.tipoMovimento)"
               >
-                <option value="carico">Carico</option>
-                <option value="scarico">Scarico</option>
-                <option value="somministrazione">Somministrazione</option>
-                <option value="correzione">Correzione</option>
+                <option value="carico">Carico (aggiunge scorte)</option>
+                <option value="scarico">Scarico (rimuove scorte)</option>
+                <option value="somministrazione">Somministrazione (rimuove scorte)</option>
+                <option value="correzione">Correzione (rettifica scorte)</option>
               </select>
               <span v-if="errors.tipoMovimento" id="tipoMovimento-error" class="error-message" role="alert">
                 {{ errors.tipoMovimento }}
@@ -753,6 +784,17 @@ async function deleteSelectedMovements() {
             </label>
 
             <ValidatedInput
+              v-model="form.causale"
+              field-name="causale"
+              label="Causale (motivazione)"
+              type="text"
+              placeholder="Es. Acquisto mensile, Reso fornitore, Rottura confezione"
+              :error="errors.causale"
+              :disabled="saving"
+              @validate="(field, value) => validateField(field, value)"
+            />
+
+            <ValidatedInput
               v-model="form.note"
               field-name="note"
               label="Note"
@@ -763,10 +805,20 @@ async function deleteSelectedMovements() {
               @validate="(field, value) => validateField(field, value)"
             />
 
-            <button :disabled="saving || !canCreateMovement || hasErrors" @click="saveMovement">
-              {{ saving ? 'Registrazione...' : (editingMovementId ? 'Salva modifica' : 'Registra movimento') }}
-            </button>
-            <button type="button" :disabled="saving" @click="() => { resetForm(); isFormOpen = false }">Annulla</button>
+            <div style="display:flex;align-items:center;gap:.75rem;flex-wrap:wrap;margin-top:.5rem">
+              <button :disabled="saving || !canCreateMovement || hasErrors" @click="saveMovement">
+                {{ saving ? 'Registrazione...' : (editingMovementId ? 'Salva modifica' : 'Registra movimento') }}
+              </button>
+              <button type="button" :disabled="saving" @click="() => { resetForm(); isFormOpen = false }">Annulla</button>
+              <label v-if="!editingMovementId" class="checkbox-label" style="display:flex;align-items:center;gap:.35rem;cursor:pointer;font-size:.9rem;user-select:none">
+                <input type="checkbox" v-model="continuaDopoSalvataggio" :disabled="saving" />
+                Continua dopo il salvataggio
+              </label>
+            </div>
+            <p v-if="sessionMovementCount > 0 && !editingMovementId" class="muted" style="margin-top:.4rem">
+              {{ sessionMovementCount }} moviment{{ sessionMovementCount > 1 ? 'i' : 'o' }} registrat{{ sessionMovementCount > 1 ? 'i' : 'o' }} in questa sessione.
+              Ultimo: {{ lastSavedMovementLabel }}
+            </p>
           </div>
         </div>
       </details>

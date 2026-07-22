@@ -24,6 +24,7 @@ export async function upsertMovement({
         tipoMovimento: form.tipoMovimento,
         quantita: Number(form.quantita || 0),
         dataMovimento: movementDate,
+        causale: form.causale?.trim() || '',
         note: form.note?.trim() || '',
         updatedAt: now,
         deletedAt: existing?.deletedAt ?? null,
