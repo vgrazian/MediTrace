@@ -246,6 +246,26 @@ const selectedBatchStock = computed(() => {
   return Number(batch.quantitaAttuale)
 })
 
+const causaleSuggestions = computed(() => {
+  const map = {
+    carico: ['Acquisto fornitore', 'Ricevuto da magazzino centrale', 'Reso paziente', 'Rettifica inventario (+)', 'Donazione ricevuta', 'Trasferimento da altra sede'],
+    scarico: ['Scaduto', 'Ceduto ad altra struttura', 'Deteriorato', 'Rottura confezione', 'Reso a fornitore', 'Furto o smarrimento'],
+    somministrazione: ['Somministrazione a paziente', 'Terapia programmata', 'Somministrazione al bisogno', 'Prima dose', 'Sostituzione terapia'],
+    correzione: ['Rettifica inventario', 'Conteggio manuale', 'Errore registrazione', 'Riconciliazione magazzino'],
+  }
+  return map[form.value.tipoMovimento] || map.scarico
+})
+
+const causalePlaceholder = computed(() => {
+  const map = {
+    carico: 'Es. Acquisto fornitore, Reso paziente, Donazione...',
+    scarico: 'Es. Scaduto, Ceduto, Deteriorato, Rottura...',
+    somministrazione: 'Es. Somministrazione a paziente, Terapia programmata...',
+    correzione: 'Es. Rettifica inventario, Errore registrazione...',
+  }
+  return map[form.value.tipoMovimento] || map.scarico
+})
+
 function hostLabel(hostId) {
   if (!hostId) return '—'
   const host = hosts.value.find((item) => item.id === hostId)
@@ -802,16 +822,25 @@ async function deleteSelectedMovements() {
               </select>
             </label>
 
-            <ValidatedInput
-              v-model="form.causale"
-              field-name="causale"
-              label="Causale (motivazione)"
-              type="text"
-              placeholder="Es. Acquisto mensile, Reso fornitore, Rottura confezione"
-              :error="errors.causale"
-              :disabled="saving"
-              @validate="(field, value) => validateField(field, value)"
-            />
+            <label>
+              Causale (motivazione)
+              <input
+                v-model="form.causale"
+                type="text"
+                :placeholder="causalePlaceholder"
+                :disabled="saving"
+                list="causale-suggestions"
+                :aria-invalid="!!errors.causale"
+                :aria-describedby="errors.causale ? 'causale-error' : undefined"
+                @blur="validateField('causale', form.causale)"
+              />
+              <datalist id="causale-suggestions">
+                <option v-for="s in causaleSuggestions" :key="s" :value="s" />
+              </datalist>
+              <span v-if="errors.causale" id="causale-error" class="error-message" role="alert">
+                {{ errors.causale }}
+              </span>
+            </label>
 
             <ValidatedInput
               v-model="form.note"
